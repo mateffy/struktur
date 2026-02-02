@@ -20,13 +20,14 @@ Example (usage shown in `README.md`):
 
 - `src/extract.ts`: main entrypoint; delegates to strategy.
 - `src/types.ts`: core DTOs and strategy interfaces.
-- `src/artifacts/`: artifact helpers and provider registry.
+- `src/artifacts/`: artifact helpers, provider registry, and input parsing/validation.
 - `src/chunking/`: token-aware splitting and batching.
 - `src/llm/`: Vercel AI SDK wrapper, message building, retry loop.
 - `src/prompts/`: prompt builders and artifact XML formatting.
 - `src/merge/`: schema-aware merge and dedup utilities.
 - `src/strategies/`: extraction strategies and concurrency helpers.
 - `src/validation/`: Ajv validator and error shaping.
+- `src/cli.ts`: CLI entrypoint for extraction and artifact verification.
 - Each `src/*/AGENTS.md` describes its subtree.
 
 
