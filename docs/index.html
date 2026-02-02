@@ -21,7 +21,7 @@
             <div class="container header-inner">
                 <a class="logo" href="./index.html">
                     <span class="logo-icon">◈</span>
-                    <span class="logo-text">/struktur</span>
+                    <span class="logo-text">/@mateffy/struktur</span>
                 </a>
                 <nav class="nav-links">
                     <a href="#overview">Overview</a>
@@ -371,7 +371,7 @@ flowchart TD
                             </div>
                         </div>
                     </div>
-                    <pre class="code-block"><code><span class="tok-keyword">import</span> { extract, simple } <span class="tok-keyword">from</span> <span class="tok-string">"struktur"</span>;
+                    <pre class="code-block"><code><span class="tok-keyword">import</span> { extract, simple } <span class="tok-keyword">from</span> <span class="tok-string">"@mateffy/struktur"</span>;
 <span class="tok-keyword">import</span> <span class="tok-keyword">type</span> { JSONSchemaType } <span class="tok-keyword">from</span> <span class="tok-string">"ajv"</span>;
 <span class="tok-keyword">import</span> { google } <span class="tok-keyword">from</span> <span class="tok-string">"@ai-sdk/google"</span>;
 
@@ -432,7 +432,7 @@ console.log(result.data.title);</code></pre>
             }
 
             function getTheme() {
-                const stored = localStorage.getItem("struktur-theme");
+                const stored = localStorage.getItem("@mateffy/struktur-theme");
                 if (stored) return stored;
                 return window.matchMedia("(prefers-color-scheme: dark)").matches
                     ? "dark"
@@ -441,7 +441,7 @@ console.log(result.data.title);</code></pre>
 
             function setTheme(theme) {
                 document.documentElement.setAttribute("data-theme", theme);
-                localStorage.setItem("struktur-theme", theme);
+                localStorage.setItem("@mateffy/struktur-theme", theme);
                 updateThemeIcon(theme);
                 initMermaid(theme);
             }

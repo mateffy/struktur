@@ -127,7 +127,7 @@ Example token colors (dark code background):
 
 Use this JS logic on both pages:
 
-- `getTheme()` reads from `localStorage` key `struktur-theme`, else uses `prefers-color-scheme`.
+- `getTheme()` reads from `localStorage` key `@mateffy/struktur-theme`, else uses `prefers-color-scheme`.
 - `setTheme(theme)` sets `data-theme` on `documentElement` and updates `localStorage`.
 - Toggle button flips between light and dark and updates the icon.
 - Icon uses `◐` for light, `◑` for dark.

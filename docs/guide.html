@@ -21,7 +21,7 @@
             <aside class="doc-sidebar">
                 <a class="logo" href="./index.html">
                     <span class="logo-icon">◈</span>
-                    <span class="logo-text">/struktur</span>
+                    <span class="logo-text">/@mateffy/struktur</span>
                 </a>
                 <div class="section-divider" data-label="Documentation"></div>
                 <nav class="doc-nav">
@@ -82,14 +82,14 @@
                         <pre class="code-block"><code>bun install
 </code></pre>
                         <p style="margin-top: 1rem">
-                            Struktur is published as <code>struktur</code> in
+                            Struktur is published as <code>@mateffy/struktur</code> in
                             <code>package.json</code>.
                         </p>
                     </section>
 
                     <section class="doc-section" id="quick-start">
                         <h2>Quick start</h2>
-                        <pre class="code-block"><code><span class="tok-keyword">import</span> { extract, simple } <span class="tok-keyword">from</span> <span class="tok-string">"struktur"</span>;
+                        <pre class="code-block"><code><span class="tok-keyword">import</span> { extract, simple } <span class="tok-keyword">from</span> <span class="tok-string">"@mateffy/struktur"</span>;
 <span class="tok-keyword">import</span> <span class="tok-keyword">type</span> { JSONSchemaType } <span class="tok-keyword">from</span> <span class="tok-string">"ajv"</span>;
 <span class="tok-keyword">import</span> { google } <span class="tok-keyword">from</span> <span class="tok-string">"@ai-sdk/google"</span>;
 
@@ -260,7 +260,7 @@ flowchart TD
                                 batch.
                             </li>
                         </ul>
-                        <pre class="code-block" style="margin-top: 1rem"><code><span class="tok-keyword">import</span> { extract, parallel } <span class="tok-keyword">from</span> <span class="tok-string">"struktur"</span>;
+                        <pre class="code-block" style="margin-top: 1rem"><code><span class="tok-keyword">import</span> { extract, parallel } <span class="tok-keyword">from</span> <span class="tok-string">"@mateffy/struktur"</span>;
 <span class="tok-keyword">import</span> { google } <span class="tok-keyword">from</span> <span class="tok-string">"@ai-sdk/google"</span>;
 
 <span class="tok-keyword">const</span> result = <span class="tok-keyword">await</span> extract({
@@ -371,7 +371,7 @@ flowchart TD
                             Register a handler for new MIME types and return a
                             normalized artifact.
                         </p>
-                        <pre class="code-block"><code><span class="tok-keyword">import</span> { registerArtifactProvider, fileToArtifact } <span class="tok-keyword">from</span> <span class="tok-string">"struktur"</span>;
+                        <pre class="code-block"><code><span class="tok-keyword">import</span> { registerArtifactProvider, fileToArtifact } <span class="tok-keyword">from</span> <span class="tok-string">"@mateffy/struktur"</span>;
 
 registerArtifactProvider(<span class="tok-string">"application/pdf"</span>, <span class="tok-keyword">async</span> (buffer) <span class="tok-operator">=&gt;</span> ({
   <span class="tok-operator">id</span>: <span class="tok-string">"pdf-1"</span>,
@@ -391,7 +391,7 @@ registerArtifactProvider(<span class="tok-string">"application/pdf"</span>, <spa
                             custom orchestration logic while keeping the same
                             inputs and output contracts.
                         </p>
-                        <pre class="code-block"><code><span class="tok-keyword">import</span> <span class="tok-keyword">type</span> { ExtractionStrategy } <span class="tok-keyword">from</span> <span class="tok-string">"struktur"</span>;
+                        <pre class="code-block"><code><span class="tok-keyword">import</span> <span class="tok-keyword">type</span> { ExtractionStrategy } <span class="tok-keyword">from</span> <span class="tok-string">"@mateffy/struktur"</span>;
 
 <span class="tok-keyword">const</span> custom: ExtractionStrategy&lt;{ ok: <span class="tok-keyword">boolean</span> }&gt; = {
   <span class="tok-operator">name</span>: <span class="tok-string">"custom"</span>,
@@ -451,7 +451,7 @@ registerArtifactProvider(<span class="tok-string">"application/pdf"</span>, <spa
             }
 
             function getTheme() {
-                const stored = localStorage.getItem("struktur-theme");
+                const stored = localStorage.getItem("@mateffy/struktur-theme");
                 if (stored) return stored;
                 return window.matchMedia("(prefers-color-scheme: dark)").matches
                     ? "dark"
@@ -460,7 +460,7 @@ registerArtifactProvider(<span class="tok-string">"application/pdf"</span>, <spa
 
             function setTheme(theme) {
                 document.documentElement.setAttribute("data-theme", theme);
-                localStorage.setItem("struktur-theme", theme);
+                localStorage.setItem("@mateffy/struktur-theme", theme);
                 updateThemeIcon(theme);
                 initMermaid(theme);
             }

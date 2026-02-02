@@ -19,7 +19,7 @@ bun install
 ## Quick start
 
 ```ts
-import { extract, simple } from "struktur";
+import { extract, simple } from "@mateffy/struktur";
 import type { JSONSchemaType } from "ajv";
 import { google } from "@ai-sdk/google";
 
@@ -74,7 +74,7 @@ Common options (varies by strategy):
 - `outputInstructions`: extra system output instructions.
 
 ```ts
-import { extract, parallel } from "struktur";
+import { extract, parallel } from "@mateffy/struktur";
 import { google } from "@ai-sdk/google";
 
 const result = await extract({
@@ -94,7 +94,7 @@ const result = await extract({
 Artifacts are JSON DTOs with text and media slices. Struktur does not parse PDFs or HTML; it expects normalized inputs.
 
 ```ts
-import { urlToArtifact, fileToArtifact, registerArtifactProvider } from "struktur";
+import { urlToArtifact, fileToArtifact, registerArtifactProvider } from "@mateffy/struktur";
 
 const artifact = await urlToArtifact("https://example.com/artifact.json");
 
