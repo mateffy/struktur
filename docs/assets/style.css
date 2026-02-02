@@ -444,6 +444,20 @@ a {
   overflow-x: auto;
 }
 
+.mermaid {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  font-size: 0.8rem;
+  overflow-x: auto;
+}
+
+.mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+
 .code-block .tok-keyword {
   color: #ffd166;
 }

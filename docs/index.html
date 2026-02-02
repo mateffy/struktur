@@ -149,6 +149,30 @@
                 </div>
             </section>
 
+            <section class="section" id="flows">
+                <div class="container">
+                    <div class="section-header">
+                        <div>
+                            <div class="section-title">Strategy flow</div>
+                            <div class="section-subtitle">
+                                A simple visual of the default extraction path.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mermaid">
+flowchart TD
+    A([Start]) --> B[Load artifacts]
+    B --> C{Token budget fits?}
+    C -->|Yes| D[Send full batch to LLM]
+    C -->|No| E[Chunk artifacts to fit]
+    D --> F[Extract structured data]
+    E --> F
+    F --> G[Return validated result]
+    G --> H([End])
+                    </div>
+                </div>
+            </section>
+
             <section class="section" id="features">
                 <div class="container">
                     <div class="section-divider" data-label="Highlights"></div>
@@ -388,7 +412,25 @@ console.log(result.data.title);</code></pre>
             </div>
         </footer>
 
+        <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
         <script>
+            function initMermaid(theme) {
+                if (!window.mermaid) return;
+                mermaid.initialize({
+                    startOnLoad: false,
+                    theme: theme === "dark" ? "dark" : "neutral",
+                    themeVariables: {
+                        fontFamily: "JetBrains Mono",
+                        primaryColor: theme === "dark" ? "#141414" : "#ffffff",
+                        primaryTextColor: theme === "dark" ? "#e5e5e5" : "#1a1a1a",
+                        primaryBorderColor: theme === "dark" ? "#2a2a2a" : "#d0d0d0",
+                        lineColor: theme === "dark" ? "#707070" : "#4a4a4a",
+                        secondaryColor: theme === "dark" ? "#1a1a1a" : "#f5f5f5",
+                    },
+                });
+                mermaid.run({ querySelector: ".mermaid" });
+            }
+
             function getTheme() {
                 const stored = localStorage.getItem("struktur-theme");
                 if (stored) return stored;
@@ -401,6 +443,7 @@ console.log(result.data.title);</code></pre>
                 document.documentElement.setAttribute("data-theme", theme);
                 localStorage.setItem("struktur-theme", theme);
                 updateThemeIcon(theme);
+                initMermaid(theme);
             }
 
             function updateThemeIcon(theme) {
@@ -426,6 +469,7 @@ console.log(result.data.title);</code></pre>
                 } else {
                     updateThemeIcon(theme);
                 }
+                initMermaid(theme);
             })();
 
             const tabs = Array.from(document.querySelectorAll(".strategy-tab"));

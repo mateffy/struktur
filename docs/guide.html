@@ -31,6 +31,7 @@
                     <a href="#artifacts">Artifacts</a>
                     <a href="#chunking">Chunking</a>
                     <a href="#strategies">Strategies</a>
+                    <a href="#examples">Examples</a>
                     <a href="#validation">Validation</a>
                     <a href="#merge">Merge &amp; dedupe</a>
                     <a href="#events">Events</a>
@@ -186,6 +187,79 @@ console.log(result.data.title);</code></pre>
                                 followed by refinement.
                             </li>
                         </ul>
+                        <h3>Simple</h3>
+                        <p>
+                            Sends as much content as possible in a single call.
+                            If the input exceeds the token budget, artifacts are
+                            chunked to fit.
+                        </p>
+                        <div class="mermaid">
+flowchart TD
+    A([Start]) --> B[Load artifacts]
+    B --> C{Token budget fits?}
+    C -->|Yes| D[Single LLM call]
+    C -->|No| E[Chunk artifacts]
+    E --> D
+    D --> F[Validate + return]
+                        </div>
+
+                        <h3>Sequential</h3>
+                        <p>
+                            Processes chunks one by one and feeds previous
+                            outputs into the next prompt to preserve context.
+                        </p>
+                        <div class="mermaid">
+flowchart TD
+    A([Start]) --> B[Chunk artifacts]
+    B --> C[LLM on chunk 1]
+    C --> D[Append results to prompt]
+    D --> E[LLM on chunk 2]
+    E --> F[Merge all outputs]
+    F --> G[Validate + return]
+                        </div>
+
+                        <h3>Parallel</h3>
+                        <p>
+                            Processes chunks independently for speed, then
+                            merges results in a final step.
+                        </p>
+                        <div class="mermaid">
+flowchart TD
+    A([Start]) --> B[Chunk artifacts]
+    B --> C1[LLM chunk 1]
+    B --> C2[LLM chunk 2]
+    B --> C3[LLM chunk N]
+    C1 --> D[Merge results]
+    C2 --> D
+    C3 --> D
+    D --> E[Validate + return]
+                        </div>
+
+                        <h3>Double pass</h3>
+                        <p>
+                            Runs a fast parallel pass, then refines the merged
+                            output with a sequential pass for higher accuracy.
+                        </p>
+                        <div class="mermaid">
+flowchart TD
+    A([Start]) --> B[Parallel pass]
+    B --> C[Merge draft]
+    C --> D[Sequential refinement]
+    D --> E[Validate + return]
+                        </div>
+
+                        <h3>Strategy options</h3>
+                        <ul>
+                            <li><strong>model</strong>: LLM used for extraction.</li>
+                            <li>
+                                <strong>mergeModel</strong>: optional model for
+                                merge steps.
+                            </li>
+                            <li>
+                                <strong>chunkSize</strong>: token budget per
+                                batch.
+                            </li>
+                        </ul>
                         <pre class="code-block" style="margin-top: 1rem"><code><span class="tok-keyword">import</span> { extract, parallel } <span class="tok-keyword">from</span> <span class="tok-string">"struktur"</span>;
 <span class="tok-keyword">import</span> { google } <span class="tok-keyword">from</span> <span class="tok-string">"@ai-sdk/google"</span>;
 
@@ -198,6 +272,55 @@ console.log(result.data.title);</code></pre>
     <span class="tok-operator">chunkSize</span>: <span class="tok-number">10_000</span>,
   }),
 });</code></pre>
+                    </section>
+
+                    <section class="doc-section" id="examples">
+                        <h2>Examples</h2>
+                        <p>
+                            Two real-world extraction patterns adapted from the
+                            prior PHP implementation, updated for Struktur.
+                        </p>
+
+                        <h3>Real estate exposés</h3>
+                        <p>
+                            Extract property data, nested units, and associated
+                            images from PDF exposés or HTML listings. A
+                            sequential auto-merge strategy helps preserve
+                            context across pages and consolidate repeated units.
+                        </p>
+                        <pre class="code-block"><code>{
+  <span class="tok-string">"name"</span>: <span class="tok-string">"Modern Apartment in City Center"</span>,
+  <span class="tok-string">"address"</span>: <span class="tok-string">"12 Example Street"</span>,
+  <span class="tok-string">"units"</span>: [
+    {
+      <span class="tok-string">"label"</span>: <span class="tok-string">"Apartment 1"</span>,
+      <span class="tok-string">"rent_per_m2"</span>: <span class="tok-number">15.5</span>,
+      <span class="tok-string">"images"</span>: [<span class="tok-string">"artifact:images/image1.png"</span>]
+    }
+  ]
+}</code></pre>
+
+                        <h3>Paper invoices to structured data</h3>
+                        <p>
+                            Extract invoice numbers, line items, and totals from
+                            scanned PDFs or images. Start with a simple strategy
+                            and add validation logic in a custom strategy if
+                            totals must reconcile.
+                        </p>
+                        <pre class="code-block"><code>{
+  <span class="tok-string">"invoiceNumber"</span>: <span class="tok-string">"INV-2022-001"</span>,
+  <span class="tok-string">"currency"</span>: <span class="tok-string">"EUR"</span>,
+  <span class="tok-string">"lineItems"</span>: [
+    {
+      <span class="tok-string">"position"</span>: <span class="tok-number">1</span>,
+      <span class="tok-string">"description"</span>: <span class="tok-string">"Product A"</span>,
+      <span class="tok-string">"netAmount"</span>: <span class="tok-number">200.0</span>
+    }
+  ],
+  <span class="tok-string">"totalAmounts"</span>: {
+    <span class="tok-string">"grossTotal"</span>: <span class="tok-number">416.5</span>
+  }
+}</code></pre>
                     </section>
 
                     <section class="doc-section" id="validation">
@@ -308,7 +431,25 @@ registerArtifactProvider(<span class="tok-string">"application/pdf"</span>, <spa
             </main>
         </div>
 
+        <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
         <script>
+            function initMermaid(theme) {
+                if (!window.mermaid) return;
+                mermaid.initialize({
+                    startOnLoad: false,
+                    theme: theme === "dark" ? "dark" : "neutral",
+                    themeVariables: {
+                        fontFamily: "JetBrains Mono",
+                        primaryColor: theme === "dark" ? "#141414" : "#ffffff",
+                        primaryTextColor: theme === "dark" ? "#e5e5e5" : "#1a1a1a",
+                        primaryBorderColor: theme === "dark" ? "#2a2a2a" : "#d0d0d0",
+                        lineColor: theme === "dark" ? "#707070" : "#4a4a4a",
+                        secondaryColor: theme === "dark" ? "#1a1a1a" : "#f5f5f5",
+                    },
+                });
+                mermaid.run({ querySelector: ".mermaid" });
+            }
+
             function getTheme() {
                 const stored = localStorage.getItem("struktur-theme");
                 if (stored) return stored;
@@ -321,6 +462,7 @@ registerArtifactProvider(<span class="tok-string">"application/pdf"</span>, <spa
                 document.documentElement.setAttribute("data-theme", theme);
                 localStorage.setItem("struktur-theme", theme);
                 updateThemeIcon(theme);
+                initMermaid(theme);
             }
 
             function updateThemeIcon(theme) {
@@ -346,6 +488,7 @@ registerArtifactProvider(<span class="tok-string">"application/pdf"</span>, <spa
                 } else {
                     updateThemeIcon(theme);
                 }
+                initMermaid(theme);
             })();
 
             const navLinks = Array.from(

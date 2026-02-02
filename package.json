@@ -1,5 +1,5 @@
 {
-  "name": "struktur",
+  "name": "@mateffy/struktur",
   "module": "src/index.ts",
   "type": "module",
   "devDependencies": {

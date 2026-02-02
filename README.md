@@ -1,44 +1,25 @@
-# LLM Magic (TypeScript)
+# Struktur
 
-LLM Magic is a TypeScript-first extraction engine built on the Vercel AI SDK. It focuses on message contents, flexible chunking, and strategy-driven extraction flows. Artifacts are DTOs (already-parsed JSON), so you can plug in your own document pipeline.
+Struktur is a TypeScript extraction engine that turns pre-parsed artifacts into validated JSON using the Vercel AI SDK. It chunks content by token budgets, runs strategy-driven workflows, validates with Ajv, and merges or dedupes when needed.
 
-## Architecture Overview
+## Highlights
 
-- Entry: `extract()` delegates to a strategy.
-- Strategies: `simple`, `parallel`, `sequential`, `parallelAutoMerge`, `sequentialAutoMerge`, `doublePass`, `doublePassAutoMerge`.
-- Chunking: artifacts split and batched by token counts and optional image limits.
-- Prompts: exact prompt text from the PHP version, with artifact XML formatting.
-- Validation: Ajv validates outputs; retries feed schema errors back to the LLM.
-- Merging: smart schema-aware merge + hash dedupe + optional LLM dedupe.
-
-```
-extract()
-  -> strategy.run()
-     -> batchArtifacts() / splitArtifact()
-        -> prompt builder(s)
-           -> runWithRetries()
-              -> Ajv validation / retry
-              -> merge / dedupe (strategy-specific)
-```
+- Strategy-driven extraction: simple, parallel, sequential, auto-merge, or double-pass.
+- Token-aware batching with optional image limits.
+- Schema-first validation with Ajv retries on failure.
+- Merge and dedupe with schema-aware rules and CRC32 hashing.
+- Typed results with Ajv `JSONSchemaType<T>`.
 
 ## Installation
 
-```
+```sh
 bun install
 ```
 
-## Core Concepts
+## Quick start
 
-- **Artifacts** are JSON DTOs with text and media slices. You control how they are produced.
-- **Chunking** splits large artifacts and batches them by token budgets.
-- **Strategies** define how batches are processed and merged.
-- **Events** give you progress hooks for UI updates.
-
-## Usage Examples
-
-### 1) Basic Extraction
 ```ts
-import { extract, simple } from "@mateffy/llm-magic";
+import { extract, simple } from "struktur";
 import type { JSONSchemaType } from "ajv";
 import { google } from "@ai-sdk/google";
 
@@ -57,12 +38,43 @@ const result = await extract({
   strategy: simple({ model: google("claude-haiku-4-5") }),
 });
 
-result.data.title;
+console.log(result.data.title);
 ```
 
-### 2) Parallel Strategy with Merge
+## How it works
+
+```
+extract()
+  -> strategy.run()
+     -> batchArtifacts() / splitArtifact()
+        -> prompt builder(s)
+           -> runWithRetries()
+              -> Ajv validation / retry
+              -> merge / dedupe (strategy-specific)
+```
+
+## Strategies
+
+- `simple`: single-shot extraction. Best for small inputs.
+- `parallel`: concurrent batches, then LLM merge.
+- `sequential`: batches processed in order with context carryover.
+- `parallelAutoMerge`: schema-aware merge + hash dedupe + LLM dedupe.
+- `sequentialAutoMerge`: sequential merge with dedupe pass.
+- `doublePass`: parallel merge, then sequential refinement.
+- `doublePassAutoMerge`: auto-merge first, then sequential refinement.
+
+Common options (varies by strategy):
+
+- `model`: base extraction model.
+- `mergeModel`: optional merge model (parallel/double pass).
+- `dedupeModel`: optional dedupe model (auto-merge strategies).
+- `chunkSize`: token budget per batch.
+- `maxImages`: optional image limit per batch.
+- `concurrency`: maximum parallel batches.
+- `outputInstructions`: extra system output instructions.
+
 ```ts
-import { extract, parallel } from "@mateffy/llm-magic";
+import { extract, parallel } from "struktur";
 import { google } from "@ai-sdk/google";
 
 const result = await extract({
@@ -72,66 +84,19 @@ const result = await extract({
     model: google("claude-haiku-4-5"),
     mergeModel: google("claude-haiku-4-5"),
     chunkSize: 10_000,
+    concurrency: 4,
   }),
 });
 ```
 
-### 3) Sequential Strategy with Context
+## Artifacts
+
+Artifacts are JSON DTOs with text and media slices. Struktur does not parse PDFs or HTML; it expects normalized inputs.
+
 ```ts
-import { extract, sequential } from "@mateffy/llm-magic";
-import { google } from "@ai-sdk/google";
-
-const result = await extract({
-  artifacts,
-  schema,
-  strategy: sequential({
-    model: google("claude-haiku-4-5"),
-    chunkSize: 10_000,
-  }),
-});
-```
-
-### 4) Auto-Merge with Dedup
-```ts
-import { extract, parallelAutoMerge } from "@mateffy/llm-magic";
-import { google } from "@ai-sdk/google";
-
-const result = await extract({
-  artifacts,
-  schema,
-  strategy: parallelAutoMerge({
-    model: google("claude-haiku-4-5"),
-    chunkSize: 10_000,
-  }),
-});
-```
-
-### 5) Double Pass Refinement
-```ts
-import { extract, doublePass } from "@mateffy/llm-magic";
-import { google } from "@ai-sdk/google";
-
-const result = await extract({
-  artifacts,
-  schema,
-  strategy: doublePass({
-    model: google("claude-haiku-4-5"),
-    mergeModel: google("claude-haiku-4-5"),
-    chunkSize: 10_000,
-  }),
-});
-```
-
-### 6) Artifact from URL
-```ts
-import { urlToArtifact } from "@mateffy/llm-magic";
+import { urlToArtifact, fileToArtifact, registerArtifactProvider } from "struktur";
 
 const artifact = await urlToArtifact("https://example.com/artifact.json");
-```
-
-### 7) Custom File Provider
-```ts
-import { registerArtifactProvider, fileToArtifact } from "@mateffy/llm-magic";
 
 registerArtifactProvider("application/pdf", async (buffer) => ({
   id: "pdf-1",
@@ -140,22 +105,18 @@ registerArtifactProvider("application/pdf", async (buffer) => ({
   contents: [{ page: 1, text: "..." }],
 }));
 
-const artifact = await fileToArtifact(buffer, { mimeType: "application/pdf" });
+const fromFile = await fileToArtifact(buffer, { mimeType: "application/pdf" });
 ```
 
-### 8) Events for UI
-```ts
-import { extract, parallel } from "@mateffy/llm-magic";
-import { google } from "@ai-sdk/google";
+## Events
 
+Use events for progress and validation retries.
+
+```ts
 const result = await extract({
   artifacts,
   schema,
-  strategy: parallel({
-    model: google("claude-haiku-4-5"),
-    mergeModel: google("claude-haiku-4-5"),
-    chunkSize: 10_000,
-  }),
+  strategy,
   events: {
     onStep: ({ step, total, label }) => {
       console.log("step", step, total, label);
@@ -167,46 +128,13 @@ const result = await extract({
 });
 ```
 
-### 9) Typed Schema Support
-```ts
-import type { JSONSchemaType } from "ajv";
-
-type Output = { title: string };
-const schema: JSONSchemaType<Output> = {
-  type: "object",
-  properties: { title: { type: "string" } },
-  required: ["title"],
-  additionalProperties: false,
-};
-
-const result = await extract({ artifacts, schema, strategy });
-result.data.title; // typed
-```
-
-### 10) Custom Strategy
-```ts
-import type { ExtractionStrategy } from "@mateffy/llm-magic";
-
-const custom: ExtractionStrategy<{ ok: boolean }> = {
-  name: "custom",
-  run: async () => ({
-    data: { ok: true },
-    usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
-  }),
-};
-```
-
-## Strategy Guidance
-
-- `simple`: single-shot extraction.
-- `parallel`: batch concurrently, then LLM merge.
-- `sequential`: batch sequentially with context preservation.
-- `parallelAutoMerge`: fast merge + dedupe.
-- `sequentialAutoMerge`: safe merge + dedupe.
-- `doublePass`: refine after a full merge.
-
 ## Testing
 
-```
+```sh
 bun test
 ```
+
+## Documentation
+
+- Landing page: `docs/index.html`
+- Full guide: `docs/guide.html`
