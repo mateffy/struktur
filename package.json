@@ -1,0 +1,16 @@
+{
+  "name": "struktur",
+  "module": "src/index.ts",
+  "type": "module",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "ai": "^6.0.59",
+    "ajv": "^8.17.1",
+    "crc-32": "^1.2.2"
+  }
+}
