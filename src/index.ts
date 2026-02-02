@@ -14,6 +14,15 @@ export type {
 
 export { extract } from "./extract";
 
+export type {
+  ArtifactInput,
+  ArtifactInputParser,
+  SerializedArtifact,
+  SerializedArtifactContent,
+  SerializedArtifactImage,
+  SerializedArtifacts,
+} from "./artifacts/input";
+
 export { urlToArtifact } from "./artifacts/urlToArtifact";
 export { fileToArtifact } from "./artifacts/fileToArtifact";
 export { registerArtifactProvider, clearArtifactProviders } from "./artifacts/providers";

@@ -2,6 +2,9 @@
   "name": "@mateffy/struktur",
   "module": "src/index.ts",
   "type": "module",
+  "bin": {
+    "struktur": "src/cli.ts"
+  },
   "devDependencies": {
     "@types/bun": "latest"
   },
