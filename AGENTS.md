@@ -140,6 +140,26 @@ bun --hot ./index.ts
 
 For more information, read the Bun API docs in `node_modules/bun-types/docs/**.md`.
 
+## Documentation Styling Guide
+
+Use the visual system derived from the clawkey UI reference when building documentation pages under `docs/`.
+
+- **Typography:** Use `JetBrains Mono` for all text. Headings are uppercase with letter spacing (`0.04em` to `0.12em`).
+- **Color system:** Grayscale palette with minimal accents. Base tokens:
+  - Backgrounds: `--bg` `#fafafa`, `--bg-elevated` `#ffffff`, `--sidebar-bg` `#f5f5f5`
+  - Text: `--text` `#1a1a1a`, `--text-secondary` `#555555`, `--text-muted` `#808080`, `--text-subtle` `#a0a0a0`
+  - Borders: `--border` `#e0e0e0`, `--border-subtle` `#f0f0f0`, `--border-strong` `#d0d0d0`
+  - Accent: `--accent` `#1a1a1a`, `--accent-hover` `#404040`, `--secure-bg` `#f8f8f8`
+- **Layout:** Centered main content with max width ~980px. Documentation pages use a fixed left sidebar (240px) with section nav.
+- **Components:**
+  - Cards: `1px` border, `4px` radius, no heavy shadows.
+  - Buttons: solid accent for primary, bordered neutral for secondary.
+  - Badges: uppercase labels, gray background.
+  - Code blocks: dark background (`--key-bg`) with light text (`--key-text`).
+- **Motion:** Keep transitions subtle (150ms) and avoid animated gradients.
+- **Dark mode:** Optional. If used, mirror the provided dark tokens in `docs/assets/style.css`.
+- **Copy:** Technical, concise, and structured. Use short paragraphs and focused bullet lists.
+
 ## Agent Notes
 
 - When you add or significantly change code under `src/`, update the nearest `AGENTS.md` in that subtree to reflect the current structure and responsibilities.

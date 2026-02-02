@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Struktur Documentation</title>
+        <meta
+            name="description"
+            content="Struktur is a TypeScript extraction engine for structured data using the Vercel AI SDK."
+        />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+            rel="stylesheet"
+        />
+        <link rel="stylesheet" href="./assets/style.css" />
+    </head>
+    <body>
+        <header class="site-header">
+            <div class="container header-inner">
+                <a class="logo" href="./index.html">
+                    <span class="logo-icon">◈</span>
+                    <span class="logo-text">/struktur</span>
+                </a>
+                <nav class="nav-links">
+                    <a href="#overview">Overview</a>
+                    <a href="#how-it-works">How It Works</a>
+                    <a href="#strategies">Strategies</a>
+                    <a href="#usage">Usage</a>
+                    <a href="./guide.html">Docs</a>
+                </nav>
+                <button
+                    class="theme-toggle"
+                    onclick="toggleTheme()"
+                    aria-label="Toggle theme"
+                >
+                    <span id="theme-icon">◐</span>
+                </button>
+            </div>
+        </header>
+
+        <main>
+            <section class="hero" id="overview">
+                <div class="container hero-grid">
+                    <div>
+                        <span class="hero-eyebrow"
+                            >Structured extraction toolkit</span
+                        >
+                        <h1 class="hero-title">Struktur</h1>
+                        <p class="hero-subtitle">
+                            Struktur is a TypeScript-first extraction engine that
+                            turns parsed artifacts into validated JSON using the
+                            Vercel AI SDK. It batches content by token budgets, runs
+                            strategy-driven workflows, validates with Ajv, and
+                            merges or dedupes where needed.
+                        </p>
+                        <div class="hero-actions">
+                            <a class="btn" href="./guide.html"
+                                >Read the Documentation</a
+                            >
+                            <a class="btn btn-secondary" href="#usage"
+                                >See a Quick Example</a
+                            >
+                        </div>
+                    </div>
+                    <div class="hero-panel">
+                        <div class="hero-panel-title">Extraction pipeline</div>
+                        <div class="pipeline">
+                            <div class="pipeline-step">
+                                <div class="pipeline-dot"></div>
+                                <div>
+                                    <span>Artifacts</span>
+                                    <div>Normalized text + media slices</div>
+                                </div>
+                            </div>
+                            <div class="pipeline-step">
+                                <div class="pipeline-dot delay"></div>
+                                <div>
+                                    <span>Chunking</span>
+                                    <div>Token-aware batching</div>
+                                </div>
+                            </div>
+                            <div class="pipeline-step">
+                                <div class="pipeline-dot delay-2"></div>
+                                <div>
+                                    <span>Strategy</span>
+                                    <div>Parallel, sequential, or auto-merge</div>
+                                </div>
+                            </div>
+                            <div class="pipeline-step">
+                                <div class="pipeline-dot"></div>
+                                <div>
+                                    <span>Validation</span>
+                                    <div>Ajv retries + schema checks</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section" id="how-it-works">
+                <div class="container">
+                    <div class="section-header">
+                        <div>
+                            <div class="section-title">How it works</div>
+                            <div class="section-subtitle">
+                                A predictable extraction pipeline you can audit
+                                and control.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="card-title">
+                                    1. Provide artifacts
+                                </div>
+                                <p class="card-text">
+                                    Artifacts are JSON DTOs with text and media
+                                    slices. You bring your own parsing pipeline.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="card-title">
+                                    2. Select a strategy
+                                </div>
+                                <p class="card-text">
+                                    Run extraction in parallel, sequentially, or
+                                    with an auto-merge and dedupe pass.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="card-title">
+                                    3. Validate and merge
+                                </div>
+                                <p class="card-text">
+                                    Ajv validation retries on schema errors,
+                                    then results merge with schema-aware rules.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section" id="features">
+                <div class="container">
+                    <div class="section-divider" data-label="Highlights"></div>
+                    <div class="grid grid-2">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="card-title">
+                                    Token-aware chunking
+                                </div>
+                                <p class="card-text">
+                                    Split artifacts by token limits, preserve
+                                    image budgets, and batch reliably for LLM
+                                    calls.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="card-title">
+                                    Strategy orchestration
+                                </div>
+                                <p class="card-text">
+                                    Choose from simple, parallel, sequential,
+                                    auto-merge, or double pass refinement
+                                    workflows.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="card-title">
+                                    Schema-first validation
+                                </div>
+                                <p class="card-text">
+                                    Ajv validates every output, then feeds
+                                    errors back to the LLM for targeted retries.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="card-title">Merge and dedupe</div>
+                                <p class="card-text">
+                                    Merge outputs using schema-aware rules and
+                                    optional LLM dedupe for clean results.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section" id="strategies">
+                <div class="container">
+                    <div class="section-header">
+                        <div>
+                            <div class="section-title">Strategies</div>
+                            <div class="section-subtitle">
+                                Pick the extraction flow that matches your
+                                constraints.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="strategy-tabs" role="tablist">
+                        <button
+                            class="strategy-tab active"
+                            data-target="strategy-simple"
+                            role="tab"
+                        >
+                            Simple
+                        </button>
+                        <button
+                            class="strategy-tab"
+                            data-target="strategy-parallel"
+                            role="tab"
+                        >
+                            Parallel
+                        </button>
+                        <button
+                            class="strategy-tab"
+                            data-target="strategy-sequential"
+                            role="tab"
+                        >
+                            Sequential
+                        </button>
+                        <button
+                            class="strategy-tab"
+                            data-target="strategy-auto"
+                            role="tab"
+                        >
+                            Auto-merge
+                        </button>
+                        <button
+                            class="strategy-tab"
+                            data-target="strategy-double"
+                            role="tab"
+                        >
+                            Double pass
+                        </button>
+                        <button
+                            class="strategy-tab"
+                            data-target="strategy-custom"
+                            role="tab"
+                        >
+                            Custom
+                        </button>
+                    </div>
+                    <div
+                        class="strategy-panel active"
+                        id="strategy-simple"
+                        role="tabpanel"
+                    >
+                        <div class="card-title">Simple</div>
+                        <p class="card-text">
+                            Single-shot extraction for small datasets or fast
+                            prototypes.
+                        </p>
+                        <div class="strategy-metrics">
+                            <div class="metric-card">Latency<strong>Low</strong></div>
+                            <div class="metric-card">
+                                Control<strong>Minimal</strong>
+                            </div>
+                            <div class="metric-card">Merge<strong>None</strong></div>
+                        </div>
+                    </div>
+                    <div class="strategy-panel" id="strategy-parallel" role="tabpanel">
+                        <div class="card-title">Parallel</div>
+                        <p class="card-text">
+                            Run batches concurrently and merge with an LLM when
+                            needed.
+                        </p>
+                        <div class="strategy-metrics">
+                            <div class="metric-card">Latency<strong>Fast</strong></div>
+                            <div class="metric-card">Control<strong>Medium</strong></div>
+                            <div class="metric-card">Merge<strong>LLM</strong></div>
+                        </div>
+                    </div>
+                    <div class="strategy-panel" id="strategy-sequential" role="tabpanel">
+                        <div class="card-title">Sequential</div>
+                        <p class="card-text">
+                            Process chunks in order with context carryover for
+                            consistency.
+                        </p>
+                        <div class="strategy-metrics">
+                            <div class="metric-card">Latency<strong>Medium</strong></div>
+                            <div class="metric-card">Control<strong>High</strong></div>
+                            <div class="metric-card">Merge<strong>Manual</strong></div>
+                        </div>
+                    </div>
+                    <div class="strategy-panel" id="strategy-auto" role="tabpanel">
+                        <div class="card-title">Auto-merge</div>
+                        <p class="card-text">
+                            Merge and dedupe outputs automatically for larger
+                            datasets.
+                        </p>
+                        <div class="strategy-metrics">
+                            <div class="metric-card">Latency<strong>Fast</strong></div>
+                            <div class="metric-card">Control<strong>Medium</strong></div>
+                            <div class="metric-card">Merge<strong>Auto</strong></div>
+                        </div>
+                    </div>
+                    <div class="strategy-panel" id="strategy-double" role="tabpanel">
+                        <div class="card-title">Double pass</div>
+                        <p class="card-text">
+                            Refine a merged result with a second LLM pass.
+                        </p>
+                        <div class="strategy-metrics">
+                            <div class="metric-card">Latency<strong>High</strong></div>
+                            <div class="metric-card">Control<strong>High</strong></div>
+                            <div class="metric-card">Merge<strong>Refined</strong></div>
+                        </div>
+                    </div>
+                    <div class="strategy-panel" id="strategy-custom" role="tabpanel">
+                        <div class="card-title">Custom</div>
+                        <p class="card-text">
+                            Implement your own strategy using shared interfaces
+                            and orchestration helpers.
+                        </p>
+                        <div class="strategy-metrics">
+                            <div class="metric-card">Latency<strong>Variable</strong></div>
+                            <div class="metric-card">Control<strong>Full</strong></div>
+                            <div class="metric-card">Merge<strong>Custom</strong></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section" id="usage">
+                <div class="container">
+                    <div class="section-header">
+                        <div>
+                            <div class="section-title">Quick start</div>
+                            <div class="section-subtitle">
+                                A minimal extraction flow that returns typed
+                                data.
+                            </div>
+                        </div>
+                    </div>
+                    <pre class="code-block"><code><span class="tok-keyword">import</span> { extract, simple } <span class="tok-keyword">from</span> <span class="tok-string">"struktur"</span>;
+<span class="tok-keyword">import</span> <span class="tok-keyword">type</span> { JSONSchemaType } <span class="tok-keyword">from</span> <span class="tok-string">"ajv"</span>;
+<span class="tok-keyword">import</span> { google } <span class="tok-keyword">from</span> <span class="tok-string">"@ai-sdk/google"</span>;
+
+<span class="tok-keyword">type</span> <span class="tok-type">Output</span> = { title: <span class="tok-keyword">string</span> };
+
+<span class="tok-keyword">const</span> schema: JSONSchemaType&lt;<span class="tok-type">Output</span>&gt; = {
+  <span class="tok-operator">type</span>: <span class="tok-string">"object"</span>,
+  <span class="tok-operator">properties</span>: { title: { <span class="tok-operator">type</span>: <span class="tok-string">"string"</span> } },
+  <span class="tok-operator">required</span>: [<span class="tok-string">"title"</span>],
+  <span class="tok-operator">additionalProperties</span>: <span class="tok-keyword">false</span>,
+};
+
+<span class="tok-keyword">const</span> result = <span class="tok-keyword">await</span> extract({
+  <span class="tok-operator">artifacts</span>: [<span class="tok-comment">/* Artifact[] */</span>],
+  <span class="tok-operator">schema</span>,
+  <span class="tok-operator">strategy</span>: simple({ model: google(<span class="tok-string">"claude-haiku-4-5"</span>) }),
+});
+
+console.log(result.data.title);</code></pre>
+                    <div class="callout" style="margin-top: 1.5rem">
+                        Bring your own artifact pipeline, then let Struktur
+                        handle chunking, retries, and schema validation.
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <div class="container">
+                <div>
+                    Struktur is a strategy-driven extraction toolkit for
+                    structured data.
+                </div>
+                <div style="margin-top: 0.5rem">
+                    Open the full documentation at
+                    <a href="./guide.html">/docs/guide.html</a>.
+                </div>
+            </div>
+        </footer>
+
+        <script>
+            function getTheme() {
+                const stored = localStorage.getItem("struktur-theme");
+                if (stored) return stored;
+                return window.matchMedia("(prefers-color-scheme: dark)").matches
+                    ? "dark"
+                    : "light";
+            }
+
+            function setTheme(theme) {
+                document.documentElement.setAttribute("data-theme", theme);
+                localStorage.setItem("struktur-theme", theme);
+                updateThemeIcon(theme);
+            }
+
+            function updateThemeIcon(theme) {
+                const icon = document.getElementById("theme-icon");
+                if (icon) {
+                    icon.textContent = theme === "dark" ? "◑" : "◐";
+                }
+            }
+
+            function toggleTheme() {
+                const current = getTheme();
+                const next = current === "dark" ? "light" : "dark";
+                setTheme(next);
+            }
+
+            (function initTheme() {
+                const theme = getTheme();
+                document.documentElement.setAttribute("data-theme", theme);
+                if (document.readyState === "loading") {
+                    document.addEventListener("DOMContentLoaded", () =>
+                        updateThemeIcon(theme),
+                    );
+                } else {
+                    updateThemeIcon(theme);
+                }
+            })();
+
+            const tabs = Array.from(document.querySelectorAll(".strategy-tab"));
+            const panels = Array.from(
+                document.querySelectorAll(".strategy-panel"),
+            );
+
+            tabs.forEach((tab) => {
+                tab.addEventListener("click", () => {
+                    const target = tab.getAttribute("data-target");
+                    tabs.forEach((item) => item.classList.remove("active"));
+                    panels.forEach((panel) => panel.classList.remove("active"));
+                    tab.classList.add("active");
+                    const panel = document.getElementById(target);
+                    if (panel) panel.classList.add("active");
+                });
+            });
+        </script>
+    </body>
+</html>
