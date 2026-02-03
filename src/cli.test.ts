@@ -1,7 +1,7 @@
 import { test, expect } from "bun:test";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { runExtractCommand } from "./cli";
+import { runAuthCommand, runExtractCommand } from "./cli";
 import type { Artifact } from "./types";
 
 const makeTempPath = (name: string) => {
@@ -118,4 +118,23 @@ test("extract uses configured default model", async () => {
   expect(resolvedModel).toBe("openai/gpt-4o-mini");
   const output = await Bun.file(outputPath).text();
   expect(JSON.parse(output)).toEqual({ ok: true });
+});
+
+test("auth default <provider> chooses cheapest model", async () => {
+  let storedDefault: string | undefined;
+
+  await runAuthCommand(
+    ["default", "openai"],
+    {},
+    {
+      listStoredProviders: async () => [{ provider: "openai", storage: "file" }],
+      resolveCheapestModel: async () => "gpt-4o-mini",
+      setDefaultModel: async (model) => {
+        storedDefault = model;
+        return model;
+      },
+    }
+  );
+
+  expect(storedDefault).toBe("openai/gpt-4o-mini");
 });

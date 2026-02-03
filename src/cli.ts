@@ -33,6 +33,12 @@ type CliDependencies = {
   stdinIsTTY?: boolean;
 };
 
+type AuthDependencies = {
+  resolveCheapestModel?: typeof resolveCheapestModel;
+  listStoredProviders?: typeof listStoredProviders;
+  setDefaultModel?: typeof setDefaultModel;
+};
+
 type ParsedArgs = {
   command?: string;
   options: Record<string, string | boolean>;
@@ -64,6 +70,7 @@ const usage = () => {
     "auth commands:",
     "  auth set     --provider <name> --token <token>",
     "  auth set     --provider <name> --token-stdin",
+    "  auth default <provider>",
     "  auth default --model <provider/model>",
     "  auth get    --provider <name> [--raw]",
     "  auth delete --provider <name>",
@@ -221,7 +228,8 @@ const resolveDefaultModelSpec = async () => {
 
 export const runAuthCommand = async (
   positionals: string[],
-  options: Record<string, string | boolean>
+  options: Record<string, string | boolean>,
+  deps: AuthDependencies = {}
 ) => {
   const action = positionals[0];
   if (!action) {
@@ -230,6 +238,9 @@ export const runAuthCommand = async (
   }
 
   const provider = typeof options.provider === "string" ? options.provider : undefined;
+  const resolveCheapestModelFn = deps.resolveCheapestModel ?? resolveCheapestModel;
+  const listStoredProvidersFn = deps.listStoredProviders ?? listStoredProviders;
+  const setDefaultModelFn = deps.setDefaultModel ?? setDefaultModel;
 
   switch (action) {
     case "set": {
@@ -241,8 +252,8 @@ export const runAuthCommand = async (
       const stored = await setProviderToken(provider, token, storage);
       let defaultModel: string | undefined;
       if (options.default) {
-        const cheapest = await resolveCheapestModel(provider);
-        defaultModel = await setDefaultModel(`${provider}/${cheapest}`);
+        const cheapest = await resolveCheapestModelFn(provider);
+        defaultModel = await setDefaultModelFn(`${provider}/${cheapest}`);
       }
       const json = JSON.stringify({ provider, stored, defaultModel }, null, 2);
       await writeOutput("-", json);
@@ -250,10 +261,30 @@ export const runAuthCommand = async (
     }
     case "default": {
       const model = options.model;
-      if (!model || typeof model !== "string") {
+      if (typeof model === "string") {
+        const stored = await setDefaultModelFn(model);
+        const json = JSON.stringify({ defaultModel: stored }, null, 2);
+        await writeOutput("-", json);
+        return;
+      }
+
+      if (model !== undefined) {
         throw new Error("Model is required (--model provider/model).");
       }
-      const stored = await setDefaultModel(model);
+
+      const providerName = provider ?? positionals[1];
+      if (!providerName) {
+        throw new Error("Provider is required (auth default <provider> or --model).");
+      }
+
+      const providers = await listStoredProvidersFn();
+      const configured = providers.some((entry) => entry.provider === providerName);
+      if (!configured) {
+        throw new Error(`No token stored for provider: ${providerName}`);
+      }
+
+      const cheapest = await resolveCheapestModelFn(providerName);
+      const stored = await setDefaultModelFn(`${providerName}/${cheapest}`);
       const json = JSON.stringify({ defaultModel: stored }, null, 2);
       await writeOutput("-", json);
       return;

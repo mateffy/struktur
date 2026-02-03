@@ -27,7 +27,7 @@ Example (usage shown in `README.md`):
 - `src/merge/`: schema-aware merge and dedup utilities.
 - `src/strategies/`: extraction strategies and concurrency helpers.
 - `src/validation/`: Ajv validator and error shaping.
-- `src/cli.ts`: CLI entrypoint for extraction and artifact verification; auto-detects piped stdin for extract.
+- `src/cli.ts`: CLI entrypoint for extraction and artifact verification; auto-detects piped stdin and supports provider-based default model selection.
 - Each `src/*/AGENTS.md` describes its subtree.
 
 
