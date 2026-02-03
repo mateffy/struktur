@@ -3,10 +3,10 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Struktur Documentation</title>
+        <title>Struktur Documentation Guide</title>
         <meta
             name="description"
-            content="Struktur is a TypeScript extraction engine for structured data using the Vercel AI SDK."
+            content="Detailed documentation for Struktur: artifacts, strategies, chunking, validation, and merging."
         />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -17,361 +17,79 @@
         <link rel="stylesheet" href="./assets/style.css" />
     </head>
     <body>
-        <header class="site-header">
-            <div class="container header-inner">
+        <div class="doc-app">
+            <aside class="doc-sidebar">
                 <a class="logo" href="./index.html">
                     <span class="logo-icon">◈</span>
                     <span class="logo-text">/@mateffy/struktur</span>
                 </a>
-                <nav class="nav-links">
-                    <a href="#overview">Overview</a>
-                    <a href="#how-it-works">How It Works</a>
+                <div class="section-divider" data-label="Documentation"></div>
+                <nav class="doc-nav">
+                    <a href="#overview" class="active">Overview</a>
+                    <a href="#installation">Installation</a>
+                    <a href="#quick-start">Quick start</a>
+                    <a href="#artifacts">Artifacts</a>
+                    <a href="#chunking">Chunking</a>
                     <a href="#strategies">Strategies</a>
-                    <a href="#usage">Usage</a>
-                    <a href="./guide.html">Docs</a>
+                    <a href="#examples">Examples</a>
+                    <a href="#validation">Validation</a>
+                    <a href="#merge">Merge &amp; dedupe</a>
+                    <a href="#events">Events</a>
+                    <a href="#providers">Artifact providers</a>
+                    <a href="#custom-strategy">Custom strategies</a>
+                    <a href="#types">Types &amp; results</a>
+                    <a href="#testing">Testing</a>
                 </nav>
-                <button
-                    class="theme-toggle"
-                    onclick="toggleTheme()"
-                    aria-label="Toggle theme"
-                >
-                    <span id="theme-icon">◐</span>
-                </button>
-            </div>
-        </header>
-
-        <main>
-            <section class="hero" id="overview">
-                <div class="container hero-grid">
-                    <div>
-                        <span class="hero-eyebrow"
-                            >Structured extraction toolkit</span
-                        >
-                        <h1 class="hero-title">Struktur</h1>
-                        <p class="hero-subtitle">
-                            Struktur is a TypeScript-first extraction engine that
-                            turns parsed artifacts into validated JSON using the
-                            Vercel AI SDK. It batches content by token budgets, runs
-                            strategy-driven workflows, validates with Ajv, and
-                            merges or dedupes where needed.
-                        </p>
-                        <div class="hero-actions">
-                            <a class="btn" href="./guide.html"
-                                >Read the Documentation</a
-                            >
-                            <a class="btn btn-secondary" href="#usage"
-                                >See a Quick Example</a
-                            >
-                        </div>
-                    </div>
-                    <div class="hero-panel">
-                        <div class="hero-panel-title">Extraction pipeline</div>
-                        <div class="pipeline">
-                            <div class="pipeline-step">
-                                <div class="pipeline-dot"></div>
-                                <div>
-                                    <span>Artifacts</span>
-                                    <div>Normalized text + media slices</div>
-                                </div>
-                            </div>
-                            <div class="pipeline-step">
-                                <div class="pipeline-dot delay"></div>
-                                <div>
-                                    <span>Chunking</span>
-                                    <div>Token-aware batching</div>
-                                </div>
-                            </div>
-                            <div class="pipeline-step">
-                                <div class="pipeline-dot delay-2"></div>
-                                <div>
-                                    <span>Strategy</span>
-                                    <div>Parallel, sequential, or auto-merge</div>
-                                </div>
-                            </div>
-                            <div class="pipeline-step">
-                                <div class="pipeline-dot"></div>
-                                <div>
-                                    <span>Validation</span>
-                                    <div>Ajv retries + schema checks</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section class="section" id="how-it-works">
-                <div class="container">
-                    <div class="section-header">
-                        <div>
-                            <div class="section-title">How it works</div>
-                            <div class="section-subtitle">
-                                A predictable extraction pipeline you can audit
-                                and control.
-                            </div>
-                        </div>
-                    </div>
-                    <div class="grid grid-3">
-                        <div class="card">
-                            <div class="card-body">
-                                <div class="card-title">
-                                    1. Provide artifacts
-                                </div>
-                                <p class="card-text">
-                                    Artifacts are JSON DTOs with text and media
-                                    slices. You bring your own parsing pipeline.
-                                </p>
-                            </div>
-                        </div>
-                        <div class="card">
-                            <div class="card-body">
-                                <div class="card-title">
-                                    2. Select a strategy
-                                </div>
-                                <p class="card-text">
-                                    Run extraction in parallel, sequentially, or
-                                    with an auto-merge and dedupe pass.
-                                </p>
-                            </div>
-                        </div>
-                        <div class="card">
-                            <div class="card-body">
-                                <div class="card-title">
-                                    3. Validate and merge
-                                </div>
-                                <p class="card-text">
-                                    Ajv validation retries on schema errors,
-                                    then results merge with schema-aware rules.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section class="section" id="flows">
-                <div class="container">
-                    <div class="section-header">
-                        <div>
-                            <div class="section-title">Strategy flow</div>
-                            <div class="section-subtitle">
-                                A simple visual of the default extraction path.
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mermaid">
-flowchart TD
-    A([Start]) --> B[Load artifacts]
-    B --> C{Token budget fits?}
-    C -->|Yes| D[Send full batch to LLM]
-    C -->|No| E[Chunk artifacts to fit]
-    D --> F[Extract structured data]
-    E --> F
-    F --> G[Return validated result]
-    G --> H([End])
-                    </div>
-                </div>
-            </section>
-
-            <section class="section" id="features">
-                <div class="container">
-                    <div class="section-divider" data-label="Highlights"></div>
-                    <div class="grid grid-2">
-                        <div class="card">
-                            <div class="card-body">
-                                <div class="card-title">
-                                    Token-aware chunking
-                                </div>
-                                <p class="card-text">
-                                    Split artifacts by token limits, preserve
-                                    image budgets, and batch reliably for LLM
-                                    calls.
-                                </p>
-                            </div>
-                        </div>
-                        <div class="card">
-                            <div class="card-body">
-                                <div class="card-title">
-                                    Strategy orchestration
-                                </div>
-                                <p class="card-text">
-                                    Choose from simple, parallel, sequential,
-                                    auto-merge, or double pass refinement
-                                    workflows.
-                                </p>
-                            </div>
-                        </div>
-                        <div class="card">
-                            <div class="card-body">
-                                <div class="card-title">
-                                    Schema-first validation
-                                </div>
-                                <p class="card-text">
-                                    Ajv validates every output, then feeds
-                                    errors back to the LLM for targeted retries.
-                                </p>
-                            </div>
-                        </div>
-                        <div class="card">
-                            <div class="card-body">
-                                <div class="card-title">Merge and dedupe</div>
-                                <p class="card-text">
-                                    Merge outputs using schema-aware rules and
-                                    optional LLM dedupe for clean results.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section class="section" id="strategies">
-                <div class="container">
-                    <div class="section-header">
-                        <div>
-                            <div class="section-title">Strategies</div>
-                            <div class="section-subtitle">
-                                Pick the extraction flow that matches your
-                                constraints.
-                            </div>
-                        </div>
-                    </div>
-                    <div class="strategy-tabs" role="tablist">
-                        <button
-                            class="strategy-tab active"
-                            data-target="strategy-simple"
-                            role="tab"
-                        >
-                            Simple
-                        </button>
-                        <button
-                            class="strategy-tab"
-                            data-target="strategy-parallel"
-                            role="tab"
-                        >
-                            Parallel
-                        </button>
-                        <button
-                            class="strategy-tab"
-                            data-target="strategy-sequential"
-                            role="tab"
-                        >
-                            Sequential
-                        </button>
-                        <button
-                            class="strategy-tab"
-                            data-target="strategy-auto"
-                            role="tab"
-                        >
-                            Auto-merge
-                        </button>
-                        <button
-                            class="strategy-tab"
-                            data-target="strategy-double"
-                            role="tab"
-                        >
-                            Double pass
-                        </button>
-                        <button
-                            class="strategy-tab"
-                            data-target="strategy-custom"
-                            role="tab"
-                        >
-                            Custom
-                        </button>
-                    </div>
-                    <div
-                        class="strategy-panel active"
-                        id="strategy-simple"
-                        role="tabpanel"
+                <div style="margin-top: auto; padding-top: 2rem">
+                    <button
+                        class="theme-toggle"
+                        onclick="toggleTheme()"
+                        aria-label="Toggle theme"
                     >
-                        <div class="card-title">Simple</div>
-                        <p class="card-text">
-                            Single-shot extraction for small datasets or fast
-                            prototypes.
-                        </p>
-                        <div class="strategy-metrics">
-                            <div class="metric-card">Latency<strong>Low</strong></div>
-                            <div class="metric-card">
-                                Control<strong>Minimal</strong>
-                            </div>
-                            <div class="metric-card">Merge<strong>None</strong></div>
-                        </div>
-                    </div>
-                    <div class="strategy-panel" id="strategy-parallel" role="tabpanel">
-                        <div class="card-title">Parallel</div>
-                        <p class="card-text">
-                            Run batches concurrently and merge with an LLM when
-                            needed.
-                        </p>
-                        <div class="strategy-metrics">
-                            <div class="metric-card">Latency<strong>Fast</strong></div>
-                            <div class="metric-card">Control<strong>Medium</strong></div>
-                            <div class="metric-card">Merge<strong>LLM</strong></div>
-                        </div>
-                    </div>
-                    <div class="strategy-panel" id="strategy-sequential" role="tabpanel">
-                        <div class="card-title">Sequential</div>
-                        <p class="card-text">
-                            Process chunks in order with context carryover for
-                            consistency.
-                        </p>
-                        <div class="strategy-metrics">
-                            <div class="metric-card">Latency<strong>Medium</strong></div>
-                            <div class="metric-card">Control<strong>High</strong></div>
-                            <div class="metric-card">Merge<strong>Manual</strong></div>
-                        </div>
-                    </div>
-                    <div class="strategy-panel" id="strategy-auto" role="tabpanel">
-                        <div class="card-title">Auto-merge</div>
-                        <p class="card-text">
-                            Merge and dedupe outputs automatically for larger
-                            datasets.
-                        </p>
-                        <div class="strategy-metrics">
-                            <div class="metric-card">Latency<strong>Fast</strong></div>
-                            <div class="metric-card">Control<strong>Medium</strong></div>
-                            <div class="metric-card">Merge<strong>Auto</strong></div>
-                        </div>
-                    </div>
-                    <div class="strategy-panel" id="strategy-double" role="tabpanel">
-                        <div class="card-title">Double pass</div>
-                        <p class="card-text">
-                            Refine a merged result with a second LLM pass.
-                        </p>
-                        <div class="strategy-metrics">
-                            <div class="metric-card">Latency<strong>High</strong></div>
-                            <div class="metric-card">Control<strong>High</strong></div>
-                            <div class="metric-card">Merge<strong>Refined</strong></div>
-                        </div>
-                    </div>
-                    <div class="strategy-panel" id="strategy-custom" role="tabpanel">
-                        <div class="card-title">Custom</div>
-                        <p class="card-text">
-                            Implement your own strategy using shared interfaces
-                            and orchestration helpers.
-                        </p>
-                        <div class="strategy-metrics">
-                            <div class="metric-card">Latency<strong>Variable</strong></div>
-                            <div class="metric-card">Control<strong>Full</strong></div>
-                            <div class="metric-card">Merge<strong>Custom</strong></div>
-                        </div>
-                    </div>
+                        <span id="theme-icon">◐</span>
+                    </button>
                 </div>
-            </section>
+            </aside>
 
-            <section class="section" id="usage">
-                <div class="container">
-                    <div class="section-header">
-                        <div>
-                            <div class="section-title">Quick start</div>
-                            <div class="section-subtitle">
-                                A minimal extraction flow that returns typed
-                                data.
-                            </div>
-                        </div>
+            <main class="doc-main">
+                <div class="doc-content">
+                    <div>
+                        <h1 class="doc-title">Struktur Documentation</h1>
+                        <p class="doc-subtitle">
+                            Single-page reference for strategies, artifacts,
+                            validation, and merge behavior.
+                        </p>
                     </div>
-                    <pre class="code-block"><code><span class="tok-keyword">import</span> { extract, simple } <span class="tok-keyword">from</span> <span class="tok-string">"@mateffy/struktur"</span>;
+
+                    <section class="doc-section" id="overview">
+                        <h2>Overview</h2>
+                        <p>
+                            Struktur is a TypeScript extraction engine that
+                            takes pre-parsed artifacts and produces validated
+                            JSON with the Vercel AI SDK. It splits artifacts by
+                            token budgets, runs a configurable strategy,
+                            validates with Ajv, and merges or deduplicates
+                            outputs when needed.
+                        </p>
+                        <div class="callout" style="margin-top: 1rem">
+                            Entry point: <strong>extract()</strong> delegates
+                            all work to the configured extraction strategy.
+                        </div>
+                    </section>
+
+                    <section class="doc-section" id="installation">
+                        <h2>Installation</h2>
+                        <pre class="code-block"><code>bun install
+</code></pre>
+                        <p style="margin-top: 1rem">
+                            Struktur is published as <code>@mateffy/struktur</code> in
+                            <code>package.json</code>.
+                        </p>
+                    </section>
+
+                    <section class="doc-section" id="quick-start">
+                        <h2>Quick start</h2>
+                        <pre class="code-block"><code><span class="tok-keyword">import</span> { extract, simple } <span class="tok-keyword">from</span> <span class="tok-string">"@mateffy/struktur"</span>;
 <span class="tok-keyword">import</span> <span class="tok-keyword">type</span> { JSONSchemaType } <span class="tok-keyword">from</span> <span class="tok-string">"ajv"</span>;
 <span class="tok-keyword">import</span> { google } <span class="tok-keyword">from</span> <span class="tok-string">"@ai-sdk/google"</span>;
 
@@ -391,26 +109,327 @@ flowchart TD
 });
 
 console.log(result.data.title);</code></pre>
-                    <div class="callout" style="margin-top: 1.5rem">
-                        Bring your own artifact pipeline, then let Struktur
-                        handle chunking, retries, and schema validation.
-                    </div>
-                </div>
-            </section>
-        </main>
+                    </section>
 
-        <footer class="footer">
-            <div class="container">
-                <div>
-                    Struktur is a strategy-driven extraction toolkit for
-                    structured data.
+                    <section class="doc-section" id="artifacts">
+                        <h2>Artifacts</h2>
+                        <p>
+                            Artifacts are JSON DTOs that already contain parsed
+                            text and media slices. Struktur does not parse PDFs,
+                            HTML, or images; it expects you to provide
+                            normalized artifacts that it can batch and feed to
+                            the LLM.
+                        </p>
+                        <ul>
+                            <li>
+                                Use <code>urlToArtifact</code> or
+                                <code>fileToArtifact</code> for supported input
+                                types.
+                            </li>
+                            <li>
+                                Register custom providers with
+                                <code>registerArtifactProvider</code>.
+                            </li>
+                            <li>
+                                Artifacts can include text blocks and image
+                                references for multimodal models.
+                            </li>
+                        </ul>
+                    </section>
+
+                    <section class="doc-section" id="chunking">
+                        <h2>Chunking</h2>
+                        <p>
+                            Chunking splits large artifacts by token budgets and
+                            batches them for extraction. Strategies accept
+                            options like
+                            <code>chunkSize</code> and image limits so you can
+                            control memory and latency.
+                        </p>
+                        <div class="callout" style="margin-top: 1rem">
+                            Chunking happens before extraction, and every
+                            strategy sees consistent batches.
+                        </div>
+                    </section>
+
+                    <section class="doc-section" id="strategies">
+                        <h2>Strategies</h2>
+                        <p>
+                            Choose the extraction flow that matches your data
+                            size and accuracy needs.
+                        </p>
+                        <ul>
+                            <li>
+                                <strong>simple</strong>: single-shot extraction.
+                            </li>
+                            <li>
+                                <strong>parallel</strong>: batch concurrently,
+                                then LLM merge.
+                            </li>
+                            <li>
+                                <strong>sequential</strong>: batch sequentially
+                                with context preservation.
+                            </li>
+                            <li>
+                                <strong>parallelAutoMerge</strong>: merge +
+                                dedupe automatically.
+                            </li>
+                            <li>
+                                <strong>sequentialAutoMerge</strong>: safe merge
+                                + dedupe sequentially.
+                            </li>
+                            <li>
+                                <strong>doublePass</strong>: refine after a full
+                                merge.
+                            </li>
+                            <li>
+                                <strong>doublePassAutoMerge</strong>: auto-merge
+                                followed by refinement.
+                            </li>
+                        </ul>
+                        <h3>Simple</h3>
+                        <p>
+                            Sends as much content as possible in a single call.
+                            If the input exceeds the token budget, artifacts are
+                            chunked to fit.
+                        </p>
+                        <div class="mermaid">
+flowchart TD
+    A([Start]) --> B[Load artifacts]
+    B --> C{Token budget fits?}
+    C -->|Yes| D[Single LLM call]
+    C -->|No| E[Chunk artifacts]
+    E --> D
+    D --> F[Validate + return]
+                        </div>
+
+                        <h3>Sequential</h3>
+                        <p>
+                            Processes chunks one by one and feeds previous
+                            outputs into the next prompt to preserve context.
+                        </p>
+                        <div class="mermaid">
+flowchart TD
+    A([Start]) --> B[Chunk artifacts]
+    B --> C[LLM on chunk 1]
+    C --> D[Append results to prompt]
+    D --> E[LLM on chunk 2]
+    E --> F[Merge all outputs]
+    F --> G[Validate + return]
+                        </div>
+
+                        <h3>Parallel</h3>
+                        <p>
+                            Processes chunks independently for speed, then
+                            merges results in a final step.
+                        </p>
+                        <div class="mermaid">
+flowchart TD
+    A([Start]) --> B[Chunk artifacts]
+    B --> C1[LLM chunk 1]
+    B --> C2[LLM chunk 2]
+    B --> C3[LLM chunk N]
+    C1 --> D[Merge results]
+    C2 --> D
+    C3 --> D
+    D --> E[Validate + return]
+                        </div>
+
+                        <h3>Double pass</h3>
+                        <p>
+                            Runs a fast parallel pass, then refines the merged
+                            output with a sequential pass for higher accuracy.
+                        </p>
+                        <div class="mermaid">
+flowchart TD
+    A([Start]) --> B[Parallel pass]
+    B --> C[Merge draft]
+    C --> D[Sequential refinement]
+    D --> E[Validate + return]
+                        </div>
+
+                        <h3>Strategy options</h3>
+                        <ul>
+                            <li><strong>model</strong>: LLM used for extraction.</li>
+                            <li>
+                                <strong>mergeModel</strong>: optional model for
+                                merge steps.
+                            </li>
+                            <li>
+                                <strong>chunkSize</strong>: token budget per
+                                batch.
+                            </li>
+                        </ul>
+                        <pre class="code-block" style="margin-top: 1rem"><code><span class="tok-keyword">import</span> { extract, parallel } <span class="tok-keyword">from</span> <span class="tok-string">"@mateffy/struktur"</span>;
+<span class="tok-keyword">import</span> { google } <span class="tok-keyword">from</span> <span class="tok-string">"@ai-sdk/google"</span>;
+
+<span class="tok-keyword">const</span> result = <span class="tok-keyword">await</span> extract({
+  <span class="tok-operator">artifacts</span>,
+  <span class="tok-operator">schema</span>,
+  <span class="tok-operator">strategy</span>: parallel({
+    <span class="tok-operator">model</span>: google(<span class="tok-string">"claude-haiku-4-5"</span>),
+    <span class="tok-operator">mergeModel</span>: google(<span class="tok-string">"claude-haiku-4-5"</span>),
+    <span class="tok-operator">chunkSize</span>: <span class="tok-number">10_000</span>,
+  }),
+});</code></pre>
+                    </section>
+
+                    <section class="doc-section" id="examples">
+                        <h2>Examples</h2>
+                        <p>
+                            Two real-world extraction patterns adapted from the
+                            prior PHP implementation, updated for Struktur.
+                        </p>
+
+                        <h3>Real estate exposés</h3>
+                        <p>
+                            Extract property data, nested units, and associated
+                            images from PDF exposés or HTML listings. A
+                            sequential auto-merge strategy helps preserve
+                            context across pages and consolidate repeated units.
+                        </p>
+                        <pre class="code-block"><code>{
+  <span class="tok-string">"name"</span>: <span class="tok-string">"Modern Apartment in City Center"</span>,
+  <span class="tok-string">"address"</span>: <span class="tok-string">"12 Example Street"</span>,
+  <span class="tok-string">"units"</span>: [
+    {
+      <span class="tok-string">"label"</span>: <span class="tok-string">"Apartment 1"</span>,
+      <span class="tok-string">"rent_per_m2"</span>: <span class="tok-number">15.5</span>,
+      <span class="tok-string">"images"</span>: [<span class="tok-string">"artifact:images/image1.png"</span>]
+    }
+  ]
+}</code></pre>
+
+                        <h3>Paper invoices to structured data</h3>
+                        <p>
+                            Extract invoice numbers, line items, and totals from
+                            scanned PDFs or images. Start with a simple strategy
+                            and add validation logic in a custom strategy if
+                            totals must reconcile.
+                        </p>
+                        <pre class="code-block"><code>{
+  <span class="tok-string">"invoiceNumber"</span>: <span class="tok-string">"INV-2022-001"</span>,
+  <span class="tok-string">"currency"</span>: <span class="tok-string">"EUR"</span>,
+  <span class="tok-string">"lineItems"</span>: [
+    {
+      <span class="tok-string">"position"</span>: <span class="tok-number">1</span>,
+      <span class="tok-string">"description"</span>: <span class="tok-string">"Product A"</span>,
+      <span class="tok-string">"netAmount"</span>: <span class="tok-number">200.0</span>
+    }
+  ],
+  <span class="tok-string">"totalAmounts"</span>: {
+    <span class="tok-string">"grossTotal"</span>: <span class="tok-number">416.5</span>
+  }
+}</code></pre>
+                    </section>
+
+                    <section class="doc-section" id="validation">
+                        <h2>Validation</h2>
+                        <p>
+                            Struktur validates every model output with Ajv. When
+                            validation fails, schema errors are fed back to the
+                            LLM and the run is retried. This keeps outputs
+                            aligned with your JSON schema.
+                        </p>
+                    </section>
+
+                    <section class="doc-section" id="merge">
+                        <h2>Merge &amp; dedupe</h2>
+                        <p>
+                            Merge behavior is schema-aware. Auto-merge
+                            strategies combine partial outputs, then run
+                            deduplication (hash-based or LLM-based depending on
+                            strategy settings).
+                        </p>
+                    </section>
+
+                    <section class="doc-section" id="events">
+                        <h2>Events</h2>
+                        <p>
+                            Use events to surface progress, messages, and errors
+                            in UI dashboards or logs.
+                        </p>
+                        <pre class="code-block"><code><span class="tok-keyword">const</span> result = <span class="tok-keyword">await</span> extract({
+  <span class="tok-operator">artifacts</span>,
+  <span class="tok-operator">schema</span>,
+  <span class="tok-operator">strategy</span>,
+  <span class="tok-operator">events</span>: {
+    <span class="tok-operator">onStep</span>: ({ step, total, label }) <span class="tok-operator">=&gt;</span> {
+      console.log(<span class="tok-string">"step"</span>, step, total, label);
+    },
+    <span class="tok-operator">onMessage</span>: ({ role, content }) <span class="tok-operator">=&gt;</span> {
+      console.log(role, content);
+    },
+  },
+});</code></pre>
+                    </section>
+
+                    <section class="doc-section" id="providers">
+                        <h2>Artifact providers</h2>
+                        <p>
+                            Providers let you plug in your own file handling.
+                            Register a handler for new MIME types and return a
+                            normalized artifact.
+                        </p>
+                        <pre class="code-block"><code><span class="tok-keyword">import</span> { registerArtifactProvider, fileToArtifact } <span class="tok-keyword">from</span> <span class="tok-string">"@mateffy/struktur"</span>;
+
+registerArtifactProvider(<span class="tok-string">"application/pdf"</span>, <span class="tok-keyword">async</span> (buffer) <span class="tok-operator">=&gt;</span> ({
+  <span class="tok-operator">id</span>: <span class="tok-string">"pdf-1"</span>,
+  <span class="tok-operator">type</span>: <span class="tok-string">"pdf"</span>,
+  <span class="tok-operator">raw</span>: <span class="tok-keyword">async</span> () <span class="tok-operator">=&gt;</span> buffer,
+  <span class="tok-operator">contents</span>: [{ <span class="tok-operator">page</span>: <span class="tok-number">1</span>, <span class="tok-operator">text</span>: <span class="tok-string">"..."</span> }],
+}));
+
+<span class="tok-keyword">const</span> artifact = <span class="tok-keyword">await</span> fileToArtifact(buffer, { <span class="tok-operator">mimeType</span>: <span class="tok-string">"application/pdf"</span> });</code></pre>
+                    </section>
+
+                    <section class="doc-section" id="custom-strategy">
+                        <h2>Custom strategies</h2>
+                        <p>
+                            Implement the
+                            <code>ExtractionStrategy</code> interface to plug in
+                            custom orchestration logic while keeping the same
+                            inputs and output contracts.
+                        </p>
+                        <pre class="code-block"><code><span class="tok-keyword">import</span> <span class="tok-keyword">type</span> { ExtractionStrategy } <span class="tok-keyword">from</span> <span class="tok-string">"@mateffy/struktur"</span>;
+
+<span class="tok-keyword">const</span> custom: ExtractionStrategy&lt;{ ok: <span class="tok-keyword">boolean</span> }&gt; = {
+  <span class="tok-operator">name</span>: <span class="tok-string">"custom"</span>,
+  <span class="tok-operator">run</span>: <span class="tok-keyword">async</span> () <span class="tok-operator">=&gt;</span> ({
+    <span class="tok-operator">data</span>: { <span class="tok-operator">ok</span>: <span class="tok-keyword">true</span> },
+    <span class="tok-operator">usage</span>: { <span class="tok-operator">inputTokens</span>: <span class="tok-number">0</span>, <span class="tok-operator">outputTokens</span>: <span class="tok-number">0</span>, <span class="tok-operator">totalTokens</span>: <span class="tok-number">0</span> },
+  }),
+};</code></pre>
+                    </section>
+
+                    <section class="doc-section" id="types">
+                        <h2>Types &amp; results</h2>
+                        <p>
+                            Use <code>JSONSchemaType</code> from Ajv for
+                            type-safe results. The return type is inferred from
+                            your schema, so <code>result.data</code> is strongly
+                            typed.
+                        </p>
+                        <pre class="code-block"><code><span class="tok-keyword">import</span> <span class="tok-keyword">type</span> { JSONSchemaType } <span class="tok-keyword">from</span> <span class="tok-string">"ajv"</span>;
+
+<span class="tok-keyword">type</span> <span class="tok-type">Output</span> = { title: <span class="tok-keyword">string</span> };
+<span class="tok-keyword">const</span> schema: JSONSchemaType&lt;<span class="tok-type">Output</span>&gt; = {
+  <span class="tok-operator">type</span>: <span class="tok-string">"object"</span>,
+  <span class="tok-operator">properties</span>: { title: { <span class="tok-operator">type</span>: <span class="tok-string">"string"</span> } },
+  <span class="tok-operator">required</span>: [<span class="tok-string">"title"</span>],
+  <span class="tok-operator">additionalProperties</span>: <span class="tok-keyword">false</span>,
+};</code></pre>
+                    </section>
+
+                    <section class="doc-section" id="testing">
+                        <h2>Testing</h2>
+                        <p>Run the test suite with Bun.</p>
+                        <pre class="code-block"><code>bun test
+</code></pre>
+                    </section>
                 </div>
-                <div style="margin-top: 0.5rem">
-                    Open the full documentation at
-                    <a href="./guide.html">/docs/guide.html</a>.
-                </div>
-            </div>
-        </footer>
+            </main>
+        </div>
 
         <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
         <script>
@@ -472,20 +491,34 @@ console.log(result.data.title);</code></pre>
                 initMermaid(theme);
             })();
 
-            const tabs = Array.from(document.querySelectorAll(".strategy-tab"));
-            const panels = Array.from(
-                document.querySelectorAll(".strategy-panel"),
+            const navLinks = Array.from(
+                document.querySelectorAll(".doc-nav a"),
+            );
+            const sections = navLinks.map((link) =>
+                document.querySelector(link.getAttribute("href")),
             );
 
-            tabs.forEach((tab) => {
-                tab.addEventListener("click", () => {
-                    const target = tab.getAttribute("data-target");
-                    tabs.forEach((item) => item.classList.remove("active"));
-                    panels.forEach((panel) => panel.classList.remove("active"));
-                    tab.classList.add("active");
-                    const panel = document.getElementById(target);
-                    if (panel) panel.classList.add("active");
-                });
+            const observer = new IntersectionObserver(
+                (entries) => {
+                    entries.forEach((entry) => {
+                        if (entry.isIntersecting) {
+                            navLinks.forEach((link) =>
+                                link.classList.remove("active"),
+                            );
+                            const activeLink = navLinks.find(
+                                (link) =>
+                                    link.getAttribute("href") ===
+                                    `#${entry.target.id}`,
+                            );
+                            if (activeLink) activeLink.classList.add("active");
+                        }
+                    });
+                },
+                { rootMargin: "-30% 0px -60% 0px", threshold: 0 },
+            );
+
+            sections.forEach((section) => {
+                if (section) observer.observe(section);
             });
         </script>
     </body>
