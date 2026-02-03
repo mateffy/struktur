@@ -1,0 +1,22 @@
+{
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "customer": {
+      "type": "string",
+      "format": "email"
+    },
+    "amount": {
+      "type": "number",
+      "minimum": 0
+    },
+    "date": {
+      "type": "string",
+      "format": "date"
+    }
+  },
+  "required": ["id", "customer", "amount", "date"]
+}

@@ -1,6 +1,6 @@
 LLM module
 
-- Purpose: wrap Vercel AI SDK calls, build multimodal messages, and run validation retries.
-- Key files: `LLMClient.ts`, `RetryingRunner.ts`, `message.ts`.
+- Purpose: wrap Vercel AI SDK calls, build multimodal messages, run validation retries, and query provider model lists/defaults.
+- Key files: `LLMClient.ts`, `RetryingRunner.ts`, `message.ts`, `models.ts`.
 - Design: `generateStructured` centralizes AI SDK usage; retry loop feeds validation errors back to the model.
-- Tests: `RetryingRunner.test.ts`.
+- Tests: `RetryingRunner.test.ts`, `models.test.ts`.

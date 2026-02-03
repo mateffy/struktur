@@ -39,3 +39,18 @@ test("validateOrThrow throws SchemaValidationError for invalid input", () => {
     expect(validationError.errors.length).toBeGreaterThan(0);
   }
 });
+
+test("createAjv supports common formats", () => {
+  const ajv = createAjv();
+  const schema: JSONSchemaType<string> = { type: "string", format: "email" };
+
+  const data = validateOrThrow<string>(ajv, schema, "test@example.com");
+  expect(data).toBe("test@example.com");
+
+  try {
+    validateOrThrow<string>(ajv, schema, "not-an-email");
+    throw new Error("Expected validation error");
+  } catch (error) {
+    expect(error).toBeInstanceOf(SchemaValidationError);
+  }
+});

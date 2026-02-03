@@ -22,6 +22,7 @@ mock.module("ai", () => ({
     calls.push(params);
     return generateObjectImpl(params);
   },
+  jsonSchema: (schema: unknown) => ({ wrapped: schema }),
 }));
 
 const { generateStructured } = await import("./LLMClient");
@@ -42,6 +43,7 @@ test("generateStructured maps prompt/completion token usage", async () => {
 
   expect(result.usage).toEqual({ inputTokens: 2, outputTokens: 3, totalTokens: 9 });
   expect(calls[0]?.schemaName).toBe("extract");
+  expect(calls[0]?.schema).toEqual({ wrapped: { type: "object" } });
   expect(calls[0]?.messages[0]).toEqual({ role: "user", content: "prompt" });
 });
 

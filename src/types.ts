@@ -72,6 +72,13 @@ export type ExtractionEvents = {
 export type AnyJSONSchema = Record<string, unknown>;
 export type TypedJSONSchema<T> = JSONSchemaType<T>;
 
+export type ProviderModelsResult = {
+  provider: string;
+  ok: boolean;
+  models?: string[];
+  error?: string;
+};
+
 export type ExtractionOptions<T> = {
   artifacts: Artifact[];
   schema: TypedJSONSchema<T> | AnyJSONSchema;

@@ -1,5 +1,5 @@
-import { generateObject, type ModelMessage } from "ai";
-import type { Usage } from "../types";
+import { generateObject, jsonSchema, type ModelMessage } from "ai";
+import type { AnyJSONSchema, Usage } from "../types";
 import type { UserContent } from "./message";
 
 type GenerateObjectParams = Parameters<typeof generateObject>[0];
@@ -20,12 +20,24 @@ export type StructuredResponse<T> = {
   usage: Usage;
 };
 
+const isZodSchema = (schema: unknown): schema is { safeParse: (data: unknown) => unknown } => {
+  return (
+    typeof schema === "object" &&
+    schema !== null &&
+    "safeParse" in schema &&
+    typeof (schema as { safeParse?: unknown }).safeParse === "function"
+  );
+};
+
 export const generateStructured = async <T>(
   request: StructuredRequest<T>
 ): Promise<StructuredResponse<T>> => {
+  const schema = isZodSchema(request.schema)
+    ? request.schema
+    : jsonSchema(request.schema as AnyJSONSchema);
   const result = await generateObject({
     model: request.model as ModelType,
-    schema: request.schema as GenerateObjectParams extends { schema: infer S } ? S : never,
+    schema: schema as GenerateObjectParams extends { schema: infer S } ? S : never,
     schemaName: request.schemaName ?? "extract",
     system: request.system,
     messages: (request.messages ?? [{ role: "user", content: request.user }]) as MessageType,

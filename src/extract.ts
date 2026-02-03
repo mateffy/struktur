@@ -3,7 +3,7 @@ import type { ExtractionOptions, ExtractionResult } from "./types";
 const emptyUsage = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
 
 export const extract = async <T>(
-  options: ExtractionOptions<T>
+  options: ExtractionOptions<T>,
 ): Promise<ExtractionResult<T>> => {
   try {
     const total = options.strategy.getEstimatedSteps?.(options.artifacts);
@@ -11,7 +11,11 @@ export const extract = async <T>(
 
     const result = await options.strategy.run(options);
 
-    await options.events?.onStep?.({ step: total ?? 1, total, label: "complete" });
+    await options.events?.onStep?.({
+      step: total ?? 1,
+      total,
+      label: "complete",
+    });
     return result;
   } catch (error) {
     return {

@@ -1,0 +1,21 @@
+{
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "address": {
+      "type": "string"
+    },
+    "price": {
+      "type": "number",
+      "minimum": 0
+    },
+    "area_m2": {
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "required": ["id", "address", "price", "area_m2"]
+}

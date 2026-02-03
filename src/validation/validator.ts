@@ -1,4 +1,5 @@
 import Ajv, { type AnySchema, type ErrorObject, type JSONSchemaType } from "ajv";
+import addFormats from "ajv-formats";
 
 export type ValidationErrors = ErrorObject[];
 
@@ -13,11 +14,13 @@ export class SchemaValidationError extends Error {
 }
 
 export const createAjv = () => {
-  return new Ajv({
+  const ajv = new Ajv({
     allErrors: true,
     strict: false,
     allowUnionTypes: true,
   });
+  addFormats(ajv);
+  return ajv;
 };
 
 export type SchemaInput<T> = JSONSchemaType<T> | AnySchema;
