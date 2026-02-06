@@ -172,7 +172,10 @@
             </div>
             <div class="border-b border-r border-[var(--color-border)] p-8 md:border-b-0">
               <h3 class="text-lg font-semibold text-[var(--color-accent)]">Strategy-driven extraction</h3>
-              <p class="mt-3 text-sm text-[var(--color-muted)]">Choose the right flow for each document class.</p>
+              <p class="mt-3 text-sm text-[var(--color-muted)]">
+                Struktur does more than extract data. Customize strategy and build your own structured data workflow with
+                everything you need in place.
+              </p>
               <ul class="mt-4 space-y-2 text-xs text-[var(--color-muted)]">
                 <li class="flex gap-2"><span class="mt-1 h-1.5 w-1.5 bg-[var(--color-accent)]"></span>Simple, parallel, sequential, double-pass</li>
                 <li class="flex gap-2"><span class="mt-1 h-1.5 w-1.5 bg-[var(--color-accent)]"></span>Token-budgeted chunking by strategy</li>
@@ -273,6 +276,73 @@ const result = await extract({
               <h3 class="mt-3 text-lg font-semibold text-[var(--color-accent)]">Run extraction and validate</h3>
               <p class="mt-3 text-sm text-[var(--color-muted)]">Structure executes your strategy and validates the output data to keep everything consistent.</p>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="border-b border-[var(--color-border)]">
+        <div class="mx-auto grid max-w-6xl gap-8 border-x border-[var(--color-border)] px-6 py-12 md:grid-cols-[1.1fr,0.9fr]">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">Agent harnesses</p>
+            <h2 class="mt-2 text-2xl font-semibold">Build your own strategy harness</h2>
+            <p class="mt-3 text-sm text-[var(--color-muted)]">
+              Struktur is a data extraction harness: a focused Agent Harness for structured outputs. It does not just
+              extract data. It gives you the architecture to define how extraction runs, how chunks are split, and how
+              results are validated and merged.
+            </p>
+            <p class="mt-4 text-sm text-[var(--color-muted)]">
+              Strategies are composable building blocks. Start with parallel for throughput, add validation retries, and
+              plug in your own merge rules. The system assembles everything into a single workflow you can keep evolving.
+            </p>
+          </div>
+          <div class="border border-[var(--color-border)] bg-[var(--color-card)] p-6">
+            <div class="flex items-center justify-between text-xs text-[var(--color-muted)]">
+              <span>Parallel strategy harness</span>
+              <span>Flow graph</span>
+            </div>
+            <svg class="mt-5 h-64 w-full" viewBox="0 0 480 260" role="img" aria-label="Parallel strategy flow graph">
+              <defs>
+                <linearGradient id="flowAccent" x1="0" x2="1" y1="0" y2="1">
+                  <stop offset="0%" stop-color="#3ddc97" />
+                  <stop offset="100%" stop-color="#5f93ff" />
+                </linearGradient>
+              </defs>
+              <rect x="12" y="18" width="140" height="46" rx="6" fill="none" stroke="var(--color-border)" />
+              <text x="24" y="46" fill="var(--color-ink)" font-size="10">Artifacts</text>
+
+              <rect x="12" y="90" width="140" height="46" rx="6" fill="none" stroke="var(--color-border)" />
+              <text x="24" y="118" fill="var(--color-ink)" font-size="10">Chunker</text>
+
+              <rect x="184" y="30" width="120" height="36" rx="6" fill="none" stroke="url(#flowAccent)" />
+              <rect x="184" y="78" width="120" height="36" rx="6" fill="none" stroke="url(#flowAccent)" />
+              <rect x="184" y="126" width="120" height="36" rx="6" fill="none" stroke="url(#flowAccent)" />
+              <text x="196" y="52" fill="var(--color-ink)" font-size="9">Parallel worker 1</text>
+              <text x="196" y="100" fill="var(--color-ink)" font-size="9">Parallel worker 2</text>
+              <text x="196" y="148" fill="var(--color-ink)" font-size="9">Parallel worker n</text>
+
+              <rect x="330" y="62" width="130" height="44" rx="6" fill="none" stroke="var(--color-border)" />
+              <text x="342" y="90" fill="var(--color-ink)" font-size="10">Validation + retries</text>
+
+              <rect x="330" y="130" width="130" height="44" rx="6" fill="none" stroke="var(--color-border)" />
+              <text x="342" y="158" fill="var(--color-ink)" font-size="10">Merge + dedupe</text>
+
+              <rect x="330" y="198" width="130" height="44" rx="6" fill="none" stroke="var(--color-border)" />
+              <text x="342" y="226" fill="var(--color-ink)" font-size="10">Structured output</text>
+
+              <path d="M152 41 H180" stroke="var(--color-muted)" stroke-width="1.2" />
+              <path d="M152 113 H180" stroke="var(--color-muted)" stroke-width="1.2" />
+              <path d="M152 113 L180 48" stroke="var(--color-muted)" stroke-width="1.2" fill="none" />
+              <path d="M152 113 L180 96" stroke="var(--color-muted)" stroke-width="1.2" fill="none" />
+              <path d="M152 113 L180 144" stroke="var(--color-muted)" stroke-width="1.2" fill="none" />
+
+              <path d="M304 48 H326" stroke="var(--color-muted)" stroke-width="1.2" />
+              <path d="M304 96 H326" stroke="var(--color-muted)" stroke-width="1.2" />
+              <path d="M304 144 H326" stroke="var(--color-muted)" stroke-width="1.2" />
+
+              <path d="M395 106 V126" stroke="var(--color-muted)" stroke-width="1.2" />
+              <path d="M395 174 V194" stroke="var(--color-muted)" stroke-width="1.2" />
+            </svg>
+            <p class="mt-4 text-xs text-[var(--color-muted)]">Parallel strategy assembles chunked work, validates outputs, and merges into a single schema-aligned result.</p>
           </div>
         </div>
       </section>
@@ -501,6 +571,44 @@ const result = await extract({
         renderFrame();
         setInterval(renderFrame, 5200);
       })();
+    </script>
+    <script type="importmap">
+      {
+        "imports": {
+          "react": "https://esm.sh/react@18.2.0",
+          "react-dom": "https://esm.sh/react-dom@18.2.0",
+          "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+          "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime"
+        }
+      }
+    </script>
+    <script type="module">
+      const isLocal =
+        location.protocol === "file:" ||
+        ["localhost", "127.0.0.1", "0.0.0.0"].includes(location.hostname);
+
+      if (isLocal) {
+        const rootId = "agentation-root";
+        let rootNode = document.getElementById(rootId);
+        if (!rootNode) {
+          rootNode = document.createElement("div");
+          rootNode.id = rootId;
+          document.body.appendChild(rootNode);
+        }
+
+        try {
+          const [{ createRoot }, { Agentation }, React] = await Promise.all([
+            import("react-dom/client"),
+            import("https://unpkg.com/agentation/dist/index.mjs"),
+            import("react"),
+          ]);
+
+          const root = createRoot(rootNode);
+          root.render(React.createElement(Agentation));
+        } catch (error) {
+          console.warn("Agentation failed to load:", error);
+        }
+      }
     </script>
   </body>
 </html>
