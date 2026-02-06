@@ -1,525 +1,506 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Struktur Documentation Guide</title>
-        <meta
-            name="description"
-            content="Detailed documentation for Struktur: artifacts, strategies, chunking, validation, and merging."
-        />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-        <link
-            href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap"
-            rel="stylesheet"
-        />
-        <link rel="stylesheet" href="./assets/style.css" />
-    </head>
-    <body>
-        <div class="doc-app">
-            <aside class="doc-sidebar">
-                <a class="logo" href="./index.html">
-                    <span class="logo-icon">◈</span>
-                    <span class="logo-text">/@mateffy/struktur</span>
-                </a>
-                <div class="section-divider" data-label="Documentation"></div>
-                <nav class="doc-nav">
-                    <a href="#overview" class="active">Overview</a>
-                    <a href="#installation">Installation</a>
-                    <a href="#quick-start">Quick start</a>
-                    <a href="#artifacts">Artifacts</a>
-                    <a href="#chunking">Chunking</a>
-                    <a href="#strategies">Strategies</a>
-                    <a href="#examples">Examples</a>
-                    <a href="#validation">Validation</a>
-                    <a href="#merge">Merge &amp; dedupe</a>
-                    <a href="#events">Events</a>
-                    <a href="#providers">Artifact providers</a>
-                    <a href="#custom-strategy">Custom strategies</a>
-                    <a href="#types">Types &amp; results</a>
-                    <a href="#testing">Testing</a>
-                </nav>
-                <div style="margin-top: auto; padding-top: 2rem">
-                    <button
-                        class="theme-toggle"
-                        onclick="toggleTheme()"
-                        aria-label="Toggle theme"
-                    >
-                        <span id="theme-icon">◐</span>
-                    </button>
-                </div>
-            </aside>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Struktur · Structured Extraction Engine</title>
+    <meta
+      name="description"
+      content="Struktur turns files into schema-validated data with chunking, strategies, and merges across every LLM provider via the Vercel AI SDK."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style type="text/tailwindcss">
+      @theme {
+        --color-bg: #0b0e12;
+        --color-ink: #f5f7fb;
+        --color-muted: #9aa3b2;
+        --color-accent: #3ddc97;
+        --color-border: rgba(245, 247, 251, 0.08);
+        --color-card: rgba(245, 247, 251, 0.03);
+      }
 
-            <main class="doc-main">
-                <div class="doc-content">
-                    <div>
-                        <h1 class="doc-title">Struktur Documentation</h1>
-                        <p class="doc-subtitle">
-                            Single-page reference for strategies, artifacts,
-                            validation, and merge behavior.
-                        </p>
-                    </div>
+      @keyframes terminal-line {
+        0% {
+          opacity: 0;
+          transform: translateY(4px);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
 
-                    <section class="doc-section" id="overview">
-                        <h2>Overview</h2>
-                        <p>
-                            Struktur is a TypeScript extraction engine that
-                            takes pre-parsed artifacts and produces validated
-                            JSON with the Vercel AI SDK. It splits artifacts by
-                            token budgets, runs a configurable strategy,
-                            validates with Ajv, and merges or deduplicates
-                            outputs when needed.
-                        </p>
-                        <div class="callout" style="margin-top: 1rem">
-                            Entry point: <strong>extract()</strong> delegates
-                            all work to the configured extraction strategy.
-                        </div>
-                    </section>
+      @keyframes terminal-caret {
+        0%,
+        49% {
+          opacity: 1;
+        }
+        50%,
+        100% {
+          opacity: 0;
+        }
+      }
 
-                    <section class="doc-section" id="installation">
-                        <h2>Installation</h2>
-                        <pre class="code-block"><code>bun install
-</code></pre>
-                        <p style="margin-top: 1rem">
-                            Struktur is published as <code>@mateffy/struktur</code> in
-                            <code>package.json</code>.
-                        </p>
-                    </section>
+      .terminal-line {
+        opacity: 0;
+        transform: translateY(4px);
+        animation: terminal-line 0.35s ease forwards;
+      }
 
-                    <section class="doc-section" id="quick-start">
-                        <h2>Quick start</h2>
-                        <pre class="code-block"><code><span class="tok-keyword">import</span> { extract, simple } <span class="tok-keyword">from</span> <span class="tok-string">"@mateffy/struktur"</span>;
-<span class="tok-keyword">import</span> <span class="tok-keyword">type</span> { JSONSchemaType } <span class="tok-keyword">from</span> <span class="tok-string">"ajv"</span>;
-<span class="tok-keyword">import</span> { google } <span class="tok-keyword">from</span> <span class="tok-string">"@ai-sdk/google"</span>;
+      .terminal-caret {
+        display: inline-block;
+        width: 7px;
+        height: 12px;
+        margin-left: 3px;
+        background: var(--color-accent);
+        vertical-align: -1px;
+        animation: terminal-caret 1s steps(1) infinite;
+      }
 
-<span class="tok-keyword">type</span> <span class="tok-type">Output</span> = { title: <span class="tok-keyword">string</span> };
+      body {
+        font-family: "JetBrains Mono", ui-monospace, SFMono-Regular;
+      }
+    </style>
+  </head>
+  <body class="bg-[var(--color-bg)] text-[var(--color-ink)] antialiased">
+    <header class="fixed inset-x-0 top-0 z-50 border-b border-[var(--color-border)] bg-[var(--color-bg)]/80 backdrop-blur">
+      <div class="mx-auto flex h-14 max-w-6xl items-center border-x border-[var(--color-border)]">
+        <a href="./index.html" class="flex h-full items-center border-r border-[var(--color-border)] px-5 text-sm font-semibold tracking-tight">
+          Struktur
+        </a>
+        <nav class="hidden h-full flex-1 items-center md:flex">
+          <a class="flex h-full items-center border-r border-[var(--color-border)] px-5 text-xs font-semibold text-[var(--color-ink)]/80 hover:bg-[var(--color-card)]" href="#flow">
+            Extraction flow
+          </a>
+          <a class="flex h-full items-center border-r border-[var(--color-border)] px-5 text-xs font-semibold text-[var(--color-ink)]/80 hover:bg-[var(--color-card)]" href="#artifact">
+            Artifact standard
+          </a>
+          <a class="flex h-full items-center border-r border-[var(--color-border)] px-5 text-xs font-semibold text-[var(--color-ink)]/80 hover:bg-[var(--color-card)]" href="#use-cases">
+            Use cases
+          </a>
+          <a class="flex h-full items-center border-r border-[var(--color-border)] px-5 text-xs font-semibold text-[var(--color-ink)]/80 hover:bg-[var(--color-card)]" href="#integrations">
+            Integrations
+          </a>
+          <a class="flex h-full items-center px-5 text-xs font-semibold text-[var(--color-ink)]/80 hover:bg-[var(--color-card)]" href="./guide.html">
+            Docs
+          </a>
+        </nav>
+        <div class="ml-auto h-full border-l border-[var(--color-border)] px-3">
+          <a class="inline-flex h-9 items-center justify-center bg-[var(--color-accent)] px-4 text-xs font-semibold text-[#0b0e12]" href="#cta">
+            Install CLI
+          </a>
+        </div>
+      </div>
+    </header>
 
-<span class="tok-keyword">const</span> schema: JSONSchemaType&lt;<span class="tok-type">Output</span>&gt; = {
-  <span class="tok-operator">type</span>: <span class="tok-string">"object"</span>,
-  <span class="tok-operator">properties</span>: { title: { <span class="tok-operator">type</span>: <span class="tok-string">"string"</span> } },
-  <span class="tok-operator">required</span>: [<span class="tok-string">"title"</span>],
-  <span class="tok-operator">additionalProperties</span>: <span class="tok-keyword">false</span>,
-};
+    <main class="pt-16">
+      <section class="relative border-b border-[var(--color-border)]">
+        <div class="pointer-events-none absolute inset-0 opacity-60">
+          <div class="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(61,220,151,0.18),transparent_40%),radial-gradient(circle_at_80%_10%,rgba(95,147,255,0.18),transparent_45%),radial-gradient(circle_at_50%_80%,rgba(35,66,122,0.18),transparent_50%)]"></div>
+        </div>
+        <div class="mx-auto grid max-w-6xl gap-8 border-x border-[var(--color-border)] px-6 py-16 md:grid-cols-[1.1fr,0.9fr]">
+          <div class="flex flex-col justify-center">
+            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">Structured data extraction</p>
+            <h1 class="mt-4 text-4xl font-semibold tracking-tight md:text-5xl">
+              Turn any file into structured data.
+            </h1>
+            <p class="mt-4 max-w-xl text-sm leading-relaxed text-[var(--color-muted)]">
+              Structure orchestrates your data extraction and validation. Pick a strategy for small files or long documents,
+              and it handles chunking, merging, and schema checks behind the scenes.
+            </p>
+            <div class="mt-6 flex flex-wrap gap-3">
+              <a class="inline-flex h-10 items-center justify-center bg-[var(--color-accent)] px-5 text-xs font-semibold text-[#0b0e12]" href="#cta">
+                Install CLI
+              </a>
+              <a class="inline-flex h-10 items-center justify-center border border-[var(--color-border)] px-5 text-xs font-semibold text-[var(--color-ink)]" href="./guide.html">
+                View docs
+              </a>
+            </div>
+          </div>
+          <div class="relative">
+            <div class="absolute -right-2 -top-2 text-xs text-[var(--color-ink)]/60">+</div>
+            <div class="absolute -bottom-2 -left-2 text-xs text-[var(--color-ink)]/60">+</div>
+            <div class="rounded-none border border-[var(--color-border)] bg-[var(--color-card)] p-5">
+              <div class="flex items-center justify-between border-b border-[var(--color-border)] pb-3 text-xs text-[var(--color-muted)]">
+                <span>CLI example</span>
+                <span>Output</span>
+              </div>
+              <div class="mt-4 font-mono text-xs text-[var(--color-ink)]">
+                <p class="text-[var(--color-muted)]">
+                  <span id="terminal-title" class="text-[var(--color-ink)]">CLI flow</span>
+                </p>
+                <div id="terminal-lines" class="mt-3 space-y-2"></div>
+              </div>
+              <div class="mt-5 border border-dashed border-[var(--color-border)] bg-[var(--color-bg)]/40 p-3 text-[10px] text-[var(--color-muted)]">
+                Structured data extraction.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-<span class="tok-keyword">const</span> result = <span class="tok-keyword">await</span> extract({
-  <span class="tok-operator">artifacts</span>: [<span class="tok-comment">/* Artifact[] */</span>],
-  <span class="tok-operator">schema</span>,
-  <span class="tok-operator">strategy</span>: simple({ model: google(<span class="tok-string">"claude-haiku-4-5"</span>) }),
-});
+      <section class="border-b border-[var(--color-border)]">
+        <div class="mx-auto max-w-6xl border-x border-[var(--color-border)]">
+          <div class="grid grid-cols-2 border-t border-[var(--color-border)] md:grid-cols-3 lg:grid-cols-6">
+            <div class="flex h-16 items-center justify-center border-b border-r border-[var(--color-border)] text-xs text-[var(--color-muted)]">vercel</div>
+            <div class="flex h-16 items-center justify-center border-b border-r border-[var(--color-border)] text-xs text-[var(--color-muted)]">shopify</div>
+            <div class="flex h-16 items-center justify-center border-b border-r border-[var(--color-border)] text-xs text-[var(--color-muted)]">gumroad</div>
+            <div class="flex h-16 items-center justify-center border-b border-r border-[var(--color-border)] text-xs text-[var(--color-muted)]">linear</div>
+            <div class="flex h-16 items-center justify-center border-b border-r border-[var(--color-border)] text-xs text-[var(--color-muted)]">notion</div>
+            <div class="flex h-16 items-center justify-center border-b border-[var(--color-border)] text-xs text-[var(--color-muted)]">lattice</div>
+          </div>
+        </div>
+      </section>
 
-console.log(result.data.title);</code></pre>
-                    </section>
+      <section class="border-b border-[var(--color-border)]">
+        <div class="mx-auto max-w-6xl border-x border-[var(--color-border)]">
+          <div class="grid md:grid-cols-3">
+            <div class="border-b border-r border-[var(--color-border)] p-8 md:border-b-0">
+              <h3 class="text-lg font-semibold text-[var(--color-accent)]">Files in, validated data out</h3>
+              <p class="mt-3 text-sm text-[var(--color-muted)]">Typed extraction with explicit schema guarantees.</p>
+              <ul class="mt-4 space-y-2 text-xs text-[var(--color-muted)]">
+                <li class="flex gap-2"><span class="mt-1 h-1.5 w-1.5 bg-[var(--color-accent)]"></span>JSON Schema or TypeScript types</li>
+                <li class="flex gap-2"><span class="mt-1 h-1.5 w-1.5 bg-[var(--color-accent)]"></span>Strict Ajv validation with errors</li>
+                <li class="flex gap-2"><span class="mt-1 h-1.5 w-1.5 bg-[var(--color-accent)]"></span>Deterministic output shape</li>
+              </ul>
+            </div>
+            <div class="border-b border-r border-[var(--color-border)] p-8 md:border-b-0">
+              <h3 class="text-lg font-semibold text-[var(--color-accent)]">Strategy-driven extraction</h3>
+              <p class="mt-3 text-sm text-[var(--color-muted)]">Choose the right flow for each document class.</p>
+              <ul class="mt-4 space-y-2 text-xs text-[var(--color-muted)]">
+                <li class="flex gap-2"><span class="mt-1 h-1.5 w-1.5 bg-[var(--color-accent)]"></span>Simple, parallel, sequential, double-pass</li>
+                <li class="flex gap-2"><span class="mt-1 h-1.5 w-1.5 bg-[var(--color-accent)]"></span>Token-budgeted chunking by strategy</li>
+                <li class="flex gap-2"><span class="mt-1 h-1.5 w-1.5 bg-[var(--color-accent)]"></span>Retries when validation fails</li>
+              </ul>
+            </div>
+            <div class="p-8">
+              <h3 class="text-lg font-semibold text-[var(--color-accent)]">Long files supported</h3>
+              <p class="mt-3 text-sm text-[var(--color-muted)]">Handle documents that exceed model limits.</p>
+              <ul class="mt-4 space-y-2 text-xs text-[var(--color-muted)]">
+                <li class="flex gap-2"><span class="mt-1 h-1.5 w-1.5 bg-[var(--color-accent)]"></span>Chunking + merge inside strategies</li>
+                <li class="flex gap-2"><span class="mt-1 h-1.5 w-1.5 bg-[var(--color-accent)]"></span>Deduplication across chunks</li>
+                <li class="flex gap-2"><span class="mt-1 h-1.5 w-1.5 bg-[var(--color-accent)]"></span>Stable outputs for large inputs</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
 
-                    <section class="doc-section" id="artifacts">
-                        <h2>Artifacts</h2>
-                        <p>
-                            Artifacts are JSON DTOs that already contain parsed
-                            text and media slices. Struktur does not parse PDFs,
-                            HTML, or images; it expects you to provide
-                            normalized artifacts that it can batch and feed to
-                            the LLM.
-                        </p>
-                        <ul>
-                            <li>
-                                Use <code>urlToArtifact</code> or
-                                <code>fileToArtifact</code> for supported input
-                                types.
-                            </li>
-                            <li>
-                                Register custom providers with
-                                <code>registerArtifactProvider</code>.
-                            </li>
-                            <li>
-                                Artifacts can include text blocks and image
-                                references for multimodal models.
-                            </li>
-                        </ul>
-                    </section>
+      <section id="cta" class="border-b border-[var(--color-border)]">
+        <div class="mx-auto max-w-6xl border-x border-[var(--color-border)] px-6 py-16 text-center">
+          <h2 class="text-3xl font-semibold tracking-tight">Using Structure is as simple as running one command.</h2>
+          <p class="mx-auto mt-3 max-w-2xl text-sm text-[var(--color-muted)]">Install the CLI and start extracting validated data from files.</p>
+          <div class="mt-6">
+            <a class="inline-flex h-10 items-center justify-center bg-[var(--color-accent)] px-6 text-xs font-semibold text-[#0b0e12]" href="./guide.html">
+              View docs
+            </a>
+          </div>
+        </div>
+      </section>
 
-                    <section class="doc-section" id="chunking">
-                        <h2>Chunking</h2>
-                        <p>
-                            Chunking splits large artifacts by token budgets and
-                            batches them for extraction. Strategies accept
-                            options like
-                            <code>chunkSize</code> and image limits so you can
-                            control memory and latency.
-                        </p>
-                        <div class="callout" style="margin-top: 1rem">
-                            Chunking happens before extraction, and every
-                            strategy sees consistent batches.
-                        </div>
-                    </section>
-
-                    <section class="doc-section" id="strategies">
-                        <h2>Strategies</h2>
-                        <p>
-                            Choose the extraction flow that matches your data
-                            size and accuracy needs.
-                        </p>
-                        <ul>
-                            <li>
-                                <strong>simple</strong>: single-shot extraction.
-                            </li>
-                            <li>
-                                <strong>parallel</strong>: batch concurrently,
-                                then LLM merge.
-                            </li>
-                            <li>
-                                <strong>sequential</strong>: batch sequentially
-                                with context preservation.
-                            </li>
-                            <li>
-                                <strong>parallelAutoMerge</strong>: merge +
-                                dedupe automatically.
-                            </li>
-                            <li>
-                                <strong>sequentialAutoMerge</strong>: safe merge
-                                + dedupe sequentially.
-                            </li>
-                            <li>
-                                <strong>doublePass</strong>: refine after a full
-                                merge.
-                            </li>
-                            <li>
-                                <strong>doublePassAutoMerge</strong>: auto-merge
-                                followed by refinement.
-                            </li>
-                        </ul>
-                        <h3>Simple</h3>
-                        <p>
-                            Sends as much content as possible in a single call.
-                            If the input exceeds the token budget, artifacts are
-                            chunked to fit.
-                        </p>
-                        <div class="mermaid">
-flowchart TD
-    A([Start]) --> B[Load artifacts]
-    B --> C{Token budget fits?}
-    C -->|Yes| D[Single LLM call]
-    C -->|No| E[Chunk artifacts]
-    E --> D
-    D --> F[Validate + return]
-                        </div>
-
-                        <h3>Sequential</h3>
-                        <p>
-                            Processes chunks one by one and feeds previous
-                            outputs into the next prompt to preserve context.
-                        </p>
-                        <div class="mermaid">
-flowchart TD
-    A([Start]) --> B[Chunk artifacts]
-    B --> C[LLM on chunk 1]
-    C --> D[Append results to prompt]
-    D --> E[LLM on chunk 2]
-    E --> F[Merge all outputs]
-    F --> G[Validate + return]
-                        </div>
-
-                        <h3>Parallel</h3>
-                        <p>
-                            Processes chunks independently for speed, then
-                            merges results in a final step.
-                        </p>
-                        <div class="mermaid">
-flowchart TD
-    A([Start]) --> B[Chunk artifacts]
-    B --> C1[LLM chunk 1]
-    B --> C2[LLM chunk 2]
-    B --> C3[LLM chunk N]
-    C1 --> D[Merge results]
-    C2 --> D
-    C3 --> D
-    D --> E[Validate + return]
-                        </div>
-
-                        <h3>Double pass</h3>
-                        <p>
-                            Runs a fast parallel pass, then refines the merged
-                            output with a sequential pass for higher accuracy.
-                        </p>
-                        <div class="mermaid">
-flowchart TD
-    A([Start]) --> B[Parallel pass]
-    B --> C[Merge draft]
-    C --> D[Sequential refinement]
-    D --> E[Validate + return]
-                        </div>
-
-                        <h3>Strategy options</h3>
-                        <ul>
-                            <li><strong>model</strong>: LLM used for extraction.</li>
-                            <li>
-                                <strong>mergeModel</strong>: optional model for
-                                merge steps.
-                            </li>
-                            <li>
-                                <strong>chunkSize</strong>: token budget per
-                                batch.
-                            </li>
-                        </ul>
-                        <pre class="code-block" style="margin-top: 1rem"><code><span class="tok-keyword">import</span> { extract, parallel } <span class="tok-keyword">from</span> <span class="tok-string">"@mateffy/struktur"</span>;
-<span class="tok-keyword">import</span> { google } <span class="tok-keyword">from</span> <span class="tok-string">"@ai-sdk/google"</span>;
-
-<span class="tok-keyword">const</span> result = <span class="tok-keyword">await</span> extract({
-  <span class="tok-operator">artifacts</span>,
-  <span class="tok-operator">schema</span>,
-  <span class="tok-operator">strategy</span>: parallel({
-    <span class="tok-operator">model</span>: google(<span class="tok-string">"claude-haiku-4-5"</span>),
-    <span class="tok-operator">mergeModel</span>: google(<span class="tok-string">"claude-haiku-4-5"</span>),
-    <span class="tok-operator">chunkSize</span>: <span class="tok-number">10_000</span>,
-  }),
-});</code></pre>
-                    </section>
-
-                    <section class="doc-section" id="examples">
-                        <h2>Examples</h2>
-                        <p>
-                            Two real-world extraction patterns adapted from the
-                            prior PHP implementation, updated for Struktur.
-                        </p>
-
-                        <h3>Real estate exposés</h3>
-                        <p>
-                            Extract property data, nested units, and associated
-                            images from PDF exposés or HTML listings. A
-                            sequential auto-merge strategy helps preserve
-                            context across pages and consolidate repeated units.
-                        </p>
-                        <pre class="code-block"><code>{
-  <span class="tok-string">"name"</span>: <span class="tok-string">"Modern Apartment in City Center"</span>,
-  <span class="tok-string">"address"</span>: <span class="tok-string">"12 Example Street"</span>,
-  <span class="tok-string">"units"</span>: [
-    {
-      <span class="tok-string">"label"</span>: <span class="tok-string">"Apartment 1"</span>,
-      <span class="tok-string">"rent_per_m2"</span>: <span class="tok-number">15.5</span>,
-      <span class="tok-string">"images"</span>: [<span class="tok-string">"artifact:images/image1.png"</span>]
-    }
+      <section id="examples" class="border-b border-[var(--color-border)]">
+        <div class="mx-auto max-w-6xl border-x border-[var(--color-border)]">
+          <div class="grid md:grid-cols-2">
+            <div class="border-b border-r border-[var(--color-border)] p-8 md:border-b-0">
+              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">CLI example</p>
+              <pre class="mt-4 overflow-x-auto border border-[var(--color-border)] bg-[var(--color-card)] p-5 text-xs text-[var(--color-ink)]"><code>$ struktur extract ./files/invoices/*.pdf \
+  --schema ./schemas/invoice.json \
+  --strategy parallel-auto-merge \
+  --model openai:gpt-4.1</code></pre>
+              <p class="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">Output</p>
+              <pre class="mt-3 overflow-x-auto border border-[var(--color-border)] bg-[var(--color-card)] p-5 text-xs text-[var(--color-ink)]"><code>{
+  "invoice_id": "INV-4821",
+  "vendor": "Northshore Supply",
+  "currency": "USD",
+  "total": 1824.5,
+  "line_items": [
+    { "sku": "CS-21", "qty": 3, "price": 249.5 }
   ]
 }</code></pre>
+            </div>
+            <div class="p-8">
+              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">TypeScript example</p>
+              <pre class="mt-4 overflow-x-auto border border-[var(--color-border)] bg-[var(--color-card)] p-5 text-xs text-[var(--color-ink)]"><code>import { extract, parallel } from "@mateffy/struktur";
+import { google } from "@ai-sdk/google";
 
-                        <h3>Paper invoices to structured data</h3>
-                        <p>
-                            Extract invoice numbers, line items, and totals from
-                            scanned PDFs or images. Start with a simple strategy
-                            and add validation logic in a custom strategy if
-                            totals must reconcile.
-                        </p>
-                        <pre class="code-block"><code>{
-  <span class="tok-string">"invoiceNumber"</span>: <span class="tok-string">"INV-2022-001"</span>,
-  <span class="tok-string">"currency"</span>: <span class="tok-string">"EUR"</span>,
-  <span class="tok-string">"lineItems"</span>: [
-    {
-      <span class="tok-string">"position"</span>: <span class="tok-number">1</span>,
-      <span class="tok-string">"description"</span>: <span class="tok-string">"Product A"</span>,
-      <span class="tok-string">"netAmount"</span>: <span class="tok-number">200.0</span>
-    }
-  ],
-  <span class="tok-string">"totalAmounts"</span>: {
-    <span class="tok-string">"grossTotal"</span>: <span class="tok-number">416.5</span>
+const result = await extract({
+  artifacts: files,
+  schema,
+  strategy: parallel({
+    model: google("claude-haiku-4-5"),
+    chunkSize: 10_000,
+  }),
+});</code></pre>
+              <p class="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">Output</p>
+              <pre class="mt-3 overflow-x-auto border border-[var(--color-border)] bg-[var(--color-card)] p-5 text-xs text-[var(--color-ink)]"><code>{
+  "catalog": {
+    "title": "Spring 2026",
+    "products": [
+      { "id": "SKU-88", "name": "Field Jacket" }
+    ]
   }
 }</code></pre>
-                    </section>
-
-                    <section class="doc-section" id="validation">
-                        <h2>Validation</h2>
-                        <p>
-                            Struktur validates every model output with Ajv. When
-                            validation fails, schema errors are fed back to the
-                            LLM and the run is retried. This keeps outputs
-                            aligned with your JSON schema.
-                        </p>
-                    </section>
-
-                    <section class="doc-section" id="merge">
-                        <h2>Merge &amp; dedupe</h2>
-                        <p>
-                            Merge behavior is schema-aware. Auto-merge
-                            strategies combine partial outputs, then run
-                            deduplication (hash-based or LLM-based depending on
-                            strategy settings).
-                        </p>
-                    </section>
-
-                    <section class="doc-section" id="events">
-                        <h2>Events</h2>
-                        <p>
-                            Use events to surface progress, messages, and errors
-                            in UI dashboards or logs.
-                        </p>
-                        <pre class="code-block"><code><span class="tok-keyword">const</span> result = <span class="tok-keyword">await</span> extract({
-  <span class="tok-operator">artifacts</span>,
-  <span class="tok-operator">schema</span>,
-  <span class="tok-operator">strategy</span>,
-  <span class="tok-operator">events</span>: {
-    <span class="tok-operator">onStep</span>: ({ step, total, label }) <span class="tok-operator">=&gt;</span> {
-      console.log(<span class="tok-string">"step"</span>, step, total, label);
-    },
-    <span class="tok-operator">onMessage</span>: ({ role, content }) <span class="tok-operator">=&gt;</span> {
-      console.log(role, content);
-    },
-  },
-});</code></pre>
-                    </section>
-
-                    <section class="doc-section" id="providers">
-                        <h2>Artifact providers</h2>
-                        <p>
-                            Providers let you plug in your own file handling.
-                            Register a handler for new MIME types and return a
-                            normalized artifact.
-                        </p>
-                        <pre class="code-block"><code><span class="tok-keyword">import</span> { registerArtifactProvider, fileToArtifact } <span class="tok-keyword">from</span> <span class="tok-string">"@mateffy/struktur"</span>;
-
-registerArtifactProvider(<span class="tok-string">"application/pdf"</span>, <span class="tok-keyword">async</span> (buffer) <span class="tok-operator">=&gt;</span> ({
-  <span class="tok-operator">id</span>: <span class="tok-string">"pdf-1"</span>,
-  <span class="tok-operator">type</span>: <span class="tok-string">"pdf"</span>,
-  <span class="tok-operator">raw</span>: <span class="tok-keyword">async</span> () <span class="tok-operator">=&gt;</span> buffer,
-  <span class="tok-operator">contents</span>: [{ <span class="tok-operator">page</span>: <span class="tok-number">1</span>, <span class="tok-operator">text</span>: <span class="tok-string">"..."</span> }],
-}));
-
-<span class="tok-keyword">const</span> artifact = <span class="tok-keyword">await</span> fileToArtifact(buffer, { <span class="tok-operator">mimeType</span>: <span class="tok-string">"application/pdf"</span> });</code></pre>
-                    </section>
-
-                    <section class="doc-section" id="custom-strategy">
-                        <h2>Custom strategies</h2>
-                        <p>
-                            Implement the
-                            <code>ExtractionStrategy</code> interface to plug in
-                            custom orchestration logic while keeping the same
-                            inputs and output contracts.
-                        </p>
-                        <pre class="code-block"><code><span class="tok-keyword">import</span> <span class="tok-keyword">type</span> { ExtractionStrategy } <span class="tok-keyword">from</span> <span class="tok-string">"@mateffy/struktur"</span>;
-
-<span class="tok-keyword">const</span> custom: ExtractionStrategy&lt;{ ok: <span class="tok-keyword">boolean</span> }&gt; = {
-  <span class="tok-operator">name</span>: <span class="tok-string">"custom"</span>,
-  <span class="tok-operator">run</span>: <span class="tok-keyword">async</span> () <span class="tok-operator">=&gt;</span> ({
-    <span class="tok-operator">data</span>: { <span class="tok-operator">ok</span>: <span class="tok-keyword">true</span> },
-    <span class="tok-operator">usage</span>: { <span class="tok-operator">inputTokens</span>: <span class="tok-number">0</span>, <span class="tok-operator">outputTokens</span>: <span class="tok-number">0</span>, <span class="tok-operator">totalTokens</span>: <span class="tok-number">0</span> },
-  }),
-};</code></pre>
-                    </section>
-
-                    <section class="doc-section" id="types">
-                        <h2>Types &amp; results</h2>
-                        <p>
-                            Use <code>JSONSchemaType</code> from Ajv for
-                            type-safe results. The return type is inferred from
-                            your schema, so <code>result.data</code> is strongly
-                            typed.
-                        </p>
-                        <pre class="code-block"><code><span class="tok-keyword">import</span> <span class="tok-keyword">type</span> { JSONSchemaType } <span class="tok-keyword">from</span> <span class="tok-string">"ajv"</span>;
-
-<span class="tok-keyword">type</span> <span class="tok-type">Output</span> = { title: <span class="tok-keyword">string</span> };
-<span class="tok-keyword">const</span> schema: JSONSchemaType&lt;<span class="tok-type">Output</span>&gt; = {
-  <span class="tok-operator">type</span>: <span class="tok-string">"object"</span>,
-  <span class="tok-operator">properties</span>: { title: { <span class="tok-operator">type</span>: <span class="tok-string">"string"</span> } },
-  <span class="tok-operator">required</span>: [<span class="tok-string">"title"</span>],
-  <span class="tok-operator">additionalProperties</span>: <span class="tok-keyword">false</span>,
-};</code></pre>
-                    </section>
-
-                    <section class="doc-section" id="testing">
-                        <h2>Testing</h2>
-                        <p>Run the test suite with Bun.</p>
-                        <pre class="code-block"><code>bun test
-</code></pre>
-                    </section>
-                </div>
-            </main>
+            </div>
+          </div>
         </div>
+      </section>
 
-        <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-        <script>
-            function initMermaid(theme) {
-                if (!window.mermaid) return;
-                mermaid.initialize({
-                    startOnLoad: false,
-                    theme: theme === "dark" ? "dark" : "neutral",
-                    themeVariables: {
-                        fontFamily: "JetBrains Mono",
-                        primaryColor: theme === "dark" ? "#141414" : "#ffffff",
-                        primaryTextColor: theme === "dark" ? "#e5e5e5" : "#1a1a1a",
-                        primaryBorderColor: theme === "dark" ? "#2a2a2a" : "#d0d0d0",
-                        lineColor: theme === "dark" ? "#707070" : "#4a4a4a",
-                        secondaryColor: theme === "dark" ? "#1a1a1a" : "#f5f5f5",
-                    },
-                });
-                mermaid.run({ querySelector: ".mermaid" });
+      <section id="flow" class="border-b border-[var(--color-border)]">
+        <div class="mx-auto max-w-6xl border-x border-[var(--color-border)]">
+          <div class="border-b border-[var(--color-border)] px-6 py-10">
+            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">Extraction flow</p>
+            <h2 class="mt-2 text-2xl font-semibold">Three steps, consistent output</h2>
+          </div>
+          <div class="grid md:grid-cols-3">
+            <div class="border-b border-r border-[var(--color-border)] p-8 md:border-b-0">
+              <p class="text-xs font-semibold text-[var(--color-muted)]">Step 01</p>
+              <h3 class="mt-3 text-lg font-semibold text-[var(--color-accent)]">Ingest files</h3>
+              <p class="mt-3 text-sm text-[var(--color-muted)]">Add your files as plain text or in the artifact file format.</p>
+            </div>
+            <div class="border-b border-r border-[var(--color-border)] p-8 md:border-b-0">
+              <p class="text-xs font-semibold text-[var(--color-muted)]">Step 02</p>
+              <h3 class="mt-3 text-lg font-semibold text-[var(--color-accent)]">Pick a strategy</h3>
+              <p class="mt-3 text-sm text-[var(--color-muted)]">Use a built-in strategy or compose your own for the document type.</p>
+            </div>
+            <div class="p-8">
+              <p class="text-xs font-semibold text-[var(--color-muted)]">Step 03</p>
+              <h3 class="mt-3 text-lg font-semibold text-[var(--color-accent)]">Run extraction and validate</h3>
+              <p class="mt-3 text-sm text-[var(--color-muted)]">Structure executes your strategy and validates the output data to keep everything consistent.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="artifact" class="border-b border-[var(--color-border)]">
+        <div class="mx-auto grid max-w-6xl gap-8 border-x border-[var(--color-border)] px-6 py-12 md:grid-cols-[1.1fr,0.9fr]">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">Artifact standard</p>
+            <h2 class="mt-2 text-2xl font-semibold">A file format for any input</h2>
+            <p class="mt-3 text-sm text-[var(--color-muted)]">
+              The artifact file format packages text, images, and metadata so any file can be extracted the same way. If you
+              can write a converter, you can extract immediately.
+            </p>
+            <div class="mt-6 inline-flex h-9 items-center justify-center bg-[var(--color-accent)] px-4 text-xs font-semibold text-[#0b0e12]">Why it matters</div>
+          </div>
+          <div class="border border-[var(--color-border)] bg-[var(--color-card)] p-6">
+            <div class="flex items-center justify-between text-xs text-[var(--color-muted)]">
+              <span>Artifact schema (excerpt)</span>
+              <span>Output can reference media</span>
+            </div>
+            <div class="mt-6 flex items-center justify-between gap-3 text-xs">
+              <div class="flex-1 border border-[var(--color-border)] bg-[var(--color-bg)]/40 p-3">PDFs can include images and thumbnails; outputs can reference those slices.</div>
+              <div class="h-px w-6 bg-[var(--color-accent)]"></div>
+              <div class="flex-1 border border-[var(--color-border)] bg-[var(--color-bg)]/40 p-3">Web pages, URLs, and binary files become uniform input data.</div>
+            </div>
+            <div class="mt-4 text-xs text-[var(--color-muted)]">Merging happens inside strategies, keeping the artifact data and outputs consistent.</div>
+          </div>
+        </div>
+      </section>
+
+      <section id="use-cases" class="border-b border-[var(--color-border)]">
+        <div class="mx-auto max-w-6xl border-x border-[var(--color-border)]">
+          <div class="border-b border-[var(--color-border)] px-6 py-10">
+            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">Use cases</p>
+            <h2 class="mt-2 text-2xl font-semibold">Make any file structured</h2>
+          </div>
+          <div class="grid md:grid-cols-3">
+            <div class="border-b border-r border-[var(--color-border)] p-7">
+              <div class="mb-3 h-10 w-10 border border-[var(--color-border)] bg-[var(--color-card)]"></div>
+              <h3 class="text-sm font-semibold">Invoices & receipts</h3>
+              <p class="mt-2 text-xs text-[var(--color-muted)]">Normalize totals, taxes, and line items with a schema.</p>
+              <p class="mt-3 text-xs text-[var(--color-muted)]">{ "total": 1824.5, "currency": "USD" }</p>
+            </div>
+            <div class="border-b border-r border-[var(--color-border)] p-7">
+              <div class="mb-3 h-10 w-10 border border-[var(--color-border)] bg-[var(--color-card)]"></div>
+              <h3 class="text-sm font-semibold">Real estate listings</h3>
+              <p class="mt-2 text-xs text-[var(--color-muted)]">Extract structured fields for listings and unit variants.</p>
+              <p class="mt-3 text-xs text-[var(--color-muted)]">{ "beds": 3, "baths": 2, "price": 615000 }</p>
+            </div>
+            <div class="border-b border-[var(--color-border)] p-7">
+              <div class="mb-3 h-10 w-10 border border-[var(--color-border)] bg-[var(--color-card)]"></div>
+              <h3 class="text-sm font-semibold">Support tickets</h3>
+              <p class="mt-2 text-xs text-[var(--color-muted)]">Map free-form tickets into typed fields and routing.</p>
+              <p class="mt-3 text-xs text-[var(--color-muted)]">{ "priority": "p1", "category": "billing" }</p>
+            </div>
+            <div class="border-b border-r border-[var(--color-border)] p-7 md:border-b-0">
+              <div class="mb-3 h-10 w-10 border border-[var(--color-border)] bg-[var(--color-card)]"></div>
+              <h3 class="text-sm font-semibold">Product catalogs</h3>
+              <p class="mt-2 text-xs text-[var(--color-muted)]">Extract SKUs, variants, and embedded product images.</p>
+              <p class="mt-3 text-xs text-[var(--color-muted)]">{ "sku": "SKU-88", "image_ref": "img-2" }</p>
+            </div>
+            <div class="border-b border-r border-[var(--color-border)] p-7 md:border-b-0">
+              <div class="mb-3 h-10 w-10 border border-[var(--color-border)] bg-[var(--color-card)]"></div>
+              <h3 class="text-sm font-semibold">Research summaries</h3>
+              <p class="mt-2 text-xs text-[var(--color-muted)]">Pull sections, citations, and metrics into a schema.</p>
+              <p class="mt-3 text-xs text-[var(--color-muted)]">{ "title": "", "findings": ["..."] }</p>
+            </div>
+            <div class="p-7">
+              <div class="mb-3 h-10 w-10 border border-[var(--color-border)] bg-[var(--color-card)]"></div>
+              <h3 class="text-sm font-semibold">Legal briefs</h3>
+              <p class="mt-2 text-xs text-[var(--color-muted)]">Track clauses, citations, and obligations per case.</p>
+              <p class="mt-3 text-xs text-[var(--color-muted)]">{ "case": "A-112", "clauses": 12 }</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="integrations" class="border-b border-[var(--color-border)]">
+        <div class="mx-auto max-w-6xl border-x border-[var(--color-border)]">
+          <div class="border-b border-[var(--color-border)] px-6 py-10">
+            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">Integrations</p>
+            <h2 class="mt-2 text-2xl font-semibold">Every major LLM provider, one SDK</h2>
+            <p class="mt-3 text-sm text-[var(--color-muted)]">Use the Vercel AI SDK to swap models without changing extraction logic.</p>
+          </div>
+          <div class="grid md:grid-cols-4">
+            <div class="border-b border-r border-[var(--color-border)] p-7 md:border-b-0">
+              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-accent)]">OpenAI</p>
+              <ul class="mt-4 space-y-3 text-sm">
+                <li class="flex items-center gap-3"><span class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"></span> gpt-4.1</li>
+                <li class="flex items-center gap-3"><span class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"></span> o-series</li>
+                <li class="flex items-center gap-3"><span class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"></span> Azure OpenAI</li>
+              </ul>
+            </div>
+            <div class="border-b border-r border-[var(--color-border)] p-7 md:border-b-0">
+              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-accent)]">Anthropic</p>
+              <ul class="mt-4 space-y-3 text-sm">
+                <li class="flex items-center gap-3"><span class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"></span> Claude 3.5+</li>
+                <li class="flex items-center gap-3"><span class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"></span> Cohere</li>
+                <li class="flex items-center gap-3"><span class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"></span> Command family</li>
+              </ul>
+            </div>
+            <div class="border-b border-r border-[var(--color-border)] p-7 md:border-b-0">
+              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-accent)]">Google</p>
+              <ul class="mt-4 space-y-3 text-sm">
+                <li class="flex items-center gap-3"><span class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"></span> Gemini models</li>
+                <li class="flex items-center gap-3"><span class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"></span> Groq</li>
+                <li class="flex items-center gap-3"><span class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"></span> Low-latency inference</li>
+              </ul>
+            </div>
+            <div class="p-7">
+              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-accent)]">Mistral</p>
+              <ul class="mt-4 space-y-3 text-sm">
+                <li class="flex items-center gap-3"><span class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"></span> Mixtral + small</li>
+                <li class="flex items-center gap-3"><span class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"></span> Together</li>
+                <li class="flex items-center gap-3"><span class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"></span> Open model hosting</li>
+                <li class="flex items-center gap-3"><span class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"></span> Fireworks</li>
+                <li class="flex items-center gap-3"><span class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"></span> Production hosting</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="articles" class="border-b border-[var(--color-border)]">
+        <div class="mx-auto max-w-6xl border-x border-[var(--color-border)]">
+          <div class="border-b border-[var(--color-border)] px-6 py-10">
+            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">Articles</p>
+            <h2 class="mt-2 text-2xl font-semibold">Technical reads about structured extraction</h2>
+          </div>
+          <div class="grid md:grid-cols-3">
+            <article class="border-b border-r border-[var(--color-border)] p-7">
+              <p class="text-xs text-[var(--color-muted)]">Vercel Blog</p>
+              <h3 class="mt-3 text-sm font-semibold">Why structured extraction wins</h3>
+              <p class="mt-2 text-xs text-[var(--color-muted)]">Building reliable JSON pipelines when your inputs are a mess.</p>
+              <a class="mt-6 inline-flex text-xs font-semibold text-[var(--color-accent)]" href="https://vercel.com/blog" target="_blank" rel="noreferrer">Read article</a>
+            </article>
+            <article class="border-b border-r border-[var(--color-border)] p-7">
+              <p class="text-xs text-[var(--color-muted)]">OpenAI Community</p>
+              <h3 class="mt-3 text-sm font-semibold">Schema-first LLM workflows</h3>
+              <p class="mt-2 text-xs text-[var(--color-muted)]">Design extraction flows that pass validation on the first try.</p>
+              <a class="mt-6 inline-flex text-xs font-semibold text-[var(--color-accent)]" href="https://community.openai.com/" target="_blank" rel="noreferrer">Read article</a>
+            </article>
+            <article class="border-b border-[var(--color-border)] p-7">
+              <p class="text-xs text-[var(--color-muted)]">Dev.to</p>
+              <h3 class="mt-3 text-sm font-semibold">From PDFs to JSON</h3>
+              <p class="mt-2 text-xs text-[var(--color-muted)]">Lessons learned shipping document extraction at scale.</p>
+              <a class="mt-6 inline-flex text-xs font-semibold text-[var(--color-accent)]" href="https://dev.to/" target="_blank" rel="noreferrer">Read article</a>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <footer class="border-b border-[var(--color-border)]">
+        <div class="mx-auto grid max-w-6xl border-x border-[var(--color-border)] md:grid-cols-3">
+          <div class="border-b border-r border-[var(--color-border)] p-8 md:border-b-0">
+            <p class="text-sm font-semibold">Struktur</p>
+            <p class="mt-3 text-xs text-[var(--color-muted)]">A structured extraction engine for validated data.</p>
+            <div class="mt-6 text-xs text-[var(--color-muted)]">© 2026 Struktur</div>
+          </div>
+          <div class="border-b border-r border-[var(--color-border)] p-8 md:border-b-0">
+            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">Product</p>
+            <ul class="mt-4 space-y-2 text-xs text-[var(--color-muted)]">
+              <li><a href="#flow">Extraction flow</a></li>
+              <li><a href="#use-cases">Use cases</a></li>
+              <li><a href="#integrations">Integrations</a></li>
+              <li><a href="./guide.html">Documentation</a></li>
+            </ul>
+          </div>
+          <div class="p-8">
+            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">Resources</p>
+            <ul class="mt-4 space-y-2 text-xs text-[var(--color-muted)]">
+              <li><a href="https://github.com">GitHub</a></li>
+              <li><a href="https://vercel.com/docs/ai">Vercel AI SDK</a></li>
+              <li><a href="#">Changelog</a></li>
+              <li><a href="#">Contact</a></li>
+            </ul>
+          </div>
+        </div>
+      </footer>
+    </main>
+    <script>
+      (() => {
+        const frames = [
+          {
+            title: "CLI flow",
+            lines: [
+              "$ struktur extract ./files/invoices/*.pdf --schema ./schemas/invoice.json",
+              "• 42 files • strategy: parallel-auto-merge",
+              "$ struktur extract ./files/catalog.csv --schema ./schemas/catalog.json",
+              "✔ validated output • 0 schema errors",
+              "→ results.json",
+            ],
+          },
+        ];
+
+        const title = document.getElementById("terminal-title");
+        const lines = document.getElementById("terminal-lines");
+        if (!title || !lines) return;
+
+        let frameIndex = 0;
+
+        const renderFrame = () => {
+          const frame = frames[frameIndex];
+          title.textContent = frame.title;
+          lines.innerHTML = "";
+
+          frame.lines.forEach((line, idx) => {
+            const row = document.createElement("p");
+            row.className = "terminal-line";
+            row.style.animationDelay = `${idx * 120}ms`;
+            row.textContent = line;
+
+            if (idx === frame.lines.length - 1) {
+              const caret = document.createElement("span");
+              caret.className = "terminal-caret";
+              row.appendChild(document.createTextNode(" "));
+              row.appendChild(caret);
             }
 
-            function getTheme() {
-                const stored = localStorage.getItem("@mateffy/struktur-theme");
-                if (stored) return stored;
-                return window.matchMedia("(prefers-color-scheme: dark)").matches
-                    ? "dark"
-                    : "light";
-            }
+            lines.appendChild(row);
+          });
 
-            function setTheme(theme) {
-                document.documentElement.setAttribute("data-theme", theme);
-                localStorage.setItem("@mateffy/struktur-theme", theme);
-                updateThemeIcon(theme);
-                initMermaid(theme);
-            }
+          frameIndex = (frameIndex + 1) % frames.length;
+        };
 
-            function updateThemeIcon(theme) {
-                const icon = document.getElementById("theme-icon");
-                if (icon) {
-                    icon.textContent = theme === "dark" ? "◑" : "◐";
-                }
-            }
-
-            function toggleTheme() {
-                const current = getTheme();
-                const next = current === "dark" ? "light" : "dark";
-                setTheme(next);
-            }
-
-            (function initTheme() {
-                const theme = getTheme();
-                document.documentElement.setAttribute("data-theme", theme);
-                if (document.readyState === "loading") {
-                    document.addEventListener("DOMContentLoaded", () =>
-                        updateThemeIcon(theme),
-                    );
-                } else {
-                    updateThemeIcon(theme);
-                }
-                initMermaid(theme);
-            })();
-
-            const navLinks = Array.from(
-                document.querySelectorAll(".doc-nav a"),
-            );
-            const sections = navLinks.map((link) =>
-                document.querySelector(link.getAttribute("href")),
-            );
-
-            const observer = new IntersectionObserver(
-                (entries) => {
-                    entries.forEach((entry) => {
-                        if (entry.isIntersecting) {
-                            navLinks.forEach((link) =>
-                                link.classList.remove("active"),
-                            );
-                            const activeLink = navLinks.find(
-                                (link) =>
-                                    link.getAttribute("href") ===
-                                    `#${entry.target.id}`,
-                            );
-                            if (activeLink) activeLink.classList.add("active");
-                        }
-                    });
-                },
-                { rootMargin: "-30% 0px -60% 0px", threshold: 0 },
-            );
-
-            sections.forEach((section) => {
-                if (section) observer.observe(section);
-            });
-        </script>
-    </body>
+        renderFrame();
+        setInterval(renderFrame, 5200);
+      })();
+    </script>
+  </body>
 </html>
