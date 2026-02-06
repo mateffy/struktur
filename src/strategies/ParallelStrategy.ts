@@ -24,6 +24,14 @@ export class ParallelStrategy<T> implements ExtractionStrategy<T> {
     this.config = config;
   }
 
+  getEstimatedSteps(artifacts: ExtractionOptions<T>["artifacts"]): number {
+    const batches = getBatches(artifacts, {
+      maxTokens: this.config.chunkSize,
+      maxImages: this.config.maxImages,
+    });
+    return batches.length + 3;
+  }
+
   async run(options: ExtractionOptions<T>): Promise<ExtractionResult<T>> {
     const batches = getBatches(options.artifacts, {
       maxTokens: this.config.chunkSize,
@@ -31,13 +39,15 @@ export class ParallelStrategy<T> implements ExtractionStrategy<T> {
     });
 
     const schema = serializeSchema(options.schema);
-    const tasks = batches.map((batch) => async () => {
+    const totalSteps = this.getEstimatedSteps(options.artifacts);
+    let step = 1;
+    const tasks = batches.map((batch, index) => async () => {
       const prompt = buildExtractorPrompt(
         batch,
         schema,
         this.config.outputInstructions
       );
-      return extractWithPrompt<T>({
+      const result = await extractWithPrompt<T>({
         model: this.config.model,
         schema: options.schema,
         system: prompt.system,
@@ -46,6 +56,13 @@ export class ParallelStrategy<T> implements ExtractionStrategy<T> {
         events: options.events,
         execute: this.config.execute as never,
       });
+      step += 1;
+      await options.events?.onStep?.({
+        step,
+        total: totalSteps,
+        label: `batch ${index + 1}/${batches.length}`,
+      });
+      return result;
     });
 
     const results = await runConcurrently(
@@ -62,6 +79,13 @@ export class ParallelStrategy<T> implements ExtractionStrategy<T> {
       artifacts: [],
       events: options.events,
       execute: this.config.execute as never,
+    });
+
+    step += 1;
+    await options.events?.onStep?.({
+      step,
+      total: totalSteps,
+      label: "merge",
     });
 
     return { data: merged.data, usage: mergeUsage([...results.map((r) => r.usage), merged.usage]) };

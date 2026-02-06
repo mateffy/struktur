@@ -62,6 +62,14 @@ export class SequentialAutoMergeStrategy<T> implements ExtractionStrategy<T> {
     this.config = config;
   }
 
+  getEstimatedSteps(artifacts: ExtractionOptions<T>["artifacts"]): number {
+    const batches = getBatches(artifacts, {
+      maxTokens: this.config.chunkSize,
+      maxImages: this.config.maxImages,
+    });
+    return batches.length + 3;
+  }
+
   async run(options: ExtractionOptions<T>): Promise<ExtractionResult<T>> {
     const batches = getBatches(options.artifacts, {
       maxTokens: this.config.chunkSize,
@@ -72,8 +80,10 @@ export class SequentialAutoMergeStrategy<T> implements ExtractionStrategy<T> {
     const merger = new SmartDataMerger(options.schema as Record<string, unknown>);
     let merged = {} as Record<string, unknown>;
     const usages = [];
+    const totalSteps = this.getEstimatedSteps(options.artifacts);
+    let step = 1;
 
-    for (const batch of batches) {
+    for (const [index, batch] of batches.entries()) {
       const prompt = buildExtractorPrompt(
         batch,
         schema,
@@ -91,6 +101,13 @@ export class SequentialAutoMergeStrategy<T> implements ExtractionStrategy<T> {
 
       merged = merger.merge(merged, result.data as Record<string, unknown>);
       usages.push(result.usage);
+
+      step += 1;
+      await options.events?.onStep?.({
+        step,
+        total: totalSteps,
+        label: `batch ${index + 1}/${batches.length}`,
+      });
     }
 
     merged = dedupeArrays(merged);
@@ -101,7 +118,15 @@ export class SequentialAutoMergeStrategy<T> implements ExtractionStrategy<T> {
       schema: dedupeSchema,
       system: dedupePrompt.system,
       user: dedupePrompt.user,
+      events: options.events,
       execute: this.config.dedupeExecute,
+    });
+
+    step += 1;
+    await options.events?.onStep?.({
+      step,
+      total: totalSteps,
+      label: "dedupe",
     });
 
     let deduped = merged;

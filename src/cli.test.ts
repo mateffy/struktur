@@ -2,6 +2,7 @@ import { test, expect } from "bun:test";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { runAuthCommand, runExtractCommand } from "./cli";
+import { loadSchema } from "./cli/shared";
 import type { Artifact } from "./types";
 
 const makeTempPath = (name: string) => {
@@ -84,6 +85,65 @@ test("extract auto-detects piped stdin", async () => {
 
   expect(receivedArtifacts?.[0]?.type).toBe("text");
   expect(receivedArtifacts?.[0]?.contents?.[0]?.text).toBe("hello from stdin");
+});
+
+const readHeader = (headers: unknown, name: string): string | null => {
+  if (!headers) {
+    return null;
+  }
+  if (headers instanceof Headers) {
+    return headers.get(name);
+  }
+  if (Array.isArray(headers)) {
+    const match = headers.find((entry) => {
+      if (!Array.isArray(entry) || entry.length < 2) {
+        return false;
+      }
+      const [key] = entry;
+      return String(key).toLowerCase() === name.toLowerCase();
+    });
+    return match ? String(match[1]) : null;
+  }
+  if (typeof headers === "object") {
+    const record = headers as Record<string, string>;
+    const direct = record[name];
+    if (direct) {
+      return direct;
+    }
+    const lower = Object.entries(record).find(
+      ([key]) => key.toLowerCase() === name.toLowerCase(),
+    );
+    return lower ? lower[1] : null;
+  }
+  return null;
+};
+
+test("loadSchema fetches URL schema with JSON accept", async () => {
+  const originalFetch = globalThis.fetch;
+  let capturedAccept: string | null = null;
+
+  const mockedFetch = (async (input: unknown, init?: unknown) => {
+    const headerSource = (init as { headers?: unknown } | undefined)?.headers;
+    capturedAccept = readHeader(headerSource, "accept");
+    expect(String(input)).toBe("https://example.com/schema.json");
+    return new Response(JSON.stringify({ type: "object" }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
+  }) as typeof fetch;
+  mockedFetch.preconnect = originalFetch.preconnect;
+  globalThis.fetch = mockedFetch;
+
+  try {
+    const schema = await loadSchema({
+      schema: "https://example.com/schema.json",
+    });
+    expect(schema).toEqual({ type: "object" });
+    expect(capturedAccept).not.toBeNull();
+    expect((capturedAccept ?? "").includes("application/json")).toBe(true);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 test("extract uses configured default model", async () => {

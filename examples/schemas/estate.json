@@ -1,0 +1,187 @@
+{
+  "type": "object",
+  "required": ["real_estate_property"],
+  "description": "You are a real estate expert tasked with extracting structured data from documents such as exposés, property listings, contracts, and agreements.\nMore specifically, you will extract information about properties, including their location, areas and other relevant details.\nYou're doing this as part of real estate management software, more specifically during the data entry / import process.\nAs such, level of detail and correctness is critical.\n\nThe data structure you will be extracting is structured in a 3-level hierarchy:\n1. Property / Estate (one)\n  -> 2. Building (multiple in one estate)\n    -> 3. Area/Unit (multiple in one building)\n\nThis data structure allows for detailed representation of properties, including their buildings and individual areas or units.\nThis also means that you will need to be specific in your extraction, ensuring that each piece of information is correctly categorized under the appropriate level.\n\n## Estate / Property\nThe top level is the Property or Estate, which represents a single property or estate.\nEach property MUST have an address, which at the minimum needs a city and a country.\nA generic description of the property as well as a location text can be provided. The first should describe general information about the property, or its purpose/history, while the latter should describe the region / location it is placed in with details of the surroundings.\n\n## Building\nThe second level is the Building, which represents a single building within the property.\nWhile a single building can have its own address, it is not required to have one and will inherit the address from the property (leave it empty in that case).\nOther than features, however, a building does not have any additional attributes that need to be extracted.\n\n## Area / Unit\nAn area or unit is the third level, which represents a single area or unit within a building.\nAn area mainly has a label, a price, a size in square meters and multiple usages.\nThe price is given as two values, rent_per_m2 and extra_costs_per_m2 (Kaltmiete and Nebenkosten in German).\nBoth can be left empty, but rent_per_m2 is the preferred value to be filled. DO NOT fill extra_costs_per_m2 if it is not provided in the input data. If the rent includes the extra costs, then set extra_costs_per_m2 to 0 and just use the combined value.\nThe prices should be given as x.xx float values, with a maximum of two decimal places.\n\nA unit can only ever be on a single floor of a building. If a unit spans two floors, you MUST extract them as two separate units, each with the correct floor given. DO NOT combine units onto the same floor.\n\nIn general, you MUST keep units as small as possible. Do not combine units together, and return as many of them as granularly as possible. THIS IS ABSOLUTELY CRITICAL. Do not combine multiple units together in the extraced data!\n\nThe usages are critical, as they define the purpose of the area, and what it can be used for.\nAn area can have multiple usages, as some spaces arre multi-purpose.\nFor example, a space can be both have the office and health usage, indicating that it can be used as an office space, but also as a doctor's office or similar.\nFor other commercial spaces, another common usage combination is production and storage. But real estate is flexible, so use any combination that best describes the area as presented in the input data.\n\nHere's all of the available usages:\n<available-usages>\n- office\n- living\n- production\n- storage\n- retail\n- gastronomy\n- research\n- health\n- open-space\n- outdoor-space\n- hotel\n- education\n- entertainment\n- sports\n- infrastructure\n- data-center\n- coworking\n</available-usages>\n\n## Features\nEach of the three levels supports assigning features to the model, which are additional attributes that can be used to further describe the property, building, or area/unit.\nDue to the 3-tiered structure, features at upper levels (Property and Building) will be inherited by lower levels (Building and Area/Unit).\nThat way, the same feature that applies to all areas of a building can be assigned to the building, and doesn't have to be repeated for each area/unit.\nThis is critical for you to understand, as it allows for efficient data representation and avoids redundancy.\nIf a feature _can_ be assigned to a higher level, it _must_ be assigned there, and not at the lower level multiple times.\nHowever, if a feature does _not_ apply to all of the lower levels under a model, then do not assign it to the upper level, but rather to the specific lower level where it applies (even if multiple times).\n\n## Available Features\nHere's the list of all the available features you can use.\nThe feature_name ({1|0}/{1|0}/{1|0}) notation indicates whether the feature is assignable to the Property, Building, and Area/Unit levels respectively (property/building/area), with 1 = yes and 0 = no.\n<available-features>\naccess-control - Zugangskontrolle (0/1/1)\nacoustic-ceiling - Akustikdecke (0/1/1)\naddress - Adresse (1/0/0)\nair-conditioning - Klimatisierung (0/1/1)\nbalcony - Balkon (0/1/1)\nbees - Bienenvölker (1/0/0)\nbikesharing - Bikesharing (1/0/0)\nbike-slots - Fahrradstellplätze (1/0/0)\nblock-heating - Blockheizkraftwerk (1/0/0)\ncctv - Video-Überwachung (1/0/0)\ncantina - Kantine (1/0/0)\ncarpet-flooring - Teppichboden (0/0/1)\ncarsharing - Carsharing (1/0/0)\ncentral-fire-alarm-system - BMA-Zentrale (1/0/0)\ncentral-fire-alarm-system-fire-department - BMA-Zentrale + Feuerwehr (1/0/0)\ncentral-heating - Zentralheizung (0/1/1)\nceramic-facade - Keramikfassade (0/1/0)\ncleaning-service - Reinigungsdienst (1/0/0)\nclose-to-public-transport - ÖPNV direkt vor der Tür (1/0/0)\ncompletely-renovated - Kernsaniert (0/1/1)\ncooled-halls - Gekühlte Hallen (0/1/1)\ncooling - Kühlung (0/1/1)\ncustom - Benutzerdefiniert (1/1/1)\ndelivery-for-24h - 24h Andienung (0/1/1)\ndistance-airport - Distanz Flughafen (1/0/0)\ndistance-main-station - Distanz Hauptbahnhof (1/0/0)\ndistance-port - Distanz Hafen (1/0/0)\ndistrict-heating - Fernwärme (1/0/0)\ndouble-floor - Doppelbodentrassen (0/1/1)\ndressing-room - Umkleideraum (0/0/1)\necoenergy - Öko-Strom (1/0/0)\nelectric-heating - Elektroheizung (1/0/0)\nelectric-vehicle-charging-station - E-Ladestation (1/0/0)\nelectronic-lock - Elektronische Schließanlage (0/1/1)\nelevators - Personenaufzüge (0/1/1)\nfiberglass-connection - Glasfaseranschluss (1/0/0)\nfloor-heating - Fußbodenheizung (0/1/1)\nfloored-windows - Bodentiefe Fenster (0/1/1)\nfloors - Etagen (0/1/0)\ngas-heating - Gasheizung (1/0/0)\ngastronomy-on-site - Gastronomie auf dem Gelände (1/0/0)\ngeo-thermal - Geothermie (1/0/0)\ngreen-courtyard - Grüner Innenhof (1/0/0)\ngreen-lease-contracts - Green Lease Mietverträge (1/0/0)\ngreened-facade - Begrünte Fassade (1/0/0)\ngreened-roof - Begrünte Dachfläche (1/0/0)\nground-level-access - Ebenerdige Andienung (0/1/1)\nguarded - Pförtner (1/0/0)\nhandicap-accessible - Barrierearm (0/1/1)\nhandicap-fully-accessible - Barrierefrei (0/1/1)\nhardwood-flooring - Parkettboden (0/1/1)\nheat-pump - Wärmepumpe (1/0/0)\nheated-halls - Beheizte Hallen (0/1/1)\nheavy-duty-crane - Schwerlastkran (0/1/1)\nheavy-duty-elevator - Lastenaufzüge (0/1/1)\nhigh-ceilings - Hohe Decken (0/1/1)\nhigh-voltage-outlet - Starkstromanschluss (0/1/1)\nhydraulic-lift - Hydraulische Hebebühne (0/1/1)\nindividually-expandable - Individuell ausbaubar (0/1/1)\ninfrared-heating - Infrarot Heizung (0/1/1)\njanitor - Hausmeister (1/0/0)\nkindergarden - Kita auf der Liegenschaft (1/0/0)\nkitchen - Küche (0/0/1)\nlkw-slots - LKW-Stellplätze (1/0/0)\nlaboratory-s1 - S1 Labor (0/1/1)\nlaboratory-s2 - S2 Labor (0/1/1)\nled-lighting - LED-Beleuchtung (1/0/0)\nlighting-with-motion-detection - Beleuchtung mit Bewegungsmelder (1/0/0)\nmarketing-website - Webseite (1/0/0)\nmax-floor-load - Hohe Bodentraglast (0/1/1)\nmaximum-surface-desealing - Maximale Flächenentsieglung (1/0/0)\nmeeting-rooms - Meetingräume (0/0/1)\nmodernized - Modernisiert (0/1/1)\nmonument-protection - Denkmalschutz (0/1/0)\nnear-water - Lage am Wasser (1/0/0)\nnearby-sports - Sportangebot in der Nähe (1/0/0)\nneeds-renovation - Renovierung nötig (0/1/1)\nnesting-box - Nistkästen (1/0/0)\nnew-construction - Neubau (1/1/0)\nnumber-of-rooms - Anzahl der Zimmer (0/0/1)\nnumber-of-workplaces - Arbeitsplätze (0/0/1)\nopen-rooms - offene Raumstruktur (0/0/1)\noutdoor-sunshade - Sonnenschutz (0/1/1)\noutdoor-sunshade-electric - Elektrischer Sonnenschutz (0/1/1)\npkw-slots - PKW-Stellplätze (1/0/0)\nparking-garage - Parkhaus/Tiefgarage (1/0/0)\nplaces-for-socializing - Orte für sozialen Austausch (1/0/0)\nplot-area - Grundstücksfläche (1/0/0)\npublic-parking - Öffentliche Parkplätze (1/0/0)\nramp-access - Rampen-Andienung (0/1/1)\nreceptionist - Besetzter Empfang (0/1/0)\nrecycling - Recycling Konzept (1/0/0)\nrentable-area - Gesamtmietfläche (1/1/0)\nrepresentative-foyer - Repräsentatives Foyer (0/1/0)\nrevitalized - Revitalisiert (0/1/1)\nrolling-gates - Sektional- & Rolltore (0/1/1)\nroof-terrace - Dachterrasse (0/1/1)\nserver-room - Serverraum (0/0/1)\nshower - Duschen (0/1/1)\nsmart-metering - Smart Metering (1/0/0)\nsocial-tenant - Soziale Mieter (1/0/0)\nsolar-energy - Photovoltaikanlage (1/0/0)\nsolar-heating - Solarthermie (1/0/0)\nsprinkler-system - Sprinkleranlage (0/1/1)\nstorage-rack - Hochregallager (0/1/1)\nstorey-heating - Etagenheizung (0/1/1)\ntee-kitchen - Teeküche (0/0/1)\nthink-tanks - Think Tanks (0/0/1)\nurban-gardening - Urban Gardening (1/0/0)\nvariable-room-division - Variable Raumaufteilung (0/1/1)\nventilation - Lüftung (0/1/1)\nwashing-clothes - Textilreinigung (1/0/0)\nwater-retention - Regenrückhaltebecken (1/0/0)\nwild-flower-grasses - Wildblumenwiese (1/0/0)\nwind-energy - Windenergie (1/0/0)\nwired-with-cat7 - CAT7-Verkabelung (0/1/1)\nwood-hybrid-construction - Holzhybridbauweise (1/0/0)\nwooden-façade - Fassade aus Holz (0/1/0)\nyear-of-construction - Baujahr (0/1/0)\nyear-of-renovation - Renoviert (0/1/1)\n</available-features>\n\n## Images\nIn addition to the textual contents of the documents, you may also be given extracted images from these documents.\nNot all of the images will be relevant to the extraction (as some may just be PDF artifacts, for example), but photos of the real estate or pictures of the floorplans are very relevant.\nYou can assign images to the Property, Building, or Area/Unit levels, by using the index of the image in the order they were provided to you (starting at 0!).\nYou can assign the same image to multiple levels, if it is relevant to more than one level.\nThe property level should always have a minimum of one image if possible, with the first image you assign being the best one for thumbnail purposes.\nMake sure to differentiate between photos and floorplans, and assign them with the appropriate fields (photos and floorplans). Floorplans are NEVER photos and vice versa.\n\n## Output Instructions\nThe language to use for your output is the same as the language of the input documents, which is most likely German!\nIf multiple languages are provided, use the first one. Be consistent!\nMake sure all texts are in this language, including descriptions, labels and names.\nMake absolutely sure to create multiple areas per building! Areas should be as granular as possible, and you MUST create multiple areas if the source contains information about multiple of them!\n",
+  "properties": {
+    "real_estate_property": {
+      "type": "object",
+      "required": [
+        "name",
+        "buildings",
+        "address",
+        "images",
+        "description_text"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the real estate"
+        },
+        "description_text": {
+          "type": "string",
+          "description": "Prose text describing the estate"
+        },
+        "location_text": {
+          "type": ["string", "null"],
+          "description": "Some prose text describing the surrounding location"
+        },
+        "address": {
+          "type": "object",
+          "description": "The address of the real estate. For example: Bruckerstraße 4 23556 Lübeck",
+          "required": ["city", "country"],
+          "properties": {
+            "street": {
+              "type": ["string", "null"],
+              "example": "Teststraße"
+            },
+            "number": {
+              "type": ["string", "null"],
+              "example": "12a"
+            },
+            "postal_code": {
+              "type": ["string", "null"],
+              "example": "23558"
+            },
+            "city": {
+              "type": "string",
+              "example": "Berlin"
+            },
+            "country": {
+              "type": "string",
+              "example": "Deutschland"
+            }
+          }
+        },
+        "images": {
+          "type": "array",
+          "description": "Any artifacts/images you find that should belong to the estate. Assign any fitting images you may see here using it's artifact ID (artifact:{ID}/images/image{NUM}.{EXT}). {NUM} starts at 1.",
+          "items": {
+            "type": "string",
+            "format": "artifact-id"
+          }
+        },
+        "features": {
+          "type": "array",
+          "description": "The features that apply to this estate. Only mention the features, that only apply to the estate as a whole. If they're NOT generalizable, put them directly in the specific units instead. You must refer to the extraction instructions for what's an allowed feature value!",
+          "items": {
+            "type": "string",
+            "description": "A feature. Only values specified in your system prompt are allowed, e.g. access-control or heat-pump"
+          }
+        },
+        "buildings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["label", "units", "images"],
+            "properties": {
+              "label": {
+                "type": "string",
+                "description": "A label for this building. This can be something generic like 'Main Building' but also something more specific like 'Annex' or 'Building B'"
+              },
+              "images": {
+                "type": "array",
+                "description": "Any artifacts/images you find that should belong to the building (and only to THIS building). Assign any fitting images you may see here using it's artifact ID (artifact:{ID}/images/image{NUM}.{EXT}). {NUM} starts at 1.",
+                "items": {
+                  "type": "string",
+                  "format": "artifact-id"
+                }
+              },
+              "units": {
+                "type": "array",
+                "description": "Each rentable unit of the property. Units cannot span multiple floors and have to be split.",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "usages",
+                    "area",
+                    "label",
+                    "rent_per_m2",
+                    "floor",
+                    "images",
+                    "floorplans"
+                  ],
+                  "properties": {
+                    "label": {
+                      "type": "string",
+                      "description": "The label for the unit. If possible, use an already existing label for the area that's given in the input document. If none are available, compose a label that makes sense. In the latter case, DO NOT include the floor/level of the unit in the name, as it's already given in the `floor` parameter."
+                    },
+                    "usages": {
+                      "type": "array",
+                      "description": "The kind of usage the unit can be used for",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "office",
+                          "living",
+                          "production",
+                          "storage",
+                          "retail",
+                          "gastronomy",
+                          "research",
+                          "health",
+                          "open-space",
+                          "outdoor-space",
+                          "hotel",
+                          "education",
+                          "entertainment",
+                          "sports",
+                          "infrastructure",
+                          "data-center",
+                          "coworking"
+                        ]
+                      }
+                    },
+                    "area": {
+                      "type": "number",
+                      "description": "The size of the unit in square meters. Minimum value is 1 sqm."
+                    },
+                    "floor": {
+                      "type": "number",
+                      "description": "The floor that the unit is placed. Use 0 for EG / -1, -2, ... for 1.UG, 2.UG, ... / 1, 2, 3, ... for 1.OG, 2.OG, ..."
+                    },
+                    "features": {
+                      "type": "array",
+                      "description": "The features that apply to this unit. Only mention the features, that only apply to this unit. If they're generalizable, put them in the estate. You must refer to the extraction instructions for what's an allowed feature value!",
+                      "items": {
+                        "type": "string",
+                        "description": "A feature. Only values specified in your system prompt are allowed, e.g. access-control or heat-pump"
+                      }
+                    },
+                    "rent_per_m2": {
+                      "type": "number",
+                      "minimum": 0,
+                      "multipleOf": 0.01,
+                      "description": "The rent per square meter of the unit (in Euro)"
+                    },
+                    "extra_costs_per_m2": {
+                      "type": "number",
+                      "minimum": 0,
+                      "multipleOf": 0.01,
+                      "description": "The extra costs per square meter of the unit (in Euro)"
+                    },
+                    "images": {
+                      "type": "array",
+                      "description": "The artifacts you're provided may contain embedded images. These have a big red border with a large number written onto them. If the image contents are relevant to this unit (and not the estate as a whole), then include the number of the image here. For example: pictures of the unit's rooms or its floorplan.",
+                      "items": {
+                        "type": "string",
+                        "format": "artifact-id"
+                      }
+                    },
+                    "floorplans": {
+                      "type": "array",
+                      "description": "The artifacts you're provided may contain embedded images. These have a big red border with a large number written onto them. If the image contents are relevant to this unit (and not the estate as a whole), then include the number of the image here. For example: pictures of the unit's rooms or its floorplan.",
+                      "items": {
+                        "type": "string",
+                        "format": "artifact-id"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

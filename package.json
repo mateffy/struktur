@@ -6,7 +6,8 @@
     "struktur": "src/cli.ts"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/cli-progress": "^3.11.6"
   },
   "peerDependencies": {
     "typescript": "^5"
@@ -18,6 +19,7 @@
     "@ai-sdk/openai": "^2.0.0",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
+    "cli-progress": "^3.12.0",
     "crc-32": "^1.2.2"
   }
 }

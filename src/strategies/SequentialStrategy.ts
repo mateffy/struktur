@@ -20,6 +20,14 @@ export class SequentialStrategy<T> implements ExtractionStrategy<T> {
     this.config = config;
   }
 
+  getEstimatedSteps(artifacts: ExtractionOptions<T>["artifacts"]): number {
+    const batches = getBatches(artifacts, {
+      maxTokens: this.config.chunkSize,
+      maxImages: this.config.maxImages,
+    });
+    return batches.length + 2;
+  }
+
   async run(options: ExtractionOptions<T>): Promise<ExtractionResult<T>> {
     const batches = getBatches(options.artifacts, {
       maxTokens: this.config.chunkSize,
@@ -29,8 +37,10 @@ export class SequentialStrategy<T> implements ExtractionStrategy<T> {
     const schema = serializeSchema(options.schema);
     let currentData: T | undefined;
     const usages = [];
+    const totalSteps = this.getEstimatedSteps(options.artifacts);
+    let step = 1;
 
-    for (const batch of batches) {
+    for (const [index, batch] of batches.entries()) {
       const previousData = currentData ? JSON.stringify(currentData) : "{}";
       const prompt = buildSequentialPrompt(
         batch,
@@ -51,6 +61,13 @@ export class SequentialStrategy<T> implements ExtractionStrategy<T> {
 
       currentData = result.data;
       usages.push(result.usage);
+
+      step += 1;
+      await options.events?.onStep?.({
+        step,
+        total: totalSteps,
+        label: `batch ${index + 1}/${batches.length}`,
+      });
     }
 
     if (!currentData) {

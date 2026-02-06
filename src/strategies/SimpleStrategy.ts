@@ -18,6 +18,10 @@ export class SimpleStrategy<T> implements ExtractionStrategy<T> {
     this.config = config;
   }
 
+  getEstimatedSteps(): number {
+    return 3;
+  }
+
   async run(options: ExtractionOptions<T>): Promise<ExtractionResult<T>> {
     const schema = serializeSchema(options.schema);
     const { system, user } = buildExtractorPrompt(
@@ -34,6 +38,12 @@ export class SimpleStrategy<T> implements ExtractionStrategy<T> {
       artifacts: options.artifacts,
       events: options.events,
       execute: this.config.execute as never,
+    });
+
+    await options.events?.onStep?.({
+      step: 2,
+      total: this.getEstimatedSteps(),
+      label: "extract",
     });
 
     return { data: result.data, usage: result.usage };
