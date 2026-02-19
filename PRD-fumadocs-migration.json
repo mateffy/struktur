@@ -1,0 +1,433 @@
+{
+  "title": "Migrate Struktur Documentation to Fumadocs",
+  "description": "Set up Fumadocs in documentation/ directory, convert existing HTML docs to MDX, and configure static export to docs/ for GitHub Pages deployment. The homepage design must remain pixel-perfect.",
+  "overview": {
+    "current_state": "Raw HTML documentation in docs/ directory with custom styling, already organized by Diátaxis framework (tutorials, how-to, reference, explanation)",
+    "target_state": "Fumadocs-based documentation site in documentation/ that builds to docs/ for GitHub Pages",
+    "key_requirements": [
+      "Homepage (docs/index.html) design stays EXACTLY the same - pixel perfect preservation",
+      "Documentation pages converted from HTML to MDX and rendered with Fumadocs",
+      "Output builds to docs/ directory for GitHub Pages deployment",
+      "Preserve all content, code examples, mermaid diagrams, and navigation structure",
+      "Maintain Diátaxis organization (tutorials, how-to guides, explanation, reference)"
+    ]
+  },
+  "documentation_structure": {
+    "homepage": {
+      "source": "docs/index.html",
+      "approach": "preserve_as_custom_page",
+      "notes": "Complex landing page with terminal animation, strategy tabs, mermaid diagrams, and custom dark theme. Must be preserved exactly as-is in a custom Next.js page."
+    },
+    "content_pages": [
+      {
+        "source": "docs/tutorials/quickstart.html",
+        "target": "documentation/content/docs/tutorials/quickstart.mdx",
+        "type": "tutorial",
+        "nav_label": "Quickstart"
+      },
+      {
+        "source": "docs/explanation/concepts.html", 
+        "target": "documentation/content/docs/explanation/concepts.mdx",
+        "type": "explanation",
+        "nav_label": "Concepts"
+      },
+      {
+        "source": "docs/how-to/choose-strategy.html",
+        "target": "documentation/content/docs/how-to/choose-strategy.mdx", 
+        "type": "how-to",
+        "nav_label": "Choose a Strategy"
+      },
+      {
+        "source": "docs/how-to/extract-invoice.html",
+        "target": "documentation/content/docs/how-to/extract-invoice.mdx",
+        "type": "how-to", 
+        "nav_label": "Extract Invoice Data"
+      },
+      {
+        "source": "docs/how-to/extract-realestate.html",
+        "target": "documentation/content/docs/how-to/extract-realestate.mdx",
+        "type": "how-to",
+        "nav_label": "Extract Real Estate Data"
+      },
+      {
+        "source": "docs/how-to/process-multiple-files.html",
+        "target": "documentation/content/docs/how-to/process-multiple-files.mdx",
+        "type": "how-to",
+        "nav_label": "Process Multiple Files"
+      },
+      {
+        "source": "docs/reference/cli.html",
+        "target": "documentation/content/docs/reference/cli.mdx",
+        "type": "reference",
+        "nav_label": "CLI Reference"
+      },
+      {
+        "source": "docs/reference/api.html",
+        "target": "documentation/content/docs/reference/api.mdx",
+        "type": "reference",
+        "nav_label": "TypeScript API"
+      },
+      {
+        "source": "docs/reference/artifacts.html",
+        "target": "documentation/content/docs/reference/artifacts.mdx",
+        "type": "reference",
+        "nav_label": "Artifacts"
+      }
+    ],
+    "redirects": [
+      {
+        "source": "docs/guide.html",
+        "target": "./tutorials/quickstart.html",
+        "note": "Simple redirect page, can be handled by Next.js redirect config or meta.json"
+      }
+    ]
+  },
+  "fumadocs_setup": {
+    "framework": "Next.js",
+    "installation": {
+      "command": "npx create-fumadocs-app documentation",
+      "options": {
+        "template": "next",
+        "content_source": "fumadocs-mdx"
+      },
+      "notes": "This will create the documentation/ directory with Next.js + Fumadocs"
+    },
+    "configuration": {
+      "static_export": {
+        "output": "export",
+        "distDir": "../docs",
+        "trailingSlash": true
+      },
+      "search": {
+        "type": "orama",
+        "static_export_config": "Configure Orama for static export per Fumadocs docs"
+      }
+    },
+    "content_source_config": {
+      "file": "documentation/source.config.ts",
+      "collections": {
+        "docs": {
+          "type": "doc",
+          "dir": "content/docs",
+          "schema": "frontmatter with title, description"
+        },
+        "meta": {
+          "type": "meta", 
+          "dir": "content/docs"
+        }
+      }
+    }
+  },
+  "homepage_strategy": {
+    "approach": "custom_nextjs_page",
+    "rationale": "The existing docs/index.html is a complex landing page with: terminal typing animation, interactive strategy tabs with mermaid diagrams, dark theme with custom CSS properties, grid-based layout with border styling, hover effects and transitions. Replicating this exactly in Fumadocs MDX would be nearly impossible. Instead, preserve the exact HTML/CSS/JS by converting to a React/Next.js page.",
+    "implementation": {
+      "location": "documentation/app/page.tsx",
+      "method": "Convert docs/index.html to a Next.js page component preserving all styles and scripts",
+      "steps": [
+        "Copy the HTML structure from docs/index.html",
+        "Convert to React/TSX syntax",
+        "Move inline styles to CSS modules or preserve in style tags",
+        "Convert terminal animation script to useEffect hooks",
+        "Convert strategy tab switching to React state",
+        "Initialize mermaid on client side",
+        "Preserve all CSS custom properties and keyframe animations"
+      ],
+      "styling": {
+        "approach": "preserve_exact",
+        "critical_elements": [
+          "CSS custom properties: --color-bg: #0b0e12, --color-ink: #f5f7fb, --color-muted: #9aa3b2, --color-accent: #3ddc97, --color-border: rgba(245, 247, 251, 0.08), --color-card: rgba(245, 247, 251, 0.03)",
+          "All Tailwind @theme configurations from the style tag",
+          "All keyframe animations: terminal-line, terminal-caret",
+          "All component-specific styles"
+        ]
+      },
+      "scripts": {
+        "terminal_animation": "Convert to React hooks - typing animation in useEffect",
+        "strategy_tabs": "Convert to React useState for tab switching, update mermaid renders",
+        "mermaid": "Initialize on client side with dark theme using useEffect"
+      }
+    }
+  },
+  "content_conversion": {
+    "approach": "html_to_mdx",
+    "process": [
+      "Extract main content from HTML files (strip doc-app wrapper, sidebar, theme toggle)",
+      "Convert HTML tags to MDX/markdown syntax",
+      "Preserve code blocks with proper language annotations (ts, bash, json, mermaid)",
+      "Convert tables to markdown table syntax",
+      "Add frontmatter with title and description to each MDX file",
+      "Convert callout divs to Fumadocs <Callout> components"
+    ],
+    "mdx_frontmatter": {
+      "title": "Page title",
+      "description": "Page description for SEO"
+    },
+    "mdx_components": {
+      "code_blocks": "Use standard markdown code fences with language",
+      "mermaid": "Use ```mermaid code blocks - configure Fumadocs to render these",
+      "callouts": "Use Fumadocs <Callout> component for highlighted notes",
+      "tables": "Use standard markdown tables"
+    }
+  },
+  "navigation_structure": {
+    "sidebar_organization": {
+      "file": "documentation/content/docs/meta.json",
+      "structure": {
+        "root": "index",
+        "pages": [
+          {
+            "title": "Tutorials",
+            "pages": ["tutorials/quickstart"]
+          },
+          {
+            "title": "How-to Guides",
+            "pages": [
+              "how-to/choose-strategy",
+              "how-to/extract-invoice", 
+              "how-to/extract-realestate",
+              "how-to/process-multiple-files"
+            ]
+          },
+          {
+            "title": "Explanation",
+            "pages": ["explanation/concepts"]
+          },
+          {
+            "title": "Reference",
+            "pages": [
+              "reference/cli",
+              "reference/api",
+              "reference/artifacts"
+            ]
+          }
+        ]
+      }
+    },
+    "diataxis_preservation": "Keep the existing Diátaxis organization - this maps perfectly to Fumadocs navigation"
+  },
+  "build_and_deploy": {
+    "build_command": "cd documentation && next build",
+    "output_directory": "docs",
+    "github_pages": {
+      "setup": "Configure GitHub Pages to serve from docs/ directory on main branch",
+      "cname": "Preserve docs/CNAME file - copy it to output"
+    },
+    "assets": {
+      "preserve": [
+        "docs/CNAME - custom domain configuration",
+        "docs/assets/style.css - if referenced by custom pages",
+        "Any other assets in docs/assets/"
+      ]
+    }
+  },
+  "implementation_steps": [
+    {
+      "step": 1,
+      "task": "Initialize Fumadocs project",
+      "command": "cd /Users/mat/dev/struktur && npx create-fumadocs-app documentation",
+      "details": "Choose Next.js template with Fumadocs MDX. This creates the documentation/ directory."
+    },
+    {
+      "step": 2,
+      "task": "Configure static export",
+      "file": "documentation/next.config.mjs",
+      "action": "Update next.config.mjs to export static build to ../docs",
+      "config": {
+        "output": "export",
+        "distDir": "../docs",
+        "trailingSlash": true
+      }
+    },
+    {
+      "step": 3,
+      "task": "Set up homepage as custom page",
+      "file": "documentation/app/page.tsx",
+      "action": "Create custom Next.js page with exact HTML/CSS/JS from docs/index.html",
+      "details": "This is critical - the homepage must look pixel-perfect. Convert the HTML to React, preserve all styles and animations."
+    },
+    {
+      "step": 4,
+      "task": "Configure docs layout",
+      "files": [
+        "documentation/app/layout.tsx",
+        "documentation/app/docs/layout.tsx"
+      ],
+      "action": "Set up Fumadocs layouts for documentation pages",
+      "details": "Keep the homepage as its own thing, use Fumadocs layout for /docs/* routes"
+    },
+    {
+      "step": 5,
+      "task": "Configure content source",
+      "file": "documentation/source.config.ts",
+      "action": "Set up Fumadocs MDX collections",
+      "config": {
+        "docs_collection": "content/docs",
+        "meta_collection": "content/docs"
+      }
+    },
+    {
+      "step": 6,
+      "task": "Create meta.json for navigation",
+      "file": "documentation/content/docs/meta.json",
+      "action": "Define sidebar navigation matching Diátaxis structure",
+      "structure": "Tutorials, How-to Guides, Explanation, Reference sections"
+    },
+    {
+      "step": 7,
+      "task": "Convert HTML docs to MDX",
+      "files": [
+        "documentation/content/docs/tutorials/quickstart.mdx",
+        "documentation/content/docs/explanation/concepts.mdx",
+        "documentation/content/docs/how-to/*.mdx",
+        "documentation/content/docs/reference/*.mdx"
+      ],
+      "action": "Extract content from HTML files, convert to MDX format",
+      "details": "Strip the doc-app wrapper (sidebar, etc), keep only the doc-content. Add frontmatter, convert to MDX syntax."
+    },
+    {
+      "step": 8,
+      "task": "Configure mermaid support",
+      "file": "documentation/app/docs/layout.tsx or mermaid.config.js",
+      "action": "Add mermaid diagram rendering support",
+      "details": "Fumadocs supports mermaid via MDX components. Configure for dark theme to match existing."
+    },
+    {
+      "step": 9,
+      "task": "Configure search for static export",
+      "action": "Set up Orama search with static export configuration",
+      "details": "Follow Fumadocs guide for static export search setup"
+    },
+    {
+      "step": 10,
+      "task": "Build and verify",
+      "command": "cd documentation && npm run build",
+      "details": "Build the site, verify output in docs/ directory. Check all pages render correctly."
+    },
+    {
+      "step": 11,
+      "task": "Preserve CNAME and assets",
+      "action": "Ensure docs/CNAME is copied to output, preserve other needed assets",
+      "details": "After build, ensure CNAME file exists in docs/. Copy any needed assets from old docs/assets/."
+    },
+    {
+      "step": 12,
+      "task": "Test locally",
+      "command": "cd documentation && npm run dev",
+      "details": "Test the site locally to ensure homepage looks perfect and docs pages work"
+    }
+  ],
+  "critical_requirements": {
+    "homepage": {
+      "must_preserve": [
+        "Dark theme color scheme (#0b0e12 background, #f5f7fb text, #3ddc97 accent)",
+        "Terminal typing animation with caret",
+        "Strategy tabs with mermaid flowchart diagrams",
+        "Grid-based layout with border styling",
+        "All hover effects and transitions",
+        "Responsive behavior",
+        "Mermaid diagrams with dark theme",
+        "All sections: hero, features, examples, use cases, integrations, articles, footer"
+      ]
+    },
+    "content": {
+      "must_preserve": [
+        "All code examples with syntax highlighting",
+        "All mermaid diagrams (concepts.html, choose-strategy.html)",
+        "All tables (CLI flags, API parameters)",
+        "All callout/note boxes",
+        "Navigation structure (Diátaxis organization)",
+        "Dark mode support for docs pages"
+      ]
+    }
+  },
+  "file_structure": {
+    "documentation/": {
+      "app/": {
+        "page.tsx": "Homepage (custom - converted from docs/index.html)",
+        "layout.tsx": "Root layout",
+        "docs/": {
+          "layout.tsx": "Docs layout with Fumadocs UI",
+          "[[...slug]]/": {
+            "page.tsx": "Dynamic docs page using Fumadocs"
+          }
+        }
+      },
+      "content/docs/": {
+        "meta.json": "Navigation structure (Diátaxis)",
+        "tutorials/": {
+          "quickstart.mdx": "Quickstart tutorial"
+        },
+        "explanation/": {
+          "concepts.mdx": "Concepts explanation"
+        },
+        "how-to/": {
+          "choose-strategy.mdx": "Strategy selection guide",
+          "extract-invoice.mdx": "Invoice extraction guide",
+          "extract-realestate.mdx": "Real estate extraction guide",
+          "process-multiple-files.mdx": "Batch processing guide"
+        },
+        "reference/": {
+          "cli.mdx": "CLI reference",
+          "api.mdx": "TypeScript API reference",
+          "artifacts.mdx": "Artifacts specification"
+        }
+      },
+      "lib/": {
+        "utils.ts": "Utility functions",
+        "source.ts": "Source configuration"
+      },
+      "source.config.ts": "Fumadocs MDX configuration",
+      "next.config.mjs": "Next.js config with static export",
+      "package.json": "Dependencies",
+      "tsconfig.json": "TypeScript config"
+    },
+    "docs/ (output)": {
+      "_next/": "Next.js build output (generated)",
+      "index.html": "Homepage (from custom page.tsx)",
+      "docs/": {
+        "index.html": "Docs landing page (from Fumadocs)",
+        "tutorials/": "Tutorial pages (from MDX)",
+        "explanation/": "Explanation pages (from MDX)",
+        "how-to/": "How-to pages (from MDX)",
+        "reference/": "Reference pages (from MDX)"
+      },
+      "CNAME": "Custom domain configuration (copied)"
+    }
+  },
+  "technical_notes": {
+    "homepage_conversion": {
+      "html_to_react": "Convert the static HTML to React components",
+      "scripts_to_hooks": "Convert terminal animation and tab switching to React useEffect/useState",
+      "styles": "Preserve all CSS custom properties and animations. Can use style tag in component or CSS modules.",
+      "mermaid": "Initialize mermaid in useEffect with dark theme",
+      "links": "Update internal links to use Next.js Link component or proper relative paths for static export"
+    },
+    "mdx_conversion": {
+      "html_stripping": "Remove the doc-app wrapper, sidebar, and theme toggle from HTML - Fumadocs provides these",
+      "content_extraction": "Extract just the doc-content div content",
+      "syntax_highlighting": "Fumadocs has built-in syntax highlighting via rehype-prism-plus",
+      "mermaid": "Use ```mermaid code blocks, configure Fumadocs MDX to handle these",
+      "tables": "Convert HTML tables to markdown tables",
+      "callouts": "Convert HTML callout divs to <Callout> components"
+    },
+    "fumadocs_specifics": {
+      "page_conventions": "Use meta.json to define navigation",
+      "docs_collection": "Define in source.config.ts",
+      "layouts": "Use Fumadocs DocsLayout for docs pages, custom for homepage",
+      "search": "Orama search with static export requires special config",
+      "static_export": "Builds to distDir, trailingSlash recommended for GitHub Pages"
+    }
+  },
+  "success_criteria": [
+    "Homepage looks pixel-perfect identical to original docs/index.html",
+    "All documentation pages render correctly with Fumadocs UI",
+    "Navigation structure matches Diátaxis organization (tutorials, how-to, explanation, reference)",
+    "All code examples have syntax highlighting",
+    "All mermaid diagrams render correctly",
+    "Dark mode works for both homepage and docs pages",
+    "Search functionality works (Orama)",
+    "Build output in docs/ directory works on GitHub Pages",
+    "CNAME file preserved for custom domain"
+  ]
+}
