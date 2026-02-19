@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>How to extract real estate data · Struktur</title>
+        <meta
+            name="description"
+            content="Extract property data from PDF real estate exposés using Struktur."
+        />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+            rel="stylesheet"
+        />
+        <link rel="stylesheet" href="../assets/style.css" />
+    </head>
+    <body>
+        <div class="doc-app">
+            <aside class="doc-sidebar">
+                <a class="logo" href="../index.html">
+                    <span class="logo-icon">◈</span>
+                    <span class="logo-text">/@mateffy/struktur</span>
+                </a>
+                <div class="section-divider" data-label="How-to Guides"></div>
+                <nav class="doc-nav">
+                    <a href="#problem" class="active">The problem</a>
+                    <a href="#schema">Define your schema</a>
+                    <a href="#strategy">Use sequentialAutoMerge</a>
+                    <a href="#implementation">Implementation</a>
+                </nav>
+                <div style="margin-top: auto; padding-top: 2rem">
+                    <button
+                        class="theme-toggle"
+                        onclick="toggleTheme()"
+                        aria-label="Toggle theme"
+                    >
+                        <span id="theme-icon">◐</span>
+                    </button>
+                </div>
+            </aside>
+
+            <main class="doc-main">
+                <div class="doc-content">
+                    <div>
+                        <div class="badge" style="margin-bottom: 0.75rem">How-to Guide</div>
+                        <h1 class="doc-title">How to extract real estate data</h1>
+                        <p class="doc-subtitle">
+                            Extract property details and images from PDF exposés. 
+                            About 3 minutes.
+                        </p>
+                    </div>
+
+                    <section class="doc-section" id="problem">
+                        <h2>The problem: Extract real estate data</h2>
+                        <p>
+                            PDF real estate exposés contain property data, nested units, 
+                            and images. You need structured extraction that handles 
+                            multi-page documents with potential duplicate information.
+                        </p>
+                    </section>
+
+                    <section class="doc-section" id="schema">
+                        <h2>Define your schema</h2>
+                        <p>
+                            Create a schema with nested units array and image descriptions:
+                        </p>
+                        <pre class="code-block" style="margin-top: 1rem;"><code><span class="tok-comment">// property-schema.json</span>
+{
+  <span class="tok-string">"type"</span>: <span class="tok-string">"object"</span>,
+  <span class="tok-string">"properties"</span>: {
+    <span class="tok-string">"property_name"</span>: { <span class="tok-string">"type"</span>: <span class="tok-string">"string"</span> },
+    <span class="tok-string">"address"</span>: { <span class="tok-string">"type"</span>: <span class="tok-string">"string"</span> },
+    <span class="tok-string">"description"</span>: { <span class="tok-string">"type"</span>: <span class="tok-string">"string"</span> },
+    <span class="tok-string">"total_units"</span>: { <span class="tok-string">"type"</span>: <span class="tok-string">"number"</span> },
+    <span class="tok-string">"units"</span>: {
+      <span class="tok-string">"type"</span>: <span class="tok-string">"array"</span>,
+      <span class="tok-string">"items"</span>: {
+        <span class="tok-string">"type"</span>: <span class="tok-string">"object"</span>,
+        <span class="tok-string">"properties"</span>: {
+          <span class="tok-string">"unit_number"</span>: { <span class="tok-string">"type"</span>: <span class="tok-string">"string"</span> },
+          <span class="tok-string">"size_sqm"</span>: { <span class="tok-string">"type"</span>: <span class="tok-string">"number"</span> },
+          <span class="tok-string">"rent_per_month"</span>: { <span class="tok-string">"type"</span>: <span class="tok-string">"number"</span> },
+          <span class="tok-string">"rooms"</span>: { <span class="tok-string">"type"</span>: <span class="tok-string">"number"</span> },
+          <span class="tok-string">"floor"</span>: { <span class="tok-string">"type"</span>: <span class="tok-string">"string"</span> },
+          <span class="tok-string">"features"</span>: {
+            <span class="tok-string">"type"</span>: <span class="tok-string">"array"</span>,
+            <span class="tok-string">"items"</span>: { <span class="tok-string">"type"</span>: <span class="tok-string">"string"</span> }
+          }
+        }
+      }
+    },
+    <span class="tok-string">"images"</span>: {
+      <span class="tok-string">"type"</span>: <span class="tok-string">"array"</span>,
+      <span class="tok-string">"items"</span>: {
+        <span class="tok-string">"type"</span>: <span class="tok-string">"object"</span>,
+        <span class="tok-string">"properties"</span>: {
+          <span class="tok-string">"description"</span>: { <span class="tok-string">"type"</span>: <span class="tok-string">"string"</span> },
+          <span class="tok-string">"location"</span>: { <span class="tok-string">"type"</span>: <span class="tok-string">"string"</span> }
+        }
+      }
+    }
+  },
+  <span class="tok-string">"required"</span>: [<span class="tok-string">"property_name"</span>, <span class="tok-string">"address"</span>]
+}</code></pre>
+                    </section>
+
+                    <section class="doc-section" id="strategy">
+                        <h2>Use sequentialAutoMerge</h2>
+                        <p>
+                            For real estate exposés, use <code>sequentialAutoMerge</code>:
+                        </p>
+                        <ul style="margin-top: 0.75rem;">
+                            <li><strong>Context preservation:</strong> Units on later pages can reference earlier context</li>
+                            <li><strong>Deduplication:</strong> Same unit may appear on multiple pages</li>
+                            <li><strong>Image handling:</strong> Processes embedded images alongside text</li>
+                        </ul>
+                        <p style="margin-top: 1rem">
+                            See <a href="./choose-strategy.html">How to choose a strategy</a> 
+                            for why this is the right choice.
+                        </p>
+                    </section>
+
+                    <section class="doc-section" id="implementation">
+                        <h2>Implementation</h2>
+                        
+                        <h3>CLI approach</h3>
+                        <pre class="code-block" style="margin-top: 1rem;"><code><span class="tok-keyword">struktur</span> --input exposé.pdf \
+  --schema property-schema.json \
+  --strategy sequentialAutoMerge \
+  --model openai/gpt-4o-mini</code></pre>
+
+                        <h3 style="margin-top: 1.5rem;">API approach</h3>
+                        <pre class="code-block" style="margin-top: 1rem;"><code><span class="tok-keyword">import</span> { extract, sequentialAutoMerge } <span class="tok-keyword">from</span> <span class="tok-string">"@mateffy/struktur"</span>;
+<span class="tok-keyword">import</span> { openai } <span class="tok-keyword">from</span> <span class="tok-string">"@ai-sdk/openai"</span>;
+<span class="tok-keyword">import</span> { fileToArtifact } <span class="tok-keyword">from</span> <span class="tok-string">"@mateffy/struktur"</span>;
+<span class="tok-keyword">import</span> fs <span class="tok-keyword">from</span> <span class="tok-string">"node:fs"</span>;
+
+<span class="tok-keyword">const</span> schema = <span class="tok-comment">/* schema from above */</span>;
+
+<span class="tok-keyword">const</span> buffer = fs.readFileSync(<span class="tok-string">"exposé.pdf"</span>);
+<span class="tok-keyword">const</span> artifact = <span class="tok-keyword">await</span> fileToArtifact(buffer, {
+  mimeType: <span class="tok-string">"application/pdf"</span>
+});
+
+<span class="tok-keyword">const</span> result = <span class="tok-keyword">await</span> extract({
+  artifacts: [artifact],
+  schema,
+  strategy: sequentialAutoMerge({
+    model: openai(<span class="tok-string">"gpt-4o-mini"</span>),
+    dedupeModel: openai(<span class="tok-string">"gpt-4o-mini"</span>),
+    chunkSize: <span class="tok-number">8000</span>
+  })
+});
+
+console.log(result.data);</code></pre>
+                    </section>
+                </div>
+            </main>
+        </div>
+
+        <script>
+            function getTheme() {
+                const stored = localStorage.getItem("@mateffy/struktur-theme");
+                if (stored) return stored;
+                return window.matchMedia("(prefers-color-scheme: dark)").matches
+                    ? "dark"
+                    : "light";
+            }
+
+            function setTheme(theme) {
+                document.documentElement.setAttribute("data-theme", theme);
+                localStorage.setItem("@mateffy/struktur-theme", theme);
+                updateThemeIcon(theme);
+            }
+
+            function updateThemeIcon(theme) {
+                const icon = document.getElementById("theme-icon");
+                if (icon) {
+                    icon.textContent = theme === "dark" ? "◑" : "◐";
+                }
+            }
+
+            function toggleTheme() {
+                const current = getTheme();
+                const next = current === "dark" ? "light" : "dark";
+                setTheme(next);
+            }
+
+            (function initTheme() {
+                const theme = getTheme();
+                document.documentElement.setAttribute("data-theme", theme);
+                if (document.readyState === "loading") {
+                    document.addEventListener("DOMContentLoaded", () =>
+                        updateThemeIcon(theme),
+                    );
+                } else {
+                    updateThemeIcon(theme);
+                }
+            })();
+
+            const navLinks = Array.from(
+                document.querySelectorAll(".doc-nav a"),
+            );
+            const sections = navLinks.map((link) =>
+                document.querySelector(link.getAttribute("href")),
+            );
+
+            const observer = new IntersectionObserver(
+                (entries) => {
+                    entries.forEach((entry) => {
+                        if (entry.isIntersecting) {
+                            navLinks.forEach((link) =>
+                                link.classList.remove("active"),
+                            );
+                            const activeLink = navLinks.find(
+                                (link) =>
+                                    link.getAttribute("href") ===
+                                    `#${entry.target.id}`,
+                            );
+                            if (activeLink) activeLink.classList.add("active");
+                        }
+                    });
+                },
+                { rootMargin: "-30% 0px -60% 0px", threshold: 0 },
+            );
+
+            sections.forEach((section) => {
+                if (section) observer.observe(section);
+            });
+        </script>
+    </body>
+</html>

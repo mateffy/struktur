@@ -94,18 +94,20 @@ const result = await extract({
 Artifacts are JSON DTOs with text and media slices. Struktur does not parse PDFs or HTML; it expects normalized inputs.
 
 ```ts
-import { urlToArtifact, fileToArtifact, registerArtifactProvider } from "@mateffy/struktur";
+import { urlToArtifact, fileToArtifact } from "@mateffy/struktur";
 
 const artifact = await urlToArtifact("https://example.com/artifact.json");
 
-registerArtifactProvider("application/pdf", async (buffer) => ({
-  id: "pdf-1",
-  type: "pdf",
-  raw: async () => buffer,
-  contents: [{ page: 1, text: "..." }],
-}));
+const providers = {
+  "application/pdf": async (buffer) => ({
+    id: "pdf-1",
+    type: "pdf",
+    raw: async () => buffer,
+    contents: [{ page: 1, text: "..." }],
+  }),
+};
 
-const fromFile = await fileToArtifact(buffer, { mimeType: "application/pdf" });
+const fromFile = await fileToArtifact(buffer, { mimeType: "application/pdf", providers });
 ```
 
 ## Events

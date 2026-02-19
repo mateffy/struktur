@@ -5,7 +5,6 @@ import {
   splitTextIntoContents,
   validateSerializedArtifacts,
 } from "./input";
-import { clearArtifactProviders, registerArtifactProvider } from "./providers";
 
 test("validateSerializedArtifacts accepts a single artifact", () => {
   const artifacts = validateSerializedArtifacts({
@@ -47,23 +46,23 @@ test("parseInputToArtifacts builds text artifacts", async () => {
 });
 
 test("parseInputToArtifacts uses providers when available", async () => {
-  clearArtifactProviders();
-  registerArtifactProvider("application/pdf", async () => ({
-    id: "pdf-1",
-    type: "pdf",
-    raw: async () => Buffer.from("pdf"),
-    contents: [{ text: "from-provider" }],
-  }));
+  const providers = {
+    "application/pdf": async () => ({
+      id: "pdf-1",
+      type: "pdf" as const,
+      raw: async () => Buffer.from("pdf"),
+      contents: [{ text: "from-provider" }],
+    }),
+  };
 
   const artifacts = await parseInputToArtifacts({
     kind: "buffer",
     buffer: Buffer.from("data"),
     mimeType: "application/pdf",
-  });
+  }, { providers });
 
   expect(artifacts[0]?.type).toBe("pdf");
   expect(artifacts[0]?.contents[0]?.text).toBe("from-provider");
-  clearArtifactProviders();
 });
 
 test("parseInputToArtifacts builds image artifacts", async () => {

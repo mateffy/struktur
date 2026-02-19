@@ -1,0 +1,1195 @@
+{
+  "project": "struktur-docs-reorganization",
+  "version": "2.0.0",
+  "created": "2026-02-15",
+  "updated": "2026-02-18",
+  "status": "planning-complete",
+  "framework": "diataxis",
+  "overview": {
+    "problem": "Current documentation (docs/guide.html) is disorganized, lacks a storyline, and serves neither new users nor experienced users well. It's a reference document disguised as a guide, with no progressive disclosure or clear reading path.",
+    "goal": "Reorganize documentation following Diátaxis framework principles. Four distinct documentation types serve four distinct user needs: learning (tutorials), doing (how-to guides), information (reference), understanding (explanation).",
+    "approach": "Split into multiple HTML pages organized by Diátaxis quadrant. Each document type has its own conventions, audience, and purpose. Navigation reflects the four types explicitly.",
+    "diataxisPrinciples": {
+      "tutorial": "Learning-oriented experiences. User DOES something under guidance. Serves STUDY (skill acquisition). Minimal explanation, concrete steps, reliable success.",
+      "howto": "Goal-oriented directions. Addresses real-world problems. Serves WORK (skill application). Assumes competent user. Practical, action-focused.",
+      "reference": "Information-oriented technical description. Facts, neutral, complete. Serves WORK. Structured like the machinery it describes.",
+      "explanation": "Understanding-oriented discussion. Context, background, why. Serves STUDY. Discursive, can contain opinions and perspectives."
+    },
+    "audiences": [
+      {
+        "name": "studying",
+        "diataxisState": "acquisition of skill",
+        "description": "User is learning, building skills and understanding",
+        "needs": "Tutorials (action-based learning) and Explanation (understanding)",
+        "documents": ["quickstart.html", "concepts.html"]
+      },
+      {
+        "name": "working",
+        "diataxisState": "application of skill",
+        "description": "User is competent and trying to accomplish something specific",
+        "needs": "How-to guides (practical directions) and Reference (facts to consult)",
+        "documents": ["all how-to guides", "all reference docs"]
+      }
+    ]
+  },
+  "structure": {
+    "diataxisMap": {
+      "tutorials": {
+        "quadrant": "action + study",
+        "purpose": "Learning-oriented experiences that build skills through doing",
+        "conventions": ["First-person plural (we)", "Concrete steps with expected results", "Minimal explanation - link to explanation docs", "Reliable success every time", "Meaningful achievable goal"]
+      },
+      "howto": {
+        "quadrant": "action + work",
+        "purpose": "Goal-oriented guides for competent users solving real problems",
+        "conventions": ["Action-oriented titles (How to...)", "Assumes user knows what they want", "Practical directions only", "No teaching or explanation", "Address real-world complexity"]
+      },
+      "reference": {
+        "quadrant": "cognition + work",
+        "purpose": "Technical descriptions for users who need facts while working",
+        "conventions": ["Neutral, factual tone", "Structured like the machinery", "Austere and authoritative", "Examples for illustration, not instruction", "Standard patterns for consistency"]
+      },
+      "explanation": {
+        "quadrant": "cognition + study",
+        "purpose": "Understanding-oriented discussion for building mental models",
+        "conventions": ["Discursive, can circle around subject", "Answers 'why' questions", "Context and background", "Can contain opinions and perspectives", "Links to other explanation and reference"]
+      }
+    },
+    "directories": {
+      "docs/": "Root docs directory",
+      "docs/tutorials/": "Learning-oriented experiences",
+      "docs/how-to/": "Goal-oriented practical guides",
+      "docs/reference/": "Technical description and facts",
+      "docs/explanation/": "Understanding-oriented discussion"
+    },
+    "files": [
+      {
+        "path": "docs/index.html",
+        "status": "exists",
+        "action": "keep",
+        "diataxis": "landing",
+        "notes": "Landing page is good. Update links to point to new structure."
+      },
+      {
+        "path": "docs/guide.html",
+        "status": "exists",
+        "action": "deprecate",
+        "notes": "Replace with redirect to tutorials/quickstart.html or remove entirely"
+      },
+      {
+        "path": "docs/tutorials/quickstart.html",
+        "status": "new",
+        "phase": 1,
+        "diataxis": "tutorial",
+        "priority": "high"
+      },
+      {
+        "path": "docs/explanation/concepts.html",
+        "status": "new",
+        "phase": 1,
+        "diataxis": "explanation",
+        "priority": "high"
+      },
+      {
+        "path": "docs/how-to/choose-strategy.html",
+        "status": "new",
+        "phase": 2,
+        "diataxis": "howto",
+        "priority": "high",
+        "title": "How to choose a strategy"
+      },
+      {
+        "path": "docs/how-to/extract-invoice.html",
+        "status": "new",
+        "phase": 2,
+        "diataxis": "howto",
+        "priority": "medium",
+        "title": "How to extract invoice data"
+      },
+      {
+        "path": "docs/how-to/extract-realestate.html",
+        "status": "new",
+        "phase": 2,
+        "diataxis": "howto",
+        "priority": "medium",
+        "title": "How to extract real estate data"
+      },
+      {
+        "path": "docs/how-to/process-multiple-files.html",
+        "status": "new",
+        "phase": 2,
+        "diataxis": "howto",
+        "priority": "medium",
+        "title": "How to process multiple files"
+      },
+      {
+        "path": "docs/how-to/build-custom-strategy.html",
+        "status": "new",
+        "phase": 4,
+        "diataxis": "howto",
+        "priority": "low",
+        "title": "How to build a custom strategy"
+      },
+      {
+        "path": "docs/how-to/create-custom-provider.html",
+        "status": "new",
+        "phase": 4,
+        "diataxis": "howto",
+        "priority": "low",
+        "title": "How to create a custom artifact provider"
+      },
+      {
+        "path": "docs/reference/cli.html",
+        "status": "new",
+        "phase": 2,
+        "diataxis": "reference",
+        "priority": "high"
+      },
+      {
+        "path": "docs/reference/api.html",
+        "status": "new",
+        "phase": 2,
+        "diataxis": "reference",
+        "priority": "high"
+      },
+      {
+        "path": "docs/reference/artifacts.html",
+        "status": "new",
+        "phase": 2,
+        "diataxis": "reference",
+        "priority": "high"
+      },
+      {
+        "path": "docs/reference/strategies.html",
+        "status": "new",
+        "phase": 3,
+        "diataxis": "reference",
+        "priority": "high",
+        "notes": "Includes validation and merge/dedupe behavior for each strategy"
+      },
+      {
+        "path": "docs/reference/providers.html",
+        "status": "new",
+        "phase": 3,
+        "diataxis": "reference",
+        "priority": "medium"
+      },
+      {
+        "path": "docs/reference/events.html",
+        "status": "new",
+        "phase": 3,
+        "diataxis": "reference",
+        "priority": "medium"
+      }
+    ],
+    "navigation": {
+      "sidebar": [
+        {
+          "section": "Tutorials",
+          "diataxis": "action + study",
+          "description": "Learning-oriented experiences",
+          "items": ["Quickstart"]
+        },
+        {
+          "section": "How-to Guides",
+          "diataxis": "action + work",
+          "description": "Goal-oriented practical guides",
+          "items": ["Choose a Strategy", "Extract Invoice Data", "Extract Real Estate Data", "Process Multiple Files", "Build Custom Strategy", "Create Custom Provider"]
+        },
+        {
+          "section": "Reference",
+          "diataxis": "cognition + work",
+          "description": "Technical description and facts",
+          "items": ["CLI", "API", "Artifacts", "Strategies", "Providers & Models", "Events"]
+        },
+        {
+          "section": "Explanation",
+          "diataxis": "cognition + study",
+          "description": "Understanding-oriented discussion",
+          "items": ["Concepts"]
+        }
+      ]
+    }
+  },
+  "phases": [
+    {
+      "id": 1,
+      "name": "Foundation",
+      "description": "Create one tutorial (quickstart) and one explanation (concepts). These serve users in STUDY mode - learning and understanding.",
+      "diataxis": "study-oriented",
+      "files": ["docs/tutorials/quickstart.html", "docs/explanation/concepts.html"],
+      "sections": [
+        {
+          "file": "docs/tutorials/quickstart.html",
+          "title": "Quickstart",
+          "diataxis": "tutorial",
+          "diataxisPurpose": "Learning-oriented experience. User DOES something under guidance to acquire skills.",
+          "goal": "Get a new user from 'never heard of Struktur' to 'I extracted my first JSON' in under 5 minutes with reliable success.",
+          "targetAudience": "studying (skill acquisition)",
+          "readingTime": "5 minutes",
+          "diataxisPrinciples": {
+            "teacherStudentRelationship": "You are the absent instructor. User follows your directions. You are responsible for their success.",
+            "minimalExplanation": "Don't try to teach by explaining. Allow learning through doing. Link to explanation for later.",
+            "concreteSteps": "Focus on THIS problem, THIS action, THIS result. Concrete leads to general understanding.",
+            "reliableSuccess": "Every step must produce the expected result. Confidence builds layer by layer.",
+            "firstPersonPlural": "Use 'we' to affirm the tutor-learner relationship: 'In this tutorial, we will...'"
+          },
+          "sections": [
+            {
+              "id": "qs-intro",
+              "title": "What we'll build",
+              "content": "One-sentence promise: 'Extract structured data from any file in 3 commands'. Show the learner where they'll be going.",
+              "tone": "encouraging, minimal",
+              "diataxisNote": "Not 'you will learn' - that's presumptuous. Describe what WE will accomplish together."
+            },
+            {
+              "id": "qs-prereqs",
+              "title": "Prerequisites",
+              "content": "List: Node.js 18+ or Bun installed, An API key (OpenAI, Anthropic, or Google)",
+              "format": "bulleted list"
+            },
+            {
+              "id": "qs-install",
+              "title": "Step 1: Install",
+              "content": "npm install -g @mateffy/struktur or bun install -g @mateffy/struktur",
+              "codeExample": true,
+              "diataxisNote": "Each step should produce visible results. Show expected output."
+            },
+            {
+              "id": "qs-configure",
+              "title": "Step 2: Configure your provider",
+              "content": "Two methods: (1) Quick: environment variable export OPENAI_API_KEY=sk-..., (2) Secure: struktur auth set --provider openai (reads from stdin)",
+              "codeExample": true
+            },
+            {
+              "id": "qs-extract",
+              "title": "Step 3: Extract your first data",
+              "content": "Create a simple test document (echo command), run extraction with inline schema, show the expected output",
+              "codeExample": {
+                "commands": [
+                  "echo 'Invoice #1234 from Acme Corp. Total: $1,250.00. Due: March 15, 2026.' > invoice.txt",
+                  "struktur --input invoice.txt --schema-json '{...schema...}' --model openai/gpt-4o-mini"
+                ],
+                "expectedOutput": {
+                  "invoice_number": "1234",
+                  "vendor": "Acme Corp",
+                  "total": 1250.00,
+                  "due_date": "March 15, 2026"
+                }
+              },
+              "diataxisNote": "Point out what the learner should notice. Close the loops of learning."
+            },
+            {
+              "id": "qs-what-happened",
+              "title": "What happened?",
+              "content": "BRIEF explanation: 'We used the simple strategy to extract data.' Minimal. Link to concepts for understanding.",
+              "tone": "concise",
+              "diataxisNote": "This is NOT the place for extended explanation. Just enough to orient the learner. Link to explanation docs."
+            },
+            {
+              "id": "qs-next",
+              "title": "Where to go from here",
+              "content": "Links organized by Diátaxis type: Tutorials (none - you're done!), How-to (Choose a strategy), Reference (CLI, API), Explanation (Concepts)",
+              "format": "link list with categories",
+              "diataxisNote": "Help the learner transition from STUDY to WORK. They can now use how-to guides and reference."
+            }
+          ],
+          "diataxisLanguageGuide": {
+            "we": "First-person plural affirms tutor-learner relationship: 'In this tutorial, we will...'",
+            "imperatives": "Clear, unambiguous: 'First, do x. Now, do y.'",
+            "expectations": "Narrative of expected: 'You will notice that...', 'The output should look like...'",
+            "noticing": "Help learner observe: 'Notice that...', 'Remember that...'",
+            "accomplishment": "Acknowledge what they built: 'You have extracted your first structured data.'"
+          },
+          "designNotes": [
+            "No artifacts explanation yet - they use --input, explain in Concepts (explanation)",
+            "Inline schema - simplest for demo; schema reference is linked",
+            "CLI-first - fastest path to success; TypeScript API in reference",
+            "No strategy choice - default to simple; how-to guide for choosing",
+            "This is a TUTORIAL per Diátaxis: learning by doing, minimal explanation, reliable success"
+          ]
+        },
+        {
+          "file": "docs/explanation/concepts.html",
+          "title": "Concepts",
+          "diataxis": "explanation",
+          "diataxisPurpose": "Understanding-oriented discussion. Serves users in STUDY mode who need to understand WHY and build mental models.",
+          "goal": "Help users understand how Struktur works so they can make informed decisions. This is NOT a guide to action - it's for understanding.",
+          "targetAudience": "studying (understanding acquisition)",
+          "readingTime": "10 minutes",
+          "diataxisPrinciples": {
+            "discursive": "Can circle around the subject, approach from different directions",
+            "whyQuestions": "Answers 'why' - why this design, why these concepts",
+            "context": "Provides background and bigger picture",
+            "opinionOk": "Can contain perspectives and opinions",
+            "linksToOthers": "Links to reference for facts, how-to for action"
+          },
+          "sections": [
+            {
+              "id": "con-what",
+              "title": "What is Struktur?",
+              "content": "One-paragraph definition. Frame as 'a data extraction harness'. Mention what it does NOT do (parse files, stream) to set expectations.",
+              "keyPoints": [
+                "TypeScript extraction engine using Vercel AI SDK",
+                "Turns pre-parsed artifacts into validated JSON",
+                "Handles chunking, strategies, validation, merging",
+                "Does NOT parse PDFs/HTML - you handle that upstream"
+              ]
+            },
+            {
+              "id": "con-pipeline",
+              "title": "The Extraction Pipeline",
+              "content": "Visual diagram showing the flow: Input -> Artifacts -> Strategy -> Output. Validation happens INSIDE strategies (strategy-dependent) AND after the strategy completes.",
+              "diagram": {
+                "type": "mermaid",
+                "flow": "Input (files/text) -> Artifacts (normalized) -> Strategy (orchestration) -> Output (validated JSON)",
+                "strategyInternals": "Strategy contains: Chunking, LLM calls with validation+retry, Merge/Dedupe (if applicable)"
+              },
+              "designNotes": "This diagram is the central visual anchor for the entire mental model"
+            },
+            {
+              "id": "con-artifacts",
+              "title": "Artifacts: The input format",
+              "content": "What is an artifact? Why normalized input? Structure overview. How to create them.",
+              "keyPoints": [
+                "Artifacts are JSON DTOs with text and media slices",
+                "Struktur doesn't parse files - you provide normalized artifacts",
+                "Structure: id, type, contents[], media[]",
+                "Creation: --input, --stdin, fileToArtifact(), urlToArtifact()"
+              ],
+              "links": ["reference/artifacts.html for full spec"]
+            },
+            {
+              "id": "con-strategies",
+              "title": "Strategies: The orchestration",
+              "content": "What is a strategy? A strategy orchestrates the entire extraction: chunking, LLM calls, validation, and merging. Each strategy handles these differently.",
+              "keyPoints": [
+                "A strategy defines HOW extraction happens",
+                "simple: single-shot for small inputs",
+                "parallel, sequential, auto-merge, double-pass for larger/complex inputs",
+                "Validation happens INSIDE the strategy with automatic retries",
+                "Merge/dedupe behavior is strategy-dependent"
+              ],
+              "links": ["strategy-selection.html for choosing the right strategy"]
+            },
+            {
+              "id": "con-validation",
+              "title": "Validation",
+              "content": "JSON Schema + Ajv validation. IMPORTANT: Validation is integrated into strategies, not a separate phase. Strategies validate each LLM output and retry on failure. There's also a final validation after the strategy completes.",
+              "keyPoints": [
+                "Validation is strategy-internal: each LLM call is validated",
+                "On validation failure, errors are fed back to LLM for retry",
+                "Most extractions converge within 2 attempts",
+                "Final validation happens after strategy completes"
+              ],
+              "links": ["reference/strategies.html for strategy-specific validation behavior"]
+            },
+            {
+              "id": "con-merge",
+              "title": "Merge & Dedupe",
+              "content": "Merge and dedupe behavior is strategy-dependent. Only multi-chunk strategies (parallel, sequential, doublePass) need merging. Auto-merge variants include deduplication.",
+              "keyPoints": [
+                "Merge behavior varies by strategy",
+                "parallel/sequential use LLM merge",
+                "auto-merge variants use schema-aware merge + dedupe",
+                "Dedupe has two stages: hash-based + LLM-based"
+              ],
+              "links": ["reference/strategies.html for strategy-specific merge/dedupe behavior"]
+            },
+            {
+              "id": "con-cli-vs-api",
+              "title": "Using Struktur",
+              "content": "CLI vs TypeScript API - when to use which. Links to both reference docs.",
+              "decisionGuide": {
+                "useCLI": "Quick one-off extractions, shell pipelines, CI/CD scripts",
+                "useAPI": "Application integration, custom strategies, production workflows"
+              }
+            }
+          ],
+          "designNotes": [
+            "Pipeline diagram is the central visual anchor",
+            "Each concept links to deep docs - don't duplicate, just introduce",
+            "CLI vs API comparison helps users choose integration path",
+            "Validation and merge/dedupe are introduced here but detailed in strategies reference",
+            "This is EXPLANATION per Diátaxis: understanding-oriented, answers 'why', provides context"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "How-to Guides & Core Reference",
+      "description": "Create how-to guides for users in WORK mode (solving problems) and core reference docs (consulting facts). These serve users who are already competent.",
+      "diataxis": "work-oriented",
+      "files": ["docs/how-to/choose-strategy.html", "docs/how-to/extract-invoice.html", "docs/how-to/extract-realestate.html", "docs/how-to/process-multiple-files.html", "docs/reference/cli.html", "docs/reference/api.html", "docs/reference/artifacts.html"],
+      "sections": [
+        {
+          "file": "docs/how-to/choose-strategy.html",
+          "title": "How to choose a strategy",
+          "diataxis": "howto",
+          "diataxisPurpose": "Goal-oriented guide. Addresses a real-world problem: 'Which strategy should I use?' Assumes competent user.",
+          "goal": "Help users who know they need to extract data choose the right strategy for their situation.",
+          "targetAudience": "working (skill application)",
+          "readingTime": "5 minutes",
+          "diataxisPrinciples": {
+            "actionOriented": "Title says HOW to do something",
+            "assumesCompetence": "User knows what they want (extraction); they need practical guidance",
+            "noTeaching": "No explanation of what strategies are - link to Concepts for that",
+            "practicalOnly": "Focus on decision criteria and trade-offs",
+            "realWorldComplexity": "Acknowledge edge cases and help user adapt guidance"
+          },
+          "sections": [
+            {
+              "id": "ss-intro",
+              "title": "Problem: Choosing the right strategy",
+              "content": "You need to extract data and want the best strategy for your situation. This guide helps you decide.",
+              "diataxisNote": "State the problem from user's perspective, not from the tool's."
+            },
+            {
+              "id": "ss-decision",
+              "title": "Quick decision guide",
+              "content": "Decision tree with clear if-then rules: If input fits in context -> simple. If speed matters -> parallel. If context across chunks matters -> sequential. If both speed and accuracy -> doublePass. If dedup needed -> auto-merge variants.",
+              "format": "decision tree or flowchart",
+              "diataxisNote": "Practical directions for real-world situations. No theory."
+            },
+            {
+              "id": "ss-comparison",
+              "title": "Strategy comparison",
+              "content": "Table comparing all strategies on: speed, accuracy, context preservation, best for, token usage",
+              "format": "comparison table",
+              "diataxisNote": "Reference material embedded in how-to is acceptable when it serves the practical goal."
+            },
+            {
+              "id": "ss-simple",
+              "title": "Use simple when...",
+              "content": "Documents fit in context window, simple schemas, quick testing. No special concerns.",
+              "diataxisNote": "Conditional imperatives: 'If you want x, do y.'"
+            },
+            {
+              "id": "ss-parallel",
+              "title": "Use parallel when...",
+              "content": "Speed is priority, chunks are independent, large document sets. Accept: may miss cross-chunk context.",
+              "diataxisNote": "State trade-offs clearly so user can make informed decision."
+            },
+            {
+              "id": "ss-sequential",
+              "title": "Use sequential when...",
+              "content": "Context between chunks matters, building data incrementally. Accept: slower than parallel."
+            },
+            {
+              "id": "ss-automerge",
+              "title": "Use auto-merge variants when...",
+              "content": "Extracting arrays that may have duplicates, consolidating results. Need dedup without LLM merge cost."
+            },
+            {
+              "id": "ss-doublepass",
+              "title": "Use double-pass when...",
+              "content": "High-stakes extractions, complex schemas, quality > cost. Willing to pay for two passes."
+            }
+          ],
+          "diataxisLanguageGuide": {
+            "conditional": "If you want x, do y. To achieve w, use z.",
+            "problemFocused": "This guide shows you how to solve [specific problem].",
+            "noExplanation": "Don't explain WHY strategies work - link to Concepts for that.",
+            "practical": "Assume user can follow directions. No hand-holding."
+          },
+          "linksToOtherTypes": {
+            "explanation": "Concepts (for understanding what strategies are)",
+            "reference": "Strategies reference (for full config options)"
+          },
+          "sourceMaterial": "README.md strategies section, article.md strategies section, src/strategies/*.ts"
+        },
+        {
+          "file": "docs/how-to/extract-invoice.html",
+          "title": "How to extract invoice data",
+          "diataxis": "howto",
+          "diataxisPurpose": "Goal-oriented guide for a specific real-world task: extracting structured data from invoices.",
+          "goal": "Help users extract invoice fields (vendor, total, line items, etc.) from PDF or text invoices.",
+          "targetAudience": "working (competent user with a specific goal)",
+          "readingTime": "3 minutes",
+          "sections": [
+            {
+              "id": "inv-problem",
+              "title": "Problem: Extract invoice data",
+              "content": "You have invoices (PDF or text) and need structured data: vendor, invoice number, line items, totals."
+            },
+            {
+              "id": "inv-schema",
+              "title": "Define your schema",
+              "content": "Show typical invoice schema with nested line items.",
+              "codeExample": true
+            },
+            {
+              "id": "inv-cli",
+              "title": "CLI approach",
+              "content": "Single command for one invoice. Pipeline for multiple invoices.",
+              "codeExample": true
+            },
+            {
+              "id": "inv-api",
+              "title": "API approach",
+              "content": "For application integration. Show minimal TypeScript example.",
+              "codeExample": true
+            },
+            {
+              "id": "inv-strategy",
+              "title": "Strategy choice",
+              "content": "Link to how-to/choose-strategy for complex invoices (multi-page, many line items)."
+            }
+          ],
+          "linksToOtherTypes": {
+            "howto": "How to process multiple files (for batch processing)",
+            "reference": "CLI reference, API reference"
+          }
+        },
+        {
+          "file": "docs/how-to/extract-realestate.html",
+          "title": "How to extract real estate data",
+          "diataxis": "howto",
+          "diataxisPurpose": "Goal-oriented guide for extracting property data from PDF exposés with images.",
+          "goal": "Help users extract property details, nested units, and interpret images from real estate documents.",
+          "targetAudience": "working",
+          "readingTime": "3 minutes",
+          "sections": [
+            {
+              "id": "re-problem",
+              "title": "Problem: Extract real estate data",
+              "content": "PDF exposés contain property data, nested units, and images. Need structured extraction."
+            },
+            {
+              "id": "re-schema",
+              "title": "Define your schema",
+              "content": "Schema with nested units array and image descriptions.",
+              "codeExample": true
+            },
+            {
+              "id": "re-strategy",
+              "title": "Use sequentialAutoMerge",
+              "content": "Why: context preservation across pages, deduplication for duplicate units.",
+              "diataxisNote": "Minimal 'why' - just enough to justify the recommendation. Link to Concepts for deeper explanation."
+            },
+            {
+              "id": "re-implementation",
+              "title": "Implementation",
+              "content": "CLI and API examples with the recommended strategy.",
+              "codeExample": true
+            }
+          ]
+        },
+        {
+          "file": "docs/how-to/process-multiple-files.html",
+          "title": "How to process multiple files",
+          "diataxis": "howto",
+          "diataxisPurpose": "Goal-oriented guide for batch processing.",
+          "goal": "Help users process multiple files efficiently using shell pipelines or scripting.",
+          "targetAudience": "working",
+          "readingTime": "3 minutes",
+          "sections": [
+            {
+              "id": "batch-problem",
+              "title": "Problem: Process many files",
+              "content": "You have a directory of documents to extract. Need efficient batch processing."
+            },
+            {
+              "id": "batch-pipeline",
+              "title": "Shell pipeline approach",
+              "content": "Use find + markitdown + struktur. Show complete pipeline.",
+              "codeExample": true
+            },
+            {
+              "id": "batch-script",
+              "title": "Script approach",
+              "content": "For more control: write a script that iterates and handles errors.",
+              "codeExample": true
+            },
+            {
+              "id": "batch-watch",
+              "title": "Watch for new files",
+              "content": "Use inotifywait to process files as they arrive.",
+              "codeExample": true
+            }
+          ]
+        },
+        {
+          "file": "docs/reference/cli.html",
+          "title": "CLI Reference",
+          "diataxis": "reference",
+          "diataxisPurpose": "Technical description of CLI. Users CONSULT this while working. Neutral, factual, structured like the CLI itself.",
+          "goal": "Provide accurate, complete information about all CLI commands and options.",
+          "targetAudience": "working (consulting facts)",
+          "readingTime": "reference (not linear)",
+          "diataxisPrinciples": {
+            "neutralDescription": "State facts. No opinion or instruction.",
+            "structuredLikeMachinery": "Organize by commands and flags, mirroring CLI structure.",
+            "austere": "Succinct. No fluff. One consults, doesn't read.",
+            "examplesForIllustration": "Examples show usage, not instruction.",
+            "standardPatterns": "Consistent format for each command/flag."
+          },
+          "sections": [
+            {
+              "id": "cli-overview",
+              "title": "CLI overview",
+              "content": "The struktur CLI provides command-line access to extraction capabilities. Reads from files or stdin, outputs JSON.",
+              "diataxisNote": "Brief factual statement, not a tutorial intro."
+            },
+            {
+              "id": "cli-extract",
+              "title": "struktur extract (default command)",
+              "content": "Main extraction command.",
+              "flags": [
+                {"name": "--input", "type": "string", "description": "Input file path"},
+                {"name": "--stdin", "type": "boolean", "description": "Read from stdin"},
+                {"name": "--schema", "type": "string", "description": "Path to JSON schema file"},
+                {"name": "--schema-json", "type": "string", "description": "Inline JSON schema"},
+                {"name": "--model", "type": "string", "description": "Model spec (provider/model)"},
+                {"name": "--strategy", "type": "string", "description": "Strategy name", "default": "simple"},
+                {"name": "--chunk-size", "type": "number", "description": "Tokens per chunk", "default": "10000"},
+                {"name": "--output", "type": "string", "description": "Output file path", "default": "stdout"}
+              ],
+              "examples": [
+                "struktur --input report.pdf --schema schema.json --model openai/gpt-4o-mini",
+                "cat document.txt | struktur --stdin --schema schema.json --model openai/gpt-4o-mini",
+                "struktur --input data.json --schema-json '{\"type\":\"object\",\"properties\":{\"title\":{\"type\":\"string\"}}}' --model anthropic/claude-3-haiku-20240307"
+              ]
+            },
+            {
+              "id": "cli-auth",
+              "title": "struktur auth",
+              "content": "Manage API tokens for providers.",
+              "subcommands": [
+                {"name": "auth set", "description": "Store a token for a provider", "flags": ["--provider", "--token", "--token-stdin", "--storage", "--default"]},
+                {"name": "auth get", "description": "Retrieve a stored token", "flags": ["--provider", "--raw"]},
+                {"name": "auth delete", "description": "Remove a stored token", "flags": ["--provider"]},
+                {"name": "auth list", "description": "List all configured providers"},
+                {"name": "auth default", "description": "Set or get default model", "flags": ["--model", "--provider"]}
+              ]
+            },
+            {
+              "id": "cli-models",
+              "title": "struktur models",
+              "content": "List available models for providers.",
+              "flags": ["--provider", "--all"]
+            },
+            {
+              "id": "cli-verify",
+              "title": "struktur verify",
+              "content": "Validate artifact JSON format.",
+              "flags": ["--input"]
+            }
+          ],
+          "sourceMaterial": "src/cli.ts, src/cli/shared.ts, article.md CLI reference"
+        },
+        {
+          "file": "docs/reference/api.html",
+          "title": "TypeScript API Reference",
+          "diataxis": "reference",
+          "diataxisPurpose": "Technical description of API. Users CONSULT this while working. Neutral, factual, structured like the API itself.",
+          "goal": "Provide accurate, complete information about all API functions and types.",
+          "targetAudience": "working (consulting facts)",
+          "readingTime": "reference (not linear)",
+          "diataxisPrinciples": {
+            "neutralDescription": "State facts about functions, parameters, return types.",
+            "structuredLikeMachinery": "Organize by modules and functions, mirroring code structure.",
+            "austere": "Succinct. No fluff. One consults, doesn't read.",
+            "examplesForIllustration": "Code examples show usage signature, not instruction."
+          },
+          "sections": [
+            {
+              "id": "api-overview",
+              "title": "API overview",
+              "content": "TypeScript API for programmatic access. Import from @mateffy/struktur.",
+              "diataxisNote": "Brief factual statement."
+            },
+            {
+              "id": "api-extract",
+              "title": "extract()",
+              "content": "Main extraction function.",
+              "signature": "extract<T>(options: ExtractionOptions<T>): Promise<ExtractionResult<T>>",
+              "parameters": [
+                {"name": "artifacts", "type": "Artifact[]", "description": "Array of artifacts to extract from"},
+                {"name": "schema", "type": "TypedJSONSchema<T> | AnyJSONSchema", "description": "JSON schema for validation"},
+                {"name": "strategy", "type": "ExtractionStrategy<T>", "description": "Extraction strategy instance"},
+                {"name": "events", "type": "ExtractionEvents", "optional": true, "description": "Event handlers for progress/telemetry"}
+              ],
+              "returns": "ExtractionResult<T> with data, usage, and optional error",
+              "example": "const result = await extract({ artifacts, schema, strategy: simple({ model }) }); console.log(result.data);"
+            },
+            {
+              "id": "api-strategies",
+              "title": "Strategy factory functions",
+              "content": "Functions to create strategy instances.",
+              "functions": [
+                {"name": "simple(config)", "config": ["model", "outputInstructions"]},
+                {"name": "parallel(config)", "config": ["model", "mergeModel", "chunkSize", "concurrency", "maxImages", "outputInstructions"]},
+                {"name": "sequential(config)", "config": ["model", "chunkSize", "outputInstructions"]},
+                {"name": "parallelAutoMerge(config)", "config": ["model", "dedupeModel", "chunkSize", "concurrency", "outputInstructions"]},
+                {"name": "sequentialAutoMerge(config)", "config": ["model", "dedupeModel", "chunkSize", "outputInstructions"]},
+                {"name": "doublePass(config)", "config": ["model", "mergeModel", "chunkSize", "outputInstructions"]},
+                {"name": "doublePassAutoMerge(config)", "config": ["model", "dedupeModel", "chunkSize", "outputInstructions"]}
+              ]
+            },
+            {
+              "id": "api-artifact-helpers",
+              "title": "Artifact helper functions",
+              "content": "Functions to create artifacts from various sources.",
+              "functions": [
+                {"name": "fileToArtifact(buffer, options)", "description": "Create artifact from file buffer", "options": ["mimeType", "providers"]},
+                {"name": "urlToArtifact(url)", "description": "Fetch artifact from URL"},
+                {"name": "parseInputToArtifacts(input, options)", "description": "Parse various input formats to artifacts"},
+                {"name": "parseSerializedArtifacts(data)", "description": "Parse serialized artifact JSON"},
+                {"name": "validateSerializedArtifacts(data)", "description": "Validate artifact JSON format"}
+              ]
+            },
+            {
+              "id": "api-types",
+              "title": "Type exports",
+              "content": "All exported types for TypeScript users.",
+              "types": [
+                "Artifact",
+                "ArtifactContent",
+                "ArtifactImage",
+                "ArtifactType",
+                "ExtractionOptions",
+                "ExtractionResult",
+                "ExtractionStrategy",
+                "ExtractionEvents",
+                "Usage",
+                "TypedJSONSchema",
+                "AnyJSONSchema",
+                "ArtifactProvider",
+                "ArtifactProviders"
+              ]
+            }
+          ],
+          "sourceMaterial": "src/index.ts, src/types.ts, src/extract.ts, README.md"
+        },
+        {
+          "file": "docs/reference/artifacts.html",
+          "title": "Artifacts Specification",
+          "diataxis": "reference",
+          "diataxisPurpose": "Technical description of artifact format. Users CONSULT this while working. Neutral, factual, structured like the data structure itself.",
+          "goal": "Provide accurate, complete specification of artifact types and creation methods.",
+          "targetAudience": "working (consulting facts)",
+          "readingTime": "reference (not linear)",
+          "diataxisPrinciples": {
+            "neutralDescription": "State facts about types and properties.",
+            "structuredLikeMachinery": "Organize by type hierarchy, mirroring the code structure.",
+            "austere": "Succinct. No fluff. One consults, doesn't read."
+          },
+          "sections": [
+            {
+              "id": "art-overview",
+              "title": "Artifact type",
+              "content": "Artifacts are JSON DTOs representing normalized input data. Struktur operates on artifacts you provide, not raw files.",
+              "diataxisNote": "Brief factual definition."
+            },
+            {
+              "id": "art-structure",
+              "title": "Artifact properties",
+              "content": "Complete specification of the Artifact type.",
+              "properties": [
+                {"name": "id", "type": "string", "description": "Unique identifier"},
+                {"name": "type", "type": "ArtifactType", "values": ["text", "image", "pdf", "file"]},
+                {"name": "raw", "type": "() => Promise<Buffer>", "description": "Function returning raw file data"},
+                {"name": "contents", "type": "ArtifactContent[]", "description": "Array of content slices"},
+                {"name": "metadata", "type": "Record<string, unknown>", "optional": true, "description": "Additional metadata"},
+                {"name": "tokens", "type": "number", "optional": true, "description": "Pre-computed token count"}
+              ]
+            },
+            {
+              "id": "art-content",
+              "title": "ArtifactContent properties",
+              "content": "Each content slice represents a portion of the artifact.",
+              "properties": [
+                {"name": "page", "type": "number", "optional": true, "description": "Page number for page-based documents"},
+                {"name": "text", "type": "string", "optional": true, "description": "Text content"},
+                {"name": "media", "type": "ArtifactImage[]", "optional": true, "description": "Embedded media"}
+              ]
+            },
+            {
+              "id": "art-media",
+              "title": "ArtifactImage properties",
+              "content": "Media embedded in artifacts.",
+              "properties": [
+                {"name": "type", "type": "'image'", "description": "Media type"},
+                {"name": "url", "type": "string", "optional": true, "description": "URL to media"},
+                {"name": "base64", "type": "string", "optional": true, "description": "Base64-encoded data"},
+                {"name": "contents", "type": "Buffer", "optional": true, "description": "Raw buffer data"},
+                {"name": "mimetype", "type": "string", "optional": true, "description": "MIME type"}
+              ]
+            },
+            {
+              "id": "art-creation",
+              "title": "Creation methods",
+              "content": "Methods to create artifacts.",
+              "methods": [
+                {"name": "CLI: --input file", "description": "Load from file path"},
+                {"name": "CLI: --stdin", "description": "Read from stdin (text or JSON)"},
+                {"name": "fileToArtifact(buffer, options)", "description": "Create from Buffer with MIME type"},
+                {"name": "urlToArtifact(url)", "description": "Fetch from URL"},
+                {"name": "parseSerializedArtifacts(json)", "description": "Parse artifact JSON"}
+              ],
+              "linksToOtherTypes": {
+                "howto": "How to create a custom artifact provider (for custom file types)"
+              }
+            },
+            {
+              "id": "art-providers",
+              "title": "Provider registry",
+              "content": "Registry mapping MIME types to artifact providers.",
+              "example": "const providers = { 'application/pdf': async (buffer) => ({ id: 'pdf-1', type: 'pdf', raw: async () => buffer, contents: [...] }) }",
+              "linksToOtherTypes": {
+                "howto": "How to create a custom artifact provider"
+              }
+            }
+          ],
+          "sourceMaterial": "src/types.ts, src/artifacts/*.ts"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Deep Reference",
+      "description": "Detailed reference docs for strategies, providers, and events. All are REFERENCE type - factual, neutral, consulted while working.",
+      "diataxis": "work-oriented (reference)",
+      "files": ["docs/reference/strategies.html", "docs/reference/providers.html", "docs/reference/events.html"],
+      "sections": [
+        {
+          "file": "docs/reference/strategies.html",
+          "title": "Strategies Reference",
+          "diataxis": "reference",
+          "diataxisPurpose": "Technical description of each strategy's algorithm, validation behavior, and merge/dedupe behavior. Factual, structured by strategy.",
+          "goal": "Provide accurate, complete information about each strategy for users making configuration decisions.",
+          "targetAudience": "working (consulting facts)",
+          "readingTime": "reference (not linear)",
+          "diataxisPrinciples": {
+            "neutralDescription": "State facts about each strategy's behavior. No opinion on which to choose.",
+            "structuredLikeMachinery": "Organize by strategy name, then by properties (algorithm, validation, merge, config).",
+            "austere": "Succinct. No fluff. One consults, doesn't read.",
+            "linksToOtherTypes": "Link to how-to/choose-strategy for decision guidance."
+          },
+          "sections": [
+            {
+              "id": "strat-overview",
+              "title": "Strategies overview",
+              "content": "Strategies orchestrate extraction: chunking, LLM calls, validation with retries, merging. Each strategy implements these differently.",
+              "diataxisNote": "Brief factual summary. For choosing a strategy, see how-to guide."
+            },
+            {
+              "id": "strat-common",
+              "title": "Common behavior across all strategies",
+              "content": "All strategies: (1) Use JSON schema for structured output, (2) Validate each LLM call with Ajv, (3) Retry on validation failure, (4) Final validation after completion.",
+              "diataxisNote": "Factual statement of shared behavior."
+            },
+            {
+              "id": "strat-simple",
+              "title": "simple",
+              "content": "Single-shot extraction for small inputs.",
+              "algorithm": ["Load artifacts", "If exceeds token budget, chunk to fit", "Single LLM call", "Validate with retry", "Return result"],
+              "validationBehavior": "One validation per LLM call, with retries on failure.",
+              "mergeBehavior": "None (single output).",
+              "config": ["model (required)", "outputInstructions (optional)"],
+              "diataxisNote": "Pure facts about behavior. No recommendation."
+            },
+            {
+              "id": "strat-parallel",
+              "title": "parallel",
+              "content": "Concurrent batch processing, then LLM merge.",
+              "algorithm": ["Chunk artifacts by token budget", "Process chunks concurrently (configurable parallelism)", "Collect partial results", "LLM merge step", "Return merged result"],
+              "validationBehavior": "Each chunk's LLM output validated with retries. Merge step also validated.",
+              "mergeBehavior": "LLM-based. Separate LLM call combines all partial outputs.",
+              "config": ["model (required)", "mergeModel (required)", "chunkSize (default: 10000)", "concurrency (optional)", "maxImages (optional)", "outputInstructions (optional)"],
+              "characteristics": "Fast but may miss cross-chunk context. LLM merge adds token cost."
+            },
+            {
+              "id": "strat-sequential",
+              "title": "sequential",
+              "content": "Process chunks in order, passing previous results as context.",
+              "algorithm": ["Chunk artifacts by token budget", "Process chunks sequentially", "Each chunk receives previous extraction results as context", "Accumulate results", "Return final result"],
+              "validationBehavior": "Each chunk's LLM output validated with retries.",
+              "mergeBehavior": "Context-based accumulation. Each LLM call receives previous results.",
+              "config": ["model (required)", "chunkSize (default: 10000)", "outputInstructions (optional)"],
+              "characteristics": "Slower than parallel but maintains coherence across chunks."
+            },
+            {
+              "id": "strat-parallel-automerge",
+              "title": "parallelAutoMerge",
+              "content": "Parallel extraction with schema-aware merge and deduplication.",
+              "algorithm": ["Chunk artifacts", "Process chunks concurrently", "Schema-aware merge (arrays concatenate, objects merge)", "Hash-based deduplication", "LLM-based semantic deduplication", "Return deduplicated result"],
+              "validationBehavior": "Each chunk's LLM output validated with retries.",
+              "mergeBehavior": "Schema-aware. Arrays concatenate, objects shallow-merge, scalars prefer new values. No LLM merge step.",
+              "dedupeBehavior": "Two-stage: (1) CRC32 hash for exact duplicates, (2) LLM for semantic duplicates.",
+              "config": ["model (required)", "dedupeModel (required)", "chunkSize (default: 10000)", "concurrency (optional)", "outputInstructions (optional)"]
+            },
+            {
+              "id": "strat-sequential-automerge",
+              "title": "sequentialAutoMerge",
+              "content": "Sequential extraction with schema-aware merge and deduplication.",
+              "algorithm": ["Chunk artifacts", "Process chunks sequentially with context", "Schema-aware merge after each chunk", "Final deduplication pass", "Return deduplicated result"],
+              "validationBehavior": "Each chunk's LLM output validated with retries.",
+              "mergeBehavior": "Schema-aware merge after each sequential step.",
+              "dedupeBehavior": "Same two-stage dedupe as parallelAutoMerge.",
+              "config": ["model (required)", "dedupeModel (required)", "chunkSize (default: 10000)", "outputInstructions (optional)"]
+            },
+            {
+              "id": "strat-doublepass",
+              "title": "doublePass",
+              "content": "Parallel pass for speed, sequential pass for refinement.",
+              "algorithm": ["First pass: parallel extraction", "LLM merge of first-pass results", "Second pass: sequential refinement with first-pass result as context", "Return refined result"],
+              "validationBehavior": "Each LLM call validated with retries. Both passes validated.",
+              "mergeBehavior": "LLM merge after first pass. Sequential pass refines the merged result.",
+              "config": ["model (required)", "mergeModel (required)", "chunkSize (default: 10000)", "outputInstructions (optional)"],
+              "characteristics": "Highest quality, highest token cost. Two full passes."
+            },
+            {
+              "id": "strat-doublepass-automerge",
+              "title": "doublePassAutoMerge",
+              "content": "Parallel + auto-merge + sequential refinement.",
+              "algorithm": ["First pass: parallel extraction", "Schema-aware merge", "Deduplication", "Second pass: sequential refinement", "Return refined result"],
+              "validationBehavior": "Each LLM call validated with retries.",
+              "mergeBehavior": "Schema-aware merge (no LLM merge). Sequential pass refines.",
+              "dedupeBehavior": "Full two-stage dedupe before refinement pass.",
+              "config": ["model (required)", "dedupeModel (required)", "chunkSize (default: 10000)", "outputInstructions (optional)"]
+            }
+          ],
+          "linksToOtherTypes": {
+            "howto": "How to choose a strategy (for decision guidance)",
+            "howto": "How to build a custom strategy (for extending)",
+            "explanation": "Concepts (for understanding strategies)"
+          },
+          "sourceMaterial": "src/strategies/*.ts"
+        },
+        {
+          "file": "docs/reference/providers.html",
+          "title": "Providers & Models Reference",
+          "diataxis": "reference",
+          "diataxisPurpose": "Technical description of provider setup and model configuration. Factual, structured by provider.",
+          "goal": "Provide accurate information about provider configuration.",
+          "targetAudience": "working (consulting facts)",
+          "readingTime": "reference (not linear)",
+          "sections": [
+            {
+              "id": "prov-supported",
+              "title": "Supported providers",
+              "content": "OpenAI, Anthropic, Google (via Vercel AI SDK). Any OpenAI-compatible API works."
+            },
+            {
+              "id": "prov-tokens",
+              "title": "Token management",
+              "content": "CLI: struktur auth for secure token storage. Supports keychain (macOS) and encrypted file. Environment variables override stored tokens."
+            },
+            {
+              "id": "prov-models",
+              "title": "Model selection",
+              "content": "Specify as provider/model (e.g., openai/gpt-4o-mini, anthropic/claude-3-haiku-20240307, google/gemini-2.0-flash). struktur models to list available models."
+            },
+            {
+              "id": "prov-default",
+              "title": "Default model",
+              "content": "Set default with struktur auth default --model provider/model. Used when --model not specified."
+            },
+            {
+              "id": "prov-env",
+              "title": "Environment variables",
+              "content": "Provider tokens can be set via environment variables: OPENAI_API_KEY, ANTHROPIC_API_KEY, GOOGLE_API_KEY. These override stored tokens."
+            }
+          ],
+          "sourceMaterial": "src/auth/*.ts, src/llm/models.ts"
+        },
+        {
+          "file": "docs/reference/events.html",
+          "title": "Events Reference",
+          "diataxis": "reference",
+          "diataxisPurpose": "Technical description of event hooks. Factual, structured by event type.",
+          "goal": "Provide accurate information about event hooks for progress tracking and telemetry.",
+          "targetAudience": "working (consulting facts)",
+          "readingTime": "reference (not linear)",
+          "sections": [
+            {
+              "id": "evt-overview",
+              "title": "ExtractionEvents interface",
+              "content": "Hooks for monitoring extraction progress. Pass to extract() options."
+            },
+            {
+              "id": "evt-step",
+              "title": "onStep",
+              "content": "Called at each major step.",
+              "signature": "onStep?: (info: StepInfo) => void | Promise<void>",
+              "info": "step (number), total (optional), label (string)"
+            },
+            {
+              "id": "evt-progress",
+              "title": "onProgress",
+              "content": "Called for granular progress updates.",
+              "signature": "onProgress?: (info: ProgressInfo) => void | Promise<void>",
+              "info": "current, total, percent (optional)"
+            },
+            {
+              "id": "evt-message",
+              "title": "onMessage",
+              "content": "Called for each LLM message.",
+              "signature": "onMessage?: (info: MessageInfo) => void | Promise<void>",
+              "info": "role, content"
+            },
+            {
+              "id": "evt-tokens",
+              "title": "onTokenUsage",
+              "content": "Called after each LLM call.",
+              "signature": "onTokenUsage?: (info: TokenUsageInfo) => void | Promise<void>",
+              "info": "inputTokens, outputTokens, totalTokens, model (optional)"
+            },
+            {
+              "id": "evt-example",
+              "title": "Usage example",
+              "codeExample": "const result = await extract({ artifacts, schema, strategy, events: { onStep: ({ step, label }) => console.log(`Step ${step}: ${label}`), onTokenUsage: ({ totalTokens }) => console.log(`${totalTokens} tokens used`) } });"
+            }
+          ],
+          "sourceMaterial": "src/types.ts ExtractionEvents, src/cli.ts events implementation"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Advanced How-to Guides",
+      "description": "How-to guides for power users building custom solutions. These are HOW-TO guides - goal-oriented, for competent users solving specific problems.",
+      "diataxis": "work-oriented (how-to)",
+      "files": ["docs/how-to/build-custom-strategy.html", "docs/how-to/create-custom-provider.html"],
+      "sections": [
+        {
+          "file": "docs/how-to/build-custom-strategy.html",
+          "title": "How to build a custom strategy",
+          "diataxis": "howto",
+          "diataxisPurpose": "Goal-oriented guide. Addresses: 'I need a custom extraction strategy.' Assumes competent TypeScript developer.",
+          "goal": "Help developers implement custom extraction strategies when built-in strategies don't fit their needs.",
+          "targetAudience": "working (competent developer with a specific goal)",
+          "readingTime": "5 minutes",
+          "diataxisPrinciples": {
+            "actionOriented": "Practical steps to implement, not theory of strategies",
+            "assumesCompetence": "User knows TypeScript, understands extraction concepts",
+            "noTeaching": "Link to Concepts for strategy understanding, Reference for interface details"
+          },
+          "sections": [
+            {
+              "id": "cs-problem",
+              "title": "Problem: Built-in strategies don't fit",
+              "content": "You need custom merge logic, domain-specific chunking, specialized validation, or integration with external services."
+            },
+            {
+              "id": "cs-interface",
+              "title": "Implement the ExtractionStrategy interface",
+              "content": "Required: name, run(options). Optional: getEstimatedSteps(artifacts).",
+              "signature": "interface ExtractionStrategy<T> { name: string; run(options: ExtractionOptions<T>): Promise<ExtractionResult<T>>; getEstimatedSteps?(artifacts: Artifact[]): number; }",
+              "linksToOtherTypes": {
+                "reference": "API Reference (ExtractionStrategy type)"
+              }
+            },
+            {
+              "id": "cs-validation",
+              "title": "Implement validation with retry",
+              "content": "Use createAjv() and validateOrThrow(). Implement retry loop for validation failures.",
+              "codeExample": true
+            },
+            {
+              "id": "cs-example",
+              "title": "Complete example",
+              "content": "Show a minimal custom strategy implementation.",
+              "codeExample": true
+            },
+            {
+              "id": "cs-utilities",
+              "title": "Available utilities",
+              "content": "Reusable utilities from src/strategies/utils.ts: getBatches, runConcurrently, runWithRetries, buildExtractorPrompt.",
+              "linksToOtherTypes": {
+                "reference": "API Reference (utility functions)"
+              }
+            }
+          ],
+          "linksToOtherTypes": {
+            "reference": "Strategies Reference (built-in strategy behaviors)",
+            "explanation": "Concepts (understanding strategies)"
+          },
+          "sourceMaterial": "src/types.ts ExtractionStrategy, src/strategies/utils.ts"
+        },
+        {
+          "file": "docs/how-to/create-custom-provider.html",
+          "title": "How to create a custom artifact provider",
+          "diataxis": "howto",
+          "diataxisPurpose": "Goal-oriented guide. Addresses: 'I need to parse a custom file type.' Assumes competent developer.",
+          "goal": "Help developers implement custom artifact providers for file types not supported by default.",
+          "targetAudience": "working (competent developer with a specific goal)",
+          "readingTime": "3 minutes",
+          "sections": [
+            {
+              "id": "cp-problem",
+              "title": "Problem: Need to parse custom file type",
+              "content": "You have a file format not supported by default. Need to convert it to an artifact."
+            },
+            {
+              "id": "cp-interface",
+              "title": "Implement the ArtifactProvider type",
+              "content": "Function that takes a Buffer and returns an Artifact.",
+              "signature": "type ArtifactProvider = (buffer: Buffer) => Promise<Artifact> | Artifact",
+              "linksToOtherTypes": {
+                "reference": "Artifacts Reference (ArtifactProvider type)"
+              }
+            },
+            {
+              "id": "cp-registration",
+              "title": "Register the provider",
+              "content": "Pass providers object to fileToArtifact or parseInputToArtifacts. Key is MIME type.",
+              "codeExample": true
+            },
+            {
+              "id": "cp-example",
+              "title": "Complete example",
+              "content": "Show a custom provider that parses a specific format.",
+              "codeExample": true
+            }
+          ],
+          "linksToOtherTypes": {
+            "reference": "Artifacts Reference (full artifact specification)",
+            "explanation": "Concepts (understanding artifacts)"
+          },
+          "sourceMaterial": "src/artifacts/providers.ts, src/artifacts/fileToArtifact.ts"
+        }
+      ]
+    }
+  ],
+  "implementationNotes": {
+    "diataxisGuidelines": {
+      "crossLinking": "Every document should link to related documents in OTHER Diátaxis quadrants. Tutorials link to Explanation for understanding, How-to guides link to Reference for details.",
+      "stayInQuadrant": "Each document should STAY IN its quadrant. Don't mix tutorial teaching with how-to practicality. Don't mix reference facts with explanation opinions.",
+      "userStateTransitions": "Help users transition: After tutorial -> ready for how-to guides. After how-to -> may need deeper reference. After reference -> may want explanation for context.",
+      "languagePerType": "Use the language patterns defined in each document's diataxisLanguageGuide field."
+    },
+    "navigationLabels": {
+      "tutorials": "Learning-oriented (Study + Action)",
+      "howto": "Goal-oriented (Work + Action)",
+      "reference": "Information-oriented (Work + Cognition)",
+      "explanation": "Understanding-oriented (Study + Cognition)"
+    },
+    "styling": "Use existing visual style from docs/assets/style.css. All pages should use the same font (JetBrains Mono), color scheme, and component styles.",
+    "components": {
+      "codeBlock": "Use pre.code-block with tok-* classes for syntax highlighting",
+      "callout": "Use div.callout for important notes (but sparingly in tutorials - don't break flow)",
+      "mermaid": "Use div.mermaid for diagrams, include mermaid.min.js",
+      "sidebar": "Use aside.doc-sidebar with nav.doc-nav pattern from existing guide.html",
+      "diataxisBadge": "Consider adding a small badge indicating document type (Tutorial/How-to/Reference/Explanation)"
+    },
+    "mermaidConfig": {
+      "theme": "neutral (light) / dark (dark mode)",
+      "fontFamily": "JetBrains Mono",
+      "colors": {
+        "primaryColor": "#ffffff (light) / #141414 (dark)",
+        "primaryTextColor": "#1a1a1a (light) / #e5e5e5 (dark)"
+      }
+    },
+    "darkMode": "Support theme toggle. Store preference in localStorage '@mateffy/struktur-theme'."
+  },
+  "existingAssets": {
+    "landingPage": "docs/index.html - good, keep, update navigation links for Diátaxis structure",
+    "guidePage": "docs/guide.html - deprecate after new docs are ready",
+    "style": "docs/assets/style.css - use as base for all new pages",
+    "article": "article.md - excellent source material, split by Diátaxis type: quickstart (tutorial), concepts (explanation), patterns (how-to)"
+  }
+}

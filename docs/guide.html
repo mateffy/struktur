@@ -127,8 +127,8 @@ console.log(result.data.title);</code></pre>
                                 types.
                             </li>
                             <li>
-                                Register custom providers with
-                                <code>registerArtifactProvider</code>.
+                                Pass a providers object to <code>fileToArtifact</code> or
+                                <code>parseInputToArtifacts</code> with MIME type keys.
                             </li>
                             <li>
                                 Artifacts can include text blocks and image
@@ -371,16 +371,17 @@ flowchart TD
                             Register a handler for new MIME types and return a
                             normalized artifact.
                         </p>
-                        <pre class="code-block"><code><span class="tok-keyword">import</span> { registerArtifactProvider, fileToArtifact } <span class="tok-keyword">from</span> <span class="tok-string">"@mateffy/struktur"</span>;
+                        <pre class="code-block"><code><span class="tok-keyword">import</span> { fileToArtifact } <span class="tok-keyword">from</span> <span class="tok-string">"@mateffy/struktur"</span>;
 
-registerArtifactProvider(<span class="tok-string">"application/pdf"</span>, <span class="tok-keyword">async</span> (buffer) <span class="tok-operator">=&gt;</span> ({
-  <span class="tok-operator">id</span>: <span class="tok-string">"pdf-1"</span>,
-  <span class="tok-operator">type</span>: <span class="tok-string">"pdf"</span>,
-  <span class="tok-operator">raw</span>: <span class="tok-keyword">async</span> () <span class="tok-operator">=&gt;</span> buffer,
-  <span class="tok-operator">contents</span>: [{ <span class="tok-operator">page</span>: <span class="tok-number">1</span>, <span class="tok-operator">text</span>: <span class="tok-string">"..."</span> }],
-}));
+<span class="tok-keyword">const</span> providers = {
+  <span class="tok-string">"application/pdf"</span>: <span class="tok-keyword">async</span> (buffer) <span class="tok-operator">=&gt;</span> ({
+    <span class="tok-operator">id</span>: <span class="tok-string">"pdf-1"</span>,
+    <span class="tok-operator">type</span>: <span class="tok-string">"pdf"</span>,
+    <span class="tok-operator">raw</span>: <span class="tok-keyword">async</span> () <span class="tok-operator">=&gt;</span> buffer,
+    <span class="tok-operator">contents</span>: [{ <span class="tok-operator">page</span>: <span class="tok-number">1</span>, <span class="tok-operator">text</span>: <span class="tok-string">"..."</span> }],
+});
 
-<span class="tok-keyword">const</span> artifact = <span class="tok-keyword">await</span> fileToArtifact(buffer, { <span class="tok-operator">mimeType</span>: <span class="tok-string">"application/pdf"</span> });</code></pre>
+<span class="tok-keyword">const</span> artifact = <span class="tok-keyword">await</span> fileToArtifact(buffer, { <span class="tok-operator">mimeType</span>: <span class="tok-string">"application/pdf"</span>, providers });</code></pre>
                     </section>
 
                     <section class="doc-section" id="custom-strategy">

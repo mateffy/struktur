@@ -1,215 +1,426 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Struktur · Structured Extraction Engine</title>
-    <meta
-      name="description"
-      content="Struktur turns files into schema-validated data with chunking, strategies, and merges across every LLM provider via the Vercel AI SDK."
-    />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <style type="text/tailwindcss">
-      @theme {
-        --color-bg: #0b0e12;
-        --color-ink: #f5f7fb;
-        --color-muted: #9aa3b2;
-        --color-accent: #3ddc97;
-        --color-border: rgba(245, 247, 251, 0.08);
-        --color-card: rgba(245, 247, 251, 0.03);
-      }
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Struktur · Structured Extraction Engine</title>
+        <meta
+            name="description"
+            content="Struktur turns files into schema-validated data with chunking, strategies, and merges across every LLM provider via the Vercel AI SDK."
+        />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+            rel="stylesheet"
+        />
+        <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+        <style type="text/tailwindcss">
+            @theme {
+                --color-bg: #0b0e12;
+                --color-ink: #f5f7fb;
+                --color-muted: #9aa3b2;
+                --color-accent: #3ddc97;
+                --color-border: rgba(245, 247, 251, 0.08);
+                --color-card: rgba(245, 247, 251, 0.03);
+            }
 
-      @keyframes terminal-line {
-        0% {
-          opacity: 0;
-          transform: translateY(4px);
-        }
-        100% {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
+            @keyframes terminal-line {
+                0% {
+                    opacity: 0;
+                    transform: translateY(4px);
+                }
+                100% {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
 
-      @keyframes terminal-caret {
-        0%,
-        49% {
-          opacity: 1;
-        }
-        50%,
-        100% {
-          opacity: 0;
-        }
-      }
+            @keyframes terminal-caret {
+                0%,
+                49% {
+                    opacity: 1;
+                }
+                50%,
+                100% {
+                    opacity: 0;
+                }
+            }
 
-      .terminal-line {
+            .terminal-line {
+                opacity: 0;
+                transform: translateY(4px);
+                animation: terminal-line 0.35s ease forwards;
+            }
+
+            .terminal-caret {
+                display: inline-block;
+                width: 7px;
+                height: 12px;
+                margin-left: 3px;
+                background: var(--color-accent);
+                vertical-align: -1px;
+                animation: terminal-caret 1s steps(1) infinite;
+            }
+
+      .mermaid[data-graph] {
         opacity: 0;
-        transform: translateY(4px);
-        animation: terminal-line 0.35s ease forwards;
       }
 
-      .terminal-caret {
-        display: inline-block;
-        width: 7px;
-        height: 12px;
-        margin-left: 3px;
-        background: var(--color-accent);
-        vertical-align: -1px;
-        animation: terminal-caret 1s steps(1) infinite;
+      .strategy-panel {
+        display: none;
       }
 
-      body {
-        font-family: "JetBrains Mono", ui-monospace, SFMono-Regular;
+      .strategy-panel.is-active {
+        display: block;
       }
-    </style>
-  </head>
-  <body class="bg-[var(--color-bg)] text-[var(--color-ink)] antialiased">
-    <header class="fixed inset-x-0 top-0 z-50 border-b border-[var(--color-border)] bg-[var(--color-bg)]/80 backdrop-blur">
-        <div class="mx-auto flex h-14 max-w-7xl items-center border-x border-[var(--color-border)]">
-        <a href="./index.html" class="flex h-full items-center border-r border-[var(--color-border)] px-5 text-base font-semibold tracking-tight">
-          Struktur
-        </a>
-        <nav class="hidden h-full flex-1 items-center justify-end md:flex">
-          <a class="flex h-full items-center border-r border-[var(--color-border)] px-5 text-xs font-semibold text-[var(--color-ink)]/80 hover:bg-[var(--color-card)]" href="#flow">
-            How it works
-          </a>
-          <a class="flex h-full items-center border-r border-[var(--color-border)] px-5 text-xs font-semibold text-[var(--color-ink)]/80 hover:bg-[var(--color-card)]" href="#artifact">
-            Artifact format
-          </a>
-          <a class="flex h-full items-center border-r border-[var(--color-border)] px-5 text-xs font-semibold text-[var(--color-ink)]/80 hover:bg-[var(--color-card)]" href="#use-cases">
-            Use cases
-          </a>
-          <a class="flex h-full items-center border-r border-[var(--color-border)] px-5 text-xs font-semibold text-[var(--color-ink)]/80 hover:bg-[var(--color-card)]" href="#integrations">
-            LLM providers
-          </a>
-          
-        </nav>
-          <div class="ml-auto flex h-full w-36 items-center border-l border-[var(--color-border)] px-0">
-          <a class="flex h-full w-full items-center justify-center bg-[var(--color-accent)] px-0 text-sm font-semibold text-[#0b0e12]" href="./guide.html">
-            Documentation
-          </a>
-        </div>
-      </div>
-    </header>
 
-    <main class="pt-14">
-      <section class="relative border-b border-[var(--color-border)]">
-        <div class="pointer-events-none absolute inset-0 opacity-60">
-          <div class="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(61,220,151,0.18),transparent_40%),radial-gradient(circle_at_80%_10%,rgba(95,147,255,0.18),transparent_45%),radial-gradient(circle_at_50%_80%,rgba(35,66,122,0.18),transparent_50%)]"></div>
-        </div>
-        <div class="mx-auto grid max-w-7xl gap-8 border-x border-[var(--color-border)] px-10 py-20 md:grid-cols-[1.1fr,0.9fr]">
-          <div class="flex flex-col justify-center">
-            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">Structured data extraction</p>
-            <h1 class="mt-4 text-4xl font-semibold leading-[1.15] tracking-tight md:text-5xl">
-              Reliably extract structured data<br />from any file
-            </h1>
-            <p class="mt-4 text-lg leading-relaxed text-[var(--color-muted)] md:text-xl mb-8">
-              Structure orchestrates your data extraction and validation.<br />
-              Pick a strategy for small files or long documents,<br />
-              and it handles chunking, merging, and schema checks behind the scenes.
-            </p>
-            <div class="mt-4 flex flex-wrap gap-3">
-              <a class="inline-flex h-12 items-center justify-center bg-[var(--color-accent)] px-7 text-sm font-semibold text-[#0b0e12]" href="#cta">
-                Install CLI
-              </a>
-              <a class="inline-flex h-12 items-center justify-center border border-[var(--color-border)] px-7 text-sm font-semibold text-[var(--color-ink)]" href="./guide.html">
-                View docs
-              </a>
+            body {
+                font-family: "JetBrains Mono", ui-monospace, SFMono-Regular;
+            }
+        </style>
+    </head>
+    <body class="bg-[var(--color-bg)] text-[var(--color-ink)] antialiased">
+        <header
+            class="fixed inset-x-0 top-0 z-50 border-b border-[var(--color-border)] bg-[var(--color-bg)]/80 backdrop-blur"
+        >
+            <div
+                class="mx-auto flex h-14 max-w-7xl items-center border-x border-[var(--color-border)]"
+            >
+                <a
+                    href="./index.html"
+                    class="flex h-full items-center border-r border-[var(--color-border)] px-5 text-base font-semibold tracking-tight"
+                >
+                    Struktur
+                </a>
+                <nav
+                    class="hidden h-full flex-1 items-center justify-end md:flex"
+                >
+                    <a
+                        class="flex h-full items-center border-r border-[var(--color-border)] px-5 text-xs font-semibold text-[var(--color-ink)]/80 hover:bg-[var(--color-card)]"
+                        href="#flow"
+                    >
+                        How it works
+                    </a>
+                    <a
+                        class="flex h-full items-center border-r border-[var(--color-border)] px-5 text-xs font-semibold text-[var(--color-ink)]/80 hover:bg-[var(--color-card)]"
+                        href="#artifact"
+                    >
+                        Artifact format
+                    </a>
+                    <a
+                        class="flex h-full items-center border-r border-[var(--color-border)] px-5 text-xs font-semibold text-[var(--color-ink)]/80 hover:bg-[var(--color-card)]"
+                        href="#use-cases"
+                    >
+                        Use cases
+                    </a>
+                    <a
+                        class="flex h-full items-center border-r border-[var(--color-border)] px-5 text-xs font-semibold text-[var(--color-ink)]/80 hover:bg-[var(--color-card)]"
+                        href="#integrations"
+                    >
+                        LLM providers
+                    </a>
+                    <a
+                        class="flex h-full items-center border-r border-[var(--color-border)] px-5 text-xs font-semibold text-[var(--color-ink)]/80 hover:bg-[var(--color-card)]"
+                        href="https://github.com"
+                    >
+                        GitHub
+                    </a>
+                </nav>
+                <div
+                    class="ml-auto flex h-full w-36 items-center border-l border-[var(--color-border)] px-0"
+                >
+                    <a
+                        class="flex h-full w-full items-center justify-center bg-[var(--color-accent)] px-0 text-sm font-semibold text-[#0b0e12]"
+                        href="./tutorials/quickstart.html"
+                    >
+                        Documentation
+                    </a>
+                </div>
             </div>
-          </div>
-          <div class="relative">
-            <div class="absolute right-0 top-0 translate-x-[3px] translate-y-[9px] text-xs text-[var(--color-ink)]/60">+</div>
-            <div class="absolute bottom-0 left-0 translate-x-[-2px] translate-y-[7px] text-xs text-[var(--color-ink)]/60">+</div>
-            <div class="mt-4 rounded-none border border-[var(--color-border)] bg-[var(--color-card)] px-5 pb-4 pt-3">
-              <div class="flex items-center gap-2 border-b border-[var(--color-border)] pb-2 text-[10px] text-[var(--color-muted)]">
-                <span class="h-2 w-2 rounded-full bg-[#ff5f57]"></span>
-                <span class="h-2 w-2 rounded-full bg-[#febc2e]"></span>
-                <span class="h-2 w-2 rounded-full bg-[#28c840]"></span>
-                <span class="ml-2 uppercase tracking-[0.2em]">Terminal</span>
-              </div>
-              <div class="mt-4 font-mono text-xs text-[var(--color-ink)]">
-                <div id="terminal-lines" class="mt-3 h-[200px] space-y-2 overflow-hidden"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+        </header>
 
-      <section class="border-b border-[var(--color-border)]">
-        <div class="mx-auto max-w-7xl border-x border-[var(--color-border)]">
-          <div class="grid grid-cols-2 border-t border-[var(--color-border)] md:grid-cols-2 lg:grid-cols-4">
-            <div class="flex h-16 items-center justify-center border-b border-r border-[var(--color-border)] text-xs text-[var(--color-muted)]">immocore</div>
-            <div class="flex h-16 items-center justify-center border-b border-r border-[var(--color-border)] text-xs text-[var(--color-muted)]">inframe</div>
-            <div class="flex h-16 items-center justify-center border-b border-r border-[var(--color-border)] text-xs text-[var(--color-muted)]">Data Wizard</div>
-            <div class="flex h-16 items-center justify-center border-b border-[var(--color-border)] text-xs text-[var(--color-muted)]">mateffy software research</div>
-          </div>
-        </div>
-      </section>
+        <main class="pt-14">
+            <section class="relative border-b border-[var(--color-border)]">
+                <div class="pointer-events-none absolute inset-0 opacity-60">
+                    <div
+                        class="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(61,220,151,0.18),transparent_40%),radial-gradient(circle_at_80%_10%,rgba(95,147,255,0.18),transparent_45%),radial-gradient(circle_at_50%_80%,rgba(35,66,122,0.18),transparent_50%)]"
+                    ></div>
+                </div>
+                <div
+                    class="mx-auto grid max-w-7xl gap-8 border-x border-[var(--color-border)] px-10 py-20 md:grid-cols-[1.1fr,0.9fr]"
+                >
+                    <div class="flex flex-col justify-center">
+                        <p
+                            class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]"
+                        >
+                            Structured data extraction
+                        </p>
+                        <h1
+                            class="mt-4 text-4xl font-semibold leading-[1.15] tracking-tight md:text-5xl"
+                        >
+                            Reliably extract structured data<br />from any file
+                        </h1>
+                        <p
+                            class="mt-4 text-lg leading-relaxed text-[var(--color-muted)] md:text-xl"
+                        >
+                            Struktur is an open-source data extraction engine
+                            which uses LLMs to turn unstructured documents and
+                            files into validated data.
+                        </p>
+                        <p
+                            class="mt-4 text-lg leading-relaxed text-[var(--color-muted)] md:text-xl mb-8"
+                        >
+                            Pick a strategy for small files or long documents,
+                            and it handles chunking, merging, and schema checks
+                            behind the scenes.
+                        </p>
+                        <div class="mt-4 flex flex-wrap gap-3">
+                            <a
+                                class="inline-flex h-12 items-center justify-center bg-[var(--color-accent)] px-7 text-sm font-semibold text-[#0b0e12]"
+                                href="#cta"
+                            >
+                                Install CLI
+                            </a>
+                            <a
+                                class="inline-flex h-12 items-center justify-center border border-[var(--color-border)] px-7 text-sm font-semibold text-[var(--color-ink)]"
+                                href="./tutorials/quickstart.html"
+                            >
+                                View docs
+                            </a>
+                        </div>
+                    </div>
+                    <div class="relative">
+                        <div
+                            class="absolute right-0 top-0 translate-x-[3px] translate-y-[9px] text-xs text-[var(--color-ink)]/60"
+                        >
+                            +
+                        </div>
+                        <div
+                            class="absolute bottom-0 left-0 translate-x-[-2px] translate-y-[7px] text-xs text-[var(--color-ink)]/60"
+                        >
+                            +
+                        </div>
+                        <div
+                            class="mt-4 rounded-none border border-[var(--color-border)] bg-[var(--color-card)] px-5 pb-4 pt-3"
+                        >
+                            <div
+                                class="flex items-center gap-2 border-b border-[var(--color-border)] pb-2 text-[10px] text-[var(--color-muted)]"
+                            >
+                                <span
+                                    class="h-2 w-2 rounded-full bg-[#ff5f57]"
+                                ></span>
+                                <span
+                                    class="h-2 w-2 rounded-full bg-[#febc2e]"
+                                ></span>
+                                <span
+                                    class="h-2 w-2 rounded-full bg-[#28c840]"
+                                ></span>
+                                <span class="ml-2 uppercase tracking-[0.2em]"
+                                    >Terminal</span
+                                >
+                            </div>
+                            <div
+                                class="mt-4 font-mono text-xs text-[var(--color-ink)]"
+                            >
+                                <div
+                                    id="terminal-lines"
+                                    class="mt-3 h-[240px] space-y-2 overflow-hidden"
+                                ></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-      <section class="border-b border-[var(--color-border)]">
-        <div class="mx-auto max-w-7xl border-x border-[var(--color-border)]">
-          <div class="grid md:grid-cols-3">
-            <div class="border-b border-r border-[var(--color-border)] p-8 md:border-b-0">
-              <h3 class="text-lg font-semibold text-[var(--color-accent)]">Files in, validated data out</h3>
-              <p class="mt-3 text-sm text-[var(--color-muted)]">Typed extraction with explicit schema guarantees.</p>
-              <ul class="mt-4 space-y-2 text-xs text-[var(--color-muted)]">
-                <li class="flex gap-2"><span class="mt-1 h-1.5 w-1.5 bg-[var(--color-accent)]"></span>JSON Schema or TypeScript types</li>
-                <li class="flex gap-2"><span class="mt-1 h-1.5 w-1.5 bg-[var(--color-accent)]"></span>Strict Ajv validation with errors</li>
-                <li class="flex gap-2"><span class="mt-1 h-1.5 w-1.5 bg-[var(--color-accent)]"></span>Deterministic output shape</li>
-              </ul>
-            </div>
-            <div class="border-b border-r border-[var(--color-border)] p-8 md:border-b-0">
-              <h3 class="text-lg font-semibold text-[var(--color-accent)]">Strategy-driven extraction</h3>
-              <p class="mt-3 text-sm text-[var(--color-muted)]">
-                Customize strategy and build your own structured data workflow with everything you need in place.
-              </p>
-              <ul class="mt-4 space-y-2 text-xs text-[var(--color-muted)]">
-                <li class="flex gap-2"><span class="mt-1 h-1.5 w-1.5 bg-[var(--color-accent)]"></span>Simple, parallel, sequential, double-pass</li>
-                <li class="flex gap-2"><span class="mt-1 h-1.5 w-1.5 bg-[var(--color-accent)]"></span>Token-budgeted chunking by strategy</li>
-                <li class="flex gap-2"><span class="mt-1 h-1.5 w-1.5 bg-[var(--color-accent)]"></span>Retries when validation fails</li>
-              </ul>
-            </div>
-            <div class="p-8">
-              <h3 class="text-lg font-semibold text-[var(--color-accent)]">Support files of any length</h3>
-              <p class="mt-3 text-sm text-[var(--color-muted)]">Handle documents that exceed model limits.</p>
-              <ul class="mt-4 space-y-2 text-xs text-[var(--color-muted)]">
-                <li class="flex gap-2"><span class="mt-1 h-1.5 w-1.5 bg-[var(--color-accent)]"></span>Chunking + merge inside strategies</li>
-                <li class="flex gap-2"><span class="mt-1 h-1.5 w-1.5 bg-[var(--color-accent)]"></span>Deduplication across chunks</li>
-                <li class="flex gap-2"><span class="mt-1 h-1.5 w-1.5 bg-[var(--color-accent)]"></span>Stable outputs for large inputs</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
+            <section class="border-b border-[var(--color-border)]">
+                <div
+                    class="mx-auto max-w-7xl border-x border-[var(--color-border)]"
+                >
+                    <div
+                        class="grid grid-cols-2 border-t border-[var(--color-border)] md:grid-cols-2 lg:grid-cols-4"
+                    >
+                        <div
+                            class="flex h-16 items-center justify-center border-b border-r border-[var(--color-border)] text-xs text-[var(--color-muted)]"
+                        >
+                            immocore
+                        </div>
+                        <div
+                            class="flex h-16 items-center justify-center border-b border-r border-[var(--color-border)] text-xs text-[var(--color-muted)]"
+                        >
+                            inframe
+                        </div>
+                        <div
+                            class="flex h-16 items-center justify-center border-b border-r border-[var(--color-border)] text-xs text-[var(--color-muted)]"
+                        >
+                            Data Wizard
+                        </div>
+                        <div
+                            class="flex h-16 items-center justify-center border-b border-[var(--color-border)] text-xs text-[var(--color-muted)]"
+                        >
+                            mateffy software research
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-      <section id="cta" class="border-b border-[var(--color-border)]">
-        <div class="mx-auto max-w-7xl border-x border-[var(--color-border)] px-6 py-16 text-center">
-          <h2 class="text-3xl font-semibold tracking-tight">Using Structure is as simple as running one command.</h2>
-          <p class="mx-auto mt-3 max-w-2xl text-sm text-[var(--color-muted)]">Install the CLI and start extracting validated data from files.</p>
-          <div class="mt-6">
-            <a class="inline-flex h-12 items-center justify-center bg-[var(--color-accent)] px-8 text-sm font-semibold text-[#0b0e12]" href="./guide.html">
-              View docs
-            </a>
-          </div>
-        </div>
-      </section>
+            <section class="border-b border-[var(--color-border)]">
+                <div
+                    class="mx-auto max-w-7xl border-x border-[var(--color-border)]"
+                >
+                    <div class="grid md:grid-cols-3">
+                        <div
+                            class="border-b border-r border-[var(--color-border)] p-8 md:border-b-0"
+                        >
+                            <h3
+                                class="text-lg font-semibold text-[var(--color-accent)]"
+                            >
+                                Files in, validated data out
+                            </h3>
+                            <p class="mt-3 text-sm text-[var(--color-muted)]">
+                                Typed extraction with explicit schema
+                                guarantees.
+                            </p>
+                            <ul
+                                class="mt-4 space-y-2 text-xs text-[var(--color-muted)]"
+                            >
+                                <li class="flex gap-2">
+                                    <span
+                                        class="mt-1 h-1.5 w-1.5 bg-[var(--color-accent)]"
+                                    ></span
+                                    >JSON Schema or TypeScript types
+                                </li>
+                                <li class="flex gap-2">
+                                    <span
+                                        class="mt-1 h-1.5 w-1.5 bg-[var(--color-accent)]"
+                                    ></span
+                                    >Strict Ajv validation with errors
+                                </li>
+                                <li class="flex gap-2">
+                                    <span
+                                        class="mt-1 h-1.5 w-1.5 bg-[var(--color-accent)]"
+                                    ></span
+                                    >Deterministic output shape
+                                </li>
+                            </ul>
+                        </div>
+                        <div
+                            class="border-b border-r border-[var(--color-border)] p-8 md:border-b-0"
+                        >
+                            <h3
+                                class="text-lg font-semibold text-[var(--color-accent)]"
+                            >
+                                Strategy-driven extraction
+                            </h3>
+                            <p class="mt-3 text-sm text-[var(--color-muted)]">
+                                Use the prebuilt extraction strategies or build
+                                your own.
+                            </p>
+                            <ul
+                                class="mt-4 space-y-2 text-xs text-[var(--color-muted)]"
+                            >
+                                <li class="flex gap-2">
+                                    <span
+                                        class="mt-1 h-1.5 w-1.5 bg-[var(--color-accent)]"
+                                    ></span
+                                    >Simple, parallel, sequential, double-pass
+                                </li>
+                                <li class="flex gap-2">
+                                    <span
+                                        class="mt-1 h-1.5 w-1.5 bg-[var(--color-accent)]"
+                                    ></span
+                                    >Token-budgeted chunking by strategy
+                                </li>
+                                <li class="flex gap-2">
+                                    <span
+                                        class="mt-1 h-1.5 w-1.5 bg-[var(--color-accent)]"
+                                    ></span
+                                    >Retries when validation fails
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="p-8">
+                            <h3
+                                class="text-lg font-semibold text-[var(--color-accent)]"
+                            >
+                                Support files of any length
+                            </h3>
+                            <p class="mt-3 text-sm text-[var(--color-muted)]">
+                                Handle documents that exceed model limits.
+                            </p>
+                            <ul
+                                class="mt-4 space-y-2 text-xs text-[var(--color-muted)]"
+                            >
+                                <li class="flex gap-2">
+                                    <span
+                                        class="mt-1 h-1.5 w-1.5 bg-[var(--color-accent)]"
+                                    ></span
+                                    >Chunking + merge inside strategies
+                                </li>
+                                <li class="flex gap-2">
+                                    <span
+                                        class="mt-1 h-1.5 w-1.5 bg-[var(--color-accent)]"
+                                    ></span
+                                    >Deduplication across chunks
+                                </li>
+                                <li class="flex gap-2">
+                                    <span
+                                        class="mt-1 h-1.5 w-1.5 bg-[var(--color-accent)]"
+                                    ></span
+                                    >Stable outputs for large inputs
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-      <section id="examples" class="border-b border-[var(--color-border)]">
-        <div class="mx-auto max-w-7xl border-x border-[var(--color-border)]">
-          <div class="grid divide-y divide-[var(--color-border)] md:grid-cols-2 md:divide-y md:divide-y-0 md:divide-x">
-            <div class="relative flex flex-col order-1 md:order-1">
-              <pre class="relative w-full h-full overflow-x-auto border-b border-[var(--color-border)] bg-[var(--color-card)] p-3 pt-7 text-xs text-[var(--color-ink)]"><span class="absolute right-3 top-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">CLI example</span><code><span class="text-[var(--color-accent)]">$ struktur</span> extract ./files/invoices/*.pdf \
+            <section id="cta" class="border-b border-[var(--color-border)]">
+                <div
+                    class="mx-auto max-w-7xl border-x border-[var(--color-border)] px-6 py-16 text-center"
+                >
+                    <h2 class="text-3xl font-semibold tracking-tight">
+                        Using Structure is as simple as running one command.
+                    </h2>
+                    <p
+                        class="mx-auto mt-3 max-w-2xl text-sm text-[var(--color-muted)]"
+                    >
+                        Install the CLI and start extracting validated data from
+                        files.
+                    </p>
+                    <div class="mt-6">
+                        <a
+                            class="inline-flex h-12 items-center justify-center bg-[var(--color-accent)] px-8 text-sm font-semibold text-[#0b0e12]"
+                            href="./tutorials/quickstart.html"
+                        >
+                            View docs
+                        </a>
+                    </div>
+                </div>
+            </section>
+
+            <section
+                id="examples"
+                class="border-b border-[var(--color-border)]"
+            >
+                <div
+                    class="mx-auto max-w-7xl border-x border-[var(--color-border)]"
+                >
+                    <div
+                        class="grid w-full divide-y divide-[var(--color-border)] md:grid-cols-2 md:divide-y md:divide-y-0 md:divide-x"
+                    >
+                        <div class="relative flex flex-col order-1 md:order-1">
+                            <pre
+                                class="relative w-full h-full overflow-x-auto border-b border-[var(--color-border)] bg-[var(--color-card)] p-5 text-xs text-[var(--color-ink)]"
+                            ><span class="absolute right-3 top-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">CLI example</span><code><span class="text-[var(--color-accent)]">$ struktur</span> extract ./files/invoices/*.pdf \
   <span class="text-[#8bd5ff]">--schema</span> ./schemas/invoice.json \
   <span class="text-[#8bd5ff]">--strategy</span> parallel-auto-merge \
   <span class="text-[#8bd5ff]">--model</span> openai:gpt-4.1</code></pre>
-            </div>
-            <div class="relative flex flex-col order-3 md:order-2">
-              <pre class="relative w-full h-full overflow-x-auto border-b border-[var(--color-border)] bg-[var(--color-card)] p-3 pt-7 text-xs text-[var(--color-ink)]"><span class="absolute right-3 top-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">TypeScript example</span><code><span class="text-[#ffd166]">import</span> { extract, parallel } <span class="text-[#ffd166]">from</span> <span class="text-[#8bd5ff]">"@mateffy/struktur"</span>;
+                        </div>
+                        <div class="relative flex flex-col order-3 md:order-2">
+                            <pre
+                                class="relative w-full h-full overflow-x-auto border-b border-[var(--color-border)] bg-[var(--color-card)] p-5 text-xs text-[var(--color-ink)]"
+                            ><span class="absolute right-3 top-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">TypeScript example</span><code><span class="text-[#ffd166]">import</span> { extract, parallel } <span class="text-[#ffd166]">from</span> <span class="text-[#8bd5ff]">"@mateffy/struktur"</span>;
 <span class="text-[#ffd166]">import</span> { google } <span class="text-[#ffd166]">from</span> <span class="text-[#8bd5ff]">"@ai-sdk/google"</span>;
 
 <span class="text-[#ffd166]">const</span> result = <span class="text-[#ffd166]">await</span> extract({
@@ -220,9 +431,11 @@
     chunkSize: <span class="text-[#ffadad]">10_000</span>,
   }),
 });</code></pre>
-            </div>
-            <div class="relative flex flex-col order-2 md:order-3">
-              <pre class="relative w-full h-full overflow-x-auto border-b border-[var(--color-border)] bg-[var(--color-card)] p-3 pt-7 text-xs text-[var(--color-ink)]"><span class="absolute right-3 top-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">Output</span><code>{
+                        </div>
+                        <div class="relative flex flex-col order-2 md:order-3">
+                            <pre
+                                class="relative w-full h-full overflow-x-auto border-b border-[var(--color-border)] bg-[var(--color-card)] p-5 text-xs text-[var(--color-ink)]"
+                            ><span class="absolute right-3 top-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">Output</span><code>{
   <span class="text-[#8bd5ff]">"invoice_id"</span>: <span class="text-[#ffd166]">"INV-4821"</span>,
   <span class="text-[#8bd5ff]">"vendor"</span>: <span class="text-[#ffd166]">"Northshore Supply"</span>,
   <span class="text-[#8bd5ff]">"currency"</span>: <span class="text-[#ffd166]">"USD"</span>,
@@ -231,9 +444,11 @@
     { <span class="text-[#8bd5ff]">"sku"</span>: <span class="text-[#ffd166]">"CS-21"</span>, <span class="text-[#8bd5ff]">"qty"</span>: <span class="text-[#ffadad]">3</span>, <span class="text-[#8bd5ff]">"price"</span>: <span class="text-[#ffadad]">249.5</span> }
   ]
 }</code></pre>
-            </div>
-            <div class="relative flex flex-col order-4 md:order-4">
-              <pre class="relative w-full h-full overflow-x-auto border-b border-[var(--color-border)] bg-[var(--color-card)] p-3 pt-7 text-xs text-[var(--color-ink)]"><span class="absolute right-3 top-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">Output</span><code>{
+                        </div>
+                        <div class="relative flex flex-col order-4 md:order-4">
+                            <pre
+                                class="relative w-full h-full overflow-x-auto border-b border-[var(--color-border)] bg-[var(--color-card)] p-5 text-xs text-[var(--color-ink)]"
+                            ><span class="absolute right-3 top-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">Output</span><code>{
   <span class="text-[#8bd5ff]">"catalog"</span>: {
     <span class="text-[#8bd5ff]">"title"</span>: <span class="text-[#ffd166]">"Spring 2026"</span>,
     <span class="text-[#8bd5ff]">"products"</span>: [
@@ -241,119 +456,255 @@
     ]
   }
 }</code></pre>
-            </div>
-          </div>
-        </div>
-      </section>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-      <section id="flow" class="border-b border-[var(--color-border)]">
-        <div class="mx-auto max-w-7xl border-x border-[var(--color-border)]">
-          <div class="border-b border-[var(--color-border)] px-6 py-10">
-            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">How it works</p>
-            <h2 class="mt-2 text-2xl font-semibold">Three steps for consistent extraction output</h2>
-          </div>
-          <div class="grid md:grid-cols-3">
-            <div class="border-b border-r border-[var(--color-border)] p-8 md:border-b-0">
-              <p class="text-xs font-semibold text-[var(--color-muted)]">Step 01</p>
-              <h3 class="mt-3 text-lg font-semibold text-[var(--color-accent)]">Ingest files</h3>
-              <p class="mt-3 text-sm text-[var(--color-muted)]">Add your files as plain text or in the artifact file format.</p>
-            </div>
-            <div class="border-b border-r border-[var(--color-border)] p-8 md:border-b-0">
-              <p class="text-xs font-semibold text-[var(--color-muted)]">Step 02</p>
-              <h3 class="mt-3 text-lg font-semibold text-[var(--color-accent)]">Pick an extraction strategy</h3>
-              <p class="mt-3 text-sm text-[var(--color-muted)]">Use a built-in strategy or compose your own for the document type.</p>
-            </div>
-            <div class="p-8">
-              <p class="text-xs font-semibold text-[var(--color-muted)]">Step 03</p>
-              <h3 class="mt-3 text-lg font-semibold text-[var(--color-accent)]">Run extraction and validate</h3>
-              <p class="mt-3 text-sm text-[var(--color-muted)]">Structure executes your strategy and validates the output data to keep everything consistent.</p>
-            </div>
-          </div>
-        </div>
-      </section>
+            <section id="flow" class="border-b border-[var(--color-border)]">
+                <div
+                    class="mx-auto max-w-7xl border-x border-[var(--color-border)]"
+                >
+                    <div
+                        class="border-b border-[var(--color-border)] px-6 py-10"
+                    >
+                        <p
+                            class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]"
+                        >
+                            How it works
+                        </p>
+                        <h2 class="mt-2 text-2xl font-semibold">
+                            Three steps for consistent extraction output
+                        </h2>
+                    </div>
+                    <div class="grid md:grid-cols-3">
+                        <div
+                            class="border-b border-r border-[var(--color-border)] p-8 md:border-b-0"
+                        >
+                            <p
+                                class="text-xs font-semibold text-[var(--color-muted)]"
+                            >
+                                Step 01
+                            </p>
+                            <h3
+                                class="mt-3 text-lg font-semibold text-[var(--color-accent)]"
+                            >
+                                Ingest files
+                            </h3>
+                            <p class="mt-3 text-sm text-[var(--color-muted)]">
+                                Add your files as plain text or in the artifact
+                                file format.
+                            </p>
+                        </div>
+                        <div
+                            class="border-b border-r border-[var(--color-border)] p-8 md:border-b-0"
+                        >
+                            <p
+                                class="text-xs font-semibold text-[var(--color-muted)]"
+                            >
+                                Step 02
+                            </p>
+                            <h3
+                                class="mt-3 text-lg font-semibold text-[var(--color-accent)]"
+                            >
+                                Pick an extraction strategy
+                            </h3>
+                            <p class="mt-3 text-sm text-[var(--color-muted)]">
+                                Use a built-in strategy or compose your own for
+                                the document type.
+                            </p>
+                        </div>
+                        <div class="p-8">
+                            <p
+                                class="text-xs font-semibold text-[var(--color-muted)]"
+                            >
+                                Step 03
+                            </p>
+                            <h3
+                                class="mt-3 text-lg font-semibold text-[var(--color-accent)]"
+                            >
+                                Run extraction and validate
+                            </h3>
+                            <p class="mt-3 text-sm text-[var(--color-muted)]">
+                                Structure executes your strategy and validates
+                                the output data to keep everything consistent.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-      <section class="border-b border-[var(--color-border)]">
-        <div class="mx-auto grid max-w-7xl gap-8 border-x border-[var(--color-border)] px-6 py-12 md:grid-cols-[1.1fr,0.9fr]">
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">data extraction harness</p>
-            <h2 class="mt-2 text-2xl font-semibold">Use a pre-made extraction strategy or build your own</h2>
-            <p class="mt-3 text-sm text-[var(--color-muted)]">
-              Struktur is a data extraction harness: a focused AI Agent for structured outputs. It gives you full control of how input context is passed into LLMs and the architecture to define exactly how the extraction should run, while taking care of how chunks are split, validated, and merged. Each strategy shapes how artifacts are chunked, routed to the LLM, and merged back into a schema-aligned result.
-            </p>
-            <p class="mt-4 text-sm text-[var(--color-muted)]">
-              And strategies give your data extraction pipeline structure and rigidity while letting you define exactly what kind of logic you need during extraction without being in your way. Focus on making high-quality data extractions for your use case and let Struktur worry about everything else.
-            </p>
-            <div class="mt-6 flex flex-wrap gap-3">
-              <a class="inline-flex h-11 items-center justify-center bg-[var(--color-accent)] px-6 text-xs font-semibold text-[#0b0e12]" href="./guide.html">Build a custom strategy</a>
-              <a class="inline-flex h-11 items-center justify-center border border-[var(--color-border)] px-6 text-xs font-semibold text-[var(--color-ink)]" href="./guide.html">Learn more about strategies</a>
-            </div>
-          </div>
-          <div class="border border-[var(--color-border)] bg-[var(--color-card)] p-6">
-            <div class="flex flex-wrap items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">
-              <button class="strategy-tab h-8 cursor-pointer border border-[var(--color-border)] px-3 text-[var(--color-ink)]/70 hover:bg-[var(--color-card)]" data-tab="simple">Simple</button>
-              <button class="strategy-tab h-8 cursor-pointer border border-[var(--color-border)] px-3 text-[var(--color-ink)]/70 hover:bg-[var(--color-card)]" data-tab="sequential">Sequential</button>
-              <button class="strategy-tab h-8 cursor-pointer border border-[var(--color-border)] px-3 text-[var(--color-ink)]/70 hover:bg-[var(--color-card)]" data-tab="parallel">Parallel</button>
-              <button class="strategy-tab h-8 cursor-pointer border border-[var(--color-border)] px-3 text-[var(--color-ink)]/70 hover:bg-[var(--color-card)]" data-tab="double-pass">Double-pass</button>
-              <button class="strategy-tab h-8 cursor-pointer border border-[var(--color-border)] px-3 text-[var(--color-ink)]/70 hover:bg-[var(--color-card)]" data-tab="custom">Custom</button>
-            </div>
-            <div class="mt-4 space-y-4 text-[11px]">
-              <div class="strategy-panel border border-[var(--color-border)] bg-[var(--color-bg)]/40 p-4" data-panel="simple">
-                <div class="mermaid mt-3 flex justify-center" data-graph>
-graph LR
-    A[Start] --> B[Load Document]
-    B --> C[Check Token Limit]
-    C -->|Document fits| D[Send entire document to LLM]
-    C -->|Document exceeds| E[Truncate document to fit token limit]
-    D --> F[Extract Data]
-    E --> F
-    F --> G[Return Extracted Data]
-    G --> H[End]
-                </div>
-              </div>
-              <div class="strategy-panel border border-[var(--color-border)] bg-[var(--color-bg)]/40 p-4" data-panel="sequential">
-                <div class="mermaid mt-3 flex justify-center" data-graph>
-graph LR
-    A[Start] --> B[Initialize empty output data]
-    B --> C[Split the artifacts]
-    C --> E[For each split]
-    E --> G[Call LLM]
-    G --> H[Update output data]
-    H --> I[Check if more splits]
-    I -->|Yes| E
-    I -->|No| K[Return output data]
-    K --> L[End]
-                </div>
-              </div>
-              <div class="strategy-panel border border-[var(--color-border)] bg-[var(--color-bg)]/40 p-4" data-panel="parallel">
-                <div class="mermaid mt-3 flex justify-center" data-graph>
-graph LR
-    A[Start] --> B[Initialize array for output data]
-    B --> C[Split artifacts]
-    C --> D[For each split]
-    D --> E[Call LLM]
-    E --> F[Store output data separately]
-    F --> G[Check if more splits]
-    G -->|Yes| D
-    G -->|No| H[Call LLM to merge data]
-    H --> I[Return final output data]
-    I --> J[End]
-                </div>
-              </div>
-              <div class="strategy-panel border border-[var(--color-border)] bg-[var(--color-bg)]/40 p-4" data-panel="double-pass">
-                <div class="mermaid mt-3 flex justify-center" data-graph>
-graph LR
-    A[Start] --> B[Initialize empty output data]
-    B --> C[First Pass: Parallel Extraction]
-    C -. for every split .-> C
-    C --> D[Store intermediate results]
-    D --> E[Second Pass: Sequential Extraction with previous data]
-    E -. for every split .-> E
-    E --> F[Refine final output data]
-    F --> G[End]
-                </div>
-              </div>
-              <div class="strategy-panel border border-[var(--color-border)] bg-[var(--color-bg)]/40 p-4" data-panel="custom">
-                <pre class="overflow-x-auto text-[11px] text-[var(--color-ink)]"><code><span class="text-[#ffd166]">import</span> { z } <span class="text-[#ffd166]">from</span> <span class="text-[#8bd5ff]">"zod"</span>;
+            <section class="border-b border-[var(--color-border)]">
+                <div
+                    class="mx-auto grid max-w-7xl gap-8 border-x border-[var(--color-border)] px-6 py-12 md:grid-cols-[1.1fr,0.9fr]"
+                >
+                    <div class="w-full">
+                        <p
+                            class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]"
+                        >
+                            data extraction harness
+                        </p>
+                        <h2 class="mt-2 text-2xl font-semibold">
+                            Use a pre-made extraction strategy or build your own
+                        </h2>
+                        <p
+                            class="mt-3 text-sm leading-relaxed text-[var(--color-muted)]"
+                        >
+                            Struktur is a data extraction harness: a focused AI
+                            Agent for structured outputs. It gives you full
+                            control of how input context is passed into LLMs and
+                            the architecture to define exactly how the
+                            extraction should run, while taking care of how
+                            chunks are split, validated, and merged. Each
+                            strategy shapes how artifacts are chunked, routed to
+                            the LLM, and merged back into a schema-aligned
+                            result.
+                        </p>
+                        <p
+                            class="mt-4 text-sm leading-relaxed text-[var(--color-muted)]"
+                        >
+                            And strategies give your data extraction pipeline
+                            structure and rigidity while letting you define
+                            exactly what kind of logic you need during
+                            extraction without being in your way. Focus on
+                            making high-quality data extractions for your use
+                            case and let Struktur worry about everything else.
+                        </p>
+                        <div class="mt-6 flex flex-wrap gap-3">
+                            <a
+                                class="inline-flex h-12 items-center justify-center bg-[var(--color-accent)] px-7 text-sm font-semibold text-[#0b0e12]"
+                                href="./tutorials/quickstart.html"
+                                >Build a custom strategy</a
+                            >
+                            <a
+                                class="inline-flex h-12 items-center justify-center border border-[var(--color-border)] px-7 text-sm font-semibold text-[var(--color-ink)]"
+                                href="./tutorials/quickstart.html"
+                                >Learn more about strategies</a
+                            >
+                        </div>
+                    </div>
+                    <div class="w-full">
+                        <div
+                            class="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]"
+                        >
+                            <button
+                                class="strategy-tab h-10 cursor-pointer border border-[var(--color-border)] px-4 text-[var(--color-ink)]/70 hover:bg-[var(--color-card)]"
+                                data-tab="simple"
+                            >
+                                Simple
+                            </button>
+                            <button
+                                class="strategy-tab h-10 cursor-pointer border border-[var(--color-border)] px-4 text-[var(--color-ink)]/70 hover:bg-[var(--color-card)]"
+                                data-tab="sequential"
+                            >
+                                Sequential
+                            </button>
+                            <button
+                                class="strategy-tab h-10 cursor-pointer border border-[var(--color-border)] px-4 text-[var(--color-ink)]/70 hover:bg-[var(--color-card)]"
+                                data-tab="parallel"
+                            >
+                                Parallel
+                            </button>
+                            <button
+                                class="strategy-tab h-10 cursor-pointer border border-[var(--color-border)] px-4 text-[var(--color-ink)]/70 hover:bg-[var(--color-card)]"
+                                data-tab="double-pass"
+                            >
+                                Double-pass
+                            </button>
+                            <button
+                                class="strategy-tab h-10 cursor-pointer border border-[var(--color-border)] px-4 text-[var(--color-ink)]/70 hover:bg-[var(--color-card)]"
+                                data-tab="custom"
+                            >
+                                Custom
+                            </button>
+                        </div>
+                        <div class="mt-4 space-y-4 text-[11px]">
+                                <div
+                                    class="strategy-panel is-active border border-[var(--color-border)] bg-[var(--color-card)] p-4"
+                                    data-panel="simple"
+                                >
+                                <div
+                                    class="mermaid mt-3 flex justify-center"
+                                    data-graph
+                                >
+                                    graph LR
+                                    A[Start] --> B[Load Document]
+                                    B --> C[Check Token Limit]
+                                    C -->|Document fits| D[Send entire document to LLM]
+                                    C -->|Document exceeds| E[Truncate document to fit token limit]
+                                    D --> F[Extract Data]
+                                    E --> F
+                                    F --> G[Return Extracted Data]
+                                    G --> H[End]
+                                </div>
+                            </div>
+                            <div
+                                class="strategy-panel border border-[var(--color-border)] bg-[var(--color-card)] p-4"
+                                data-panel="sequential"
+                            >
+                                <div
+                                    class="mermaid mt-3 flex justify-center"
+                                    data-graph
+                                >
+                                    graph LR
+                                    A[Start] --> B[Initialize empty output data]
+                                    B --> C[Split the artifacts]
+                                    C --> E[For each split]
+                                    E --> G[Call LLM]
+                                    G --> H[Update output data]
+                                    H --> I[Check if more splits]
+                                    I -->|Yes| E
+                                    I -->|No| K[Return output data]
+                                    K --> L[End]
+                                </div>
+                            </div>
+                            <div
+                                class="strategy-panel border border-[var(--color-border)] bg-[var(--color-card)] p-4"
+                                data-panel="parallel"
+                            >
+                                <div
+                                    class="mermaid mt-3 flex justify-center"
+                                    data-graph
+                                >
+                                    graph LR
+                                    A[Start] --> B[Initialize array for output data]
+                                    B --> C[Split artifacts]
+                                    C --> D[For each split]
+                                    D --> E[Call LLM]
+                                    E --> F[Store output data separately]
+                                    F --> G[Check if more splits]
+                                    G -->|Yes| D
+                                    G -->|No| H[Call LLM to merge data]
+                                    H --> I[Return final output data]
+                                    I --> J[End]
+                                </div>
+                            </div>
+                            <div
+                                class="strategy-panel border border-[var(--color-border)] bg-[var(--color-card)] p-4"
+                                data-panel="double-pass"
+                            >
+                                <div
+                                    class="mermaid mt-3 flex justify-center"
+                                    data-graph
+                                >
+                                    graph LR
+                                    A[Start] --> B[Initialize empty output data]
+                                    B --> C[First Pass: Parallel Extraction]
+                                    C -. for every split .-> C
+                                    C --> D[Store intermediate results]
+                                    D --> E[Second Pass: Sequential Extraction with previous data]
+                                    E -. for every split .-> E
+                                    E --> F[Refine final output data]
+                                    F --> G[End]
+                                </div>
+                            </div>
+                            <div
+                                class="strategy-panel border border-[var(--color-border)] bg-[var(--color-card)] p-4"
+                                data-panel="custom"
+                            >
+                                <pre
+                                    class="overflow-x-auto text-[11px] text-[var(--color-ink)]"
+                                ><code><span class="text-[#ffd166]">import</span> { z } <span class="text-[#ffd166]">from</span> <span class="text-[#8bd5ff]">"zod"</span>;
 <span class="text-[#ffd166]">import</span> { buildStrategy, type ExtractionContext } <span class="text-[#ffd166]">from</span> <span class="text-[#8bd5ff]">"@mateffy/struktur"</span>;
 
 <span class="text-[#ffd166]">const</span> schema = z.object({
@@ -380,39 +731,82 @@ graph LR
     <span class="text-[#ffd166]">return</span> validate(merged);
   },
 });</code></pre>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="artifact" class="border-b border-[var(--color-border)]">
-        <div class="mx-auto grid max-w-7xl gap-8 border-x border-[var(--color-border)] px-6 py-12 md:grid-cols-[1.1fr,0.9fr]">
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">artifact format</p>
-            <h2 class="mt-2 text-2xl font-semibold">An input format for any file type</h2>
-            <p class="mt-3 text-sm text-[var(--color-muted)]">
-              The Struktur extraction logic doesn't directly deal with raw file contents. Instead, files are converted into the artifact file format before giving them to the extraction logic. This simplifies the actual strategies by always dealing with input data in the same format, no matter the actual input file type.
-            </p>
-            <p class="mt-3 text-sm text-[var(--color-muted)]">
-              For page-based files, it even supports scoping each content to a page so that an LLM can work in a page-based meta. In addition, it also includes all of the embedded images, which can be referenced by the LLM in the output data and later retrieved from the input file directly.
-            </p>
-            <p class="mt-3 text-sm text-[var(--color-muted)]">
-              It is also trivial to add a new one. It is also trivial to write your own ingester and add it both to the local command-line usage, as well as to any TypeScript usage in your project.
-            </p>
-            <div class="mt-6 inline-flex h-11 items-center justify-center bg-[var(--color-accent)] px-6 text-sm font-semibold text-[#0b0e12]">Learn more about artifacts</div>
-          </div>
-          <div class="border border-[var(--color-border)] bg-[var(--color-card)] p-6">
-            <div class="grid grid-cols-2 gap-4">
-              <div class="flex flex-col gap-3">
-                <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">File preview</p>
-                <div class="flex h-full min-h-[220px] items-center justify-center border border-[var(--color-border)] bg-[var(--color-bg)]/40">
-                  <span class="text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)]">PDF page image</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-              </div>
-              <div>
-                <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">Slices (excerpt)</p>
-                <pre class="mt-3 overflow-x-auto border border-[var(--color-border)] bg-[var(--color-bg)]/40 p-4 text-[11px] text-[var(--color-ink)]"><code>{
+            </section>
+
+            <section
+                id="artifact"
+                class="border-b border-[var(--color-border)]"
+            >
+                <div
+                    class="mx-auto grid max-w-7xl gap-8 border-x border-[var(--color-border)] px-6 py-12 md:grid-cols-[1.1fr,0.9fr]"
+                >
+                    <div>
+                        <p
+                            class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]"
+                        >
+                            artifact format
+                        </p>
+                        <h2 class="mt-2 text-2xl font-semibold">
+                            An input format for any file type
+                        </h2>
+                        <p class="mt-3 text-sm text-[var(--color-muted)]">
+                            The Struktur extraction logic doesn't directly deal
+                            with raw file contents. Instead, files are converted
+                            into the artifact file format before giving them to
+                            the extraction logic. This simplifies the actual
+                            strategies by always dealing with input data in the
+                            same format, no matter the actual input file type.
+                        </p>
+                        <p class="mt-3 text-sm text-[var(--color-muted)]">
+                            For page-based files, it even supports scoping each
+                            content to a page so that an LLM can work in a
+                            page-based meta. In addition, it also includes all
+                            of the embedded images, which can be referenced by
+                            the LLM in the output data and later retrieved from
+                            the input file directly.
+                        </p>
+                        <p class="mt-3 text-sm text-[var(--color-muted)]">
+                            It is also trivial to write your own artifact
+                            ingester and add it both to the local command-line
+                            usage, as well as to any TypeScript usage in your
+                            project.
+                        </p>
+                        <div
+                            class="mt-6 inline-flex h-11 items-center justify-center bg-[var(--color-accent)] px-6 text-sm font-semibold text-[#0b0e12]"
+                        >
+                            Learn more about artifacts
+                        </div>
+                    </div>
+                    <div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="flex flex-col gap-3">
+                                <p
+                                    class="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]"
+                                >
+                                    File preview
+                                </p>
+                                <div
+                                    class="flex h-full min-h-[220px] items-center justify-center border border-[var(--color-border)] bg-[var(--color-bg)]/40"
+                                >
+                                    <span
+                                        class="text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)]"
+                                        >PDF page image</span
+                                    >
+                                </div>
+                            </div>
+                            <div>
+                                <p
+                                    class="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]"
+                                >
+                                    Slices (excerpt)
+                                </p>
+                                <pre
+                                    class="mt-3 overflow-x-auto border border-[var(--color-border)] bg-[var(--color-bg)]/40 p-4 text-[11px] text-[var(--color-ink)]"
+                                ><code>{
   <span class="text-[#8bd5ff]">"slices"</span>: [
     {
       <span class="text-[#8bd5ff]">"page"</span>: <span class="text-[#ffadad]">3</span>,
@@ -448,31 +842,66 @@ graph LR
     }
   ]
 }</code></pre>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="border-b border-[var(--color-border)]">
-        <div class="mx-auto max-w-7xl border-x border-[var(--color-border)] px-6 py-12">
-          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">reference media in data</p>
-          <h2 class="mt-2 text-2xl font-semibold">Extract embedded media and reference it in your data</h2>
-          <p class="mt-3 text-sm leading-relaxed text-[var(--color-muted)]">
-            Ask the model to reference embedded media and Struktur returns those assets alongside the data, so you can attach them directly to records and reuse visuals as product shots, avatars, or evidence without re-uploading or re-mapping. Each media slice stays linked to its source, so your output can point back to the exact image with a stable reference.
-          </p>
-          <div class="mt-6 inline-flex h-11 items-center justify-center bg-[var(--color-accent)] px-6 text-sm font-semibold text-[#0b0e12]">Learn how to reference media</div>
-          <div class="mt-6 border border-[var(--color-border)] bg-[var(--color-card)] p-6 pb-8">
-            <div class="grid gap-4 md:grid-cols-2">
-              <div class="flex flex-col gap-3">
-                <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">File preview</p>
-                <div class="flex h-full min-h-[220px] items-center justify-center border border-[var(--color-border)] bg-[var(--color-bg)]/40">
-                  <span class="text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)]">Catalog image</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-              </div>
-              <div>
-                <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">Slices (excerpt)</p>
-                <pre class="mt-3 overflow-x-auto border border-[var(--color-border)] bg-[var(--color-bg)]/40 p-4 text-[11px] text-[var(--color-ink)]"><code>{
+            </section>
+
+            <section class="border-b border-[var(--color-border)]">
+                <div
+                    class="mx-auto max-w-7xl border-x border-[var(--color-border)] px-6 py-12"
+                >
+                    <p
+                        class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]"
+                    >
+                        reference media in data
+                    </p>
+                    <h2 class="mt-2 text-2xl font-semibold">
+                        Extract embedded media and reference it in your data
+                    </h2>
+                    <p
+                        class="mt-3 text-sm leading-relaxed text-[var(--color-muted)]"
+                    >
+                        Ask the model to reference embedded media and Struktur
+                        returns those assets alongside the data, so you can
+                        attach them directly to records and reuse visuals as
+                        product shots, avatars, or evidence without re-uploading
+                        or re-mapping. Each media slice stays linked to its
+                        source, so your output can point back to the exact image
+                        with a stable reference.
+                    </p>
+                    <div
+                        class="mt-6 inline-flex h-11 items-center justify-center bg-[var(--color-accent)] px-6 text-sm font-semibold text-[#0b0e12]"
+                    >
+                        Learn how to reference media
+                    </div>
+                    <div class="mt-6">
+                        <div class="grid gap-4 md:grid-cols-2">
+                            <div class="flex flex-col gap-3">
+                                <p
+                                    class="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]"
+                                >
+                                    File preview
+                                </p>
+                                <div
+                                    class="flex h-full min-h-[220px] items-center justify-center border border-[var(--color-border)] bg-[var(--color-bg)]/40"
+                                >
+                                    <span
+                                        class="text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)]"
+                                        >Catalog image</span
+                                    >
+                                </div>
+                            </div>
+                            <div>
+                                <p
+                                    class="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]"
+                                >
+                                    Slices (excerpt)
+                                </p>
+                                <pre
+                                    class="mt-3 overflow-x-auto border border-[var(--color-border)] bg-[var(--color-bg)]/40 p-4 text-[11px] text-[var(--color-ink)]"
+                                ><code>{
   <span class="text-[#8bd5ff]">"slices"</span>: [
     {
       <span class="text-[#8bd5ff]">"page"</span>: <span class="text-[#ffadad]">1</span>,
@@ -506,13 +935,21 @@ graph LR
     }
   ]
 }</code></pre>
-              </div>
-            </div>
-            <div class="mt-6 border-t border-[var(--color-border)] pt-6">
-              <div class="grid items-stretch gap-4 md:grid-cols-2">
-                <div>
-                  <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">Schema</p>
-                  <pre class="mt-3 h-full overflow-x-auto border border-[var(--color-border)] bg-[var(--color-bg)]/40 p-4 text-[11px] text-[var(--color-ink)]"><code>{
+                            </div>
+                        </div>
+                        <div class="mt-6 pt-6">
+                            <div
+                                class="grid items-stretch gap-4 md:grid-cols-2"
+                            >
+                                <div>
+                                    <p
+                                        class="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]"
+                                    >
+                                        Schema
+                                    </p>
+                                    <pre
+                                        class="mt-3 h-full overflow-x-auto border border-[var(--color-border)] bg-[var(--color-bg)]/40 p-4 text-[11px] text-[var(--color-ink)]"
+                                    ><code>{
   <span class="text-[#8bd5ff]">"type"</span>: <span class="text-[#ffd166]">"object"</span>,
   <span class="text-[#8bd5ff]">"properties"</span>: {
     <span class="text-[#8bd5ff]">"name"</span>: { <span class="text-[#8bd5ff]">"type"</span>: <span class="text-[#ffd166]">"string"</span> },
@@ -522,405 +959,873 @@ graph LR
     }
   }
 }</code></pre>
-                </div>
-                <div>
-                  <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">Output data</p>
-                  <pre class="mt-3 h-full overflow-x-auto border border-[var(--color-border)] bg-[var(--color-bg)]/40 p-4 text-[11px] text-[var(--color-ink)]"><code>{
+                                </div>
+                                <div>
+                                    <p
+                                        class="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]"
+                                    >
+                                        Output data
+                                    </p>
+                                    <pre
+                                        class="mt-3 h-full overflow-x-auto border border-[var(--color-border)] bg-[var(--color-bg)]/40 p-4 text-[11px] text-[var(--color-ink)]"
+                                    ><code>{
   <span class="text-[#8bd5ff]">"name"</span>: <span class="text-[#ffd166]">"John Doe"</span>,
   <span class="text-[#8bd5ff]">"avatar"</span>: <span class="text-[#ffd166]">"artifact:file.pdf:media_2_3"</span>
 }</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+            </section>
 
-      <section id="use-cases" class="border-b border-[var(--color-border)]">
-        <div class="mx-auto max-w-7xl border-x border-[var(--color-border)]">
-          <div class="border-b border-[var(--color-border)] px-6 py-10">
-            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">Use cases</p>
-            <h2 class="mt-2 text-2xl font-semibold">Extract structured data from anything</h2>
-          </div>
-          <div class="grid md:grid-cols-3">
-            <div class="border-b border-r border-[var(--color-border)] p-7 flex flex-col">
-              <div class="mb-3 flex h-10 w-10 items-center justify-center border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-accent)]">
-                <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <rect x="5" y="3" width="14" height="18" rx="2" />
-                  <path d="M8 8h8M8 12h8M8 16h5" />
-                </svg>
-              </div>
-              <h3 class="text-base font-semibold">Invoices & receipts</h3>
-              <p class="mt-2 text-sm text-[var(--color-muted)]">Normalize totals, taxes, and line items with a schema.</p>
-              <div class="mt-auto pt-6">
-                <p class="inline-flex border border-[var(--color-border)] bg-[var(--color-card)] px-2 py-1 text-xs text-[var(--color-muted)]"><span class="text-[#8bd5ff]">{</span> <span class="text-[#8bd5ff]">"total"</span>: <span class="text-[#ffadad]">1824.5</span>, <span class="text-[#8bd5ff]">"currency"</span>: <span class="text-[#ffd166]">"USD"</span> <span class="text-[#8bd5ff]">}</span></p>
-              </div>
-            </div>
-            <div class="border-b border-r border-[var(--color-border)] p-7 flex flex-col">
-              <div class="mb-3 flex h-10 w-10 items-center justify-center border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-accent)]">
-                <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M3 10.5 12 4l9 6.5" />
-                  <path d="M6 10v9h12v-9" />
-                  <path d="M10 19v-5h4v5" />
-                </svg>
-              </div>
-              <h3 class="text-base font-semibold">Real estate listings</h3>
-              <p class="mt-2 text-sm text-[var(--color-muted)]">Extract structured fields for listings and unit variants.</p>
-              <div class="mt-auto pt-6">
-                <p class="inline-flex border border-[var(--color-border)] bg-[var(--color-card)] px-2 py-1 text-xs text-[var(--color-muted)]"><span class="text-[#8bd5ff]">{</span> <span class="text-[#8bd5ff]">"beds"</span>: <span class="text-[#ffadad]">3</span>, <span class="text-[#8bd5ff]">"baths"</span>: <span class="text-[#ffadad]">2</span>, <span class="text-[#8bd5ff]">"price"</span>: <span class="text-[#ffadad]">615000</span> <span class="text-[#8bd5ff]">}</span></p>
-              </div>
-            </div>
-            <div class="border-b border-[var(--color-border)] p-7 flex flex-col">
-              <div class="mb-3 flex h-10 w-10 items-center justify-center border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-accent)]">
-                <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M4 12a8 8 0 0 1 16 0" />
-                  <path d="M4 12v5a2 2 0 0 0 2 2h2v-5H6" />
-                  <path d="M20 12v5a2 2 0 0 1-2 2h-2v-5h2" />
-                  <path d="M9 12h6" />
-                </svg>
-              </div>
-              <h3 class="text-base font-semibold">Support tickets</h3>
-              <p class="mt-2 text-sm text-[var(--color-muted)]">Map free-form tickets into typed fields and routing.</p>
-              <div class="mt-auto pt-6">
-                <p class="inline-flex border border-[var(--color-border)] bg-[var(--color-card)] px-2 py-1 text-xs text-[var(--color-muted)]"><span class="text-[#8bd5ff]">{</span> <span class="text-[#8bd5ff]">"priority"</span>: <span class="text-[#ffd166]">"p1"</span>, <span class="text-[#8bd5ff]">"category"</span>: <span class="text-[#ffd166]">"billing"</span> <span class="text-[#8bd5ff]">}</span></p>
-              </div>
-            </div>
-            <div class="border-b border-r border-[var(--color-border)] p-7 md:border-b-0 flex flex-col">
-              <div class="mb-3 flex h-10 w-10 items-center justify-center border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-accent)]">
-                <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M4 7h16v10H4z" />
-                  <path d="M4 7 12 3l8 4" />
-                  <path d="M9 17v4h6v-4" />
-                </svg>
-              </div>
-              <h3 class="text-base font-semibold">Product catalogs</h3>
-              <p class="mt-2 text-sm text-[var(--color-muted)]">Extract SKUs, variants, and embedded product images.</p>
-              <div class="mt-auto pt-6">
-                <p class="inline-flex border border-[var(--color-border)] bg-[var(--color-card)] px-2 py-1 text-xs text-[var(--color-muted)]"><span class="text-[#8bd5ff]">{</span> <span class="text-[#8bd5ff]">"sku"</span>: <span class="text-[#ffd166]">"SKU-88"</span>, <span class="text-[#8bd5ff]">"image_ref"</span>: <span class="text-[#ffd166]">"img-2"</span> <span class="text-[#8bd5ff]">}</span></p>
-              </div>
-            </div>
-            <div class="border-b border-r border-[var(--color-border)] p-7 md:border-b-0 flex flex-col">
-              <div class="mb-3 flex h-10 w-10 items-center justify-center border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-accent)]">
-                <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M6 4h9l3 3v13H6z" />
-                  <path d="M15 4v3h3" />
-                  <path d="M8 11h8M8 15h8" />
-                </svg>
-              </div>
-              <h3 class="text-base font-semibold">Research summaries</h3>
-              <p class="mt-2 text-sm text-[var(--color-muted)]">Pull sections, citations, and metrics into a schema.</p>
-              <div class="mt-auto pt-6">
-                <p class="inline-flex border border-[var(--color-border)] bg-[var(--color-card)] px-2 py-1 text-xs text-[var(--color-muted)]"><span class="text-[#8bd5ff]">{</span> <span class="text-[#8bd5ff]">"title"</span>: <span class="text-[#ffd166]">""</span>, <span class="text-[#8bd5ff]">"findings"</span>: [<span class="text-[#ffd166]">"..."</span>] <span class="text-[#8bd5ff]">}</span></p>
-              </div>
-            </div>
-            <div class="p-7 flex flex-col">
-              <div class="mb-3 flex h-10 w-10 items-center justify-center border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-accent)]">
-                <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M6 6h12" />
-                  <path d="M8 6v11a4 4 0 0 0 8 0V6" />
-                  <path d="M5 10h14" />
-                </svg>
-              </div>
-              <h3 class="text-base font-semibold">Legal briefs</h3>
-              <p class="mt-2 text-sm text-[var(--color-muted)]">Track clauses, citations, and obligations per case.</p>
-              <div class="mt-auto pt-6">
-                <p class="inline-flex border border-[var(--color-border)] bg-[var(--color-card)] px-2 py-1 text-xs text-[var(--color-muted)]"><span class="text-[#8bd5ff]">{</span> <span class="text-[#8bd5ff]">"case"</span>: <span class="text-[#ffd166]">"A-112"</span>, <span class="text-[#8bd5ff]">"clauses"</span>: <span class="text-[#ffadad]">12</span> <span class="text-[#8bd5ff]">}</span></p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+            <section
+                id="use-cases"
+                class="border-b border-[var(--color-border)]"
+            >
+                <div
+                    class="mx-auto max-w-7xl border-x border-[var(--color-border)]"
+                >
+                    <div
+                        class="border-b border-[var(--color-border)] px-6 py-10"
+                    >
+                        <p
+                            class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]"
+                        >
+                            Use cases
+                        </p>
+                        <h2 class="mt-2 text-2xl font-semibold">
+                            Extract structured data from anything
+                        </h2>
+                    </div>
+                    <div class="grid md:grid-cols-3">
+                        <div
+                            class="border-b border-r border-[var(--color-border)] p-7 flex flex-col"
+                        >
+                            <div
+                                class="mb-3 flex h-10 w-10 items-center justify-center border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-accent)]"
+                            >
+                                <svg
+                                    viewBox="0 0 24 24"
+                                    class="h-5 w-5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.4"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    aria-hidden="true"
+                                >
+                                    <rect
+                                        x="5"
+                                        y="3"
+                                        width="14"
+                                        height="18"
+                                        rx="2"
+                                    />
+                                    <path d="M8 8h8M8 12h8M8 16h5" />
+                                </svg>
+                            </div>
+                            <h3 class="text-base font-semibold">
+                                Invoices & receipts
+                            </h3>
+                            <p class="mt-2 text-sm text-[var(--color-muted)]">
+                                Normalize totals, taxes, and line items with a
+                                schema.
+                            </p>
+                            <div class="mt-auto pt-6">
+                                <p
+                                    class="inline-flex border border-[var(--color-border)] bg-[var(--color-card)] px-2 py-1 text-xs text-[var(--color-muted)]"
+                                >
+                                    <span class="text-[#8bd5ff]">{</span>
+                                    <span class="text-[#8bd5ff]">"total"</span>:
+                                    <span class="text-[#ffadad]">1824.5</span>,
+                                    <span class="text-[#8bd5ff]"
+                                        >"currency"</span
+                                    >: <span class="text-[#ffd166]">"USD"</span>
+                                    <span class="text-[#8bd5ff]">}</span>
+                                </p>
+                            </div>
+                        </div>
+                        <div
+                            class="border-b border-r border-[var(--color-border)] p-7 flex flex-col"
+                        >
+                            <div
+                                class="mb-3 flex h-10 w-10 items-center justify-center border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-accent)]"
+                            >
+                                <svg
+                                    viewBox="0 0 24 24"
+                                    class="h-5 w-5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.4"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    aria-hidden="true"
+                                >
+                                    <path d="M3 10.5 12 4l9 6.5" />
+                                    <path d="M6 10v9h12v-9" />
+                                    <path d="M10 19v-5h4v5" />
+                                </svg>
+                            </div>
+                            <h3 class="text-base font-semibold">
+                                Real estate listings
+                            </h3>
+                            <p class="mt-2 text-sm text-[var(--color-muted)]">
+                                Extract structured fields for listings and unit
+                                variants.
+                            </p>
+                            <div class="mt-auto pt-6">
+                                <p
+                                    class="inline-flex border border-[var(--color-border)] bg-[var(--color-card)] px-2 py-1 text-xs text-[var(--color-muted)]"
+                                >
+                                    <span class="text-[#8bd5ff]">{</span>
+                                    <span class="text-[#8bd5ff]">"beds"</span>:
+                                    <span class="text-[#ffadad]">3</span>,
+                                    <span class="text-[#8bd5ff]">"baths"</span>:
+                                    <span class="text-[#ffadad]">2</span>,
+                                    <span class="text-[#8bd5ff]">"price"</span>:
+                                    <span class="text-[#ffadad]">615000</span>
+                                    <span class="text-[#8bd5ff]">}</span>
+                                </p>
+                            </div>
+                        </div>
+                        <div
+                            class="border-b border-[var(--color-border)] p-7 flex flex-col"
+                        >
+                            <div
+                                class="mb-3 flex h-10 w-10 items-center justify-center border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-accent)]"
+                            >
+                                <svg
+                                    viewBox="0 0 24 24"
+                                    class="h-5 w-5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.4"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    aria-hidden="true"
+                                >
+                                    <path d="M4 12a8 8 0 0 1 16 0" />
+                                    <path d="M4 12v5a2 2 0 0 0 2 2h2v-5H6" />
+                                    <path d="M20 12v5a2 2 0 0 1-2 2h-2v-5h2" />
+                                    <path d="M9 12h6" />
+                                </svg>
+                            </div>
+                            <h3 class="text-base font-semibold">
+                                Support tickets
+                            </h3>
+                            <p class="mt-2 text-sm text-[var(--color-muted)]">
+                                Map free-form tickets into typed fields and
+                                routing.
+                            </p>
+                            <div class="mt-auto pt-6">
+                                <p
+                                    class="inline-flex border border-[var(--color-border)] bg-[var(--color-card)] px-2 py-1 text-xs text-[var(--color-muted)]"
+                                >
+                                    <span class="text-[#8bd5ff]">{</span>
+                                    <span class="text-[#8bd5ff]"
+                                        >"priority"</span
+                                    >: <span class="text-[#ffd166]">"p1"</span>,
+                                    <span class="text-[#8bd5ff]"
+                                        >"category"</span
+                                    >:
+                                    <span class="text-[#ffd166]"
+                                        >"billing"</span
+                                    >
+                                    <span class="text-[#8bd5ff]">}</span>
+                                </p>
+                            </div>
+                        </div>
+                        <div
+                            class="border-b border-r border-[var(--color-border)] p-7 md:border-b-0 flex flex-col"
+                        >
+                            <div
+                                class="mb-3 flex h-10 w-10 items-center justify-center border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-accent)]"
+                            >
+                                <svg
+                                    viewBox="0 0 24 24"
+                                    class="h-5 w-5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.4"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    aria-hidden="true"
+                                >
+                                    <path d="M4 7h16v10H4z" />
+                                    <path d="M4 7 12 3l8 4" />
+                                    <path d="M9 17v4h6v-4" />
+                                </svg>
+                            </div>
+                            <h3 class="text-base font-semibold">
+                                Product catalogs
+                            </h3>
+                            <p class="mt-2 text-sm text-[var(--color-muted)]">
+                                Extract SKUs, variants, and embedded product
+                                images.
+                            </p>
+                            <div class="mt-auto pt-6">
+                                <p
+                                    class="inline-flex border border-[var(--color-border)] bg-[var(--color-card)] px-2 py-1 text-xs text-[var(--color-muted)]"
+                                >
+                                    <span class="text-[#8bd5ff]">{</span>
+                                    <span class="text-[#8bd5ff]">"sku"</span>:
+                                    <span class="text-[#ffd166]">"SKU-88"</span
+                                    >,
+                                    <span class="text-[#8bd5ff]"
+                                        >"image_ref"</span
+                                    >:
+                                    <span class="text-[#ffd166]">"img-2"</span>
+                                    <span class="text-[#8bd5ff]">}</span>
+                                </p>
+                            </div>
+                        </div>
+                        <div
+                            class="border-b border-r border-[var(--color-border)] p-7 md:border-b-0 flex flex-col"
+                        >
+                            <div
+                                class="mb-3 flex h-10 w-10 items-center justify-center border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-accent)]"
+                            >
+                                <svg
+                                    viewBox="0 0 24 24"
+                                    class="h-5 w-5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.4"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    aria-hidden="true"
+                                >
+                                    <path d="M6 4h9l3 3v13H6z" />
+                                    <path d="M15 4v3h3" />
+                                    <path d="M8 11h8M8 15h8" />
+                                </svg>
+                            </div>
+                            <h3 class="text-base font-semibold">
+                                Research summaries
+                            </h3>
+                            <p class="mt-2 text-sm text-[var(--color-muted)]">
+                                Pull sections, citations, and metrics into a
+                                schema.
+                            </p>
+                            <div class="mt-auto pt-6">
+                                <p
+                                    class="inline-flex border border-[var(--color-border)] bg-[var(--color-card)] px-2 py-1 text-xs text-[var(--color-muted)]"
+                                >
+                                    <span class="text-[#8bd5ff]">{</span>
+                                    <span class="text-[#8bd5ff]">"title"</span>:
+                                    <span class="text-[#ffd166]">""</span>,
+                                    <span class="text-[#8bd5ff]"
+                                        >"findings"</span
+                                    >: [<span class="text-[#ffd166]">"..."</span
+                                    >] <span class="text-[#8bd5ff]">}</span>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="p-7 flex flex-col">
+                            <div
+                                class="mb-3 flex h-10 w-10 items-center justify-center border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-accent)]"
+                            >
+                                <svg
+                                    viewBox="0 0 24 24"
+                                    class="h-5 w-5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.4"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    aria-hidden="true"
+                                >
+                                    <path d="M6 6h12" />
+                                    <path d="M8 6v11a4 4 0 0 0 8 0V6" />
+                                    <path d="M5 10h14" />
+                                </svg>
+                            </div>
+                            <h3 class="text-base font-semibold">
+                                Legal briefs
+                            </h3>
+                            <p class="mt-2 text-sm text-[var(--color-muted)]">
+                                Track clauses, citations, and obligations per
+                                case.
+                            </p>
+                            <div class="mt-auto pt-6">
+                                <p
+                                    class="inline-flex border border-[var(--color-border)] bg-[var(--color-card)] px-2 py-1 text-xs text-[var(--color-muted)]"
+                                >
+                                    <span class="text-[#8bd5ff]">{</span>
+                                    <span class="text-[#8bd5ff]">"case"</span>:
+                                    <span class="text-[#ffd166]">"A-112"</span>,
+                                    <span class="text-[#8bd5ff]">"clauses"</span
+                                    >: <span class="text-[#ffadad]">12</span>
+                                    <span class="text-[#8bd5ff]">}</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-      <section id="integrations" class="border-b border-[var(--color-border)]">
-        <div class="mx-auto max-w-7xl border-x border-[var(--color-border)]">
-          <div class="border-b border-[var(--color-border)] px-6 py-10">
-            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">Integrations</p>
-            <h2 class="mt-2 text-2xl font-semibold">Every major LLM provider, one SDK</h2>
-            <p class="mt-3 text-sm text-[var(--color-muted)]">Struktur is built on the Vercel AI SDK, giving you access to hundreds of different LLMs and providers.</p>
-          </div>
-          <div class="grid md:grid-cols-4">
-            <div class="border-b border-r border-[var(--color-border)] p-7 md:border-b-0">
-              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-accent)]">OpenAI</p>
-              <ul class="mt-4 space-y-3 text-sm">
-                <li class="flex items-center gap-3"><span class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"></span> gpt-4.1</li>
-                <li class="flex items-center gap-3"><span class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"></span> o-series</li>
-                <li class="flex items-center gap-3"><span class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"></span> Azure OpenAI</li>
-              </ul>
-            </div>
-            <div class="border-b border-r border-[var(--color-border)] p-7 md:border-b-0">
-              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-accent)]">Anthropic</p>
-              <ul class="mt-4 space-y-3 text-sm">
-                <li class="flex items-center gap-3"><span class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"></span> Claude 3.5+</li>
-                <li class="flex items-center gap-3"><span class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"></span> Cohere</li>
-                <li class="flex items-center gap-3"><span class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"></span> Command family</li>
-              </ul>
-            </div>
-            <div class="border-b border-r border-[var(--color-border)] p-7 md:border-b-0">
-              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-accent)]">Google</p>
-              <ul class="mt-4 space-y-3 text-sm">
-                <li class="flex items-center gap-3"><span class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"></span> Gemini models</li>
-                <li class="flex items-center gap-3"><span class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"></span> Groq</li>
-                <li class="flex items-center gap-3"><span class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"></span> Low-latency inference</li>
-              </ul>
-            </div>
-            <div class="p-7">
-              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-accent)]">Mistral</p>
-              <ul class="mt-4 space-y-3 text-sm">
-                <li class="flex items-center gap-3"><span class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"></span> Mixtral + small</li>
-                <li class="flex items-center gap-3"><span class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"></span> Together</li>
-                <li class="flex items-center gap-3"><span class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"></span> Open model hosting</li>
-                <li class="flex items-center gap-3"><span class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"></span> Fireworks</li>
-                <li class="flex items-center gap-3"><span class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"></span> Production hosting</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
+            <section
+                id="integrations"
+                class="border-b border-[var(--color-border)]"
+            >
+                <div
+                    class="mx-auto max-w-7xl border-x border-[var(--color-border)]"
+                >
+                    <div
+                        class="border-b border-[var(--color-border)] px-6 py-10"
+                    >
+                        <p
+                            class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]"
+                        >
+                            Integrations
+                        </p>
+                        <h2 class="mt-2 text-2xl font-semibold">
+                            Every major LLM provider, one SDK
+                        </h2>
+                        <p class="mt-3 text-sm text-[var(--color-muted)]">
+                            Struktur is built on the Vercel AI SDK, giving you
+                            access to hundreds of different LLMs and providers.
+                        </p>
+                    </div>
+                    <div class="grid md:grid-cols-4">
+                        <div
+                            class="border-b border-r border-[var(--color-border)] p-7 md:border-b-0"
+                        >
+                            <p
+                                class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-accent)]"
+                            >
+                                OpenAI
+                            </p>
+                            <ul class="mt-4 space-y-3 text-sm">
+                                <li class="flex items-center gap-3">
+                                    <span
+                                        class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"
+                                    ></span>
+                                    gpt-4.1
+                                </li>
+                                <li class="flex items-center gap-3">
+                                    <span
+                                        class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"
+                                    ></span>
+                                    o-series
+                                </li>
+                                <li class="flex items-center gap-3">
+                                    <span
+                                        class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"
+                                    ></span>
+                                    Azure OpenAI
+                                </li>
+                            </ul>
+                        </div>
+                        <div
+                            class="border-b border-r border-[var(--color-border)] p-7 md:border-b-0"
+                        >
+                            <p
+                                class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-accent)]"
+                            >
+                                Anthropic
+                            </p>
+                            <ul class="mt-4 space-y-3 text-sm">
+                                <li class="flex items-center gap-3">
+                                    <span
+                                        class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"
+                                    ></span>
+                                    Claude 3.5+
+                                </li>
+                                <li class="flex items-center gap-3">
+                                    <span
+                                        class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"
+                                    ></span>
+                                    Cohere
+                                </li>
+                                <li class="flex items-center gap-3">
+                                    <span
+                                        class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"
+                                    ></span>
+                                    Command family
+                                </li>
+                            </ul>
+                        </div>
+                        <div
+                            class="border-b border-r border-[var(--color-border)] p-7 md:border-b-0"
+                        >
+                            <p
+                                class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-accent)]"
+                            >
+                                Google
+                            </p>
+                            <ul class="mt-4 space-y-3 text-sm">
+                                <li class="flex items-center gap-3">
+                                    <span
+                                        class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"
+                                    ></span>
+                                    Gemini models
+                                </li>
+                                <li class="flex items-center gap-3">
+                                    <span
+                                        class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"
+                                    ></span>
+                                    Groq
+                                </li>
+                                <li class="flex items-center gap-3">
+                                    <span
+                                        class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"
+                                    ></span>
+                                    Low-latency inference
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="p-7">
+                            <p
+                                class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-accent)]"
+                            >
+                                Mistral
+                            </p>
+                            <ul class="mt-4 space-y-3 text-sm">
+                                <li class="flex items-center gap-3">
+                                    <span
+                                        class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"
+                                    ></span>
+                                    Mixtral + small
+                                </li>
+                                <li class="flex items-center gap-3">
+                                    <span
+                                        class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"
+                                    ></span>
+                                    Together
+                                </li>
+                                <li class="flex items-center gap-3">
+                                    <span
+                                        class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"
+                                    ></span>
+                                    Open model hosting
+                                </li>
+                                <li class="flex items-center gap-3">
+                                    <span
+                                        class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"
+                                    ></span>
+                                    Fireworks
+                                </li>
+                                <li class="flex items-center gap-3">
+                                    <span
+                                        class="h-8 w-8 border border-[var(--color-border)] bg-[var(--color-card)]"
+                                    ></span>
+                                    Production hosting
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-      <section id="articles" class="border-b border-[var(--color-border)]">
-        <div class="mx-auto max-w-7xl border-x border-[var(--color-border)]">
-          <div class="border-b border-[var(--color-border)] px-6 py-10">
-            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">Articles</p>
-            <h2 class="mt-2 text-2xl font-semibold">Learn more about structured data extraction</h2>
-          </div>
-          <div class="grid md:grid-cols-3">
-            <article class="border-r border-[var(--color-border)]">
-              <div class="flex h-32 w-full items-center justify-center border-b border-[var(--color-border)] bg-[var(--color-card)]">
-                <span class="text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)]">Thumbnail</span>
-              </div>
-              <div class="p-7">
-                <p class="text-xs text-[var(--color-muted)]">Vercel Blog</p>
-                <h3 class="mt-3 text-sm font-semibold">Why structured extraction wins</h3>
-                <p class="mt-2 text-xs text-[var(--color-muted)]">Building reliable JSON pipelines when your inputs are a mess.</p>
-                <a class="mt-6 inline-flex text-xs font-semibold text-[var(--color-accent)]" href="https://vercel.com/blog" target="_blank" rel="noreferrer">Read article</a>
-              </div>
-            </article>
-          </div>
-        </div>
-      </section>
+            <section
+                id="articles"
+                class="border-b border-[var(--color-border)]"
+            >
+                <div
+                    class="mx-auto max-w-7xl border-x border-[var(--color-border)]"
+                >
+                    <div
+                        class="border-b border-[var(--color-border)] px-6 py-10"
+                    >
+                        <p
+                            class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]"
+                        >
+                            Articles
+                        </p>
+                        <h2 class="mt-2 text-2xl font-semibold">
+                            Learn more about structured data extraction
+                        </h2>
+                    </div>
+                    <div class="grid md:grid-cols-3">
+                        <article class="border-r border-[var(--color-border)]">
+                            <a
+                                class="group flex h-full flex-col transition-colors hover:bg-[var(--color-card)]"
+                                href="https://vercel.com/blog"
+                                target="_blank"
+                                rel="noreferrer"
+                            >
+                                <div
+                                    class="flex h-32 w-full items-center justify-center border-b border-[var(--color-border)] bg-[var(--color-card)]"
+                                >
+                                    <span
+                                        class="text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)]"
+                                        >Thumbnail</span
+                                    >
+                                </div>
+                                <div class="p-7">
+                                    <p class="text-xs text-[var(--color-muted)]">
+                                        Vercel Blog
+                                    </p>
+                                    <h3 class="mt-3 text-sm font-semibold">
+                                        Why structured extraction wins
+                                    </h3>
+                                    <p
+                                        class="mt-2 text-xs text-[var(--color-muted)]"
+                                    >
+                                        Building reliable JSON pipelines when your
+                                        inputs are a mess.
+                                    </p>
+                                    <span
+                                        class="mt-6 inline-flex text-xs font-semibold text-[var(--color-accent)]"
+                                        >Read article</span
+                                    >
+                                </div>
+                            </a>
+                        </article>
+                    </div>
+                </div>
+            </section>
 
-      <footer class="border-b border-[var(--color-border)]">
-        <div class="mx-auto grid max-w-7xl border-x border-[var(--color-border)] md:grid-cols-3">
-          <div class="border-b border-r border-[var(--color-border)] p-8 md:border-b-0">
-            <p class="text-sm font-semibold">Struktur</p>
-            <p class="mt-3 text-xs text-[var(--color-muted)]">A structured extraction engine for validated data.</p>
-            <div class="mt-6 text-xs text-[var(--color-muted)]">
-              © <span id="footer-year">2026</span>
-              <a class="font-semibold text-[var(--color-ink)]/80 hover:text-[var(--color-ink)]" href="https://mateffy.org" target="_blank" rel="noreferrer">Mateffy Software Research</a>
-            </div>
-          </div>
-          <div class="border-b border-r border-[var(--color-border)] p-8 md:border-b-0">
-            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">Product</p>
-            <ul class="mt-4 space-y-2 text-xs text-[var(--color-muted)]">
-              <li><a href="#flow">Extraction flow</a></li>
-              <li><a href="#use-cases">Use cases</a></li>
-              <li><a href="#integrations">Integrations</a></li>
-              <li><a href="./guide.html">Documentation</a></li>
-            </ul>
-          </div>
-          <div class="p-8">
-            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">Resources</p>
-            <ul class="mt-4 space-y-2 text-xs text-[var(--color-muted)]">
-              <li><a href="https://github.com">GitHub</a></li>
-              <li><a href="https://vercel.com/docs/ai">Vercel AI SDK</a></li>
-              <li><a href="#">Changelog</a></li>
-              <li><a href="#">Contact</a></li>
-            </ul>
-          </div>
-        </div>
-      </footer>
-    </main>
-    <script>
-      (() => {
-        const lines = document.getElementById("terminal-lines");
-        if (!lines) return;
+            <footer class="border-b border-[var(--color-border)]">
+                <div
+                    class="mx-auto grid max-w-7xl border-x border-[var(--color-border)] md:grid-cols-3"
+                >
+                    <div
+                        class="border-b border-r border-[var(--color-border)] p-8 md:border-b-0"
+                    >
+                        <p class="text-sm font-semibold">Struktur</p>
+                        <p class="mt-3 text-xs text-[var(--color-muted)]">
+                            An open-source data extraction engine for
+                            unstructured data.
+                        </p>
+                        <div class="mt-6 text-xs text-[var(--color-muted)]">
+                            © <span id="footer-year">2026</span>
+                            <a
+                                class="font-semibold text-[var(--color-ink)]/80 hover:text-[var(--color-ink)]"
+                                href="https://mateffy.org"
+                                target="_blank"
+                                rel="noreferrer"
+                                >Mateffy Software Research</a
+                            >
+                        </div>
+                        <div class="mt-2 text-xs text-[var(--color-muted)]">
+                            Made in the European Union 🇪🇺
+                        </div>
+                    </div>
+                    <div
+                        class="border-b border-r border-[var(--color-border)] p-8 md:border-b-0"
+                    >
+                        <p
+                            class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]"
+                        >
+                            Product
+                        </p>
+                        <ul
+                            class="mt-4 space-y-2 text-xs text-[var(--color-muted)]"
+                        >
+                            <li><a href="#flow">Extraction flow</a></li>
+                            <li><a href="#use-cases">Use cases</a></li>
+                            <li><a href="#integrations">Integrations</a></li>
+                            <li><a href="./tutorials/quickstart.html">Documentation</a></li>
+                        </ul>
+                    </div>
+                    <div class="p-8">
+                        <p
+                            class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]"
+                        >
+                            Documentation
+                        </p>
+                        <ul
+                            class="mt-4 space-y-2 text-xs text-[var(--color-muted)]"
+                        >
+                            <li><a href="./tutorials/quickstart.html">Quickstart</a></li>
+                            <li><a href="./explanation/concepts.html">Concepts</a></li>
+                            <li><a href="./how-to/choose-strategy.html">How-to Guides</a></li>
+                            <li><a href="./reference/cli.html">Reference</a></li>
+                        </ul>
+                    </div>
+                    <div class="p-8">
+                        <p
+                            class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]"
+                        >
+                            Resources
+                        </p>
+                        <ul
+                            class="mt-4 space-y-2 text-xs text-[var(--color-muted)]"
+                        >
+                            <li><a href="https://github.com">GitHub</a></li>
+                            <li>
+                                <a href="https://vercel.com/docs/ai"
+                                    >Vercel AI SDK</a
+                                >
+                            </li>
+                            <li><a href="#">Changelog</a></li>
+                            <li><a href="#">Contact</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </footer>
+        </main>
+        <script>
+            (() => {
+                const lines = document.getElementById("terminal-lines");
+                if (!lines) return;
 
-        const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-        const typeText = async (node, text, speed = 22) => {
-          node.textContent = "";
-          for (let i = 0; i < text.length; i += 1) {
-            node.textContent += text[i];
-            await sleep(speed);
-          }
-        };
+                const sleep = (ms) =>
+                    new Promise((resolve) => setTimeout(resolve, ms));
+                const typeText = async (node, text, speed = 22) => {
+                    node.textContent = "";
+                    for (let i = 0; i < text.length; i += 1) {
+                        node.textContent += text[i];
+                        await sleep(speed);
+                    }
+                };
 
-        const addLine = () => {
-          const row = document.createElement("p");
-          row.className = "terminal-line";
-          lines.appendChild(row);
-          return row;
-        };
+                const addLine = () => {
+                    const row = document.createElement("p");
+                    row.className = "terminal-line";
+                    lines.appendChild(row);
+                    return row;
+                };
 
-        const animateLoading = async (row, steps, speed = 90) => {
-          const spinners = ["|", "/", "-", "\\"];
-          const total = 30;
-          const chunk = Math.floor(total / steps.length);
-          let filled = 0;
+                const animateLoading = async (row, steps, speed = 90) => {
+                    const spinners = ["|", "/", "-", "\\"];
+                    const total = 30;
+                    const chunk = Math.floor(total / steps.length);
+                    let filled = 0;
 
-          for (let idx = 0; idx < steps.length; idx += 1) {
-            const target = idx === steps.length - 1 ? total : chunk * (idx + 1);
-            while (filled < target) {
-              filled += 1;
-              const bar = `${"=".repeat(filled)}${"-".repeat(total - filled)}`;
-              const line = `${spinners[filled % spinners.length]} [${bar}] ${steps[idx]} [${idx + 1}/${steps.length}]`;
-              row.textContent = line.padEnd(total + 28, " ");
-              await sleep(speed);
+                    for (let idx = 0; idx < steps.length; idx += 1) {
+                        const target =
+                            idx === steps.length - 1
+                                ? total
+                                : chunk * (idx + 1);
+                        while (filled < target) {
+                            filled += 1;
+                            const bar = `${"=".repeat(filled)}${"-".repeat(total - filled)}`;
+                            const line = `${spinners[filled % spinners.length]} [${bar}] ${steps[idx]} [${idx + 1}/${steps.length}]`;
+                            row.textContent = line.padEnd(total + 28, " ");
+                            await sleep(speed);
+                        }
+                    }
+                };
+
+                const animateSpinner = async (
+                    row,
+                    text,
+                    cycles = 16,
+                    speed = 90,
+                ) => {
+                    const spinners = ["|", "/", "-", "\\"];
+                    for (let idx = 0; idx < cycles; idx += 1) {
+                        row.textContent = `${spinners[idx % spinners.length]} ${text}`;
+                        await sleep(speed);
+                    }
+                };
+
+                const runCommand = async (
+                    commandText,
+                    outputText,
+                    options = {},
+                ) => {
+                    const row = addLine();
+                    if (lines.children.length > 1) {
+                        row.classList.add("mt-4");
+                    }
+                    if (options.addTopMargin) {
+                        row.classList.add("mt-4");
+                    }
+                    const prompt = document.createElement("span");
+                    prompt.textContent = "$ ";
+                    prompt.className = "text-[var(--color-accent)]";
+                    const typed = document.createElement("span");
+                    row.appendChild(prompt);
+                    row.appendChild(typed);
+
+                    await sleep(220);
+                    await typeText(typed, commandText, 20);
+                    await sleep(260);
+
+                    const loadingRow = addLine();
+                    loadingRow.className =
+                        "terminal-line text-[var(--color-muted)]";
+                    if (options.loadingStyle === "spinner") {
+                        await animateSpinner(
+                            loadingRow,
+                            options.spinnerText || "working...",
+                            options.spinnerCycles || 16,
+                            options.loadingSpeed || 90,
+                        );
+                    } else {
+                        await animateLoading(
+                            loadingRow,
+                            options.steps || [
+                                "preparing",
+                                "extracting chunk #1",
+                                "extracting chunk #2",
+                                "extracting chunk #3",
+                                "merging",
+                            ],
+                            options.loadingSpeed || 90,
+                        );
+                    }
+
+                    if (options.removeLoadingRow) {
+                        loadingRow.remove();
+                    }
+
+                    const outputRow = addLine();
+                    outputRow.textContent = outputText;
+                    await sleep(options.outputDelay || 420);
+                };
+
+                const runLoop = async () => {
+                    while (true) {
+                        lines.innerHTML = "";
+                        await runCommand(
+                            "npm i -g struktur",
+                            "added 1 package in 0.4s",
+                            {
+                                loadingStyle: "spinner",
+                                spinnerText: "installing...",
+                                spinnerCycles: 18,
+                                loadingSpeed: 80,
+                                outputDelay: 200,
+                                removeLoadingRow: true,
+                            },
+                        );
+                        await runCommand(
+                            "struktur extract ./files/invoices/*.pdf --schema ./schemas/invoice.json",
+                            '{"invoice_id":"INV-4821","total":1824.5,"line_items":[...]}...',
+                        );
+                        await runCommand(
+                            "struktur extract ./files/catalog.csv --schema ./schemas/catalog.json",
+                            '{"catalog":{"title":"Spring 2026","products":[...]}}...',
+                            { addTopMargin: true },
+                        );
+                        await sleep(1200);
+                    }
+                };
+
+                runLoop();
+
+                const yearNode = document.getElementById("footer-year");
+                if (yearNode) {
+                    yearNode.textContent = String(new Date().getFullYear());
+                }
+            })();
+        </script>
+        <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+        <script>
+            (() => {
+                const setActiveTab = (target) => {
+                    const tabs = Array.from(
+                        document.querySelectorAll(".strategy-tab"),
+                    );
+                    const panels = Array.from(
+                        document.querySelectorAll(".strategy-panel"),
+                    );
+                    tabs.forEach((tab) => {
+                        const isActive = tab.dataset.tab === target;
+                        tab.classList.toggle(
+                            "bg-[var(--color-card)]",
+                            isActive,
+                        );
+                        tab.classList.toggle(
+                            "text-[var(--color-ink)]",
+                            isActive,
+                        );
+                        tab.classList.toggle(
+                            "text-[var(--color-ink)]/70",
+                            !isActive,
+                        );
+                    });
+                    panels.forEach((panel) => {
+                        panel.classList.toggle(
+                            "is-active",
+                            panel.dataset.panel === target,
+                        );
+                    });
+                };
+
+                const initTabs = () => {
+                    const tabs = Array.from(
+                        document.querySelectorAll(".strategy-tab"),
+                    );
+                    if (!tabs.length) return;
+                    tabs.forEach((tab) => {
+                        tab.addEventListener("click", () =>
+                            setActiveTab(tab.dataset.tab),
+                        );
+                    });
+                    setActiveTab("simple");
+                };
+
+                const initMermaid = () => {
+                    if (!window.mermaid) return;
+                    window.mermaid.initialize({
+                        startOnLoad: false,
+                        theme: "dark",
+                    });
+                    const nodes = Array.from(
+                        document.querySelectorAll("[data-graph]"),
+                    );
+                    nodes.forEach((node, index) => {
+                        const id = `mermaid-${index}`;
+                        const source = node.textContent.trim();
+                        const normalized = source
+                            .replace(/^graph\s+(\w+)\s+/i, "graph $1\n")
+                            .replace(/\n\s+/g, "\n");
+                        window.mermaid.render(id, normalized).then(({ svg }) => {
+                                node.innerHTML = svg;
+                                node.style.opacity = "1";
+                            });
+                    });
+                };
+
+                const run = () => {
+                    initTabs();
+                    initMermaid();
+                };
+
+                if (document.readyState === "loading") {
+                    document.addEventListener("DOMContentLoaded", run);
+                } else {
+                    run();
+                }
+            })();
+        </script>
+        <script type="importmap">
+            {
+                "imports": {
+                    "react": "https://esm.sh/react@18.2.0",
+                    "react-dom": "https://esm.sh/react-dom@18.2.0",
+                    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+                    "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime"
+                }
             }
-          }
-        };
+        </script>
+        <script type="module">
+            const isLocal =
+                location.protocol === "file:" ||
+                ["localhost", "127.0.0.1", "0.0.0.0"].includes(
+                    location.hostname,
+                );
 
-        const runCommand = async (commandText, outputText, options = {}) => {
-          const row = addLine();
-          if (options.addTopMargin) {
-            row.classList.add("mt-4");
-          }
-          const prompt = document.createElement("span");
-          prompt.textContent = "$ ";
-          prompt.className = "text-[var(--color-accent)]";
-          const typed = document.createElement("span");
-          row.appendChild(prompt);
-          row.appendChild(typed);
+            if (isLocal) {
+                const rootId = "agentation-root";
+                let rootNode = document.getElementById(rootId);
+                if (!rootNode) {
+                    rootNode = document.createElement("div");
+                    rootNode.id = rootId;
+                    document.body.appendChild(rootNode);
+                }
 
-          await sleep(220);
-          await typeText(typed, commandText, 20);
-          await sleep(260);
+                try {
+                    const [{ createRoot }, { Agentation }, React] =
+                        await Promise.all([
+                            import("react-dom/client"),
+                            import("https://unpkg.com/agentation/dist/index.mjs"),
+                            import("react"),
+                        ]);
 
-          const loadingRow = addLine();
-          loadingRow.className = "terminal-line text-[var(--color-muted)]";
-          await animateLoading(
-            loadingRow,
-            options.steps || [
-              "preparing",
-              "extracting chunk #1",
-              "extracting chunk #2",
-              "extracting chunk #3",
-              "merging",
-            ],
-            options.loadingSpeed || 90
-          );
-
-          const outputRow = addLine();
-          outputRow.textContent = outputText;
-          await sleep(options.outputDelay || 420);
-        };
-
-        const runLoop = async () => {
-          while (true) {
-            lines.innerHTML = "";
-            await runCommand(
-              "npm i -g struktur",
-              "added 1 package in 0.4s",
-              { steps: ["installing"], loadingSpeed: 12, outputDelay: 200 }
-            );
-            await runCommand(
-              "struktur extract ./files/invoices/*.pdf --schema ./schemas/invoice.json",
-              "{\"invoice_id\":\"INV-4821\",\"total\":1824.5,\"line_items\":[...]}..."
-            );
-            await runCommand(
-              "struktur extract ./files/catalog.csv --schema ./schemas/catalog.json",
-              "{\"catalog\":{\"title\":\"Spring 2026\",\"products\":[...]}}...",
-              { addTopMargin: true }
-            );
-            await sleep(1200);
-          }
-        };
-
-        runLoop();
-
-        const yearNode = document.getElementById("footer-year");
-        if (yearNode) {
-          yearNode.textContent = String(new Date().getFullYear());
-        }
-
-      })();
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-    <script>
-      (() => {
-        const setActiveTab = (target) => {
-          const tabs = Array.from(document.querySelectorAll(".strategy-tab"));
-          const panels = Array.from(document.querySelectorAll(".strategy-panel"));
-          tabs.forEach((tab) => {
-            const isActive = tab.dataset.tab === target;
-            tab.classList.toggle("bg-[var(--color-card)]", isActive);
-            tab.classList.toggle("text-[var(--color-ink)]", isActive);
-            tab.classList.toggle("text-[var(--color-ink)]/70", !isActive);
-          });
-          panels.forEach((panel) => {
-            panel.classList.toggle("hidden", panel.dataset.panel !== target);
-          });
-        };
-
-        const initTabs = () => {
-          const tabs = Array.from(document.querySelectorAll(".strategy-tab"));
-          if (!tabs.length) return;
-          tabs.forEach((tab) => {
-            tab.addEventListener("click", () => setActiveTab(tab.dataset.tab));
-          });
-          setActiveTab("simple");
-        };
-
-        const initMermaid = () => {
-          if (!window.mermaid) return;
-          window.mermaid.initialize({ startOnLoad: false, theme: "dark" });
-          const nodes = Array.from(document.querySelectorAll("[data-graph]"));
-          nodes.forEach((node, index) => {
-            const id = `mermaid-${index}`;
-            window.mermaid.render(id, node.textContent.trim()).then(({ svg }) => {
-              node.innerHTML = svg;
-            });
-          });
-        };
-
-        const run = () => {
-          initTabs();
-          initMermaid();
-        };
-
-        if (document.readyState === "loading") {
-          document.addEventListener("DOMContentLoaded", run);
-        } else {
-          run();
-        }
-      })();
-    </script>
-    <script type="importmap">
-      {
-        "imports": {
-          "react": "https://esm.sh/react@18.2.0",
-          "react-dom": "https://esm.sh/react-dom@18.2.0",
-          "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
-          "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime"
-        }
-      }
-    </script>
-    <script type="module">
-      const isLocal =
-        location.protocol === "file:" ||
-        ["localhost", "127.0.0.1", "0.0.0.0"].includes(location.hostname);
-
-      if (isLocal) {
-        const rootId = "agentation-root";
-        let rootNode = document.getElementById(rootId);
-        if (!rootNode) {
-          rootNode = document.createElement("div");
-          rootNode.id = rootId;
-          document.body.appendChild(rootNode);
-        }
-
-        try {
-          const [{ createRoot }, { Agentation }, React] = await Promise.all([
-            import("react-dom/client"),
-            import("https://unpkg.com/agentation/dist/index.mjs"),
-            import("react"),
-          ]);
-
-          const root = createRoot(rootNode);
-          root.render(React.createElement(Agentation));
-        } catch (error) {
-          console.warn("Agentation failed to load:", error);
-        }
-      }
-    </script>
-  </body>
+                    const root = createRoot(rootNode);
+                    root.render(React.createElement(Agentation));
+                } catch (error) {
+                    console.warn("Agentation failed to load:", error);
+                }
+            }
+        </script>
+    </body>
 </html>

@@ -5,8 +5,7 @@ test("index re-exports main API", () => {
   expect(typeof api.extract).toBe("function");
   expect(typeof api.urlToArtifact).toBe("function");
   expect(typeof api.fileToArtifact).toBe("function");
-  expect(typeof api.registerArtifactProvider).toBe("function");
-  expect(typeof api.clearArtifactProviders).toBe("function");
+  expect(typeof api.defaultArtifactProviders).toBe("object");
   expect(typeof api.registerArtifactInputParser).toBe("function");
   expect(typeof api.clearArtifactInputParsers).toBe("function");
   expect(typeof api.validateSerializedArtifacts).toBe("function");

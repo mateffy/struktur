@@ -1,6 +1,6 @@
 import type { Artifact, ArtifactContent, ArtifactImage, ArtifactType } from "../types";
 import { createAjv, validateOrThrow } from "../validation/validator";
-import { getArtifactProvider } from "./providers";
+import { defaultArtifactProviders, type ArtifactProviders } from "./providers";
 
 export type SerializedArtifactImage = Omit<ArtifactImage, "contents"> & {
   contents?: never;
@@ -26,7 +26,10 @@ export type ArtifactInput =
 export type ArtifactInputParser = {
   name: string;
   canParse: (input: ArtifactInput) => boolean;
-  parse: (input: ArtifactInput) => Promise<Artifact[]>;
+  parse: (
+    input: ArtifactInput,
+    options?: { providers?: ArtifactProviders }
+  ) => Promise<Artifact[]>;
 };
 
 const serializedArtifactImageSchema = {
@@ -154,9 +157,11 @@ const bufferToImageArtifact = (buffer: Buffer, id?: string): Artifact => {
 const parseBufferInput = async (
   buffer: Buffer,
   mimeType: string,
-  id?: string
+  id?: string,
+  providers?: ArtifactProviders
 ): Promise<Artifact[]> => {
-  const provider = getArtifactProvider(mimeType);
+  const registry = providers ?? defaultArtifactProviders;
+  const provider = registry[mimeType];
   if (provider) {
     return [await provider(buffer)];
   }
@@ -199,38 +204,51 @@ const textParser: ArtifactInputParser = {
 const fileParser: ArtifactInputParser = {
   name: "file",
   canParse: (input) => input.kind === "file",
-  parse: async (input) => {
+  parse: async (input, options) => {
     if (input.kind !== "file") {
       return [];
     }
     const file = Bun.file(input.path);
     const buffer = Buffer.from(await file.arrayBuffer());
     const mimeType = input.mimeType ?? (await detectMimeType(input.path));
-    return parseBufferInput(buffer, mimeType, input.id);
+    return parseBufferInput(buffer, mimeType, input.id, options?.providers);
   },
 };
 
 const bufferParser: ArtifactInputParser = {
   name: "buffer",
   canParse: (input) => input.kind === "buffer",
-  parse: async (input) => {
+  parse: async (input, options) => {
     if (input.kind !== "buffer") {
       return [];
     }
-    return parseBufferInput(input.buffer, input.mimeType, input.id);
+    return parseBufferInput(
+      input.buffer,
+      input.mimeType,
+      input.id,
+      options?.providers
+    );
   },
 };
 
 export const parseInputToArtifacts = async (
   input: ArtifactInput,
-  options?: { parsers?: ArtifactInputParser[] }
+  options?: { parsers?: ArtifactInputParser[]; providers?: ArtifactProviders }
 ): Promise<Artifact[]> => {
-  const parsers = options?.parsers ?? [...inputParsers, artifactJsonParser, textParser, fileParser, bufferParser];
+  const parsers =
+    options?.parsers ??
+    [
+      ...inputParsers,
+      artifactJsonParser,
+      textParser,
+      fileParser,
+      bufferParser,
+    ];
   const parser = parsers.find((candidate) => candidate.canParse(input));
 
   if (!parser) {
     throw new Error(`No artifact input parser available for ${input.kind}`);
   }
 
-  return parser.parse(input);
+  return parser.parse(input, { providers: options?.providers });
 };

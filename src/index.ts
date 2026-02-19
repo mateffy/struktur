@@ -25,7 +25,8 @@ export type {
 
 export { urlToArtifact } from "./artifacts/urlToArtifact";
 export { fileToArtifact } from "./artifacts/fileToArtifact";
-export { registerArtifactProvider, clearArtifactProviders } from "./artifacts/providers";
+export type { ArtifactProvider, ArtifactProviders } from "./artifacts/providers";
+export { defaultArtifactProviders } from "./artifacts/providers";
 export {
   registerArtifactInputParser,
   clearArtifactInputParsers,
