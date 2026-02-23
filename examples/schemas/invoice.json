@@ -1,22 +1,38 @@
 {
   "type": "object",
   "properties": {
-    "id": {
-      "type": "string",
-      "format": "uuid"
+    "invoice_number": {
+      "type": "string"
     },
     "customer": {
-      "type": "string",
-      "format": "email"
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "address": {
+          "type": "string"
+        },
+        "tax_id": {
+          "type": "string"
+        }
+      },
+      "required": ["name"]
     },
     "amount": {
       "type": "number",
+      "description": "Total amount of the invoice",
       "minimum": 0
+    },
+    "currency": {
+      "type": "string",
+      "description": "Currency code (3-letter ISO 4217 code like USD or EUR)",
+      "format": "currency"
     },
     "date": {
       "type": "string",
       "format": "date"
     }
   },
-  "required": ["id", "customer", "amount", "date"]
+  "required": ["invoice_number", "customer", "amount", "currency"]
 }

@@ -10,6 +10,7 @@ export type SequentialStrategyConfig = {
   maxImages?: number;
   outputInstructions?: string;
   execute?: typeof runWithRetries;
+  strict?: boolean;
 };
 
 export class SequentialStrategy<T> implements ExtractionStrategy<T> {
@@ -57,6 +58,7 @@ export class SequentialStrategy<T> implements ExtractionStrategy<T> {
         artifacts: batch,
         events: options.events,
         execute: this.config.execute as never,
+        strict: this.config.strict,
       });
 
       currentData = result.data;

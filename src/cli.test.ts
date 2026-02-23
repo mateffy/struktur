@@ -198,3 +198,40 @@ test("auth default <provider> chooses cheapest model", async () => {
 
   expect(storedDefault).toBe("openai/gpt-4o-mini");
 });
+
+test("extract shows detailed schema validation errors", async () => {
+  const { SchemaValidationError } = await import("./validation/validator");
+  const outputPath = makeTempPath("output-err");
+  const options = {
+    text: "hello world",
+    "schema-json": JSON.stringify({
+      type: "object",
+      properties: { name: { type: "string" } },
+      required: ["name"],
+    }),
+    model: "openai/gpt-5",
+    output: outputPath,
+  } as Record<string, string | boolean>;
+
+  const validationErrors = [
+    { keyword: "required", message: "must have required property 'name'", instancePath: "", schemaPath: "#/required", params: { missingProperty: "name" } },
+  ];
+  const schemaError = new SchemaValidationError("Schema validation failed", validationErrors as never);
+
+  await expect(runExtractCommand(options, {
+    resolveModel: async () => ({}),
+    createStrategy: () => ({
+      name: "stub",
+      run: async () => ({
+        data: null,
+        usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+        error: schemaError,
+      }),
+    }),
+    extract: (async () => ({
+      data: null as unknown,
+      usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+      error: schemaError,
+    })) as typeof import("./extract").extract,
+  })).rejects.toThrow(/must have required property 'name'/);
+});

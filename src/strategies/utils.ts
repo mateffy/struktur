@@ -33,6 +33,7 @@ export const extractWithPrompt = async <T>(options: {
   artifacts: Artifact[];
   events?: ExtractionEvents;
   execute?: typeof runWithRetries<T>;
+  strict?: boolean;
 }) => {
   const userContent = buildUserContent(options.user, options.artifacts);
   const result = await runWithRetries<T>({
@@ -42,6 +43,7 @@ export const extractWithPrompt = async <T>(options: {
     user: userContent,
     events: options.events,
     execute: options.execute,
+    strict: options.strict,
   });
 
   return result;

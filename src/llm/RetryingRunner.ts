@@ -1,4 +1,4 @@
-import { createAjv, validateOrThrow, SchemaValidationError } from "../validation/validator";
+import { createAjv, validateOrThrow, SchemaValidationError, validateAllowingMissingRequired } from "../validation/validator";
 import type { ModelMessage } from "ai";
 import type { ExtractionEvents, Usage } from "../types";
 import { generateStructured } from "./LLMClient";
@@ -13,6 +13,7 @@ export type RetryOptions<T> = {
   maxAttempts?: number;
   schemaName?: string;
   execute?: typeof generateStructured<T>;
+  strict?: boolean;
 };
 
 export const runWithRetries = async <T>(options: RetryOptions<T>) => {
@@ -43,8 +44,28 @@ export const runWithRetries = async <T>(options: RetryOptions<T>) => {
     };
 
     try {
-      const validated = validateOrThrow<T>(ajv, options.schema as never, result.data);
-      return { data: validated, usage };
+      const isFinalAttempt = attempt === maxAttempts;
+      const useStrictValidation = options.strict === true || isFinalAttempt;
+
+      if (useStrictValidation) {
+        const validated = validateOrThrow<T>(ajv, options.schema as never, result.data);
+        return { data: validated, usage };
+      } else {
+        const validationResult = validateAllowingMissingRequired<T>(
+          ajv,
+          options.schema as never,
+          result.data
+        );
+        
+        if (validationResult.valid) {
+          return { data: validationResult.data, usage };
+        }
+        
+        throw new SchemaValidationError(
+          "Schema validation failed",
+          validationResult.errors
+        );
+      }
     } catch (error) {
       lastError = error as Error;
 

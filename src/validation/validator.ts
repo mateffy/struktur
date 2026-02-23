@@ -3,6 +3,12 @@ import addFormats from "ajv-formats";
 
 export type ValidationErrors = ErrorObject[];
 
+export type ValidationMode = 'strict' | 'lenient';
+
+export type ValidationResult<T> = 
+  | { valid: true; data: T }
+  | { valid: false; errors: ErrorObject[] };
+
 export class SchemaValidationError extends Error {
   public readonly errors: ValidationErrors;
 
@@ -40,4 +46,30 @@ export const validateOrThrow = <T>(
   }
 
   return data as T;
+};
+
+export const isRequiredError = (error: ErrorObject): boolean => {
+  return error.keyword === "required";
+};
+
+export const validateAllowingMissingRequired = <T>(
+  ajv: Ajv,
+  schema: SchemaInput<T>,
+  data: unknown
+): ValidationResult<T> => {
+  const validate = ajv.compile<T>(schema);
+  const valid = validate(data);
+
+  if (valid) {
+    return { valid: true, data: data as T };
+  }
+
+  const errors = validate.errors ?? [];
+  const nonRequiredErrors = errors.filter((error) => !isRequiredError(error));
+
+  if (nonRequiredErrors.length === 0) {
+    return { valid: true, data: data as T };
+  }
+
+  return { valid: false, errors: nonRequiredErrors };
 };

@@ -3,10 +3,6 @@ title: Extraction Lifecycle
 description: How data flows through Struktur from input to output.
 ---
 
-# Extraction Lifecycle
-
-The central mental model: what happens from input to output.
-
 ```mermaid
 flowchart LR
     A[Input] --> B[Artifacts]
@@ -40,6 +36,8 @@ See [Strategies](./strategies) for the strategy concept.
 ## Validation inside the loop
 
 The validation loop is a key differentiator. Every LLM response is validated against the schema using Ajv **before** the strategy considers it done. If validation fails, the errors are serialized and sent back to the model as a follow-up message.
+
+**Smart validation**: For multi-step strategies (parallel, sequential, double-pass), Struktur uses lenient validation during intermediate steps—required field violations are allowed until the final step. This prevents false failures when data is split across chunks. Use the `strict` option to disable this behavior.
 
 Most extractions converge within two attempts. This happens **inside** the strategy, not as a post-processing step.
 

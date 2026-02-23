@@ -3,10 +3,6 @@ title: simple
 description: Single-shot extraction for small inputs.
 ---
 
-# simple
-
-Single-shot extraction for small inputs.
-
 ## At a glance
 
 | Property | Value |
@@ -20,10 +16,11 @@ Single-shot extraction for small inputs.
 
 ## Configuration
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `model` | Yes | Model instance from `@ai-sdk/*` |
-| `outputInstructions` | No | Extra instructions for the model |
+| Field | Required | Default | Description |
+|-------|----------|---------|-------------|
+| `model` | Yes | - | Model instance from `@ai-sdk/*` |
+| `outputInstructions` | No | - | Extra instructions for the model |
+| `strict` | No | `false` | Always `true` for simple (single-shot, no intermediate steps) |
 
 ## Algorithm
 

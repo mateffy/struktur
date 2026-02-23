@@ -3,10 +3,6 @@ title: Chunking & Token Budgets
 description: How large documents are split and merged to fit within context windows.
 ---
 
-# Chunking & Token Budgets
-
-How large documents are split and merged to fit within context windows.
-
 ## The context window problem
 
 LLMs have finite context windows. Documents — especially multi-page PDFs, large datasets, or many files at once — often exceed them. Struktur's chunker splits artifact contents into batches that fit within a configurable token budget (`chunkSize`).

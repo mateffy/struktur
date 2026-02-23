@@ -1,6 +1,6 @@
 # Struktur
 
-Struktur is a TypeScript extraction engine that turns pre-parsed artifacts into validated JSON using the Vercel AI SDK. It chunks content by token budgets, runs strategy-driven workflows, validates with Ajv, and merges or dedupes when needed.
+Struktur is a structured data extraction engine that turns pre-parsed artifacts into validated JSON using the Vercel AI SDK. It chunks content by token budgets, runs strategy-driven workflows, validates with Ajv, and merges or dedupes when needed.
 
 ## Highlights
 

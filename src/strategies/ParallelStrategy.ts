@@ -14,6 +14,7 @@ export type ParallelStrategyConfig = {
   maxImages?: number;
   outputInstructions?: string;
   execute?: typeof runWithRetries;
+  strict?: boolean;
 };
 
 export class ParallelStrategy<T> implements ExtractionStrategy<T> {
@@ -55,6 +56,7 @@ export class ParallelStrategy<T> implements ExtractionStrategy<T> {
         artifacts: batch,
         events: options.events,
         execute: this.config.execute as never,
+        strict: this.config.strict,
       });
       step += 1;
       await options.events?.onStep?.({
@@ -79,6 +81,7 @@ export class ParallelStrategy<T> implements ExtractionStrategy<T> {
       artifacts: [],
       events: options.events,
       execute: this.config.execute as never,
+      strict: this.config.strict,
     });
 
     step += 1;

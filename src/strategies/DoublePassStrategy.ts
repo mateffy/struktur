@@ -15,6 +15,7 @@ export type DoublePassStrategyConfig = {
   maxImages?: number;
   outputInstructions?: string;
   execute?: typeof runWithRetries;
+  strict?: boolean;
 };
 
 export class DoublePassStrategy<T> implements ExtractionStrategy<T> {
@@ -57,6 +58,7 @@ export class DoublePassStrategy<T> implements ExtractionStrategy<T> {
         artifacts: batch,
         events: options.events,
         execute: this.config.execute as never,
+        strict: this.config.strict,
       });
       step += 1;
       await options.events?.onStep?.({
@@ -81,6 +83,7 @@ export class DoublePassStrategy<T> implements ExtractionStrategy<T> {
       artifacts: [],
       events: options.events,
       execute: this.config.execute as never,
+      strict: this.config.strict,
     });
 
     step += 1;
@@ -109,6 +112,7 @@ export class DoublePassStrategy<T> implements ExtractionStrategy<T> {
         artifacts: batch,
         events: options.events,
         execute: this.config.execute as never,
+        strict: this.config.strict,
       });
 
       currentData = result.data;

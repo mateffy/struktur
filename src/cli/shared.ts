@@ -50,7 +50,7 @@ export const usage = () => {
     "  auth list",
     "",
     "auth options:",
-    "  --provider <name>        Provider id (openai, anthropic, google)",
+    "  --provider <name>        Provider id (openai, anthropic, google, opencode, openrouter)",
     "  --model <provider/model> Default model identifier",
     "  --token <token>          API token value",
     "  --token-stdin            Read token from stdin",
@@ -191,6 +191,45 @@ export const resolveModel = async (model: string) => {
     case "google": {
       const { google } = await import("@ai-sdk/google");
       return google(modelName);
+    }
+    case "opencode": {
+      const envVar = resolveProviderEnvVar("opencode");
+      let apiKey = envVar ? process.env[envVar] : undefined;
+      if (!apiKey) {
+        apiKey = await resolveProviderToken("opencode");
+      }
+      if (!apiKey) {
+        throw new Error("OpenCode API key is required. Set OPENCODE_API_KEY environment variable or run 'struktur auth set --provider opencode --token <token>'");
+      }
+      
+      // OpenCode Zen uses different AI SDK packages based on model family
+      if (modelName.startsWith("claude-")) {
+        // Claude models use Anthropic SDK
+        const { createAnthropic } = await import("@ai-sdk/anthropic");
+        return createAnthropic({
+          apiKey,
+          baseURL: "https://opencode.ai/zen/v1",
+        })(modelName);
+      } else if (modelName.startsWith("gemini-")) {
+        // Gemini models use Google SDK
+        const { createGoogleGenerativeAI } = await import("@ai-sdk/google");
+        return createGoogleGenerativeAI({
+          apiKey,
+          baseURL: "https://opencode.ai/zen/v1",
+        })(modelName);
+      } else {
+        // GPT models and chat completions (GLM, Kimi, MiniMax, Qwen, etc.)
+        // Use OpenAI SDK with custom baseURL
+        const { createOpenAI } = await import("@ai-sdk/openai");
+        return createOpenAI({
+          apiKey,
+          baseURL: "https://opencode.ai/zen/v1",
+        })(modelName);
+      }
+    }
+    case "openrouter": {
+      const { openrouter } = await import("@openrouter/ai-sdk-provider");
+      return openrouter(modelName);
     }
     default:
       throw new Error(`Unsupported model provider: ${provider}`);

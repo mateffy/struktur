@@ -8,6 +8,7 @@ export type SimpleStrategyConfig = {
   model: unknown;
   outputInstructions?: string;
   execute?: typeof runWithRetries;
+  strict?: boolean;
 };
 
 export class SimpleStrategy<T> implements ExtractionStrategy<T> {
@@ -38,6 +39,7 @@ export class SimpleStrategy<T> implements ExtractionStrategy<T> {
       artifacts: options.artifacts,
       events: options.events,
       execute: this.config.execute as never,
+      strict: this.config.strict,
     });
 
     await options.events?.onStep?.({

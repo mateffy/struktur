@@ -212,6 +212,10 @@ export const resolveProviderEnvVar = (provider: string) => {
       return "ANTHROPIC_API_KEY";
     case "google":
       return "GOOGLE_GENERATIVE_AI_API_KEY";
+    case "opencode":
+      return "OPENCODE_API_KEY";
+    case "openrouter":
+      return "OPENROUTER_API_KEY";
     default:
       return undefined;
   }

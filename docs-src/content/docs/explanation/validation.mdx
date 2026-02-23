@@ -3,10 +3,6 @@ title: Validation & Retries
 description: How the schema validation loop works and why it matters.
 ---
 
-# Validation & Retries
-
-How the schema validation loop works and why it matters.
-
 ## Why validation inside the loop?
 
 Without in-loop validation, you get JSON that may or may not match your schema. You then have to write error handling, decide whether to retry, and figure out how to feed errors back.
@@ -45,6 +41,42 @@ events: {
   }
 }
 ```
+
+## Smart Validation for Multi-Step Strategies
+
+When using parallel or sequential strategies, your data might be split across multiple chunks. For example, an invoice's price might appear on page 1, while the vendor name appears on page 5. If both fields are `required` in your schema, validating intermediate results would fail unnecessarily.
+
+### How smart validation works
+
+Struktur uses **lenient validation** during intermediate extraction steps:
+
+- **Type errors** (`string` vs `number`) → Retry immediately
+- **Format errors** (invalid email) → Retry immediately
+- **Required field errors** → Allowed during intermediate steps
+- **All constraints** → Enforced on final validation
+
+This means the model can extract partial data without pressure to hallucinate missing required fields. The final validation ensures all required fields are present before returning.
+
+### Opting into strict validation
+
+Disable smart validation with the `strict` flag:
+
+```js
+const result = await extract({
+  artifacts,
+  schema,
+  strategy: parallel({
+    model: openai("gpt-4o-mini"),
+    mergeModel: openai("gpt-4o-mini"),
+    strict: true, // Validate required fields on every step
+  }),
+});
+```
+
+Use `strict: true` when:
+- You know each chunk contains complete data
+- You want early failure on missing fields
+- You're debugging extraction issues
 
 ## See also
 

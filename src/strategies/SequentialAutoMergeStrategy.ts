@@ -15,6 +15,7 @@ export type SequentialAutoMergeStrategyConfig = {
   dedupeModel?: unknown;
   execute?: typeof runWithRetries;
   dedupeExecute?: typeof runWithRetries;
+  strict?: boolean;
 };
 
 const dedupeSchema = {
@@ -97,6 +98,7 @@ export class SequentialAutoMergeStrategy<T> implements ExtractionStrategy<T> {
         artifacts: batch,
         events: options.events,
         execute: this.config.execute as never,
+        strict: this.config.strict,
       });
 
       merged = merger.merge(merged, result.data as Record<string, unknown>);
@@ -120,6 +122,7 @@ export class SequentialAutoMergeStrategy<T> implements ExtractionStrategy<T> {
       user: dedupePrompt.user,
       events: options.events,
       execute: this.config.dedupeExecute,
+      strict: this.config.strict,
     });
 
     step += 1;

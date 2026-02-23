@@ -186,7 +186,7 @@ export const runAuthCommand = async (
   }
 };
 
-const supportedProviders = ["openai", "anthropic", "google"];
+const supportedProviders = ["openai", "anthropic", "google", "opencode", "openrouter"];
 
 export const runModelsCommand = async (
   options: Record<string, string | boolean>,
@@ -394,6 +394,14 @@ export const runExtractCommand = async (
   }
 
   if (result.error) {
+    const { SchemaValidationError } = await import("./validation/validator");
+    const isSchemaError = result.error instanceof SchemaValidationError ||
+      (result.error.name === "SchemaValidationError" && "errors" in result.error);
+    if (isSchemaError) {
+      const schemaError = result.error as InstanceType<typeof SchemaValidationError>;
+      const errorDetails = JSON.stringify(schemaError.errors, null, 2);
+      throw new Error(`Schema validation failed:\n${errorDetails}`);
+    }
     throw result.error;
   }
 

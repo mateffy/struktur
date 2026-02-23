@@ -4,6 +4,7 @@ import { resolveProviderEnvVar, resolveProviderToken } from "../auth/tokens";
 const openAiModelsUrl = "https://api.openai.com/v1/models";
 const anthropicModelsUrl = "https://api.anthropic.com/v1/models";
 const googleModelsUrl = "https://generativelanguage.googleapis.com/v1beta/models";
+const openRouterModelsUrl = "https://openrouter.ai/api/v1/models";
 
 const getTokenForProvider = async (provider: string) => {
   const envVar = resolveProviderEnvVar(provider);
@@ -29,6 +30,11 @@ const parseGoogleModels = (json: unknown) => {
     .map((item) => item.name)
     .filter((name): name is string => typeof name === "string")
     .map((name) => name.replace(/^models\//, ""));
+};
+
+const parseOpenRouterModels = (json: unknown) => {
+  const data = (json as { data?: Array<{ id?: string }> } | undefined)?.data ?? [];
+  return data.map((item) => item.id).filter((id): id is string => typeof id === "string");
 };
 
 const requestModels = async (provider: string, token: string): Promise<string[]> => {
@@ -66,6 +72,56 @@ const requestModels = async (provider: string, token: string): Promise<string[]>
     return parseGoogleModels(json);
   }
 
+  if (provider === "openrouter") {
+    const response = await fetch(openRouterModelsUrl, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) {
+      throw new Error(await response.text());
+    }
+    const json = (await response.json()) as unknown;
+    return parseOpenRouterModels(json);
+  }
+
+  if (provider === "opencode") {
+    // OpenCode doesn't have a public models endpoint, return known models
+    return [
+      "gpt-5.2",
+      "gpt-5.2-codex",
+      "gpt-5.1",
+      "gpt-5.1-codex",
+      "gpt-5.1-codex-max",
+      "gpt-5.1-codex-mini",
+      "gpt-5",
+      "gpt-5-codex",
+      "gpt-5-nano",
+      "claude-opus-4-6",
+      "claude-opus-4-5",
+      "claude-opus-4-1",
+      "claude-sonnet-4-6",
+      "claude-sonnet-4-5",
+      "claude-sonnet-4",
+      "claude-haiku-4-5",
+      "claude-haiku-3.5",
+      "gemini-3.1-pro",
+      "gemini-3-pro",
+      "gemini-3-flash",
+      "minimax-m2.5",
+      "minimax-m2.5-free",
+      "minimax-m2.1",
+      "glm-5",
+      "glm-5-free",
+      "glm-4.7",
+      "glm-4.6",
+      "kimi-k2.5",
+      "kimi-k2.5-free",
+      "kimi-k2-thinking",
+      "kimi-k2",
+      "qwen3-coder",
+      "big-pickle",
+    ];
+  }
+
   throw new Error(`Unsupported provider: ${provider}`);
 };
 
@@ -73,6 +129,8 @@ const cheapestModelPreferences: Record<string, string[]> = {
   openai: ["gpt-4.1-nano", "gpt-4.1-mini", "gpt-4o-mini", "gpt-4o"],
   anthropic: ["claude-3-5-haiku", "claude-3-haiku"],
   google: ["gemini-1.5-flash-8b", "gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"],
+  opencode: ["gpt-5-nano", "claude-haiku-3.5", "gemini-3-flash", "kimi-k2-free", "glm-5-free", "minimax-m2.5-free"],
+  openrouter: ["openai/gpt-4o-mini", "anthropic/claude-3.5-haiku", "google/gemini-flash-1.5"],
 };
 
 const matchesPreference = (model: string, preference: string) => {
@@ -127,5 +185,6 @@ export const __testing__ = {
   parseOpenAiModels,
   parseAnthropicModels,
   parseGoogleModels,
+  parseOpenRouterModels,
   pickCheapestModel,
 };
