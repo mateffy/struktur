@@ -1,0 +1,47 @@
+---
+title: extract()
+description: Main extraction function for the TypeScript SDK.
+---
+
+# extract()
+
+Main extraction function.
+
+## Usage
+
+```js
+import { extract, simple } from "@mateffy/struktur";
+import { openai } from "@ai-sdk/openai";
+
+const result = await extract({
+  artifacts,
+  schema,
+  strategy: simple({ model: openai("gpt-4o-mini") }),
+});
+
+console.log(result.data);
+console.log(result.usage.totalTokens);
+```
+
+## Options
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `artifacts` | Yes | Array of artifacts to extract from |
+| `schema` | Yes | JSON Schema for output validation |
+| `strategy` | Yes | A strategy instance |
+| `events` | No | Event handlers for progress tracking |
+
+## Result
+
+| Field | Description |
+|-------|-------------|
+| `data` | Validated output matching your schema |
+| `usage` | Token counts: `inputTokens`, `outputTokens`, `totalTokens` |
+| `error` | Set if extraction encountered a non-fatal error |
+
+## See also
+
+- [Installation & Setup](../cli/installation) — getting started
+- [Strategy Factory Functions](../explanation/strategies) — creating strategies
+- [Events & Observability](./events) — progress tracking

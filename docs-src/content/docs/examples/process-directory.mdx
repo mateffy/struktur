@@ -1,0 +1,136 @@
+---
+title: Process a Directory of Files
+description: Batch processing with shell pipelines or scripts.
+---
+
+
+
+# Process a Directory of Files How-to
+
+Batch processing with shell pipelines or scripts.
+
+## Shell loop with find
+
+```bash
+find ./documents -name "*.pdf" -print0 | while IFS= read -r -d '' file; do
+  echo "Processing: $file"
+  struktur --input "$file" \
+    --schema schema.json \
+    --model openai/gpt-4o-mini \
+    --output "outputs/$(basename "$file" .pdf).json"
+done
+```
+
+## With markitdown for PDFs
+
+```bash
+for file in documents/*.pdf; do
+  markitdown "$file" | struktur --stdin \
+    --schema schema.json \
+    --model openai/gpt-4o-mini \
+    --output "outputs/$(basename "$file" .pdf).json"
+done
+```
+
+## Error handling script
+
+```bash
+#!/bin/bash
+
+SCHEMA="schema.json"
+INPUT_DIR="./documents"
+OUTPUT_DIR="./outputs"
+MODEL="openai/gpt-4o-mini"
+
+mkdir -p "$OUTPUT_DIR"
+
+for file in "$INPUT_DIR"/*.{pdf,txt,docx}; do
+  [ -e "$file" ] || continue
+
+  filename=$(basename "$file")
+  output_file="$OUTPUT_DIR/${filename%.*}.json"
+
+  echo "[$((++count))] Processing: $filename"
+
+  if struktur --input "$file" \
+       --schema "$SCHEMA" \
+       --model "$MODEL" \
+       --output "$output_file"; then
+    echo "  ✓ Success: $output_file"
+  else
+    echo "  ✗ Failed: $filename" >&2
+  fi
+done
+
+echo "Processed $count files"
+```
+
+## SDK with parallel processing
+
+```js
+import { extract, parallelAutoMerge } from "@mateffy/struktur";
+import { openai } from "@ai-sdk/openai";
+import { fileToArtifact } from "@mateffy/struktur";
+import fs from "node:fs/promises";
+import path from "node:path";
+
+const schema = /* your schema */;
+
+async function processDirectory(inputDir, outputDir) {
+  await fs.mkdir(outputDir, { recursive: true });
+
+  const files = await fs.readdir(inputDir);
+  const documents = files.filter(f =>
+    f.endsWith('.pdf') || f.endsWith('.txt')
+  );
+
+  for (const [index, filename] of documents.entries()) {
+    console.log(`[${index + 1}/${documents.length}] ${filename}`);
+
+    try {
+      const buffer = await fs.readFile(path.join(inputDir, filename));
+      const artifact = await fileToArtifact(buffer, {
+        mimeType: filename.endsWith('.pdf')
+          ? 'application/pdf'
+          : 'text/plain'
+      });
+
+      const result = await extract({
+        artifacts: [artifact],
+        schema,
+        strategy: parallelAutoMerge({
+          model: openai("gpt-4o-mini"),
+          dedupeModel: openai("gpt-4o-mini")
+        })
+      });
+
+      const outputPath = path.join(
+        outputDir,
+        `${path.parse(filename).name}.json`
+      );
+      await fs.writeFile(outputPath, JSON.stringify(result.data, null, 2));
+      console.log(`  ✓ Saved to ${outputPath}`);
+    } catch (error) {
+      console.error(`  ✗ Failed: ${error.message}`);
+    }
+  }
+}
+
+await processDirectory("./documents", "./outputs");
+```
+
+## Aggregate output
+
+Collect all results into a single array:
+
+```bash
+for f in documents/*.pdf; do
+  struktur --input "$f" --schema schema.json --model openai/gpt-4o-mini
+done | jq -s '.'
+```
+
+## See also
+
+- [Watch a Folder for New Files](./watch-folder) — continuous processing
+- [parallelAutoMerge](../explanation/strategies/parallel-auto-merge) — parallel strategy
+- [Shell Pipelines & Patterns](./pipelines) — more shell patterns

@@ -1,0 +1,10 @@
+{
+  "title": "CLI",
+  "pages": [
+    "installation",
+    "extract",
+    "auth",
+    "models",
+    "verify"
+  ]
+}

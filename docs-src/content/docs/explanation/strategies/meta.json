@@ -1,0 +1,15 @@
+{
+  "title": "Extraction Strategies",
+  "pages": [
+    "index",
+    "simple",
+    "parallel",
+    "sequential",
+    "parallel-auto-merge",
+    "sequential-auto-merge",
+    "double-pass",
+    "double-pass-auto-merge",
+    "custom-strategy",
+    "choosing"
+  ]
+}

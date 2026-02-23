@@ -1,0 +1,39 @@
+---
+title: verify
+description: Validate artifact JSON format.
+---
+
+# verify
+
+Validate artifact JSON format.
+
+```bash
+struktur verify [--input <path|->]
+```
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--input <path\|->` | string | stdin | Artifact JSON file or `-` for stdin. |
+
+Output on success:
+
+```json
+{ "valid": true, "artifacts": 2 }
+```
+
+Throws with a descriptive error on invalid artifact JSON (schema path, expected type, etc.).
+
+## Usage
+
+Use this to verify your preprocessing pipeline produces valid artifact format before running extraction.
+
+```bash
+cat artifacts.json | struktur verify
+# or from a file:
+struktur verify --input artifacts.json
+```
+
+## See also
+
+- [The Artifact Format](../explanation/preprocessing/artifact-format) — the JSON spec
+- [Built-in Input Types](../explanation/preprocessing/built-in-inputs) — creating artifacts

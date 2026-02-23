@@ -1,0 +1,81 @@
+---
+title: Chunking & Token Budgets
+description: How large documents are split and merged to fit within context windows.
+---
+
+# Chunking & Token Budgets
+
+How large documents are split and merged to fit within context windows.
+
+## The context window problem
+
+LLMs have finite context windows. Documents — especially multi-page PDFs, large datasets, or many files at once — often exceed them. Struktur's chunker splits artifact contents into batches that fit within a configurable token budget (`chunkSize`).
+
+## How splitting works
+
+Splitting happens at two levels:
+
+1. **ArtifactSplitter:** splits a single large artifact's contents into smaller parts, respecting content slice boundaries (e.g., page boundaries).
+2. **ArtifactBatcher:** groups artifacts or artifact parts into batches that stay within the token budget and optional image count limit.
+
+The tokenizer uses a character-approximation (not exact token counting). `chunkSize` defaults to 10,000 tokens.
+
+## Images and `maxImages`
+
+Some strategies accept `maxImages` to cap how many images appear per chunk. This matters when images consume disproportionate context. If a batch would exceed `maxImages`, extra images are moved to the next batch.
+
+## Why `simple` does not chunk
+
+The `simple` strategy loads all artifacts as-is. If the input exceeds the context window, the LLM call may fail or produce degraded results. For large inputs, use a chunked strategy.
+
+This is a deliberate trade-off: `simple` is fast and cheap for small inputs, not suitable for large ones.
+
+## Merging partial results
+
+When a document is split into N chunks and each chunk is extracted independently, you get N partial objects.
+
+For a scalar-heavy schema (title, author, date), you want the best answer from all chunks.
+
+For an array-heavy schema (line items, product listings), you want to concatenate all arrays and remove duplicates.
+
+### LLM merge (parallel, doublePass)
+
+These strategies send all partial results to a **merge model** in a single call, with a prompt asking it to produce a single coherent output. The merge model sees the full schema and all partial outputs.
+
+This is powerful but costs extra tokens.
+
+### Schema-aware auto-merge
+
+`parallelAutoMerge`, `sequentialAutoMerge`, and `doublePassAutoMerge` use `SmartDataMerger`:
+
+- **Arrays:** concatenated. `items` from chunk 1 + `items` from chunk 2 = `items` in merged.
+- **Objects:** shallow-merged. Keys from later chunks overwrite keys from earlier ones.
+- **Scalars:** prefer newer non-empty values.
+
+This approach avoids an extra LLM call and works well for list-extraction schemas. It does not handle complex cross-chunk synthesis — for that, use LLM merge.
+
+## Deduplication
+
+After auto-merging concatenated arrays, there may be duplicates. Dedup runs in two stages:
+
+**Stage 1: CRC32 hash-based.** Exact duplicates (byte-for-byte identical after stable JSON stringification) are removed without any LLM call. Fast and cheap.
+
+**Stage 2: LLM-based semantic dedup.** A dedupe model is given the merged array and asked to identify semantically equivalent entries (e.g., "iPhone 15" vs "Apple iPhone 15 128GB"). It returns a list of dot-path keys to remove (e.g., `items.3`).
+
+Only the auto-merge variants include this step.
+
+### When dedup matters
+
+Dedup is valuable when:
+
+- The same item legitimately appears in multiple chunks.
+- The same document segment appears in multiple artifacts.
+
+Dedup adds token cost and latency. For schemas without arrays, or for inputs with no expected overlap, use strategies without auto-merge.
+
+## See also
+
+- [The Extraction Pipeline](./pipeline) — the full flow
+- [Strategies](./strategies) — which strategies use chunking
+- [parallel](./strategies/parallel) — chunked parallel extraction
+- [sequential](./strategies/sequential) — chunked sequential extraction

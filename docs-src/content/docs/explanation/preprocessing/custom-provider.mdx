@@ -1,0 +1,134 @@
+---
+title: Writing a Custom Provider
+description: How to add support for a new file format.
+---
+
+# Writing a Custom Provider
+
+How to add support for a new file format.
+
+## When to write a custom provider
+
+You need a custom provider when you want `fileToArtifact()` to handle a MIME type that Struktur does not support natively (e.g., `application/pdf`, `application/vnd.ms-excel`, a custom format).
+
+## The provider signature
+
+A provider is an async function that takes a Buffer and returns an Artifact:
+
+```js
+const myPdfProvider = async (buffer) => {
+  const pages = await parseMyPdf(buffer);
+
+  return {
+    id: `pdf-${crypto.randomUUID()}`,
+    type: "pdf",
+    raw: async () => buffer,
+    contents: pages.map((page, i) => ({
+      page: i + 1,
+      text: page.text,
+      media: page.images.map((img) => ({
+        type: "image",
+        base64: img.base64,
+      })),
+    })),
+  };
+};
+```
+
+## Register and use the provider
+
+```js
+import { fileToArtifact } from "@mateffy/struktur";
+import { readFile } from "node:fs/promises";
+
+const buffer = Buffer.from(await readFile("document.pdf"));
+
+const artifact = await fileToArtifact(buffer, {
+  mimeType: "application/pdf",
+  providers: {
+    "application/pdf": myPdfProvider,
+  },
+});
+```
+
+## Using providers with `parseInputToArtifacts`
+
+```js
+import { parseInputToArtifacts } from "@mateffy/struktur";
+
+const artifacts = await parseInputToArtifacts(
+  { kind: "file", path: "document.pdf" },
+  { providers: { "application/pdf": myPdfProvider } }
+);
+```
+
+## Common patterns
+
+### PDF with markitdown subprocess
+
+```js
+import { $ } from "bun";
+
+const pdfViaMarkitdown = async (buffer) => {
+  const tempPath = `/tmp/${crypto.randomUUID()}.pdf`;
+  await Bun.write(tempPath, buffer);
+  const text = await $`markitdown ${tempPath}`.text();
+  
+  return {
+    id: `pdf-${crypto.randomUUID()}`,
+    type: "pdf",
+    raw: async () => buffer,
+    contents: [{ text }],
+  };
+};
+```
+
+### Excel with xlsx package
+
+```js
+import * as XLSX from "xlsx";
+
+const excelProvider = async (buffer) => {
+  const workbook = XLSX.read(buffer);
+  const contents = workbook.SheetNames.map((name, i) => ({
+    page: i + 1,
+    text: XLSX.utils.sheet_to_csv(workbook.Sheets[name]),
+  }));
+
+  return {
+    id: `excel-${crypto.randomUUID()}`,
+    type: "file",
+    raw: async () => buffer,
+    contents,
+  };
+};
+```
+
+### Email with mailparser
+
+```js
+import { simpleParser } from "mailparser";
+
+const emailProvider = async (buffer) => {
+  const parsed = await simpleParser(buffer);
+  
+  return {
+    id: `email-${crypto.randomUUID()}`,
+    type: "text",
+    raw: async () => buffer,
+    contents: [{
+      text: `Subject: ${parsed.subject}\n\n${parsed.text}`,
+    }],
+    metadata: {
+      from: parsed.from?.text,
+      date: parsed.date,
+    },
+  };
+};
+```
+
+## See also
+
+- [The Artifact Format](./artifact-format) — the return type spec
+- [Built-in Input Types](./built-in-inputs) — default input handling
+- [Artifact Helpers](../sdk/artifact-helpers) — SDK API

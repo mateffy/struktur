@@ -1,0 +1,86 @@
+---
+title: Built-in Input Types
+description: All the ways to get input into Struktur without building a custom provider.
+---
+
+# Built-in Input Types
+
+All the ways to get input into Struktur without building a custom provider.
+
+## Plain text / markdown (CLI)
+
+| Flag | Description |
+|------|-------------|
+| `--stdin` | Reads stdin as UTF-8 text. Auto-detected when piped with no other input flag. |
+| `--text <string>` | Inline text as a CLI argument. |
+| `--input <path>` | Reads a `.txt` or `.md` file. If Bun detects MIME type as `text/*`, it becomes a text artifact. |
+
+Text is split on double newlines into content slices automatically.
+
+## Artifact JSON (CLI)
+
+| Flag | Description |
+|------|-------------|
+| `--artifact <path\|->` | Reads a pre-built artifact JSON file. Use `-` for stdin. |
+| `--artifact-json <json>` | Inline artifact JSON string. |
+
+Both accept a single artifact object or an array.
+
+## Schema loading
+
+| Flag | Description |
+|------|-------------|
+| `--schema <path\|url>` | JSON Schema file (local path or HTTP/HTTPS URL). |
+| `--schema-json <json>` | Inline JSON Schema string. |
+
+Schema loading from URLs sends `Accept: application/schema+json, application/json` headers.
+
+## SDK: `fileToArtifact(buffer, { mimeType, providers })`
+
+Creates an artifact from a Buffer. The provider registry maps MIME types to artifact factories.
+
+If no provider is registered for the MIME type:
+
+- `text/*` → text artifact (split on double newlines)
+- `image/*` → image artifact (single media slice with raw buffer)
+- Anything else → throws `Unsupported MIME type`
+
+```js
+import { fileToArtifact } from "@mateffy/struktur";
+import fs from "node:fs/promises";
+
+const buffer = Buffer.from(await fs.readFile("document.pdf"));
+const artifact = await fileToArtifact(buffer, {
+  mimeType: "application/pdf",
+  providers: { /* custom providers */ }
+});
+```
+
+## SDK: `urlToArtifact(url)`
+
+Fetches a URL and expects it to return pre-serialized artifact JSON. Validates and hydrates.
+
+```js
+import { urlToArtifact } from "@mateffy/struktur";
+
+const artifacts = await urlToArtifact("https://example.com/artifact.json");
+```
+
+## SDK: `parseInputToArtifacts(input, options?)`
+
+Low-level function that dispatches to the correct parser. Supports:
+
+| Input kind | Description |
+|------------|-------------|
+| `{ kind: "text", text }` | Text artifact |
+| `{ kind: "file", path, mimeType? }` | File artifact via provider registry |
+| `{ kind: "buffer", buffer, mimeType }` | Buffer artifact via provider registry |
+| `{ kind: "artifact-json", data }` | Validates and hydrates |
+
+Custom parsers can be registered via `registerArtifactInputParser()`.
+
+## See also
+
+- [The Artifact Format](./artifact-format) — the JSON spec
+- [Artifact Helpers](../sdk/artifact-helpers) — SDK API
+- [Writing a Custom Provider](./custom-provider) — extending MIME type support

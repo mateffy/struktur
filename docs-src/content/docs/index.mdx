@@ -1,0 +1,55 @@
+---
+title: What is Struktur?
+description: Struktur is a TypeScript extraction engine that turns pre-parsed documents into validated JSON using LLMs.
+---
+
+Struktur is a TypeScript extraction engine that turns pre-parsed documents into validated, schema-typed JSON. It operates on JSON-based artifact DTOs, chunks them by token budgets, runs extraction strategies, validates results with Ajv, and merges or deduplicates outputs where needed.
+
+## Why Struktur?
+
+- **Schema-first:** You define the shape, Struktur guarantees it.
+- **Strategy-driven:** From single-shot to double-pass refinement.
+- **Pipeline-native:** Reads stdin, writes stdout, composes with `jq`.
+
+## A 10-second demo
+
+```bash
+echo "Invoice #1042, Acme Corp, $2,400.00 due April 1" | \
+  struktur --stdin \
+  --schema-json '{"type":"object","properties":{"number":{"type":"string"},"vendor":{"type":"string"},"total":{"type":"number"}},"required":["number","vendor","total"],"additionalProperties":false}' \
+  --model openai/gpt-4o-mini
+```
+
+Expected output:
+
+```json
+{
+  "number": "1042",
+  "vendor": "Acme Corp",
+  "total": 2400
+}
+```
+
+## What Struktur is NOT
+
+- **It does not parse PDFs, HTML, Word docs, or images.** You handle that upstream (e.g. with `markitdown`, `pdftotext`, or your own parser).
+- **It is not a managed API.** It runs locally and calls your provider directly.
+- **It does not stream.** Input in, JSON out.
+- **It is not a general LLM orchestration framework.**
+
+For the full mental model, see [The Extraction Pipeline](./explanation/pipeline).
+
+## Who is it for?
+
+**CLI users** — data engineers, analysts, shell pipeline builders — use Struktur for one-off extractions, batch processing, and CI/CD automation without writing code.
+
+**SDK users** — TypeScript developers embedding extraction in applications — use Struktur for typed results, custom strategies, and fine-grained control over the extraction pipeline.
+
+## Quick navigation
+
+| Goal | Section |
+|------|---------|
+| New here? | [Quickstart](./quickstart) |
+| Need to accomplish something? | [Examples](./examples) |
+| Looking up a flag or type? | [CLI Reference](./cli) |
+| Want to understand how it works? | [Concepts](./explanation) |

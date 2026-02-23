@@ -1,0 +1,93 @@
+---
+title: Installation & Setup
+description: Install and configure Struktur.
+---
+
+# Installation & Setup
+
+Install and configure Struktur CLI.
+
+## Install
+
+```bash
+# Using npm
+npm install -g @mateffy/struktur
+
+# Or using Bun (recommended)
+bun install -g @mateffy/struktur
+```
+
+Verify:
+
+```bash
+struktur --help
+```
+
+## Configure a provider (required)
+
+Two methods:
+
+### Option A: Environment variable (not persisted)
+
+```bash
+export OPENAI_API_KEY=sk-...
+export ANTHROPIC_API_KEY=sk-ant-...
+export GOOGLE_GENERATIVE_AI_API_KEY=AI...
+```
+
+### Option B: Stored token (persisted)
+
+```bash
+echo "$OPENAI_API_KEY" | struktur auth set --provider openai --token-stdin
+```
+
+**Storage:**
+
+- macOS: Keychain (auto)
+- Linux/Windows: `~/.config/struktur/tokens.json`
+
+**Permissions:**
+
+- Config dir: `chmod 700`
+- Tokens file: `chmod 600`
+
+## Set a default model
+
+```bash
+struktur auth default openai
+# or explicitly:
+struktur auth default --model openai/gpt-4o-mini
+```
+
+Once set, `--model` is optional in extract commands.
+
+## Environment variables
+
+### Provider API keys
+
+| Variable | Purpose |
+|----------|---------|
+| `OPENAI_API_KEY` | OpenAI API token |
+| `ANTHROPIC_API_KEY` | Anthropic API token |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Google Generative AI API token |
+
+Environment variables override stored tokens.
+
+### Configuration
+
+| Variable | Purpose |
+|----------|---------|
+| `STRUKTUR_CONFIG_DIR` | Override config directory (default: `~/.config/struktur`) |
+| `STRUKTUR_DISABLE_KEYCHAIN` | Set to any value to disable macOS Keychain |
+| `STRUKTUR_KEYCHAIN_SERVICE` | Override Keychain service name |
+
+### SDK behavior
+
+| Variable | Purpose |
+|----------|---------|
+| `AI_SDK_LOG_WARNINGS` | Set to `false` to suppress AI SDK warnings (default: `false` in CLI) |
+
+## See also
+
+- [extract](./extract) — main extraction command
+- [auth](./auth) — token management

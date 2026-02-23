@@ -1,0 +1,9 @@
+{
+  "title": "Document Processing",
+  "pages": [
+    "why-no-parsing",
+    "artifact-format",
+    "built-in-inputs",
+    "custom-provider"
+  ]
+}

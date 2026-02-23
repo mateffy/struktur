@@ -1,0 +1,101 @@
+---
+title: Quickstart
+description: Get started with Struktur in under 5 minutes. Extract structured data from any file.
+---
+
+
+
+# Quickstart Tutorial
+
+Extract structured data from any file in 3 commands. About 5 minutes.
+
+## What we'll build
+
+We will extract structured invoice data from a text string using the CLI.
+
+Expected output:
+
+```json
+{
+  "invoice_number": "1042",
+  "vendor": "Acme Corp",
+  "total": 2400,
+  "due_date": "April 1, 2026"
+}
+```
+
+## Prerequisites
+
+- Node.js 18+ or Bun installed
+- An API key from OpenAI, Anthropic, or Google
+
+## Step 1: Install
+
+```bash
+# Using npm
+npm install -g @mateffy/struktur
+
+# Or using Bun (recommended)
+bun install -g @mateffy/struktur
+```
+
+Verify:
+
+```bash
+struktur --help
+```
+
+You should see the usage output.
+
+## Step 2: Configure your API key
+
+**Option A (quick, for testing):**
+
+```bash
+export OPENAI_API_KEY=sk-...
+```
+
+**Option B (secure, persisted):**
+
+```bash
+echo "sk-..." | struktur auth set --provider openai --token-stdin
+```
+
+Output: `{ "provider": "openai", "stored": "keychain" }` (or `"file"` on Linux).
+
+## Step 3: Extract your first data
+
+```bash
+echo "Invoice #1042 from Acme Corp. Total: $2,400.00. Due: April 1, 2026." | \
+  struktur --stdin \
+  --schema-json '{"type":"object","properties":{"invoice_number":{"type":"string"},"vendor":{"type":"string"},"total":{"type":"number"},"due_date":{"type":"string"}},"required":["invoice_number","vendor","total","due_date"],"additionalProperties":false}' \
+  --model openai/gpt-4o-mini
+```
+
+Output:
+
+```json
+{
+  "invoice_number": "1042",
+  "vendor": "Acme Corp",
+  "total": 2400,
+  "due_date": "April 1, 2026"
+}
+```
+
+Notice that `total` is a number, not a string — Struktur enforced the schema.
+
+## What happened?
+
+Three things: stdin input was loaded as an artifact, the LLM generated output, and Ajv validated it against your schema. The `simple` strategy handled this in a single LLM call.
+
+To understand what happened inside, read [The Extraction Pipeline](../explanation/pipeline).
+
+## Where to go next
+
+| Goal | Link |
+|------|------|
+| Keep learning | [The Extraction Pipeline](../explanation/pipeline) |
+| Solve a real problem | [Extract Invoice Data](../examples/extract-invoice) |
+| Look up all CLI flags | [CLI Reference](../cli/extract) |
+| Use it in TypeScript | [TypeScript SDK](../sdk/installation) |

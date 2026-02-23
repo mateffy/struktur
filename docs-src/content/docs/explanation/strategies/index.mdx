@@ -1,0 +1,34 @@
+---
+title: What are Strategies
+description: Overview of extraction strategies available in Struktur.
+---
+
+# What are Strategies
+
+A strategy implements:
+
+- `name`: string identifier
+- `run()`: the orchestration logic
+- `getEstimatedSteps()`: optional, for progress tracking
+
+Strategies own their config (model, chunk size, concurrency). All strategies guarantee: output validates against the schema or they throw.
+
+## Built-in strategies
+
+| Strategy | Description |
+|----------|-------------|
+| [simple](./simple) | Single-shot extraction for small inputs |
+| [parallel](./parallel) | Concurrent batches with LLM merge |
+| [sequential](./sequential) | Ordered batches with context carryover |
+| [parallelAutoMerge](./parallel-auto-merge) | Parallel with schema-aware merge + dedupe |
+| [sequentialAutoMerge](./sequential-auto-merge) | Sequential with schema-aware merge + dedupe |
+| [doublePass](./double-pass) | Parallel pass + sequential refinement |
+| [doublePassAutoMerge](./double-pass-auto-merge) | Double-pass with auto-merge |
+
+## Choosing a strategy
+
+See [Choosing a Strategy](./choosing) for a decision guide.
+
+## Custom strategies
+
+See [Writing a Custom Strategy](./custom-strategy) to implement your own.

@@ -1,0 +1,12 @@
+{
+  "title": "Struktur",
+  "pages": [
+    "index",
+    "why-struktur",
+    "quickstart",
+    "explanation",
+    "cli",
+    "sdk",
+    "examples"
+  ]
+}
