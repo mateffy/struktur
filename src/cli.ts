@@ -1,4 +1,18 @@
 #!/usr/bin/env bun
+
+// Workaround for AI SDK timestamp parsing issue with certain providers
+// Some providers (e.g., opencode) return invalid timestamps that cause
+// RangeError: Invalid Date when AI SDK tries to call toISOString()
+const originalToISOString = Date.prototype.toISOString;
+Date.prototype.toISOString = function () {
+  try {
+    return originalToISOString.call(this);
+  } catch {
+    // Return current time as fallback for invalid dates
+    return new Date().toISOString();
+  }
+};
+
 import { extract } from "./extract";
 import {
   doublePass,
@@ -459,7 +473,6 @@ export const runCli = async (argv: string[], deps: CliDependencies = {}) => {
 };
 
 if (import.meta.main) {
-  process.env.AI_SDK_LOG_WARNINGS ??= "false";
   runCli(Bun.argv.slice(2)).catch(async (error) => {
     if (!process.stdin.isTTY && !stdinConsumed) {
       try {
