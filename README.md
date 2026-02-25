@@ -16,7 +16,7 @@ Struktur is a structured data extraction engine that turns pre-parsed artifacts 
 ## Installation
 
 ```sh
-bun install
+bun install @mateffy/struktur
 ```
 
 ## Quick start
@@ -131,6 +131,32 @@ const result = await extract({
     },
   },
 });
+```
+
+## Debug Mode
+
+Enable verbose JSON logging to stderr with the `--debug` flag:
+
+```bash
+struktur extract --debug -t "text to extract" -s schema.json
+```
+
+This outputs detailed information about:
+- CLI initialization and configuration
+- Artifact loading (count, tokens, images)
+- Chunking and batching decisions
+- Strategy execution steps
+- LLM calls (prompts, responses, tokens, timing)
+- Validation attempts and retries
+- Merging and deduplication operations
+- Final extraction results
+
+All logs are single-line JSON for easy parsing:
+
+```json
+{"timestamp":"2026-02-24T20:00:00.000Z","type":"cli_init","args":{"strategy":"simple"}}
+{"timestamp":"2026-02-24T20:00:00.001Z","type":"artifacts_loaded","count":3,"totalTokens":15000}
+{"timestamp":"2026-02-24T20:00:00.002Z","type":"batching_complete","totalBatches":2,"batches":[{"index":0,"artifactCount":2,"tokens":10000},{"index":1,"artifactCount":1,"tokens":5000}]}
 ```
 
 ## Testing

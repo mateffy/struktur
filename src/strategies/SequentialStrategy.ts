@@ -1,7 +1,12 @@
 import type { ExtractionResult, ExtractionStrategy } from "../types";
 import type { ExtractionOptions } from "../types";
 import { buildSequentialPrompt } from "../prompts/SequentialExtractorPrompt";
-import { extractWithPrompt, getBatches, mergeUsage, serializeSchema } from "./utils";
+import {
+  extractWithPrompt,
+  getBatches,
+  mergeUsage,
+  serializeSchema,
+} from "./utils";
 import { runWithRetries } from "../llm/RetryingRunner";
 
 export type SequentialStrategyConfig = {
@@ -30,10 +35,15 @@ export class SequentialStrategy<T> implements ExtractionStrategy<T> {
   }
 
   async run(options: ExtractionOptions<T>): Promise<ExtractionResult<T>> {
-    const batches = getBatches(options.artifacts, {
-      maxTokens: this.config.chunkSize,
-      maxImages: this.config.maxImages,
-    });
+    const debug = options.debug;
+    const batches = getBatches(
+      options.artifacts,
+      {
+        maxTokens: this.config.chunkSize,
+        maxImages: this.config.maxImages,
+      },
+      debug,
+    );
 
     const schema = serializeSchema(options.schema);
     let currentData: T | undefined;
@@ -41,13 +51,26 @@ export class SequentialStrategy<T> implements ExtractionStrategy<T> {
     const totalSteps = this.getEstimatedSteps(options.artifacts);
     let step = 1;
 
+    // Emit start event
+    await options.events?.onStep?.({
+      step,
+      total: totalSteps,
+      label: batches.length > 1 ? `batch 1/${batches.length}` : "extract",
+    });
+    debug?.step({
+      step,
+      total: totalSteps,
+      label: batches.length > 1 ? `batch 1/${batches.length}` : "extract",
+      strategy: this.name,
+    });
+
     for (const [index, batch] of batches.entries()) {
       const previousData = currentData ? JSON.stringify(currentData) : "{}";
       const prompt = buildSequentialPrompt(
         batch,
         schema,
         previousData,
-        this.config.outputInstructions
+        this.config.outputInstructions,
       );
 
       const result = await extractWithPrompt<T>({
@@ -58,18 +81,29 @@ export class SequentialStrategy<T> implements ExtractionStrategy<T> {
         artifacts: batch,
         events: options.events,
         execute: this.config.execute as never,
-        strict: this.config.strict,
+        strict: options.strict ?? this.config.strict,
+        debug,
+        callId: `sequential_batch_${index + 1}`,
       });
 
       currentData = result.data;
       usages.push(result.usage);
 
       step += 1;
-      await options.events?.onStep?.({
-        step,
-        total: totalSteps,
-        label: `batch ${index + 1}/${batches.length}`,
-      });
+      // Only emit progress if there are more batches
+      if (index < batches.length - 1) {
+        await options.events?.onStep?.({
+          step,
+          total: totalSteps,
+          label: `batch ${index + 2}/${batches.length}`,
+        });
+        debug?.step({
+          step,
+          total: totalSteps,
+          label: `batch ${index + 2}/${batches.length}`,
+          strategy: this.name,
+        });
+      }
     }
 
     if (!currentData) {

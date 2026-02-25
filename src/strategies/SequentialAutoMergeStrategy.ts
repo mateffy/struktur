@@ -2,9 +2,17 @@ import type { ExtractionResult, ExtractionStrategy } from "../types";
 import type { ExtractionOptions } from "../types";
 import { buildExtractorPrompt } from "../prompts/ExtractorPrompt";
 import { buildDeduplicationPrompt } from "../prompts/DeduplicationPrompt";
-import { extractWithPrompt, getBatches, mergeUsage, serializeSchema } from "./utils";
+import {
+  extractWithPrompt,
+  getBatches,
+  mergeUsage,
+  serializeSchema,
+} from "./utils";
 import { SmartDataMerger } from "../merge/SmartDataMerger";
-import { findExactDuplicatesWithHashing, deduplicateByIndices } from "../merge/Deduplicator";
+import {
+  findExactDuplicatesWithHashing,
+  deduplicateByIndices,
+} from "../merge/Deduplicator";
 import { runWithRetries } from "../llm/RetryingRunner";
 
 export type SequentialAutoMergeStrategyConfig = {
@@ -72,23 +80,36 @@ export class SequentialAutoMergeStrategy<T> implements ExtractionStrategy<T> {
   }
 
   async run(options: ExtractionOptions<T>): Promise<ExtractionResult<T>> {
-    const batches = getBatches(options.artifacts, {
-      maxTokens: this.config.chunkSize,
-      maxImages: this.config.maxImages,
-    });
+    const debug = options.debug;
+    const batches = getBatches(
+      options.artifacts,
+      {
+        maxTokens: this.config.chunkSize,
+        maxImages: this.config.maxImages,
+      },
+      debug,
+    );
 
     const schema = serializeSchema(options.schema);
-    const merger = new SmartDataMerger(options.schema as Record<string, unknown>);
+    const merger = new SmartDataMerger(
+      options.schema as Record<string, unknown>,
+    );
     let merged = {} as Record<string, unknown>;
     const usages = [];
     const totalSteps = this.getEstimatedSteps(options.artifacts);
     let step = 1;
 
+    debug?.mergeStart({
+      mergeId: "sequential_auto_merge",
+      inputCount: batches.length,
+      strategy: this.name,
+    });
+
     for (const [index, batch] of batches.entries()) {
       const prompt = buildExtractorPrompt(
         batch,
         schema,
-        this.config.outputInstructions
+        this.config.outputInstructions,
       );
       const result = await extractWithPrompt<T>({
         model: this.config.model,
@@ -98,11 +119,33 @@ export class SequentialAutoMergeStrategy<T> implements ExtractionStrategy<T> {
         artifacts: batch,
         events: options.events,
         execute: this.config.execute as never,
-        strict: this.config.strict,
+        strict: options.strict ?? this.config.strict,
+        debug,
+        callId: `sequential_auto_batch_${index + 1}`,
       });
 
       merged = merger.merge(merged, result.data as Record<string, unknown>);
       usages.push(result.usage);
+
+      // Log merge operation per field
+      for (const key of Object.keys(result.data as Record<string, unknown>)) {
+        const leftArray = Array.isArray(merged[key])
+          ? (merged[key] as unknown[]).length
+          : undefined;
+        const rightArray = Array.isArray(
+          (result.data as Record<string, unknown>)[key],
+        )
+          ? ((result.data as Record<string, unknown>)[key] as unknown[]).length
+          : undefined;
+
+        debug?.smartMergeField({
+          mergeId: "sequential_auto_merge",
+          field: key,
+          operation: "merge_arrays",
+          leftCount: leftArray,
+          rightCount: rightArray,
+        });
+      }
 
       step += 1;
       await options.events?.onStep?.({
@@ -110,11 +153,25 @@ export class SequentialAutoMergeStrategy<T> implements ExtractionStrategy<T> {
         total: totalSteps,
         label: `batch ${index + 1}/${batches.length}`,
       });
+      debug?.step({
+        step,
+        total: totalSteps,
+        label: `batch ${index + 1}/${batches.length}`,
+        strategy: this.name,
+      });
     }
+
+    debug?.mergeComplete({ mergeId: "sequential_auto_merge", success: true });
 
     merged = dedupeArrays(merged);
 
     const dedupePrompt = buildDeduplicationPrompt(schema, merged);
+
+    debug?.dedupeStart({
+      dedupeId: "sequential_auto_dedupe",
+      itemCount: Object.keys(merged).length,
+    });
+
     const dedupeResponse = await runWithRetries<{ keys: string[] }>({
       model: this.config.dedupeModel ?? this.config.model,
       schema: dedupeSchema,
@@ -123,6 +180,8 @@ export class SequentialAutoMergeStrategy<T> implements ExtractionStrategy<T> {
       events: options.events,
       execute: this.config.dedupeExecute,
       strict: this.config.strict,
+      debug,
+      callId: "sequential_auto_dedupe",
     });
 
     step += 1;
@@ -131,11 +190,23 @@ export class SequentialAutoMergeStrategy<T> implements ExtractionStrategy<T> {
       total: totalSteps,
       label: "dedupe",
     });
+    debug?.step({
+      step,
+      total: totalSteps,
+      label: "dedupe",
+      strategy: this.name,
+    });
 
     let deduped = merged;
     for (const key of dedupeResponse.data.keys) {
       deduped = removeByPath(deduped, key);
     }
+
+    debug?.dedupeComplete({
+      dedupeId: "sequential_auto_dedupe",
+      duplicatesFound: dedupeResponse.data.keys.length,
+      itemsRemoved: dedupeResponse.data.keys.length,
+    });
 
     return {
       data: deduped as T,
@@ -144,6 +215,8 @@ export class SequentialAutoMergeStrategy<T> implements ExtractionStrategy<T> {
   }
 }
 
-export const sequentialAutoMerge = <T>(config: SequentialAutoMergeStrategyConfig) => {
+export const sequentialAutoMerge = <T>(
+  config: SequentialAutoMergeStrategyConfig,
+) => {
   return new SequentialAutoMergeStrategy<T>(config);
 };

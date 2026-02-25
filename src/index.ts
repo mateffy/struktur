@@ -13,6 +13,12 @@ export type {
 } from "./types";
 
 export { extract } from "./extract";
+export {
+  parseFieldsString,
+  buildSchemaFromParsedFields,
+  buildSchemaFromFields,
+} from "./fields";
+export type { ParsedField, FieldType } from "./fields";
 
 export type {
   ArtifactInput,

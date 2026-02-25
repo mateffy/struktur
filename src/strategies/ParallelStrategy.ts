@@ -2,7 +2,12 @@ import type { ExtractionResult, ExtractionStrategy } from "../types";
 import type { ExtractionOptions } from "../types";
 import { buildExtractorPrompt } from "../prompts/ExtractorPrompt";
 import { buildParallelMergerPrompt } from "../prompts/ParallelMergerPrompt";
-import { extractWithPrompt, getBatches, mergeUsage, serializeSchema } from "./utils";
+import {
+  extractWithPrompt,
+  getBatches,
+  mergeUsage,
+  serializeSchema,
+} from "./utils";
 import { runConcurrently } from "./concurrency";
 import { runWithRetries } from "../llm/RetryingRunner";
 
@@ -34,19 +39,38 @@ export class ParallelStrategy<T> implements ExtractionStrategy<T> {
   }
 
   async run(options: ExtractionOptions<T>): Promise<ExtractionResult<T>> {
-    const batches = getBatches(options.artifacts, {
-      maxTokens: this.config.chunkSize,
-      maxImages: this.config.maxImages,
-    });
+    const debug = options.debug;
+    const batches = getBatches(
+      options.artifacts,
+      {
+        maxTokens: this.config.chunkSize,
+        maxImages: this.config.maxImages,
+      },
+      debug,
+    );
 
     const schema = serializeSchema(options.schema);
     const totalSteps = this.getEstimatedSteps(options.artifacts);
     let step = 1;
+
+    // Emit start event
+    await options.events?.onStep?.({
+      step,
+      total: totalSteps,
+      label: batches.length > 1 ? `batch 1/${batches.length}` : "extract",
+    });
+    debug?.step({
+      step,
+      total: totalSteps,
+      label: batches.length > 1 ? `batch 1/${batches.length}` : "extract",
+      strategy: this.name,
+    });
+
     const tasks = batches.map((batch, index) => async () => {
       const prompt = buildExtractorPrompt(
         batch,
         schema,
-        this.config.outputInstructions
+        this.config.outputInstructions,
       );
       const result = await extractWithPrompt<T>({
         model: this.config.model,
@@ -56,23 +80,44 @@ export class ParallelStrategy<T> implements ExtractionStrategy<T> {
         artifacts: batch,
         events: options.events,
         execute: this.config.execute as never,
-        strict: this.config.strict,
+        strict: options.strict ?? this.config.strict,
+        debug,
+        callId: `parallel_batch_${index + 1}`,
       });
-      step += 1;
-      await options.events?.onStep?.({
-        step,
-        total: totalSteps,
-        label: `batch ${index + 1}/${batches.length}`,
-      });
+      // Emit progress after batch completes (if there are more batches)
+      const completedIndex = index + 1;
+      if (completedIndex < batches.length) {
+        step += 1;
+        await options.events?.onStep?.({
+          step,
+          total: totalSteps,
+          label: `batch ${completedIndex + 1}/${batches.length}`,
+        });
+        debug?.step({
+          step,
+          total: totalSteps,
+          label: `batch ${completedIndex + 1}/${batches.length}`,
+          strategy: this.name,
+        });
+      }
       return result;
     });
 
     const results = await runConcurrently(
       tasks,
-      this.config.concurrency ?? batches.length
+      this.config.concurrency ?? batches.length,
     );
 
-    const mergePrompt = buildParallelMergerPrompt(schema, results.map((r) => r.data));
+    debug?.mergeStart({
+      mergeId: "parallel_merge",
+      inputCount: results.length,
+      strategy: this.name,
+    });
+
+    const mergePrompt = buildParallelMergerPrompt(
+      schema,
+      results.map((r) => r.data),
+    );
     const merged = await extractWithPrompt<T>({
       model: this.config.mergeModel,
       schema: options.schema,
@@ -82,6 +127,8 @@ export class ParallelStrategy<T> implements ExtractionStrategy<T> {
       events: options.events,
       execute: this.config.execute as never,
       strict: this.config.strict,
+      debug,
+      callId: "parallel_merge",
     });
 
     step += 1;
@@ -90,8 +137,18 @@ export class ParallelStrategy<T> implements ExtractionStrategy<T> {
       total: totalSteps,
       label: "merge",
     });
+    debug?.step({
+      step,
+      total: totalSteps,
+      label: "merge",
+      strategy: this.name,
+    });
+    debug?.mergeComplete({ mergeId: "parallel_merge", success: true });
 
-    return { data: merged.data, usage: mergeUsage([...results.map((r) => r.usage), merged.usage]) };
+    return {
+      data: merged.data,
+      usage: mergeUsage([...results.map((r) => r.usage), merged.usage]),
+    };
   }
 }
 

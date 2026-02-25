@@ -2,5 +2,21 @@
 
 - Purpose: provide CLI entrypoints and shared helpers for parsing, inputs, output, and schema loading.
 - Key files: `cli.ts`, `shared.ts`.
-- Design: keep CLI behavior consistent for both interactive and non-interactive runs. Progress feedback is handled in `cli.ts`; schema loading supports local files, inline JSON, and HTTP(S) URLs with JSON accept headers.
+- CLI Framework: uses `citty` for elegant command parsing with subcommands.
+- Command tree:
+  - `extract`  — structured data extraction (main command)
+  - `models list`  — list available models per provider
+  - `models alias list`  — list all aliases
+  - `models alias get <alias>`  — get the model behind an alias
+  - `models alias set <alias> <model>`  — create or update an alias
+  - `models alias remove <alias>`  — delete an alias
+  - `models use <alias_or_model>`  — set the default model
+  - `providers list`  — show all 5 supported providers with configured status
+  - `providers add <provider>`  — store an API token (--token/--token-stdin, --storage, --default)
+  - `providers remove <provider>`  — delete a stored token
+  - `verify`  — validate artifact JSON
+- Alias resolution: `resolveAlias` (from `auth/config.ts`) is called in both `resolveDefaultModelSpec` and `resolveExplicitModelSpec` so aliases work transparently for `--model` and the stored default.
+- Progress indication: uses `yocto-spinner` with descriptive messages showing current LLM operations (e.g. "Processing batch 3/10", "Pass 1: Merging results"). Spinner clears when done.
+- Design: keep CLI behavior consistent for both interactive and non-interactive runs. Schema loading supports local files, inline JSON, and HTTP(S) URLs with JSON accept headers.
 - Model resolution (`resolveModel` in `shared.ts`): supports openai, anthropic, google, opencode (Zen), and openrouter providers. OpenCode Zen uses different AI SDK packages based on model family (openai for GPT, anthropic for Claude, google for Gemini, openai-compatible for others).
+- OpenRouter provider routing: Supports hashtag syntax for provider selection (e.g., `openrouter/anthropic/claude-3.5-sonnet#cerebras`). The hashtag prefix is stripped from the model name and passed to the LLM layer as a routing preference.

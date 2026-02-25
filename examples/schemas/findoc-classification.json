@@ -1,0 +1,179 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Financial Document Classification",
+  "description": "This schema classifies financial documents for automated processing systems. The output is used to route documents to appropriate workflows (AP, AR, compliance, etc.), apply retention policies, trigger approval chains, and index in document management systems. Classification data feeds downstream automation including data entry, payment processing, and regulatory reporting pipelines.",
+  "required": [
+    "documentType",
+    "secondaryTypes",
+    "confidence",
+    "flags",
+    "classificationReasoning"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "documentType": {
+      "type": "string",
+      "description": "Primary document classification based on content analysis. Determines which processing workflow the document enters. This field is the main routing key for downstream systems.",
+      "enum": [
+        "invoice",
+        "receipt",
+        "bank_statement",
+        "credit_card_statement",
+        "payroll_record",
+        "tax_document",
+        "financial_report",
+        "purchase_order",
+        "expense_report",
+        "contract",
+        "loan_document",
+        "investment_statement",
+        "insurance_document",
+        "budget_document",
+        "audit_document",
+        "regulatory_filing",
+        "unknown"
+      ],
+      "enumDescriptions": {
+        "invoice": "Billing document from vendor requesting payment. Contains line items, quantities, prices, payment terms, and due dates. Triggers accounts payable workflow.",
+        "receipt": "Proof of payment or transaction completion. Typically post-payment documentation used for expense reimbursement or record-keeping.",
+        "bank_statement": "Account summary showing all transactions (debits/credits) over a specific period. Used for reconciliation and cash flow analysis.",
+        "credit_card_statement": "Credit account summary with individual transactions, interest charges, minimum payment due. Triggers expense categorization.",
+        "payroll_record": "Employee compensation documentation including gross pay, deductions, withholdings, net pay. Contains PII requiring secure handling.",
+        "tax_document": "IRS, state, or local tax forms and filings (W-2, 1099, 1040, K-1, etc.). Contains sensitive tax identification numbers.",
+        "financial_report": "SEC filings (10-K, 10-Q, 8-K), earnings reports, annual reports, shareholder communications. Used for investor relations and compliance.",
+        "purchase_order": "Procurement request document authorizing purchase of goods/services. Precedes invoice, triggers receiving workflow.",
+        "expense_report": "Employee reimbursement request typically bundled with supporting receipts. Triggers approval and reimbursement workflows.",
+        "contract": "Legal agreement containing financial terms, payment schedules, penalties. May include NDAs, service agreements, or purchase contracts.",
+        "loan_document": "Credit agreement including mortgage, promissory note, line of credit terms. Contains interest rates, repayment schedules, collateral.",
+        "investment_statement": "Portfolio summary from brokerage or fund showing positions, transactions, realized/unrealized gains and losses.",
+        "insurance_document": "Policy details, premium notices, claim forms, coverage declarations. Triggers policy management workflows.",
+        "budget_document": "Financial planning document including budget proposals, variance reports, forecasting. Used for planning and analysis.",
+        "audit_document": "Internal or external audit findings, recommendations, compliance assessments. May trigger remediation workflows.",
+        "regulatory_filing": "Government-mandated submissions to agencies (SEC, FINRA, banking regulators). Time-sensitive with strict deadlines.",
+        "unknown": "Unable to determine document type with sufficient confidence. Routes to manual classification queue for human review."
+      }
+    },
+    "secondaryTypes": {
+      "type": "array",
+      "description": "Additional classifications for hybrid documents serving multiple purposes. Example: an invoice with attached contract terms, or a receipt bundled with warranty information. These trigger secondary workflows or additional processing steps.",
+      "items": {
+        "type": "string",
+        "enum": [
+          "invoice",
+          "receipt",
+          "bank_statement",
+          "credit_card_statement",
+          "payroll_record",
+          "tax_document",
+          "financial_report",
+          "purchase_order",
+          "expense_report",
+          "contract",
+          "loan_document",
+          "investment_statement",
+          "insurance_document",
+          "budget_document",
+          "audit_document",
+          "regulatory_filing",
+          "unknown"
+        ]
+      }
+    },
+    "confidence": {
+      "type": "number",
+      "description": "Classification certainty score from 0.0 to 1.0. This score determines whether the document can proceed with automated processing or requires human review. Scoring criteria: 0.9-1.0 = explicit identifiers present (form numbers, official headers); 0.7-0.89 = strong indicators with minor ambiguity; 0.5-0.69 = moderate confidence, flag for review; below 0.5 = insufficient evidence, manual classification required. Documents below 0.7 confidence are automatically routed to exception handling queues.",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "documentDate": {
+      "type": "string",
+      "description": "Primary date from the document in ISO 8601 format (YYYY-MM-DD). Used for chronological sorting, aging analysis, and determining fiscal period assignment. For invoices this is typically the invoice date; for statements, the statement period end date; for tax documents, the tax year or filing date.",
+      "format": "date"
+    },
+    "fiscalPeriod": {
+      "type": "string",
+      "description": "Fiscal period identifier extracted from the document. Common formats: 'Q1 2024', 'FY2023', 'January 2024', '2024-Q2'. Used for period-end processing, financial reporting consolidation, and determining which accounting period the transaction belongs to."
+    },
+    "currency": {
+      "type": "string",
+      "description": "ISO 4217 currency code identifying the currency of monetary amounts in the document (USD, EUR, GBP, JPY, CAD, etc.). Critical for currency conversion, proper formatting in displays, and determining if FX processing is required."
+    },
+    "totalAmount": {
+      "type": "number",
+      "description": "Primary monetary amount extracted from the document. For invoices: total amount due; for receipts: payment amount; for statements: closing balance or total debits/credits; for payroll: gross or net pay; for reports: total revenue, expenses, or net income. Used for threshold-based routing (e.g., invoices over $10K require VP approval)."
+    },
+    "accountNumber": {
+      "type": "string",
+      "description": "Account, invoice, purchase order, or reference number extracted from the document. Used for matching against master data, deduplication, and lookup in ERP/accounting systems. May be masked/partial for security (e.g., ****1234)."
+    },
+    "entityName": {
+      "type": "string",
+      "description": "Primary company, vendor, customer, or individual name appearing on the document. Extracted from letterhead, signature blocks, or header sections. Used for counterparty identification, vendor matching, and determining appropriate chart of accounts coding."
+    },
+    "regulatoryIdentifiers": {
+      "type": "array",
+      "description": "Official form numbers, filing identifiers, or regulatory codes found in the document. Examples: 'Form 10-K', 'IRS W-2', '1099-MISC', 'SEC File No. 001-12345'. These identifiers are critical for compliance routing, determining retention requirements, and linking to regulatory frameworks.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "flags": {
+      "type": "object",
+      "description": "Processing flags that control document handling, security level, urgency, and workflow routing. These boolean flags are consumed by workflow engines to apply business rules and SLAs.",
+      "required": [
+        "requiresManualReview",
+        "containsSensitiveData",
+        "timeSensitive",
+        "requiresApproval",
+        "knownCounterparty",
+        "potentialDuplicate",
+        "incomplete",
+        "qualityIssues"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "requiresManualReview": {
+          "type": "boolean",
+          "description": "Set to true when confidence is below 0.7, document type is ambiguous, unusual patterns are detected, or automatic extraction failed on critical fields. Documents flagged true are routed to manual review queues rather than straight-through processing."
+        },
+        "containsSensitiveData": {
+          "type": "boolean",
+          "description": "Set to true for documents containing personally identifiable information (PII), tax identification numbers (SSN, EIN), account numbers, salary information, health data, or other confidential information. Triggers encryption, access controls, and secure storage requirements."
+        },
+        "timeSensitive": {
+          "type": "boolean",
+          "description": "Set to true when the document contains payment due dates, filing deadlines, grace periods, aging indicators, or other time-bound requirements. Triggers priority processing, deadline tracking, and escalation workflows if approaching cutoff dates."
+        },
+        "requiresApproval": {
+          "type": "boolean",
+          "description": "Set to true for documents requiring authorization before processing completion. Typically true for invoices above approval thresholds, purchase orders, contracts, expense reports, and budget variances. Triggers approval workflow routing."
+        },
+        "knownCounterparty": {
+          "type": "boolean",
+          "description": "Set to true when the vendor, customer, or entity name matches an existing record in the master vendor/customer database. Affects validation rules (known vendors skip certain verification steps) and routing efficiency."
+        },
+        "potentialDuplicate": {
+          "type": "boolean",
+          "description": "Set to true when document fingerprinting (hash or content similarity) matches an existing document already in the system. Prevents double-processing of the same invoice, receipt, or statement. Triggers duplicate review workflow."
+        },
+        "incomplete": {
+          "type": "boolean",
+          "description": "Set to true when required sections, signatures, dates, amounts, or other mandatory fields appear to be missing or illegible. Triggers request for complete document or exception handling."
+        },
+        "qualityIssues": {
+          "type": "boolean",
+          "description": "Set to true when the document has scanning defects, poor OCR confidence, image corruption, skewed pages, or other quality problems affecting accurate data extraction. May trigger rescan request or enhanced OCR processing."
+        }
+      }
+    },
+    "classificationReasoning": {
+      "type": "string",
+      "description": "Evidence-based explanation for the classification decision. Must cite specific features observed in the document that support the determination: visible headers or logos (e.g., 'Form W-2 Wage and Tax Statement'), form numbers, letterhead text, terminology used, formatting patterns, sender information, or financial figures. This field provides audit trail and supports manual review decisions. Example: 'Classified as tax_document because document contains IRS Form W-2 header, shows wage and withholding information, includes employee SSN box, and displays tax year 2024.'"
+    },
+    "suggestedWorkflow": {
+      "type": "string",
+      "description": "Recommended downstream processing workflow or queue name based on document type and flags. Examples: 'AP_STANDARD' for routine invoices; 'AP_HIGH_VALUE' for invoices requiring VP approval; 'PAYROLL_REVIEW' for payroll documents; 'TAX_FILING' for tax forms; 'COMPLIANCE_SEC' for SEC filings; 'MANUAL_REVIEW' for low confidence. This field directly maps to workflow engine queue names."
+    }
+  }
+}

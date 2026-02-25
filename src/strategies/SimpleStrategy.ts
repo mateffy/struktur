@@ -24,12 +24,26 @@ export class SimpleStrategy<T> implements ExtractionStrategy<T> {
   }
 
   async run(options: ExtractionOptions<T>): Promise<ExtractionResult<T>> {
+    const debug = options.debug;
     const schema = serializeSchema(options.schema);
     const { system, user } = buildExtractorPrompt(
       options.artifacts,
       schema,
-      this.config.outputInstructions
+      this.config.outputInstructions,
     );
+
+    // Emit start event before extraction begins
+    await options.events?.onStep?.({
+      step: 1,
+      total: this.getEstimatedSteps(),
+      label: "extract",
+    });
+    debug?.step({
+      step: 1,
+      total: this.getEstimatedSteps(),
+      label: "extract",
+      strategy: this.name,
+    });
 
     const result = await extractWithPrompt<T>({
       model: this.config.model,
@@ -39,13 +53,16 @@ export class SimpleStrategy<T> implements ExtractionStrategy<T> {
       artifacts: options.artifacts,
       events: options.events,
       execute: this.config.execute as never,
-      strict: this.config.strict,
+      strict: options.strict ?? this.config.strict,
+      debug,
+      callId: "simple_extract",
     });
 
-    await options.events?.onStep?.({
+    debug?.step({
       step: 2,
       total: this.getEstimatedSteps(),
-      label: "extract",
+      label: "complete",
+      strategy: this.name,
     });
 
     return { data: result.data, usage: result.usage };

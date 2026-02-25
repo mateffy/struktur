@@ -1,7 +1,8 @@
 import { test, expect } from "bun:test";
 import { buildDeduplicationPrompt } from "./DeduplicationPrompt";
 
-test("buildDeduplicationPrompt includes tool example", () => {
-  const { user } = buildDeduplicationPrompt("{}", { items: [] });
-  expect(user).toContain("removeDuplicates");
+test("buildDeduplicationPrompt includes keys format instructions", () => {
+  const { system, user } = buildDeduplicationPrompt("{}", { items: [] });
+  expect(system).toContain("keys");
+  expect(user).toContain("duplicate");
 });

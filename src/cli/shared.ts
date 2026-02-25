@@ -1,4 +1,4 @@
-import { getDefaultModel } from "../auth/config";
+import { getDefaultModel, resolveAlias } from "../auth/config";
 import {
   listStoredProviders,
   resolveProviderEnvVar,
@@ -9,6 +9,7 @@ import {
   parseSerializedArtifacts,
 } from "../artifacts/input";
 import { resolveCheapestModel } from "../llm/models";
+import { buildSchemaFromFields } from "../fields";
 import type { AnyJSONSchema, Artifact } from "../types";
 
 export type ParsedArgs = {
@@ -229,7 +230,24 @@ export const resolveModel = async (model: string) => {
     }
     case "openrouter": {
       const { openrouter } = await import("@openrouter/ai-sdk-provider");
-      return openrouter(modelName);
+      // Parse provider preference from hashtag (e.g., "anthropic/claude-3.5-sonnet#cerebras")
+      const hashIndex = modelName.indexOf("#");
+      const actualModelName = hashIndex >= 0 ? modelName.slice(0, hashIndex) : modelName;
+      const preferredProvider = hashIndex >= 0 ? modelName.slice(hashIndex + 1) : undefined;
+      
+      const modelInstance = openrouter(actualModelName);
+      
+      // Attach provider preference to the model object for later use by LLMClient
+      if (preferredProvider) {
+        Object.defineProperty(modelInstance, "__openrouter_provider", {
+          value: preferredProvider,
+          writable: false,
+          enumerable: false,
+          configurable: false,
+        });
+      }
+      
+      return modelInstance;
     }
     default:
       throw new Error(`Unsupported model provider: ${provider}`);
@@ -239,7 +257,8 @@ export const resolveModel = async (model: string) => {
 export const resolveDefaultModelSpec = async () => {
   const configuredDefault = await getDefaultModel();
   if (configuredDefault) {
-    return configuredDefault;
+    // The stored default may itself be an alias — resolve it
+    return await resolveAlias(configuredDefault);
   }
 
   const providers = await listStoredProviders();
@@ -252,6 +271,15 @@ export const resolveDefaultModelSpec = async () => {
   return `${firstProvider}/${cheapest}`;
 };
 
+/**
+ * Resolve an explicit model spec supplied by the user (e.g. from --model).
+ * If the value matches a stored alias it is replaced with the aliased model string.
+ * The resolved string is always in "provider/model" form expected by resolveModel.
+ */
+export const resolveExplicitModelSpec = async (spec: string): Promise<string> => {
+  return await resolveAlias(spec);
+};
+
 const ensureSingleInput = (inputs: Array<string | boolean | undefined>) => {
   const count = inputs.filter((value) => value !== undefined && value !== false).length;
   if (count !== 1) {
@@ -259,26 +287,47 @@ const ensureSingleInput = (inputs: Array<string | boolean | undefined>) => {
   }
 };
 
-export const loadSchema = async (options: Record<string, string | boolean>): Promise<AnyJSONSchema> => {
+export type LoadSchemaResult =
+  | { kind: "schema"; schema: AnyJSONSchema }
+  | { kind: "fields"; fields: string };
+
+export const loadSchema = async (
+  options: Record<string, string | boolean | undefined>,
+): Promise<LoadSchemaResult> => {
   const schemaPath = options.schema;
   const schemaJson = options["schema-json"];
+  const fields = options.fields;
+
+  const defined = [schemaPath, schemaJson, fields].filter(
+    (v) => v !== undefined && v !== false && v !== "",
+  );
+
+  if (defined.length > 1) {
+    throw new Error(
+      "Specify exactly one schema source: --schema, --schema-json, or --fields.",
+    );
+  }
+
+  if (typeof fields === "string" && fields.trim()) {
+    return { kind: "fields", fields };
+  }
 
   if (schemaJson && typeof schemaJson === "string") {
-    return JSON.parse(schemaJson) as AnyJSONSchema;
+    return { kind: "schema", schema: JSON.parse(schemaJson) as AnyJSONSchema };
   }
 
   if (schemaPath && typeof schemaPath === "string") {
     if (isHttpUrl(schemaPath)) {
-      return await fetchSchemaFromUrl(schemaPath);
+      return { kind: "schema", schema: await fetchSchemaFromUrl(schemaPath) };
     }
-    return (await readJsonFile(schemaPath)) as AnyJSONSchema;
+    return { kind: "schema", schema: (await readJsonFile(schemaPath)) as AnyJSONSchema };
   }
 
-  throw new Error("Schema is required (--schema or --schema-json).");
+  throw new Error("Schema is required (--schema, --schema-json, or --fields).");
 };
 
 export const loadArtifactsFromOptions = async (
-  options: Record<string, string | boolean>,
+  options: Record<string, string | boolean | undefined>,
   deps?: { readStdinText?: () => Promise<string>; stdinIsTTY?: boolean }
 ): Promise<Artifact[]> => {
   const input = options.input;

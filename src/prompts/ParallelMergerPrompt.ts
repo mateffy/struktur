@@ -8,10 +8,22 @@ export const buildParallelMergerPrompt = (
     .map((json) => `<json-object>${json}</json-object>`)
     .join("\n");
 
-  const system = `You are a structured data merger.
-You are given a list of JSON objects that you need to merge into one JSON object.
-Return a single JSON object that follows the provided schema.
-MAKE SURE TO USE THE \`extract\` tool to merge the data. If you don't call the tool, the data will not be merged.`;
+  const system = `You are a data merger. Combine multiple JSON objects into one object matching the provided schema.
+
+<thinking>
+Before merging, consider:
+1. Which input objects contain data for each schema field?
+2. How should conflicting values be resolved (prefer more complete/recent data)?
+3. Are there arrays that need to be concatenated vs deduplicated?
+4. Ensure NO information is lost from any input
+</thinking>
+
+<rules>
+- Produce a single JSON object following the schema exactly
+- Combine all information from input objects without losing data
+- Resolve conflicts intelligently (prefer richer/more specific data)
+- Output ONLY valid JSON - no markdown, no explanations
+</rules>`;
 
   const user = `<json-schema>
 ${schema}

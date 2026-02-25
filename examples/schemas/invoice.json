@@ -17,7 +17,8 @@
           "type": "string"
         }
       },
-      "required": ["name"]
+      "required": ["name", "address"],
+      "additionalProperties": false
     },
     "amount": {
       "type": "number",
@@ -26,13 +27,13 @@
     },
     "currency": {
       "type": "string",
-      "description": "Currency code (3-letter ISO 4217 code like USD or EUR)",
-      "format": "currency"
+      "description": "Currency code (3-letter ISO 4217 code like USD or EUR)"
     },
     "date": {
       "type": "string",
       "format": "date"
     }
   },
-  "required": ["invoice_number", "customer", "amount", "currency"]
+  "required": ["invoice_number", "customer", "amount", "currency", "date"],
+  "additionalProperties": false
 }

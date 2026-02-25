@@ -55,7 +55,8 @@ export const isRequiredError = (error: ErrorObject): boolean => {
 export const validateAllowingMissingRequired = <T>(
   ajv: Ajv,
   schema: SchemaInput<T>,
-  data: unknown
+  data: unknown,
+  isFinalAttempt: boolean = true
 ): ValidationResult<T> => {
   const validate = ajv.compile<T>(schema);
   const valid = validate(data);
@@ -68,7 +69,13 @@ export const validateAllowingMissingRequired = <T>(
   const nonRequiredErrors = errors.filter((error) => !isRequiredError(error));
 
   if (nonRequiredErrors.length === 0) {
-    return { valid: true, data: data as T };
+    // Only required field errors
+    // On final attempt, accept partial data
+    // On non-final attempts, return invalid to trigger retry
+    if (isFinalAttempt) {
+      return { valid: true, data: data as T };
+    }
+    return { valid: false, errors };
   }
 
   return { valid: false, errors: nonRequiredErrors };

@@ -10,7 +10,16 @@ export const gitConfig = {
 export function baseOptions(): BaseLayoutProps {
   return {
     nav: {
-      title: 'Struktur',
+      title: (
+        <>
+          <img
+            src="/struktur-icon.png"
+            alt="Struktur"
+            className="size-7 rounded-lg"
+          />
+          <span className="font-medium">Struktur</span>
+        </>
+      ),
     },
     githubUrl: `https://github.com/${gitConfig.user}/${gitConfig.repo}`,
   };

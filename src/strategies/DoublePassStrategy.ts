@@ -3,7 +3,12 @@ import type { ExtractionOptions } from "../types";
 import { buildExtractorPrompt } from "../prompts/ExtractorPrompt";
 import { buildParallelMergerPrompt } from "../prompts/ParallelMergerPrompt";
 import { buildSequentialPrompt } from "../prompts/SequentialExtractorPrompt";
-import { extractWithPrompt, getBatches, mergeUsage, serializeSchema } from "./utils";
+import {
+  extractWithPrompt,
+  getBatches,
+  mergeUsage,
+  serializeSchema,
+} from "./utils";
 import { runConcurrently } from "./concurrency";
 import { runWithRetries } from "../llm/RetryingRunner";
 
@@ -35,10 +40,15 @@ export class DoublePassStrategy<T> implements ExtractionStrategy<T> {
   }
 
   async run(options: ExtractionOptions<T>): Promise<ExtractionResult<T>> {
-    const batches = getBatches(options.artifacts, {
-      maxTokens: this.config.chunkSize,
-      maxImages: this.config.maxImages,
-    });
+    const debug = options.debug;
+    const batches = getBatches(
+      options.artifacts,
+      {
+        maxTokens: this.config.chunkSize,
+        maxImages: this.config.maxImages,
+      },
+      debug,
+    );
 
     const schema = serializeSchema(options.schema);
     const totalSteps = this.getEstimatedSteps(options.artifacts);
@@ -48,7 +58,7 @@ export class DoublePassStrategy<T> implements ExtractionStrategy<T> {
       const prompt = buildExtractorPrompt(
         batch,
         schema,
-        this.config.outputInstructions
+        this.config.outputInstructions,
       );
       const result = await extractWithPrompt<T>({
         model: this.config.model,
@@ -58,7 +68,9 @@ export class DoublePassStrategy<T> implements ExtractionStrategy<T> {
         artifacts: batch,
         events: options.events,
         execute: this.config.execute as never,
-        strict: this.config.strict,
+        strict: options.strict ?? this.config.strict,
+        debug,
+        callId: `double_pass_1_batch_${index + 1}`,
       });
       step += 1;
       await options.events?.onStep?.({
@@ -66,15 +78,30 @@ export class DoublePassStrategy<T> implements ExtractionStrategy<T> {
         total: totalSteps,
         label: `pass 1 batch ${index + 1}/${batches.length}`,
       });
+      debug?.step({
+        step,
+        total: totalSteps,
+        label: `pass 1 batch ${index + 1}/${batches.length}`,
+        strategy: this.name,
+      });
       return result;
     });
 
     const results = await runConcurrently(
       tasks,
-      this.config.concurrency ?? batches.length
+      this.config.concurrency ?? batches.length,
     );
 
-    const mergePrompt = buildParallelMergerPrompt(schema, results.map((r) => r.data));
+    debug?.mergeStart({
+      mergeId: "double_pass_1_merge",
+      inputCount: results.length,
+      strategy: this.name,
+    });
+
+    const mergePrompt = buildParallelMergerPrompt(
+      schema,
+      results.map((r) => r.data),
+    );
     const merged = await extractWithPrompt<T>({
       model: this.config.mergeModel,
       schema: options.schema,
@@ -84,6 +111,8 @@ export class DoublePassStrategy<T> implements ExtractionStrategy<T> {
       events: options.events,
       execute: this.config.execute as never,
       strict: this.config.strict,
+      debug,
+      callId: "double_pass_1_merge",
     });
 
     step += 1;
@@ -92,6 +121,13 @@ export class DoublePassStrategy<T> implements ExtractionStrategy<T> {
       total: totalSteps,
       label: "pass 1 merge",
     });
+    debug?.step({
+      step,
+      total: totalSteps,
+      label: "pass 1 merge",
+      strategy: this.name,
+    });
+    debug?.mergeComplete({ mergeId: "double_pass_1_merge", success: true });
 
     let currentData = merged.data;
     const usages = [...results.map((r) => r.usage), merged.usage];
@@ -101,7 +137,7 @@ export class DoublePassStrategy<T> implements ExtractionStrategy<T> {
         batch,
         schema,
         JSON.stringify(currentData),
-        this.config.outputInstructions
+        this.config.outputInstructions,
       );
 
       const result = await extractWithPrompt<T>({
@@ -113,6 +149,8 @@ export class DoublePassStrategy<T> implements ExtractionStrategy<T> {
         events: options.events,
         execute: this.config.execute as never,
         strict: this.config.strict,
+        debug,
+        callId: `double_pass_2_batch_${index + 1}`,
       });
 
       currentData = result.data;
@@ -123,6 +161,12 @@ export class DoublePassStrategy<T> implements ExtractionStrategy<T> {
         step,
         total: totalSteps,
         label: `pass 2 batch ${index + 1}/${batches.length}`,
+      });
+      debug?.step({
+        step,
+        total: totalSteps,
+        label: `pass 2 batch ${index + 1}/${batches.length}`,
+        strategy: this.name,
       });
     }
 

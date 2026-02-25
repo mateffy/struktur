@@ -1,4 +1,5 @@
 import type { JSONSchemaType } from "ajv";
+import type { DebugLogger } from "./debug/logger";
 
 export type ArtifactType = "text" | "image" | "pdf" | "file";
 
@@ -62,11 +63,18 @@ export type TokenUsageInfo = Usage & {
   model?: string;
 };
 
+export type RetryInfo = {
+  attempt: number;
+  maxAttempts: number;
+  reason?: string;
+};
+
 export type ExtractionEvents = {
   onStep?: (info: StepInfo) => void | Promise<void>;
   onMessage?: (info: MessageInfo) => void | Promise<void>;
   onProgress?: (info: ProgressInfo) => void | Promise<void>;
   onTokenUsage?: (info: TokenUsageInfo) => void | Promise<void>;
+  onRetry?: (info: RetryInfo) => void | Promise<void>;
 };
 
 export type AnyJSONSchema = Record<string, unknown>;
@@ -81,10 +89,22 @@ export type ProviderModelsResult = {
 
 export type ExtractionOptions<T> = {
   artifacts: Artifact[];
-  schema: TypedJSONSchema<T> | AnyJSONSchema;
+  /**
+   * JSON Schema for the extracted output.
+   * Exactly one of `schema`, `fields`, or an inline schema via the CLI must be provided.
+   */
+  schema?: TypedJSONSchema<T> | AnyJSONSchema;
+  /**
+   * Shorthand schema definition as a comma-separated string of `name` or `name:type` tokens.
+   * E.g. `"title, price:number"`. Defaults to `string` when no type is specified.
+   * Mutually exclusive with `schema`.
+   */
+  fields?: string;
   strategy: ExtractionStrategy<T>;
   events?: ExtractionEvents;
-};
+  debug?: DebugLogger;
+  strict?: boolean;
+}
 
 export interface ExtractionStrategy<T> {
   name: string;

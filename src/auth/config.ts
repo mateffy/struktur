@@ -5,6 +5,7 @@ import { chmod, mkdir } from "node:fs/promises";
 type ConfigStore = {
   version: 1;
   defaultModel?: string;
+  aliases?: Record<string, string>;
 };
 
 const CONFIG_DIR_ENV = "STRUKTUR_CONFIG_DIR";
@@ -50,4 +51,43 @@ export const setDefaultModel = async (model: string) => {
   store.defaultModel = model;
   await writeConfigStore(store);
   return model;
+};
+
+// --- Alias management ---
+
+export const listAliases = async (): Promise<Record<string, string>> => {
+  const store = await readConfigStore();
+  return store.aliases ?? {};
+};
+
+export const getAlias = async (alias: string): Promise<string | undefined> => {
+  const store = await readConfigStore();
+  return store.aliases?.[alias];
+};
+
+export const setAlias = async (alias: string, model: string): Promise<string> => {
+  const store = await readConfigStore();
+  store.aliases ??= {};
+  store.aliases[alias] = model;
+  await writeConfigStore(store);
+  return model;
+};
+
+export const deleteAlias = async (alias: string): Promise<boolean> => {
+  const store = await readConfigStore();
+  if (!store.aliases?.[alias]) {
+    return false;
+  }
+  delete store.aliases[alias];
+  await writeConfigStore(store);
+  return true;
+};
+
+/**
+ * Resolve a model spec: if it matches a stored alias, return the aliased model string.
+ * Otherwise return the original spec unchanged.
+ */
+export const resolveAlias = async (modelSpec: string): Promise<string> => {
+  const aliases = await listAliases();
+  return aliases[modelSpec] ?? modelSpec;
 };

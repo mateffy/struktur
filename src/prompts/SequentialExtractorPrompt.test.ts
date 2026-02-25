@@ -18,7 +18,7 @@ test("buildSequentialPrompt embeds previous data", () => {
     "{\"existing\":true}"
   );
 
-  expect(system).toContain("You HAVE to use the 'extract' tool");
+  expect(system).toContain("JSON object");
   expect(user).toContain("<previous-data>");
   expect(user).toContain("existing");
 });

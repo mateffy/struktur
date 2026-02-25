@@ -2,10 +2,18 @@ import type { ExtractionResult, ExtractionStrategy } from "../types";
 import type { ExtractionOptions } from "../types";
 import { buildExtractorPrompt } from "../prompts/ExtractorPrompt";
 import { buildDeduplicationPrompt } from "../prompts/DeduplicationPrompt";
-import { extractWithPrompt, getBatches, mergeUsage, serializeSchema } from "./utils";
+import {
+  extractWithPrompt,
+  getBatches,
+  mergeUsage,
+  serializeSchema,
+} from "./utils";
 import { runConcurrently } from "./concurrency";
 import { SmartDataMerger } from "../merge/SmartDataMerger";
-import { findExactDuplicatesWithHashing, deduplicateByIndices } from "../merge/Deduplicator";
+import {
+  findExactDuplicatesWithHashing,
+  deduplicateByIndices,
+} from "../merge/Deduplicator";
 import { runWithRetries } from "../llm/RetryingRunner";
 
 export type ParallelAutoMergeStrategyConfig = {
@@ -74,19 +82,25 @@ export class ParallelAutoMergeStrategy<T> implements ExtractionStrategy<T> {
   }
 
   async run(options: ExtractionOptions<T>): Promise<ExtractionResult<T>> {
-    const batches = getBatches(options.artifacts, {
-      maxTokens: this.config.chunkSize,
-      maxImages: this.config.maxImages,
-    });
+    const debug = options.debug;
+    const batches = getBatches(
+      options.artifacts,
+      {
+        maxTokens: this.config.chunkSize,
+        maxImages: this.config.maxImages,
+      },
+      debug,
+    );
 
     const schema = serializeSchema(options.schema);
     const totalSteps = this.getEstimatedSteps(options.artifacts);
     let step = 1;
+
     const tasks = batches.map((batch, index) => async () => {
       const prompt = buildExtractorPrompt(
         batch,
         schema,
-        this.config.outputInstructions
+        this.config.outputInstructions,
       );
       const result = await extractWithPrompt<T>({
         model: this.config.model,
@@ -96,7 +110,9 @@ export class ParallelAutoMergeStrategy<T> implements ExtractionStrategy<T> {
         artifacts: batch,
         events: options.events,
         execute: this.config.execute as never,
-        strict: this.config.strict,
+        strict: options.strict ?? this.config.strict,
+        debug,
+        callId: `parallel_auto_batch_${index + 1}`,
       });
       step += 1;
       await options.events?.onStep?.({
@@ -104,23 +120,72 @@ export class ParallelAutoMergeStrategy<T> implements ExtractionStrategy<T> {
         total: totalSteps,
         label: `batch ${index + 1}/${batches.length}`,
       });
+      debug?.step({
+        step,
+        total: totalSteps,
+        label: `batch ${index + 1}/${batches.length}`,
+        strategy: this.name,
+      });
       return result;
     });
 
     const results = await runConcurrently(
       tasks,
-      this.config.concurrency ?? batches.length
+      this.config.concurrency ?? batches.length,
     );
 
-    const merger = new SmartDataMerger(options.schema as Record<string, unknown>);
+    const merger = new SmartDataMerger(
+      options.schema as Record<string, unknown>,
+    );
     let merged = {} as Record<string, unknown>;
-    for (const result of results) {
+
+    debug?.mergeStart({
+      mergeId: "parallel_auto_smart_merge",
+      inputCount: results.length,
+      strategy: this.name,
+    });
+
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i]!;
+      const prevSize = Object.keys(merged).length;
       merged = merger.merge(merged, result.data as Record<string, unknown>);
+      const newSize = Object.keys(merged).length;
+
+      // Log merge operation per field
+      for (const key of Object.keys(result.data as Record<string, unknown>)) {
+        const leftArray = Array.isArray(merged[key])
+          ? (merged[key] as unknown[]).length
+          : undefined;
+        const rightArray = Array.isArray(
+          (result.data as Record<string, unknown>)[key],
+        )
+          ? ((result.data as Record<string, unknown>)[key] as unknown[]).length
+          : undefined;
+
+        debug?.smartMergeField({
+          mergeId: "parallel_auto_smart_merge",
+          field: key,
+          operation: "merge_arrays",
+          leftCount: leftArray,
+          rightCount: rightArray,
+        });
+      }
     }
+
+    debug?.mergeComplete({
+      mergeId: "parallel_auto_smart_merge",
+      success: true,
+    });
 
     merged = dedupeArrays(merged);
 
     const dedupePrompt = buildDeduplicationPrompt(schema, merged);
+
+    debug?.dedupeStart({
+      dedupeId: "parallel_auto_dedupe",
+      itemCount: Object.keys(merged).length,
+    });
+
     const dedupeResponse = await runWithRetries<{ keys: string[] }>({
       model: this.config.dedupeModel ?? this.config.model,
       schema: dedupeSchema,
@@ -129,6 +194,8 @@ export class ParallelAutoMergeStrategy<T> implements ExtractionStrategy<T> {
       events: options.events,
       execute: this.config.dedupeExecute,
       strict: this.config.strict,
+      debug,
+      callId: "parallel_auto_dedupe",
     });
 
     step += 1;
@@ -137,11 +204,23 @@ export class ParallelAutoMergeStrategy<T> implements ExtractionStrategy<T> {
       total: totalSteps,
       label: "dedupe",
     });
+    debug?.step({
+      step,
+      total: totalSteps,
+      label: "dedupe",
+      strategy: this.name,
+    });
 
     let deduped = merged;
     for (const key of dedupeResponse.data.keys) {
       deduped = removeByPath(deduped, key);
     }
+
+    debug?.dedupeComplete({
+      dedupeId: "parallel_auto_dedupe",
+      duplicatesFound: dedupeResponse.data.keys.length,
+      itemsRemoved: dedupeResponse.data.keys.length,
+    });
 
     return {
       data: deduped as T,
@@ -150,6 +229,8 @@ export class ParallelAutoMergeStrategy<T> implements ExtractionStrategy<T> {
   }
 }
 
-export const parallelAutoMerge = <T>(config: ParallelAutoMergeStrategyConfig) => {
+export const parallelAutoMerge = <T>(
+  config: ParallelAutoMergeStrategyConfig,
+) => {
   return new ParallelAutoMergeStrategy<T>(config);
 };

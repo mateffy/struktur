@@ -18,7 +18,10 @@ export const Route = createRootRoute({
         title: 'Struktur',
       },
     ],
-    links: [{ rel: 'stylesheet', href: appCss }],
+    links: [
+      { rel: 'stylesheet', href: appCss },
+      { rel: 'icon', type: 'image/png', href: '/struktur-icon.png' },
+    ],
   }),
   component: RootComponent,
 });

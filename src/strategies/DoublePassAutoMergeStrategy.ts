@@ -3,9 +3,17 @@ import type { ExtractionOptions } from "../types";
 import { buildExtractorPrompt } from "../prompts/ExtractorPrompt";
 import { buildDeduplicationPrompt } from "../prompts/DeduplicationPrompt";
 import { buildSequentialPrompt } from "../prompts/SequentialExtractorPrompt";
-import { extractWithPrompt, getBatches, mergeUsage, serializeSchema } from "./utils";
+import {
+  extractWithPrompt,
+  getBatches,
+  mergeUsage,
+  serializeSchema,
+} from "./utils";
 import { SmartDataMerger } from "../merge/SmartDataMerger";
-import { findExactDuplicatesWithHashing, deduplicateByIndices } from "../merge/Deduplicator";
+import {
+  findExactDuplicatesWithHashing,
+  deduplicateByIndices,
+} from "../merge/Deduplicator";
 import { runConcurrently } from "./concurrency";
 import { runWithRetries } from "../llm/RetryingRunner";
 
@@ -75,10 +83,15 @@ export class DoublePassAutoMergeStrategy<T> implements ExtractionStrategy<T> {
   }
 
   async run(options: ExtractionOptions<T>): Promise<ExtractionResult<T>> {
-    const batches = getBatches(options.artifacts, {
-      maxTokens: this.config.chunkSize,
-      maxImages: this.config.maxImages,
-    });
+    const debug = options.debug;
+    const batches = getBatches(
+      options.artifacts,
+      {
+        maxTokens: this.config.chunkSize,
+        maxImages: this.config.maxImages,
+      },
+      debug,
+    );
 
     const schema = serializeSchema(options.schema);
     const totalSteps = this.getEstimatedSteps(options.artifacts);
@@ -88,7 +101,7 @@ export class DoublePassAutoMergeStrategy<T> implements ExtractionStrategy<T> {
       const prompt = buildExtractorPrompt(
         batch,
         schema,
-        this.config.outputInstructions
+        this.config.outputInstructions,
       );
       const result = await extractWithPrompt<T>({
         model: this.config.model,
@@ -98,7 +111,9 @@ export class DoublePassAutoMergeStrategy<T> implements ExtractionStrategy<T> {
         artifacts: batch,
         events: options.events,
         execute: this.config.execute as never,
-        strict: this.config.strict,
+        strict: options.strict ?? this.config.strict,
+        debug,
+        callId: `double_pass_auto_1_batch_${index + 1}`,
       });
       step += 1;
       await options.events?.onStep?.({
@@ -106,23 +121,67 @@ export class DoublePassAutoMergeStrategy<T> implements ExtractionStrategy<T> {
         total: totalSteps,
         label: `pass 1 batch ${index + 1}/${batches.length}`,
       });
+      debug?.step({
+        step,
+        total: totalSteps,
+        label: `pass 1 batch ${index + 1}/${batches.length}`,
+        strategy: this.name,
+      });
       return result;
     });
 
     const results = await runConcurrently(
       tasks,
-      this.config.concurrency ?? batches.length
+      this.config.concurrency ?? batches.length,
     );
 
-    const merger = new SmartDataMerger(options.schema as Record<string, unknown>);
+    const merger = new SmartDataMerger(
+      options.schema as Record<string, unknown>,
+    );
     let merged = {} as Record<string, unknown>;
-    for (const result of results) {
+
+    debug?.mergeStart({
+      mergeId: "double_pass_auto_merge",
+      inputCount: results.length,
+      strategy: this.name,
+    });
+
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i]!;
       merged = merger.merge(merged, result.data as Record<string, unknown>);
+
+      // Log merge operation per field
+      for (const key of Object.keys(result.data as Record<string, unknown>)) {
+        const leftArray = Array.isArray(merged[key])
+          ? (merged[key] as unknown[]).length
+          : undefined;
+        const rightArray = Array.isArray(
+          (result.data as Record<string, unknown>)[key],
+        )
+          ? ((result.data as Record<string, unknown>)[key] as unknown[]).length
+          : undefined;
+
+        debug?.smartMergeField({
+          mergeId: "double_pass_auto_merge",
+          field: key,
+          operation: "merge_arrays",
+          leftCount: leftArray,
+          rightCount: rightArray,
+        });
+      }
     }
+
+    debug?.mergeComplete({ mergeId: "double_pass_auto_merge", success: true });
 
     merged = dedupeArrays(merged);
 
     const dedupePrompt = buildDeduplicationPrompt(schema, merged);
+
+    debug?.dedupeStart({
+      dedupeId: "double_pass_auto_dedupe",
+      itemCount: Object.keys(merged).length,
+    });
+
     const dedupeResponse = await runWithRetries<{ keys: string[] }>({
       model: this.config.dedupeModel ?? this.config.model,
       schema: dedupeSchema,
@@ -131,6 +190,8 @@ export class DoublePassAutoMergeStrategy<T> implements ExtractionStrategy<T> {
       events: options.events,
       execute: this.config.dedupeExecute,
       strict: this.config.strict,
+      debug,
+      callId: "double_pass_auto_dedupe",
     });
 
     step += 1;
@@ -139,11 +200,23 @@ export class DoublePassAutoMergeStrategy<T> implements ExtractionStrategy<T> {
       total: totalSteps,
       label: "pass 1 dedupe",
     });
+    debug?.step({
+      step,
+      total: totalSteps,
+      label: "pass 1 dedupe",
+      strategy: this.name,
+    });
 
     let deduped = merged;
     for (const key of dedupeResponse.data.keys) {
       deduped = removeByPath(deduped, key);
     }
+
+    debug?.dedupeComplete({
+      dedupeId: "double_pass_auto_dedupe",
+      duplicatesFound: dedupeResponse.data.keys.length,
+      itemsRemoved: dedupeResponse.data.keys.length,
+    });
 
     let currentData = deduped as T;
     const usages = [...results.map((r) => r.usage), dedupeResponse.usage];
@@ -153,7 +226,7 @@ export class DoublePassAutoMergeStrategy<T> implements ExtractionStrategy<T> {
         batch,
         schema,
         JSON.stringify(currentData),
-        this.config.outputInstructions
+        this.config.outputInstructions,
       );
 
       const result = await extractWithPrompt<T>({
@@ -165,6 +238,8 @@ export class DoublePassAutoMergeStrategy<T> implements ExtractionStrategy<T> {
         events: options.events,
         execute: this.config.execute as never,
         strict: this.config.strict,
+        debug,
+        callId: `double_pass_auto_2_batch_${index + 1}`,
       });
 
       currentData = result.data;
@@ -176,6 +251,12 @@ export class DoublePassAutoMergeStrategy<T> implements ExtractionStrategy<T> {
         total: totalSteps,
         label: `pass 2 batch ${index + 1}/${batches.length}`,
       });
+      debug?.step({
+        step,
+        total: totalSteps,
+        label: `pass 2 batch ${index + 1}/${batches.length}`,
+        strategy: this.name,
+      });
     }
 
     return { data: currentData, usage: mergeUsage(usages) };
@@ -183,7 +264,7 @@ export class DoublePassAutoMergeStrategy<T> implements ExtractionStrategy<T> {
 }
 
 export const doublePassAutoMerge = <T>(
-  config: DoublePassAutoMergeStrategyConfig
+  config: DoublePassAutoMergeStrategyConfig,
 ) => {
   return new DoublePassAutoMergeStrategy<T>(config);
 };
