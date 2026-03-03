@@ -1,0 +1,194 @@
+---
+title: --fields
+description: Build schemas on the fly from the CLI using a concise field definition string.
+---
+
+The `--fields` flag (short: `-f`) lets you describe extraction output as a comma-separated string directly on the command line, without writing or maintaining a JSON Schema file.
+
+```bash
+echo "The Dark Knight (2008), directed by Christopher Nolan. Genre: action." | \
+  struktur --stdin --fields "title, year:integer, director, genre" \
+  --model openai/gpt-4o-mini
+```
+
+Output:
+
+```json
+{
+  "title": "The Dark Knight",
+  "year": 2008,
+  "director": "Christopher Nolan",
+  "genre": "action"
+}
+```
+
+---
+
+## Synopsis
+
+```bash
+struktur [extract] --fields "<field-definitions>" [other options]
+```
+
+`--fields` is one of three mutually exclusive schema options. Pass exactly one of:
+
+| Flag | Description |
+|------|-------------|
+| `--fields` / `-f` | Fields shorthand string |
+| `--schema <path\|url>` | JSON Schema file or URL |
+| `--schema-json <json>` | Inline JSON Schema string |
+
+---
+
+## Field syntax
+
+```
+fields = field ("," field)*
+field  = name
+       | name ":" type
+```
+
+Whitespace around commas and colons is ignored.
+
+### Scalar types
+
+| Type | JSON Schema | Notes |
+|------|-------------|-------|
+| *(omitted)* | `string` | Default when no type given |
+| `string` | `string` | |
+| `number` | `number` | |
+| `float` | `number` | Alias for `number` |
+| `boolean` | `boolean` | |
+| `bool` | `boolean` | Alias for `boolean` |
+| `integer` | `integer` | Whole numbers (JSON Schema spec) |
+| `int` | `integer` + `multipleOf: 1` | Explicitly disallows fractions |
+
+### Enums
+
+```bash
+--fields "status:enum{draft|published|archived}"
+```
+
+Values are separated by `|`. At least two values are required.
+
+### Arrays
+
+```bash
+--fields "tags:array{string}"
+--fields "scores:array{float}"
+--fields "ids:array{int}"
+```
+
+The item type can be any scalar keyword (including aliases).
+
+---
+
+## Examples
+
+**Basic fields with types:**
+
+```bash
+struktur --input article.txt \
+  --fields "title, author, published_date, word_count:integer" \
+  --model openai/gpt-4o-mini
+```
+
+**Enum field:**
+
+```bash
+echo "Order #4421 is currently being packed." | \
+  struktur --stdin \
+  --fields "order_id, status:enum{pending|processing|shipped|delivered}" \
+  --model anthropic/claude-3-5-haiku-20241022
+```
+
+**Mixed types including arrays:**
+
+```bash
+struktur --input product.html \
+  --fields "name, price:float, in_stock:bool, tags:array{string}, category:enum{electronics|clothing|food}" \
+  --model openai/gpt-4o-mini
+```
+
+**Piped from stdin, output to file:**
+
+```bash
+cat reviews.txt | \
+  struktur --stdin \
+  --fields "sentiment:enum{positive|neutral|negative}, score:int, summary" \
+  --model openai/gpt-4o-mini \
+  --output result.json
+```
+
+**Batch processing a directory:**
+
+```bash
+for f in docs/*.txt; do
+  struktur --input "$f" \
+    --fields "title, category:enum{invoice|receipt|contract}, amount:float" \
+    --model openai/gpt-4o-mini \
+    --output "out/$(basename "$f" .txt).json"
+done
+```
+
+---
+
+## Generated schema
+
+`--fields "title, price:number, tags:array{string}"` produces this schema internally:
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "title": { "type": "string" },
+    "price": { "type": "number" },
+    "tags":  { "type": "array", "items": { "type": "string" } }
+  },
+  "required": ["title", "price", "tags"],
+  "additionalProperties": false
+}
+```
+
+All fields are required. For optional fields, nested objects, or `$ref`, use `--schema` instead.
+
+---
+
+## Error messages
+
+Bad field definitions fail immediately with a helpful message:
+
+```bash
+--fields "count:bigint"
+# Error: Unknown type "bigint" for field "count".
+#        Scalar types: bool, boolean, float, int, integer, number, string.
+#        Complex types: enum{a|b|c}, array{string}.
+
+--fields "role:enum{admin}"
+# Error: enum for field "role" must have at least two values separated by "|", got: "admin".
+
+--fields "tags:array{}"
+# Error: array for field "tags" requires an item type, e.g. array{string}.
+
+--fields "name:enum{a|b"
+# Error: Unmatched braces in fields string.
+```
+
+---
+
+## When to use `--fields` vs `--schema`
+
+| Situation | Use |
+|-----------|-----|
+| Quick one-liner or experiment | `--fields` |
+| All fields are flat, all required | `--fields` |
+| Need optional properties or nested objects | `--schema` |
+| Schema is reused across many runs | `--schema` |
+| Need `$ref`, `allOf`, custom formats | `--schema` |
+
+---
+
+## See also
+
+- [extract](./extract) — full CLI flag reference
+- [SDK Fields Shorthand](../sdk/fields) — using fields from TypeScript

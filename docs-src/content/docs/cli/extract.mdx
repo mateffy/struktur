@@ -21,10 +21,13 @@ struktur [extract] [options]
 
 ## Schema options (exactly one required)
 
-| Flag | Type | Description |
-|------|------|-------------|
-| `--schema <path\|url>` | string | JSON Schema file path or HTTP(S) URL. |
-| `--schema-json <json>` | string | Inline JSON Schema string. |
+| Flag | Short | Type | Description |
+|------|-------|------|-------------|
+| `--schema <path\|url>` | | string | JSON Schema file path or HTTP(S) URL. |
+| `--schema-json <json>` | | string | Inline JSON Schema string. |
+| `--fields <string>` | `-f` | string | [Fields shorthand](./fields) — comma-separated field definitions. |
+
+`--fields` is the quickest way to define a schema without writing JSON. See [--fields reference](./fields) for the full syntax.
 
 ## Model
 
@@ -65,24 +68,43 @@ The bar is suppressed in non-interactive mode (piped stderr).
 
 ## Examples
 
+**Fields shorthand (quickest):**
+
 ```bash
-# File input with inline schema
+echo "Invoice #1042 from Acme Corp. Total: $2,400.00." | \
+  struktur --stdin -f "invoice_number, vendor, total:number" \
+  --model openai/gpt-4o-mini
+```
+
+**File input with inline schema:**
+
+```bash
 struktur --input report.txt \
   --schema-json '{"type":"object","properties":{"summary":{"type":"string"}},"required":["summary"],"additionalProperties":false}' \
   --model openai/gpt-4o-mini
+```
 
-# Stdin with schema file
+**Stdin with schema file:**
+
+```bash
 cat document.md | struktur --stdin --schema schema.json --model anthropic/claude-3-5-haiku-20241022
+```
 
-# Parallel strategy with output to file
+**Parallel strategy with output to file:**
+
+```bash
 struktur --input large.md --schema schema.json --model openai/gpt-4o --strategy parallel --output result.json
+```
 
-# Schema from URL
+**Schema from URL:**
+
+```bash
 struktur --input data.txt --schema https://myserver.com/schemas/invoice.json --model openai/gpt-4o-mini
 ```
 
 ## See also
 
+- [--fields reference](./fields) — fields shorthand syntax and examples
 - [Installation & Setup](./installation) — getting started
 - [auth](./auth) — token management
 - [Strategies](../explanation/strategies) — strategy reference

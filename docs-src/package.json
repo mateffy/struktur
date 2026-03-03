@@ -29,18 +29,19 @@
     "vite": "^7.3.1"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.4.2",
     "@tailwindcss/vite": "^4.1.18",
     "@types/mdx": "^2.0.13",
     "@types/node": "^25.2.3",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.4",
+    "agentation": "^2.2.1",
     "nitro": "npm:nitro-nightly@3.0.1-20260128-211656-ae83c97e",
     "serve": "^14.2.5",
     "srvx": "^0.11.5",
     "tailwindcss": "^4.1.18",
     "typescript": "^5.9.3",
-    "vite-tsconfig-paths": "^6.1.1",
-    "@biomejs/biome": "^2.4.2"
+    "vite-tsconfig-paths": "^6.1.1"
   }
 }

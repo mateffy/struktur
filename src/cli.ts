@@ -570,7 +570,8 @@ const extractCommand = defineCommand({
     },
     fields: {
       type: "string",
-      description: "Shorthand field list, e.g. \"title, price:number\"",
+      description:
+        'Shorthand field list, e.g. "name, age:number" / "price_history:array{number}" / "sizes:enum{small|medium|large}"',
       alias: "f",
     },
     model: {
@@ -587,11 +588,11 @@ const extractCommand = defineCommand({
     },
     strategy: {
       type: "string",
-      description: "Extraction strategy",
+      description:
+        "Extraction strategy (simple|parallel|sequential|parallelAutoMerge|sequentialAutoMerge|doublePass|doublePassAutoMerge)",
       alias: "S",
       default: "simple",
-      valueHint:
-        "simple|parallel|sequential|parallelAutoMerge|sequentialAutoMerge|doublePass|doublePassAutoMerge",
+      valueHint: "simple|parallel|...",
     },
     "chunk-size": {
       type: "string",
@@ -639,11 +640,16 @@ const extractCommand = defineCommand({
     });
     debug.schemaLoaded({
       source:
-        args.schema ?? (args["schema-json"] ? "json-string" : args.fields ? "fields" : "unknown"),
+        args.schema ??
+        (args["schema-json"]
+          ? "json-string"
+          : args.fields
+            ? "fields"
+            : "unknown"),
       schemaSize:
         schemaResult.kind === "schema"
           ? JSON.stringify(schemaResult.schema).length
-          : args.fields?.length ?? 0,
+          : (args.fields?.length ?? 0),
     });
 
     const artifacts = await loadArtifactsFromOptions({

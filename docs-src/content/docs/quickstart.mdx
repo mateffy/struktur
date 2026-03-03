@@ -64,19 +64,19 @@ Output: `{ "provider": "openai", "stored": "keychain" }` (or `"file"` on Linux).
 ```bash
 echo "Invoice #1042 from Acme Corp. Total: $2,400.00. Due: April 1, 2026." | \
   struktur --stdin \
-  --schema-json '{"type":"object","properties":{"invoice_number":{"type":"string"},"vendor":{"type":"string"},"total":{"type":"number"},"due_date":{"type":"string"}},"required":["invoice_number","vendor","total","due_date"],"additionalProperties":false}' \
+  --fields "invoice_number, vendor, total:number, due_date" \
   --model openai/gpt-4o-mini
 ```
 
-Output:
+The `--fields` flag builds a JSON Schema on the fly. Each field defaults to `string`; append `:number`, `:integer`, `:bool`, etc. to set the type. See [--fields reference](../cli/fields) for the full syntax.
 
-```json
-{
-  "invoice_number": "1042",
-  "vendor": "Acme Corp",
-  "total": 2400,
-  "due_date": "April 1, 2026"
-}
+If you need more control (optional fields, nested objects), pass a full schema instead:
+
+  ```bash
+  echo "Invoice #1042 from Acme Corp. Total: $2,400.00. Due: April 1, 2026." | \
+  struktur --stdin \
+  --schema-json '{"type":"object","properties":{"invoice_number":{"type":"string"},"vendor":{"type":"string"},"total":{"type":"number"},"due_date":{"type":"string"}},"required":["invoice_number","vendor","total","due_date"],"additionalProperties":false}' \
+  --model openai/gpt-4o-mini
 ```
 
 Notice that `total` is a number, not a string — Struktur enforced the schema.

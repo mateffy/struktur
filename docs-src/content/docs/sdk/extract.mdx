@@ -24,9 +24,12 @@ console.log(result.usage.totalTokens);
 | Field | Required | Description |
 |-------|----------|-------------|
 | `artifacts` | Yes | Array of artifacts to extract from |
-| `schema` | Yes | JSON Schema for output validation |
+| `schema` | One of `schema` or `fields` | JSON Schema for output validation |
+| `fields` | One of `schema` or `fields` | [Fields shorthand](./fields) — comma-separated field definitions |
 | `strategy` | Yes | A strategy instance |
 | `events` | No | Event handlers for progress tracking |
+
+Exactly one of `schema` or `fields` must be provided. Passing both, or neither, throws immediately.
 
 ## Result
 
@@ -36,8 +39,23 @@ console.log(result.usage.totalTokens);
 | `usage` | Token counts: `inputTokens`, `outputTokens`, `totalTokens` |
 | `error` | Set if extraction encountered a non-fatal error |
 
+## Using `fields` instead of `schema`
+
+For quick extractions where you don't need full JSON Schema control, pass a `fields` string:
+
+```ts
+const result = await extract({
+  artifacts,
+  fields: "title, author, year:integer, genre:enum{fiction|nonfiction|reference}",
+  strategy: simple({ model: openai("gpt-4o-mini") }),
+});
+```
+
+`fields` supports scalar types (`string`, `number`/`float`, `boolean`/`bool`, `integer`, `int`), enum sets (`status:enum{draft|live}`), and arrays (`tags:array{string}`). See the [Fields Shorthand](./fields) reference for the full syntax.
+
 ## See also
 
+- [Fields Shorthand](./fields) — quick schema syntax reference
 - [Installation & Setup](../cli/installation) — getting started
 - [Strategy Factory Functions](../explanation/strategies) — creating strategies
 - [Events & Observability](./events) — progress tracking

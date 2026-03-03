@@ -1,10 +1,11 @@
 {
-  "title": "CLI",
-  "pages": [
-    "installation",
+"title": "CLI",
+"pages": [
+"installation",
     "extract",
-    "auth",
-    "models",
-    "verify"
-  ]
+    "fields",
+"auth",
+"models",
+"verify"
+]
 }
