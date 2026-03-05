@@ -75,7 +75,7 @@ bun add -g @mateffy/struktur
 
 <br />
 
-**1. Set your LLM API key**
+### 1. Set your LLM API key
 
 - Works with env variables or Struktur's built-in secure credential manager.
 - Supports many providers out of the box (OpenAI, Anthropic, Mistral, OpenRouter, OpenCode Zen, ...)
@@ -91,7 +91,7 @@ struktur config models use openai/gpt-4o-mini
 
 <br />
 
-**2. Extract**
+### 2. Extract
 
 - Use the `extract` command with `--input` for files/URLs or `--stdin` for pipes.
 - Define simple schemas with `--fields` or use `--schema` for full JSON Schema support.
@@ -105,7 +105,7 @@ struktur extract --input ./contract.pdf \
 
 <br />
 
-**3. Configure strategies, models, and more**
+### 3. Configure strategies, models, and more
 
 - Struktur can be configured to support even more strategies, document types or LLM providers
 - Set aliases for your favorite models (e.g. `fast` or `quality`) or change your default model
