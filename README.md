@@ -1,6 +1,6 @@
 <picture>
   <source media="(min-width: 769px)" srcset="./resources/pixel.png">
-  <img src="./resources/struktur-icon-padded.webp" alt="Struktur Logo" width="225">
+  <img src="./resources/struktur-icon-padded.webp" alt="Struktur Logo">
 </picture>
 
 <div>
