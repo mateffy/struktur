@@ -1,6 +1,8 @@
-<img src="./resources/struktur-icon.png" alt="Struktur Logo" width="120" align="right" />
+<div>
+    <img src="./resources/struktur-icon.png" alt="Struktur Logo" width="120" align="left"  />
+    <h1>Struktur</h1>
+</div>
 
-# Struktur
 
 All-in-one tool for structured data extraction using LLMs. Feed it documents, get back validated JSON. Handles parsing files, chunking, retries, merging, and deduplication — you just define the schema and choose a strategy.
 
