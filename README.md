@@ -73,6 +73,8 @@ bun add -g @mateffy/struktur
 
 ## CLI quickstart
 
+<br />
+
 **1. Set your LLM API key**
 
 - Works with env variables or Struktur's built-in secure credential manager.
@@ -87,6 +89,8 @@ echo "sk-..." | struktur config providers add openai --token-stdin
 struktur config models use openai/gpt-4o-mini
 ```
 
+<br />
+
 **2. Extract**
 
 - Use the `extract` command with `--input` for files/URLs or `--stdin` for pipes.
@@ -98,6 +102,8 @@ struktur config models use openai/gpt-4o-mini
 struktur extract --input ./contract.pdf \
   --fields "parties:array{string}, effective_date, governing_law"
 ```
+
+<br />
 
 **3. Configure strategies, models, and more**
 
