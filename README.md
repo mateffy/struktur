@@ -31,9 +31,11 @@ struktur extract --input ./invoice.pdf --fields "number, vendor, total:number"
 Or using pipes:
 
 ```bash
-curl https://example.com/rental-contract.docx | struktur extract --stdin \
-  --schema ./contract-schema.json \
-  --model openai/gpt-4o-mini
+curl https://example.com/long-rental-contract.docx \
+  | struktur extract --stdin \
+      --strategy parallel
+      --schema ./contract-schema.json \
+      --model openai/gpt-4o-mini
 ```
 
 ```json
@@ -61,9 +63,10 @@ bun add -g @mateffy/struktur
 
 ## CLI quickstart
 
-**1. Set your API key**
+**1. Set your LLM API key**
 
-Works with env variables or Struktur's built-in secure credential manager:
+- Works with env variables or Struktur's built-in secure credential manager.
+- Supports many providers out of the box (OpenAI, Anthropic, Mistral, OpenRouter, OpenCode Zen, ...)
 
 ```bash
 export OPENAI_API_KEY=sk-...
@@ -76,19 +79,41 @@ struktur config models use openai/gpt-4o-mini
 
 **2. Extract**
 
+- Use the `extract` command with `--input` for files/URLs or `--stdin` for pipes.
+- Define simple schemas with `--fields` or use `--schema` for full JSON Schema support.
+- Automatically prepares documents before extraction — no need to manually convert PDFs to text or images.
+
 ```bash
 # From a PDF — parsed automatically
 struktur extract --input ./contract.pdf \
   --fields "parties:array{string}, effective_date, governing_law"
-
-# From a plain text file
-echo "Invoice #1042 from Acme Corp. Total: $2,400. Due: April 1, 2026." | \
-  struktur extract \
-  --fields "invoice_number, vendor, total:number, due_date" \
-  --model openai/gpt-4o-mini
 ```
 
-Use `--fields` for quick one-liners. For full control, pass `--schema schema.json` instead.
+**3. Configure strategies, models, and more**
+
+- Struktur can be configured to support even more strategies, document types or LLM providers
+- Set aliases for your favorite models (e.g. `fast` or `quality`) or change your default model
+- Add custom parsers for unsupported file types, or use your own command-line tools for parsing
+- For multi provider LLM gateways like OpenRouter, use a hashtag to specify which provider you want to use (e.g. `#groq` or `#cerebras` for faster inference)
+
+```bash
+# Use a different strategy for large documents
+struktur extract --strategy parallel ...
+
+# Create a model alias
+struktur config models alias set fast openrouter/meta-llama/llama-3.1-8b-instruct#groq
+
+# Choose a default model for all extractions
+struktur config models use fast
+
+# Add parsers for more file types (supports NPM packages or custom CLI commands)
+# 1. Using an npm package
+# 2. Using a CLI command (FILE_PATH is a placeholder)
+# 3. Using a CLI command that reads from stdin
+struktur config parsers add --mime application/vnd.ms-excel --npm @my-custom/excel-parser
+struktur config parsers add --mime text/html --file-command "my-html-parser FILE_PATH"
+struktur config parsers add --mime text/calendar --stdin-command "my-ical-parser"
+```
 
 → [Full CLI reference](https://struktur.sh/docs/cli)
 
