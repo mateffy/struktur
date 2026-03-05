@@ -1,9 +1,15 @@
 <div>
-    <h1><img src="./resources/struktur-icon.png" alt="Struktur Logo" width="120" align="left"  />Struktur</h1>
+    <h1>
+        <img src="./resources/struktur-icon.png" alt="Struktur Logo" width="120" align="left"  />
+        Struktur
+    </h1>
+    <p>
+      All-in-one tool for structured data extraction using LLMs. Feed it documents, get back validated JSON. Handles parsing files, chunking, retries, merging, and deduplication — you just define the schema and choose a strategy.
+    </p>
+
 </div>
 
 
-All-in-one tool for structured data extraction using LLMs. Feed it documents, get back validated JSON. Handles parsing files, chunking, retries, merging, and deduplication — you just define the schema and choose a strategy.
 
 <br>
     
