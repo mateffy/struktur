@@ -59,9 +59,6 @@ curl https://example.com/long-rental-contract.docx \
 <br />
 <br />
 
----
-
-<br />
 
 ## Install
 
@@ -71,7 +68,8 @@ npm install -g @mateffy/struktur
 bun add -g @mateffy/struktur
 ```
 
----
+<br />
+<br />
 
 ## CLI quickstart
 
@@ -129,7 +127,8 @@ struktur config parsers add --mime text/calendar --stdin-command "my-ical-parser
 
 → [Full CLI reference](https://struktur.sh/docs/cli)
 
----
+<br />
+<br />
 
 ## SDK quickstart
 
@@ -175,7 +174,8 @@ const result = await extract({
 
 → [Full SDK reference](https://struktur.sh/docs/sdk)
 
----
+<br />
+<br />
 
 ## How it works
 
@@ -189,7 +189,8 @@ Every LLM response is validated against your schema with Ajv. If it fails, the e
 
 → [Extraction pipeline explained](https://struktur.sh/docs/explanation/pipeline)
 
----
+<br />
+<br />
 
 ## Parsing
 
@@ -278,7 +279,8 @@ MIME type is detected automatically in this order:
 
 For stdin with no `--mime`, falls back to `text/plain`.
 
----
+<br />
+<br />
 
 ## Strategies
 
@@ -311,7 +313,8 @@ const result = await extract({
 
 → [Choosing a strategy](https://struktur.sh/docs/explanation/strategies/choosing)
 
----
+<br />
+<br />
 
 ## Fields shorthand
 
@@ -327,7 +330,8 @@ For optional fields, nested objects, or TypeScript inference on `result.data`, u
 
 → [Fields reference](https://struktur.sh/docs/sdk/fields)
 
----
+<br />
+<br />
 
 ## Configuration
 
@@ -370,7 +374,8 @@ struktur config parsers add --mime application/vnd.ms-excel --npm @myorg/excel-p
 struktur config parsers remove --mime application/vnd.ms-excel
 ```
 
----
+<br />
+<br />
 
 ## Documentation
 
