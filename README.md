@@ -3,169 +3,179 @@
 </div>
 <h1 align="center">Struktur</h1>
 
-Struktur is a structured data extraction engine that turns pre-parsed artifacts into validated JSON using the Vercel AI SDK. It chunks content by token budgets, runs strategy-driven workflows, validates with Ajv, and merges or dedupes when needed.
+Structured data extraction for LLMs. Feed it documents, get back validated JSON. Handles chunking, retries, merging, and deduplication — you define the schema.
 
-## Highlights
+```bash
+struktur extract --input ./invoice.txt --fields "number, vendor, total:number"
 
-- Strategy-driven extraction: simple, parallel, sequential, auto-merge, or double-pass.
-- Token-aware batching with optional image limits.
-- Schema-first validation with Ajv retries on failure.
-- Merge and dedupe with schema-aware rules and CRC32 hashing.
-- Typed results with Ajv `JSONSchemaType<T>`.
+# or using pipes:
 
-## Installation
-
-```sh
-bun install @mateffy/struktur
+echo "Invoice #1042, Acme Corp, $2,400.00 due April 1" | struktur extract --stdin \
+  --schema ./invoice-schema.json \
+  --model openai/gpt-5-mini
 ```
 
-## Quick start
+```json
+{ "number": "1042", "vendor": "Acme Corp", "total": 2400 }
+```
+
+---
+
+## Install
+
+```bash
+npm install -g @mateffy/struktur
+# or
+bun add -g @mateffy/struktur
+```
+
+---
+
+## CLI quickstart
+
+**1. Set your API key**
+
+Works with env variables or Struktur's built-in secure credential manager:
+
+```bash
+export OPENAI_API_KEY=sk-...
+# or store it securely:
+echo "sk-..." | struktur auth set --provider openai --token-stdin
+
+# Set a default model (so you can skip `--model` every time)
+struktur auth default openai
+```
+
+**2. Extract**
+
+```bash
+echo "Invoice #1042 from Acme Corp. Total: $2,400. Due: April 1, 2026." | \
+  struktur --stdin \
+  --fields "invoice_number, vendor, total:number, due_date" \
+  --model openai/gpt-5-mini
+```
+
+Use `--fields` for quick one-liners. For full control, pass `--schema schema.json` instead.
+
+→ [Full CLI reference](https://struktur.sh/docs/cli)
+
+---
+
+## SDK quickstart
 
 ```ts
 import { extract, simple } from "@mateffy/struktur";
+import { openai } from "@ai-sdk/openai";
 import type { JSONSchemaType } from "ajv";
-import { google } from "@ai-sdk/google";
 
-type Output = { title: string };
+type Invoice = { number: string; vendor: string; total: number };
 
-const schema: JSONSchemaType<Output> = {
+const schema: JSONSchemaType<Invoice> = {
   type: "object",
-  properties: { title: { type: "string" } },
-  required: ["title"],
+  properties: {
+    number: { type: "string" },
+    vendor: { type: "string" },
+    total: { type: "number" },
+  },
+  required: ["number", "vendor", "total"],
   additionalProperties: false,
 };
 
 const result = await extract({
   artifacts: [/* Artifact[] */],
   schema,
-  strategy: simple({ model: google("claude-haiku-4-5") }),
+  strategy: simple({ model: openai("gpt-4o-mini") }),
 });
 
-console.log(result.data.title);
+console.log(result.data.number); // fully typed
+console.log(result.usage.totalTokens);
 ```
+
+For quick extractions without writing a full JSON Schema, use the `fields` shorthand:
+
+```ts
+const result = await extract({
+  artifacts,
+  fields: "invoice_number, vendor, total:number, due_date",
+  strategy: simple({ model: openai("gpt-4o-mini") }),
+});
+```
+
+→ [Full SDK reference](https://struktur.sh/docs/sdk)
+
+---
 
 ## How it works
 
+Struktur operates on **Artifacts** — normalized JSON DTOs with text and media slices. It does not parse PDFs or HTML; that's your job upstream using standard tools (e.g. `markitdown`, `pdftotext`).
+
+Once you have artifacts, a **strategy** takes over:
+
 ```
-extract()
-  -> strategy.run()
-     -> batchArtifacts() / splitArtifact()
-        -> prompt builder(s)
-           -> runWithRetries()
-              -> Ajv validation / retry
-              -> merge / dedupe (strategy-specific)
+artifacts → strategy → [chunk] → [LLM call(s)] → [validate + retry] → [merge/dedupe] → result
 ```
+
+Every LLM response is validated against your schema with Ajv. If it fails, the errors are sent back to the model automatically. Most extractions converge in one or two attempts.
+
+→ [Extraction pipeline explained](https://struktur.sh/docs/explanation/pipeline)
+
+---
 
 ## Strategies
 
-- `simple`: single-shot extraction. Best for small inputs.
-- `parallel`: concurrent batches, then LLM merge.
-- `sequential`: batches processed in order with context carryover.
-- `parallelAutoMerge`: schema-aware merge + hash dedupe + LLM dedupe.
-- `sequentialAutoMerge`: sequential merge with dedupe pass.
-- `doublePass`: parallel merge, then sequential refinement.
-- `doublePassAutoMerge`: auto-merge first, then sequential refinement.
+Pick based on input size and whether you're extracting arrays:
 
-Common options (varies by strategy):
-
-- `model`: base extraction model.
-- `mergeModel`: optional merge model (parallel/double pass).
-- `dedupeModel`: optional dedupe model (auto-merge strategies).
-- `chunkSize`: token budget per batch.
-- `maxImages`: optional image limit per batch.
-- `concurrency`: maximum parallel batches.
-- `outputInstructions`: extra system output instructions.
+| Strategy | When to use |
+|---|---|
+| `simple` | Small input, fits in one context window |
+| `parallel` | Large input, order doesn't matter, scalar fields |
+| `sequential` | Large input, context carries across chunks |
+| `parallelAutoMerge` | Large input with arrays — parallel + dedup |
+| `sequentialAutoMerge` | Large input with arrays — sequential + dedup |
+| `doublePass` | Quality matters, two-pass refinement |
+| `doublePassAutoMerge` | Quality + arrays + dedup |
 
 ```ts
-import { extract, parallel } from "@mateffy/struktur";
-import { google } from "@ai-sdk/google";
+import { extract, parallelAutoMerge } from "@mateffy/struktur";
+import { openai } from "@ai-sdk/openai";
 
 const result = await extract({
   artifacts,
   schema,
-  strategy: parallel({
-    model: google("claude-haiku-4-5"),
-    mergeModel: google("claude-haiku-4-5"),
+  strategy: parallelAutoMerge({
+    model: openai("gpt-4o-mini"),
     chunkSize: 10_000,
     concurrency: 4,
   }),
 });
 ```
 
-## Artifacts
+→ [Choosing a strategy](https://struktur.sh/docs/explanation/strategies/choosing)
 
-Artifacts are JSON DTOs with text and media slices. Struktur does not parse PDFs or HTML; it expects normalized inputs.
+---
 
-```ts
-import { urlToArtifact, fileToArtifact } from "@mateffy/struktur";
+## Fields shorthand
 
-const artifact = await urlToArtifact("https://example.com/artifact.json");
+Skip the JSON Schema boilerplate for flat extractions:
 
-const providers = {
-  "application/pdf": async (buffer) => ({
-    id: "pdf-1",
-    type: "pdf",
-    raw: async () => buffer,
-    contents: [{ page: 1, text: "..." }],
-  }),
-};
-
-const fromFile = await fileToArtifact(buffer, { mimeType: "application/pdf", providers });
+```
+"title, price:number, status:enum{draft|live}, tags:array{string}"
 ```
 
-## Events
+Supported types: `string` (default), `number`, `integer`, `boolean`, `enum{a|b}`, `array{type}`.
 
-Use events for progress and validation retries.
+For optional fields, nested objects, or TypeScript inference on `result.data`, use a full `JSONSchemaType<T>` schema instead.
 
-```ts
-const result = await extract({
-  artifacts,
-  schema,
-  strategy,
-  events: {
-    onStep: ({ step, total, label }) => {
-      console.log("step", step, total, label);
-    },
-    onMessage: ({ role, content }) => {
-      console.log(role, content);
-    },
-  },
-});
-```
+→ [Fields reference](https://struktur.sh/docs/sdk/fields)
 
-## Debug Mode
-
-Enable verbose JSON logging to stderr with the `--debug` flag:
-
-```bash
-struktur extract --debug -t "text to extract" -s schema.json
-```
-
-This outputs detailed information about:
-- CLI initialization and configuration
-- Artifact loading (count, tokens, images)
-- Chunking and batching decisions
-- Strategy execution steps
-- LLM calls (prompts, responses, tokens, timing)
-- Validation attempts and retries
-- Merging and deduplication operations
-- Final extraction results
-
-All logs are single-line JSON for easy parsing:
-
-```json
-{"timestamp":"2026-02-24T20:00:00.000Z","type":"cli_init","args":{"strategy":"simple"}}
-{"timestamp":"2026-02-24T20:00:00.001Z","type":"artifacts_loaded","count":3,"totalTokens":15000}
-{"timestamp":"2026-02-24T20:00:00.002Z","type":"batching_complete","totalBatches":2,"batches":[{"index":0,"artifactCount":2,"tokens":10000},{"index":1,"artifactCount":1,"tokens":5000}]}
-```
-
-## Testing
-
-```sh
-bun test
-```
+---
 
 ## Documentation
 
-- Landing page: `docs/index.html`
-- Full guide: `docs/guide.html`
+Full documentation at **[struktur.sh](https://struktur.sh)**
+
+- [Quickstart](https://struktur.sh/docs/quickstart)
+- [CLI reference](https://struktur.sh/docs/cli)
+- [SDK reference](https://struktur.sh/docs/sdk)
+- [Strategies](https://struktur.sh/docs/explanation/strategies)
+- [Examples](https://struktur.sh/docs/examples)

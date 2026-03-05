@@ -122,19 +122,11 @@ function FeatureCard({
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
-        minHeight: "160px",
+        minHeight: "180px",
         ...style,
       }}
     >
-      <div
-        style={{
-          fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-          fontSize: "12px",
-          color: "#c4b49a",
-          lineHeight: 1.6,
-          flex: 1,
-        }}
-      >
+      <div style={{ flex: 1 }}>
         {preview}
       </div>
       <div
@@ -143,7 +135,7 @@ function FeatureCard({
           fontSize: "15px",
           fontWeight: 500,
           color: "#2d1b0e",
-          marginTop: "16px",
+          marginTop: "20px",
         }}
       >
         {label}
@@ -580,8 +572,118 @@ function Home() {
               marginBottom: "12px",
             }}
           >
-            <FeatureCard label="Extraction strategies for any kind of document" />
-            <FeatureCard label="Use any LLM" />
+            <FeatureCard
+              label="Extraction strategies for any kind of document"
+              preview={
+                <div style={{ display: "flex", alignItems: "center", gap: "12px", paddingTop: "4px" }}>
+                  {/* Input documents column */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: "16px", alignItems: "center" }}>
+                    {/* Document icon */}
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
+                      <div style={{
+                        width: "40px", height: "48px", backgroundColor: "#e5dccf",
+                        borderRadius: "4px", border: "1.5px solid #c4b49a",
+                        display: "flex", flexDirection: "column", justifyContent: "flex-end",
+                        padding: "5px", gap: "2px", position: "relative", flexShrink: 0,
+                      }}>
+                        <div style={{ position: "absolute", top: 0, right: 0, width: "10px", height: "10px", borderLeft: "1.5px solid #c4b49a", borderBottom: "1.5px solid #c4b49a", backgroundColor: "#ede5d8", borderBottomLeftRadius: "2px" }} />
+                        {[0,1,2,3].map(i => <div key={i} style={{ height: "2px", backgroundColor: "#c4b49a", borderRadius: "1px", width: i === 3 ? "60%" : "100%" }} />)}
+                      </div>
+                      <div style={{ fontSize: "10px", color: "#a0926f", textAlign: "center", fontFamily: "Inter, sans-serif", lineHeight: 1.2 }}>Long<br/>Document</div>
+                    </div>
+                  </div>
+
+                  {/* Arrow */}
+                  <div style={{ color: "#c4b49a", fontSize: "16px", flexShrink: 0 }}>→</div>
+
+                  {/* Web article (smaller doc) */}
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
+                    <div style={{
+                      width: "34px", height: "40px", backgroundColor: "#e5dccf",
+                      borderRadius: "4px", border: "1.5px solid #c4b49a",
+                      display: "flex", flexDirection: "column", justifyContent: "flex-end",
+                      padding: "4px", gap: "2px", position: "relative", flexShrink: 0,
+                    }}>
+                      <div style={{ position: "absolute", top: 0, right: 0, width: "9px", height: "9px", borderLeft: "1.5px solid #c4b49a", borderBottom: "1.5px solid #c4b49a", backgroundColor: "#ede5d8", borderBottomLeftRadius: "2px" }} />
+                      {[0,1,2].map(i => <div key={i} style={{ height: "2px", backgroundColor: "#c4b49a", borderRadius: "1px", width: i === 2 ? "60%" : "100%" }} />)}
+                    </div>
+                    <div style={{ fontSize: "10px", color: "#a0926f", textAlign: "center", fontFamily: "Inter, sans-serif", lineHeight: 1.2 }}>Web<br/>Article</div>
+                  </div>
+
+                  {/* Arrow */}
+                  <div style={{ color: "#c4b49a", fontSize: "16px", flexShrink: 0 }}>→</div>
+
+                  {/* Document type variants */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                    {["Short Article", "Table Data", "Structured Data"].map(t => (
+                      <div key={t} style={{ fontSize: "11px", color: "#7a5c3a", fontFamily: "Inter, sans-serif", fontWeight: 500 }}>{t}</div>
+                    ))}
+                  </div>
+
+                  {/* Arrows from document types */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px", paddingTop: "2px" }}>
+                    {[0,1,2].map(i => (
+                      <div key={i} style={{ color: "#c4b49a", fontSize: "14px", lineHeight: "18px" }}>→</div>
+                    ))}
+                  </div>
+
+                  {/* Strategy icons + labels */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {[
+                      { label: "Parallel strategy" },
+                      { label: "Simple strategy" },
+                      { label: "Auto-merge strategy" },
+                      { label: "Double-pass strategy" },
+                    ].map(({ label }) => (
+                      <div key={label} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        {/* Gear placeholder icon */}
+                        <div style={{
+                          width: "18px", height: "18px", borderRadius: "50%",
+                          border: "2px solid #a0926f",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          flexShrink: 0,
+                        }}>
+                          <div style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#a0926f" }} />
+                        </div>
+                        <span style={{ fontSize: "11px", color: "#7a5c3a", fontFamily: "Inter, sans-serif", fontWeight: 500, whiteSpace: "nowrap" }}>{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              }
+            />
+            <FeatureCard
+              label="Use any LLM"
+              preview={
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", paddingTop: "4px" }}>
+                  {[
+                    { name: "OpenAI", sub: "GPT-5.3 CODEX", initial: "⊕" },
+                    { name: "Gemini", sub: "Gemini 3.1", initial: "◇" },
+                    { name: "Mistral\nCodestral", sub: "Codestral", initial: "⊞" },
+                    { name: "Anthropic", sub: "Sonnet 4.6", initial: "A\\" },
+                  ].map(({ name, sub, initial }) => (
+                    <div key={name} style={{
+                      backgroundColor: "#e5dccf",
+                      borderRadius: "10px",
+                      padding: "10px 10px 8px",
+                      display: "flex", flexDirection: "column", gap: "4px",
+                    }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                        <div style={{
+                          width: "20px", height: "20px", borderRadius: "4px",
+                          backgroundColor: "#c4b49a",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          fontSize: "10px", color: "#ede5d8", fontWeight: 700, flexShrink: 0,
+                          fontFamily: "ui-monospace, monospace",
+                        }}>{initial.split("\\")[0]}</div>
+                        <span style={{ fontSize: "12px", color: "#2d1b0e", fontFamily: "Inter, sans-serif", fontWeight: 600, lineHeight: 1.2, whiteSpace: "pre-line" }}>{name}</span>
+                      </div>
+                      <div style={{ fontSize: "10px", color: "#a0926f", fontFamily: "Inter, sans-serif" }}>{sub}</div>
+                    </div>
+                  ))}
+                </div>
+              }
+            />
           </div>
 
           {/* Row 2 */}
@@ -593,17 +695,93 @@ function Home() {
               marginBottom: "12px",
             }}
           >
-            <FeatureCard label="Autofix validation errors" />
+            <FeatureCard
+              label="Autofix validation errors"
+              preview={
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", paddingTop: "4px", flexWrap: "wrap" }}>
+                  {/* Invalid JSON box */}
+                  <div style={{
+                    backgroundColor: "#e5dccf", borderRadius: "8px", padding: "8px 10px",
+                    border: "1.5px solid #c4b49a", fontFamily: "ui-monospace, monospace",
+                    fontSize: "10px", color: "#7a5c3a", lineHeight: 1.6, flexShrink: 0,
+                  }}>
+                    <div style={{ fontSize: "9px", color: "#a0926f", marginBottom: "3px", fontFamily: "Inter, sans-serif", fontWeight: 600 }}>JSON</div>
+                    <div>{"{"}</div>
+                    <div style={{ paddingLeft: "8px" }}><span style={{ color: "#7a5c3a" }}>"key"</span>: "name",</div>
+                    <div style={{ paddingLeft: "8px" }}><span style={{ color: "#c4685a" }}>"missing"</span>: "..."</div>
+                    <div>{"}"}</div>
+                  </div>
+
+                  {/* X arrow */}
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", flexShrink: 0 }}>
+                    <span style={{ color: "#c4685a", fontSize: "16px", lineHeight: 1 }}>✕</span>
+                    <span style={{ color: "#c4b49a", fontSize: "14px" }}>→</span>
+                  </div>
+
+                  {/* Brain/LLM placeholder */}
+                  <div style={{
+                    width: "40px", height: "40px", borderRadius: "50%",
+                    border: "2px solid #a0926f", backgroundColor: "#e5dccf",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    flexShrink: 0, position: "relative",
+                  }}>
+                    <div style={{
+                      fontSize: "8px", color: "#a0926f", fontFamily: "Inter, sans-serif",
+                      fontWeight: 700, textAlign: "center", lineHeight: 1.1,
+                    }}>LLM</div>
+                    {/* gear overlay */}
+                    <div style={{
+                      position: "absolute", bottom: "-2px", right: "-2px",
+                      width: "14px", height: "14px", borderRadius: "50%",
+                      border: "1.5px solid #a0926f", backgroundColor: "#ede5d8",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      <div style={{ width: "5px", height: "5px", borderRadius: "50%", backgroundColor: "#a0926f" }} />
+                    </div>
+                  </div>
+
+                  {/* Arrow + label */}
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", flexShrink: 0 }}>
+                    <span style={{ fontSize: "8px", color: "#a0926f", fontFamily: "Inter, sans-serif", whiteSpace: "nowrap" }}>JSON VALIDATION</span>
+                    <span style={{ color: "#c4b49a", fontSize: "14px" }}>→</span>
+                  </div>
+
+                  {/* Valid JSON box */}
+                  <div style={{
+                    backgroundColor: "#e5dccf", borderRadius: "8px", padding: "8px 10px",
+                    border: "1.5px solid #7aab7a", fontFamily: "ui-monospace, monospace",
+                    fontSize: "10px", color: "#7a5c3a", lineHeight: 1.6, flexShrink: 0,
+                  }}>
+                    <div style={{ fontSize: "9px", color: "#a0926f", marginBottom: "3px", fontFamily: "Inter, sans-serif", fontWeight: 600 }}>JSON</div>
+                    <div>{"{"}</div>
+                    <div style={{ paddingLeft: "8px" }}><span style={{ color: "#7a5c3a" }}>"key"</span>: "name",</div>
+                    <div style={{ paddingLeft: "8px" }}><span style={{ color: "#7a5c3a" }}>"key"</span>: "gloat"</div>
+                    <div>{"}"}</div>
+                  </div>
+
+                  {/* Valid checkmark */}
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", flexShrink: 0 }}>
+                    <span style={{ color: "#5a9a5a", fontSize: "16px", lineHeight: 1 }}>✓</span>
+                    <span style={{ fontSize: "9px", color: "#5a9a5a", fontFamily: "Inter, sans-serif", fontWeight: 600 }}>VALID</span>
+                  </div>
+
+                  {/* Retry loop label */}
+                  <div style={{ width: "100%", textAlign: "center", fontSize: "9px", color: "#a0926f", fontFamily: "Inter, sans-serif", marginTop: "2px" }}>
+                    ↺ RETRY / CORRECT
+                  </div>
+                </div>
+              }
+            />
             <FeatureCard
               label="Schema Shorthand"
               preview={
-                <div>
-                  <div>--fields `name:string`</div>
-                  <div style={{ paddingLeft: "24px" }}>
+                <div style={{ paddingTop: "8px" }}>
+                  <div style={{ fontSize: "13px", color: "#7a5c3a" }}>--fields `name:string`</div>
+                  <div style={{ paddingLeft: "24px", fontSize: "13px", color: "#7a5c3a" }}>
                     size:enum&#123;s,m,l&#125;
                   </div>
-                  <div style={{ paddingLeft: "48px" }}>price:float</div>
-                  <div style={{ paddingLeft: "64px" }}>
+                  <div style={{ paddingLeft: "48px", fontSize: "13px", color: "#7a5c3a" }}>price:float</div>
+                  <div style={{ paddingLeft: "64px", fontSize: "13px", color: "#7a5c3a" }}>
                     names:array&#123;string&#125;
                   </div>
                 </div>
@@ -619,8 +797,162 @@ function Home() {
               gap: "12px",
             }}
           >
-            <FeatureCard label="TypeScript SDK" />
-            <FeatureCard label="Let the LLM reference embedded media" />
+            <FeatureCard
+              label="TypeScript SDK"
+              preview={
+                <div style={{ paddingTop: "4px" }}>
+                  {/* Fake editor window */}
+                  <div style={{
+                    backgroundColor: "#2d2420", borderRadius: "8px",
+                    overflow: "hidden", fontSize: "10px",
+                    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                  }}>
+                    {/* Title bar */}
+                    <div style={{
+                      backgroundColor: "#3d2e28", padding: "5px 8px",
+                      display: "flex", alignItems: "center", gap: "6px",
+                    }}>
+                      <div style={{ display: "flex", gap: "4px" }}>
+                        {["#c4685a","#c4a45a","#7aab7a"].map(c => (
+                          <div key={c} style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: c }} />
+                        ))}
+                      </div>
+                      <span style={{ color: "#a0926f", fontSize: "9px", marginLeft: "4px" }}>mot.ts</span>
+                      <div style={{
+                        marginLeft: "auto", backgroundColor: "#3178c6",
+                        borderRadius: "3px", padding: "1px 4px",
+                        fontSize: "8px", color: "white", fontWeight: 700,
+                      }}>TS</div>
+                    </div>
+                    {/* Code */}
+                    <div style={{ padding: "8px 10px", lineHeight: 1.7, color: "#c4b49a" }}>
+                      <div><span style={{ color: "#a0926f" }}>import</span> {"{ extract }"} <span style={{ color: "#a0926f" }}>from</span> <span style={{ color: "#7aab7a" }}>"@mateffy/struktur"</span>;</div>
+                      <div style={{ marginTop: "6px" }}>
+                        <span style={{ color: "#a0926f" }}>const</span> result = <span style={{ color: "#a0926f" }}>await</span> extract({"{"})
+                      </div>
+                      <div style={{ paddingLeft: "12px" }}>size: <span style={{ color: "#7aab7a" }}>'s,st'</span>,</div>
+                      <div style={{ paddingLeft: "12px" }}>price: float</div>
+                      <div>{"}"});</div>
+                    </div>
+                  </div>
+                  {/* Terminal row */}
+                  <div style={{
+                    backgroundColor: "#1a1412", borderRadius: "6px", marginTop: "6px",
+                    padding: "6px 10px", fontFamily: "ui-monospace, monospace",
+                    fontSize: "10px", color: "#c4b49a",
+                  }}>
+                    <div style={{ display: "flex", gap: "4px" }}>
+                      {["#c4685a","#c4a45a","#7aab7a"].map(c => (
+                        <div key={c} style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: c }} />
+                      ))}
+                    </div>
+                    <div style={{ marginTop: "4px" }}>
+                      <span style={{ color: "#a0926f" }}>›</span> bun install @mateffy/struktur
+                    </div>
+                    <div style={{ color: "#5a9a5a" }}>› _</div>
+                  </div>
+                </div>
+              }
+            />
+            <FeatureCard
+              label="Let the LLM reference embedded media"
+              preview={
+                <div style={{ display: "flex", alignItems: "flex-start", gap: "10px", paddingTop: "4px" }}>
+                  {/* Document */}
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", flexShrink: 0 }}>
+                    <div style={{
+                      width: "40px", height: "48px", backgroundColor: "#e5dccf",
+                      borderRadius: "4px", border: "1.5px solid #c4b49a",
+                      padding: "5px", display: "flex", flexDirection: "column", gap: "2px",
+                      position: "relative",
+                    }}>
+                      <div style={{ position: "absolute", top: 0, right: 0, width: "10px", height: "10px", borderLeft: "1.5px solid #c4b49a", borderBottom: "1.5px solid #c4b49a", backgroundColor: "#ede5d8", borderBottomLeftRadius: "2px" }} />
+                      {[0,1,2,3].map(i => <div key={i} style={{ height: "2px", backgroundColor: "#c4b49a", borderRadius: "1px", width: i === 3 ? "60%" : "100%" }} />)}
+                    </div>
+                  </div>
+
+                  <div style={{ color: "#c4b49a", fontSize: "16px", paddingTop: "10px", flexShrink: 0 }}>→</div>
+
+                  {/* Document with embedded images */}
+                  <div style={{ flexShrink: 0 }}>
+                    <div style={{
+                      width: "52px", height: "60px", backgroundColor: "#e5dccf",
+                      borderRadius: "4px", border: "1.5px solid #c4b49a",
+                      padding: "5px", display: "flex", flexDirection: "column", gap: "3px",
+                      position: "relative",
+                    }}>
+                      <div style={{ position: "absolute", top: 0, right: 0, width: "11px", height: "11px", borderLeft: "1.5px solid #c4b49a", borderBottom: "1.5px solid #c4b49a", backgroundColor: "#ede5d8", borderBottomLeftRadius: "2px" }} />
+                      <div style={{ height: "2px", backgroundColor: "#c4b49a", borderRadius: "1px" }} />
+                      {/* Two small image placeholders */}
+                      <div style={{ display: "flex", gap: "2px", marginTop: "2px" }}>
+                        {[0,1].map(i => (
+                          <div key={i} style={{
+                            width: "17px", height: "14px", backgroundColor: "#c4b49a",
+                            borderRadius: "2px", display: "flex", alignItems: "center", justifyContent: "center",
+                          }}>
+                            <div style={{ fontSize: "8px", color: "#ede5d8" }}>⛰</div>
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ height: "2px", backgroundColor: "#c4b49a", borderRadius: "1px", width: "70%" }} />
+                      {/* Chart placeholder */}
+                      <div style={{
+                        height: "14px", backgroundColor: "#c4b49a", borderRadius: "2px",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}>
+                        <div style={{ fontSize: "8px", color: "#ede5d8" }}>📊</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ color: "#c4b49a", fontSize: "16px", paddingTop: "14px", flexShrink: 0 }}>→</div>
+
+                  {/* LLM brain with question bubble */}
+                  <div style={{ flexShrink: 0, position: "relative" }}>
+                    <div style={{
+                      width: "44px", height: "44px", borderRadius: "50%",
+                      border: "2px solid #a0926f", backgroundColor: "#e5dccf",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      <span style={{ fontSize: "18px" }}>🧠</span>
+                    </div>
+                    {/* Magnifier */}
+                    <div style={{
+                      position: "absolute", bottom: "-2px", right: "-4px",
+                      width: "18px", height: "18px", borderRadius: "50%",
+                      border: "2px solid #a0926f", backgroundColor: "#ede5d8",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: "9px",
+                    }}>🔍</div>
+                    {/* Speech bubble */}
+                    <div style={{
+                      position: "absolute", top: "-28px", left: "50%", transform: "translateX(-50%)",
+                      backgroundColor: "#fff", borderRadius: "6px", padding: "3px 6px",
+                      fontSize: "8px", color: "#3d2b15", fontFamily: "Inter, sans-serif",
+                      whiteSpace: "nowrap", border: "1px solid #c4b49a",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+                    }}>What is in this chart?</div>
+                  </div>
+
+                  <div style={{ color: "#c4b49a", fontSize: "16px", paddingTop: "14px", flexShrink: 0 }}>→</div>
+
+                  {/* JSON output */}
+                  <div style={{
+                    backgroundColor: "#e5dccf", borderRadius: "8px", padding: "7px 9px",
+                    fontFamily: "ui-monospace, monospace", fontSize: "9px",
+                    color: "#7a5c3a", lineHeight: 1.6, flexShrink: 0,
+                  }}>
+                    <div><span style={{ color: "#a0926f" }}>"chart_type"</span>: "Sales",</div>
+                    <div><span style={{ color: "#a0926f" }}>"data_points"</span>: {"["}</div>
+                    <div style={{ paddingLeft: "8px" }}>{"{"}
+                      <span style={{ color: "#a0926f" }}>"label"</span>: "Q1",</div>
+                    <div style={{ paddingLeft: "8px" }}><span style={{ color: "#a0926f" }}>"value"</span>: 1500{"}"}</div>
+                    <div style={{ paddingLeft: "8px", color: "#c4b49a" }}>...</div>
+                    <div>{"]"}</div>
+                  </div>
+                </div>
+              }
+            />
           </div>
         </section>
 
