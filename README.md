@@ -1,6 +1,6 @@
 <div>
     <h1>
-        <img src="./resources/struktur-icon-padded.webp" alt="Struktur Logo" width="150" align="left"  />
+        <img src="./resources/struktur-icon-padded.webp" alt="Struktur Logo" width="160" align="left"  />
         Struktur
     </h1>
     <p>
