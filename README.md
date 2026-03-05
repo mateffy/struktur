@@ -35,7 +35,9 @@ struktur extract --input ./invoice.pdf --fields "number, vendor, total:number"
 }
 ```
 
-Or using pipes:
+<div align="center">
+    <h6>or more complex schemas...</h6>
+</div>
 
 ```bash
 curl https://example.com/long-rental-contract.docx \
