@@ -6,7 +6,7 @@
 <div>
     <h1>
         <picture>
-            <source media="(max-width: 768px)" srcset="./resources/pixel.png">
+            <source media="(max-width: 768px)" srcset="./resources/pixel.png" width="0" height="0">
             <img src="./resources/struktur-icon-padded.webp" alt="Struktur Logo" width="225" align="left">
         </picture>
         Struktur
