@@ -1,17 +1,17 @@
 <div>
     <h1>
-        <img src="./resources/struktur-icon.png" alt="Struktur Logo" width="120" align="right"  />
+        <img src="./resources/struktur-icon.png" alt="Struktur Logo" width="120" align="left"  />
         Struktur
     </h1>
     <p>
       All-in-one tool for structured data extraction using LLMs. Feed it documents, get back validated JSON. Handles parsing files, chunking, retries, merging, and deduplication — you just define the schema and choose a strategy.
     </p>
-
 </div>
 
 
-
-<br>
+<br />
+<br />
+<br />
     
 ```bash
 struktur extract --input ./invoice.pdf --fields "number, vendor, total:number"
@@ -42,7 +42,7 @@ curl https://example.com/rental-contract.docx | struktur extract --stdin \
 }
 ```
 
-<br>
+<br />
 
 ---
 
