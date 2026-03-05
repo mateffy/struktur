@@ -1,6 +1,14 @@
+<picture>
+  <source media="(min-width: 769px)" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4AWJiYGBgAAAAAP//XRcpzQAAAAZJREFUAwAADwADJDd96QAAAABJRU5ErkJggg==">
+  <img src="./resources/struktur-icon-padded.webp" alt="Struktur Logo" width="225">
+</picture>
+
 <div>
     <h1>
-        <img src="./resources/struktur-icon-padded.webp" alt="Struktur Logo" width="175" align="left"  />
+        <picture>
+            <source media="(max-width: 768px)" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4AWJiYGBgAAAAAP//XRcpzQAAAAZJREFUAwAADwADJDd96QAAAABJRU5ErkJggg==">
+            <img src="./resources/struktur-icon-padded.webp" alt="Struktur Logo" width="225" align="left">
+        </picture>
         Struktur
     </h1>
     <p>
