@@ -3,7 +3,7 @@
 </div>
 <h1 align="center">Struktur</h1>
 
-Structured data extraction for LLMs. Feed it documents, get back validated JSON. Handles chunking, retries, merging, and deduplication — you define the schema.
+All-in-one tool for structured data extraction using LLMs. Feed it documents, get back validated JSON. Handles parsing files, chunking, retries, merging, and deduplication — you just define the schema and choose a strategy.
 
 <br>
     
