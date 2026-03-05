@@ -6,6 +6,10 @@
     <p>
       All-in-one tool for structured data extraction using LLMs. Feed it documents, get back validated JSON. Handles parsing files, chunking, retries, merging, and deduplication — you just define the schema and choose a strategy.
     </p>
+    <p>
+        <a href="https://struktur.sh/docs/quickstart" target="_blank">Quickstart</a> |
+        <a href="https://struktur.sh/docs" target="_blank">Documentation</a>
+    </p>
 </div>
 
 
