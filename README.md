@@ -91,7 +91,7 @@ struktur config models use openai/gpt-4o-mini
 
 <br />
 
-### 2. Extract
+### 2. Extract some data!
 
 - Use the `extract` command with `--input` for files/URLs or `--stdin` for pipes.
 - Define simple schemas with `--fields` or use `--schema` for full JSON Schema support.
@@ -105,7 +105,7 @@ struktur extract --input ./contract.pdf \
 
 <br />
 
-### 3. Configure strategies, models, and more
+### 3. Configure strategies, models, and more (Optional)
 
 - Struktur can be configured to support even more strategies, document types or LLM providers
 - Set aliases for your favorite models (e.g. `fast` or `quality`) or change your default model
@@ -187,8 +187,16 @@ const result = await extract({
 
 Struktur operates on **Artifacts** — normalized JSON DTOs with text and media slices. Pass in a file path, URL, or raw text; Struktur parses it automatically and hands the content to the LLM.
 
-```
-input → parse → artifacts → strategy → [chunk] → [LLM call(s)] → [validate + retry] → [merge/dedupe] → result
+```mermaid
+graph LR
+    A[input] --> B[parse]
+    B --> C[artifacts]
+    C --> D[strategy]
+    D --> E[chunk]
+    E --> F[LLM call/s]
+    F --> G[validate + retry]
+    G --> H[merge/dedupe]
+    H --> I[result]
 ```
 
 Every LLM response is validated against your schema with Ajv. If it fails, the errors are sent back to the model automatically. Most extractions converge in one or two attempts.

@@ -1,6 +1,7 @@
 {
   "title": "Examples",
   "pages": [
+    "index",
     "extract-invoice",
     "extract-realestate",
     "process-directory",
