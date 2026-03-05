@@ -57,8 +57,13 @@ curl https://example.com/long-rental-contract.docx \
 ```
 
 <br />
+<br />
+<br />
 
 ---
+
+<br />
+<br />
 
 ## Install
 
