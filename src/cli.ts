@@ -13,7 +13,7 @@ Date.prototype.toISOString = function () {
   }
 };
 
-import { defineCommand, runMain } from "citty";
+import { defineCommand, renderUsage, runMain } from "citty";
 import yoctoSpinner from "yocto-spinner";
 import { extract } from "./extract";
 import {
@@ -32,6 +32,10 @@ import {
   deleteAlias,
   listAliases,
   resolveAlias,
+  listParsers,
+  getParser,
+  setParser,
+  deleteParser,
 } from "./auth/config";
 import {
   deleteProviderToken,
@@ -45,7 +49,10 @@ import {
   listProviderModels,
   resolveCheapestModel,
 } from "./llm/models";
-import { validateSerializedArtifacts } from "./artifacts/input";
+import {
+  validateSerializedArtifacts,
+  hydrateSerializedArtifacts,
+} from "./artifacts/input";
 import {
   loadArtifactsFromOptions,
   loadSchema,
@@ -55,8 +62,12 @@ import {
   resolveModel,
   stdinConsumed,
 } from "./cli/shared";
+import { detectMimeType } from "./parsers/mime";
+import { runParser } from "./parsers/runner";
+import type { NpmParserDef, ParsersConfig } from "./parsers/types";
 import type { ExtractionEvents, ExtractionStrategy } from "./types";
 import { createDebugLogger } from "./debug/logger";
+import type { SerializedArtifact } from "./artifacts/input";
 
 const supportedProviders = [
   "openai",
@@ -509,16 +520,29 @@ const verifyCommand = defineCommand({
   args: {
     input: {
       type: "string",
-      description: "Artifact JSON file or stdin (-)",
+      description: "Artifact JSON file to validate",
       alias: "i",
-      default: "-",
+    },
+    stdin: {
+      type: "boolean",
+      description: "Read artifact JSON from stdin",
+      alias: "s",
+      default: false,
     },
   },
   async run({ args }) {
-    const raw =
-      args.input === "-"
-        ? await readStdinText()
-        : await Bun.file(args.input).text();
+    const useStdin = args.stdin === true;
+
+    if (!args.input && !useStdin) {
+      const usageText = await renderUsage(verifyCommand);
+      process.stderr.write(`${usageText}\n`);
+      process.stderr.write("error: Specify an input source: --input <file> or --stdin\n");
+      process.exit(1);
+    }
+
+    const raw = useStdin
+      ? await readStdinText()
+      : await Bun.file(args.input!).text();
     const parsed = JSON.parse(raw) as unknown;
     const artifacts = validateSerializedArtifacts(parsed);
     const json = JSON.stringify(
@@ -609,6 +633,24 @@ const extractCommand = defineCommand({
       description: "Strict mode for schema validation",
       default: false,
     },
+    "no-parse": {
+      type: "boolean",
+      description: "Skip custom parsers; use only built-in text/image/artifact-JSON detection",
+      default: false,
+    },
+    mime: {
+      type: "string",
+      description: "Override MIME type detection for the input",
+    },
+    parser: {
+      type: "string",
+      description: "Use this npm package as the parser, overriding configured parser",
+    },
+    "no-images": {
+      type: "boolean",
+      description: "Skip image extraction; do not include images in the artifact output",
+      default: false,
+    },
   },
   async run({ args }) {
     const isDebug = args.debug === true;
@@ -658,6 +700,10 @@ const extractCommand = defineCommand({
       stdin: args.stdin,
       artifact: args.artifact,
       "artifact-json": args["artifact-json"],
+      "no-parse": args["no-parse"],
+      "no-images": args["no-images"],
+      mime: args.mime,
+      parser: args.parser,
     });
 
     // Calculate artifact stats
@@ -790,6 +836,328 @@ const extractCommand = defineCommand({
   },
 });
 
+// ---------------------------------------------------------------------------
+// parse
+// ---------------------------------------------------------------------------
+const parseCommand = defineCommand({
+  meta: {
+    name: "parse",
+    description: "Convert a file or stdin to Artifact JSON",
+  },
+  args: {
+    input: {
+      type: "string",
+      description: "File to parse",
+      alias: "i",
+    },
+    stdin: {
+      type: "boolean",
+      description: "Read from stdin",
+      alias: "s",
+      default: false,
+    },
+    mime: {
+      type: "string",
+      description: "Override MIME type detection",
+    },
+    output: {
+      type: "string",
+      description: "Output destination (default: stdout)",
+      alias: "o",
+      default: "-",
+    },
+    parser: {
+      type: "string",
+      description: "Override configured parser with this npm package name",
+    },
+    "no-images": {
+      type: "boolean",
+      description: "Skip image extraction; do not include images in the artifact output",
+      default: false,
+    },
+  },
+  async run({ args }) {
+    const useStdin = args.stdin === true;
+
+    if (!args.input && !useStdin) {
+      // No input source — show usage + error and exit 1
+      const usageText = await renderUsage(parseCommand);
+      process.stderr.write(`${usageText}\n`);
+      process.stderr.write("error: Specify an input source: --input <file> or --stdin\n");
+      process.exit(1);
+    }
+
+    // Load parsers config
+    let parsersConfig: ParsersConfig = {};
+    try {
+      parsersConfig = await listParsers();
+    } catch {
+      // Ignore config load failures
+    }
+
+    // Read input into buffer
+    let buffer: Buffer;
+    let filePath: string | undefined;
+
+    if (useStdin) {
+      const text = await readStdinText();
+      buffer = Buffer.from(text);
+    } else {
+      filePath = args.input!;
+      const file = Bun.file(filePath);
+      buffer = Buffer.from(await file.arrayBuffer());
+    }
+
+    // Detect MIME type
+    const npmParserEntries = Object.entries(parsersConfig)
+      .filter((entry): entry is [string, NpmParserDef] => entry[1].type === "npm")
+      .map(([mimeType, def]) => ({ mimeType, def }));
+
+    let mimeType = await detectMimeType({
+      buffer,
+      filePath,
+      mimeOverride: args.mime,
+      npmParsers: npmParserEntries,
+    });
+
+    if (!mimeType) {
+      if (useStdin) {
+        // Fallback to text/plain for stdin
+        mimeType = "text/plain";
+      } else {
+        throw new Error(
+          `Cannot detect MIME type for file "${args.input}". Use --mime to specify the type.`
+        );
+      }
+    }
+
+    // JSON auto-detection: if MIME is application/json, check if it's already SerializedArtifact[]
+    if (mimeType === "application/json") {
+      try {
+        const parsed = JSON.parse(buffer.toString()) as unknown;
+        const serialized = validateSerializedArtifacts(parsed);
+        const json = JSON.stringify(serialized, null, 2);
+        await writeOutput(args.output, json);
+        return;
+      } catch {
+        // Not valid artifact JSON — fall through to parser resolution
+      }
+    }
+
+    // Resolve parser: --parser flag > configured parser > built-in (PDF, text, image)
+    const effectiveParsers: ParsersConfig = { ...parsersConfig };
+    if (args.parser) {
+      effectiveParsers[mimeType] = { type: "npm", package: args.parser };
+    }
+
+    const parserDef = effectiveParsers[mimeType];
+
+    let artifacts;
+    if (parserDef) {
+      artifacts = await runParser(parserDef, { kind: "buffer", buffer }, mimeType);
+    } else if (mimeType === "application/pdf") {
+      const { parsePdf } = await import("./parsers/pdf");
+      artifacts = [await parsePdf(buffer, { includeImages: args["no-images"] !== true })];
+    } else if (mimeType.startsWith("text/")) {
+      const { splitTextIntoContents, hydrateSerializedArtifacts: hydrate } = await import("./artifacts/input");
+      const text = buffer.toString();
+      const contents = splitTextIntoContents(text);
+      artifacts = [{
+        id: `artifact-${crypto.randomUUID()}`,
+        type: "text" as const,
+        raw: async () => buffer,
+        contents,
+      }];
+    } else if (mimeType.startsWith("image/")) {
+      artifacts = [{
+        id: `artifact-${crypto.randomUUID()}`,
+        type: "image" as const,
+        raw: async () => buffer,
+        contents: [{ media: [{ type: "image" as const, contents: buffer }] }],
+      }];
+    } else {
+      throw new Error(
+        `No parser configured for MIME type "${mimeType}". Use --parser to specify an npm parser package or configure one with: struktur config parsers add --mime ${mimeType} ...`
+      );
+    }
+
+    // Serialize to SerializedArtifact[]
+    const serialized: SerializedArtifact[] = artifacts.map((a) => ({
+      id: a.id,
+      type: a.type,
+      contents: a.contents.map((c) => ({
+        ...(c.page !== undefined ? { page: c.page } : {}),
+        ...(c.text !== undefined ? { text: c.text } : {}),
+        ...(c.media
+          ? {
+              media: c.media.map((m) => ({
+                type: "image" as const,
+                ...(m.url ? { url: m.url } : {}),
+                ...(m.base64 ? { base64: m.base64 } : {}),
+                ...(m.contents ? { base64: m.contents.toString("base64") } : {}),
+                ...(m.text ? { text: m.text } : {}),
+              })),
+            }
+          : {}),
+      })),
+      ...(a.metadata ? { metadata: a.metadata } : {}),
+    }));
+
+    const json = JSON.stringify(serialized, null, 2);
+    await writeOutput(args.output, json);
+  },
+});
+
+// ---------------------------------------------------------------------------
+// config parsers list
+// ---------------------------------------------------------------------------
+const configParsersListCommand = defineCommand({
+  meta: {
+    name: "list",
+    description: "List all configured parsers",
+  },
+  async run() {
+    const parsers = await listParsers();
+    const json = JSON.stringify({ parsers }, null, 2);
+    await writeOutput("-", json);
+  },
+});
+
+// ---------------------------------------------------------------------------
+// config parsers get
+// ---------------------------------------------------------------------------
+const configParsersGetCommand = defineCommand({
+  meta: {
+    name: "get",
+    description: "Get the parser configured for a MIME type",
+  },
+  args: {
+    mime: {
+      type: "string",
+      description: "MIME type",
+      required: true,
+    },
+  },
+  async run({ args }) {
+    const parser = await getParser(args.mime);
+    if (!parser) {
+      throw new Error(`No parser configured for MIME type: ${args.mime}`);
+    }
+    const json = JSON.stringify({ mimeType: args.mime, parser }, null, 2);
+    await writeOutput("-", json);
+  },
+});
+
+// ---------------------------------------------------------------------------
+// config parsers add
+// ---------------------------------------------------------------------------
+const configParsersAddCommand = defineCommand({
+  meta: {
+    name: "add",
+    description: "Configure a parser for a MIME type",
+  },
+  args: {
+    mime: {
+      type: "string",
+      description: "MIME type to configure",
+      required: true,
+    },
+    npm: {
+      type: "string",
+      description: "npm package name",
+    },
+    "file-command": {
+      type: "string",
+      description: "Command with FILE_PATH placeholder",
+    },
+    "stdin-command": {
+      type: "string",
+      description: "Command that reads from stdin",
+    },
+  },
+  async run({ args }) {
+    const sources = [args.npm, args["file-command"], args["stdin-command"]].filter(
+      (v) => v !== undefined && v !== ""
+    );
+    if (sources.length !== 1) {
+      throw new Error(
+        "Specify exactly one of --npm, --file-command, or --stdin-command."
+      );
+    }
+
+    let parserDef;
+    if (args.npm) {
+      parserDef = { type: "npm" as const, package: args.npm };
+    } else if (args["file-command"]) {
+      if (!args["file-command"].includes("FILE_PATH")) {
+        throw new Error(
+          `--file-command must contain FILE_PATH placeholder. Got: "${args["file-command"]}"`
+        );
+      }
+      parserDef = { type: "command-file" as const, command: args["file-command"] };
+    } else {
+      parserDef = { type: "command-stdin" as const, command: args["stdin-command"]! };
+    }
+
+    await setParser(args.mime, parserDef);
+    const json = JSON.stringify({ mimeType: args.mime, parser: parserDef }, null, 2);
+    await writeOutput("-", json);
+  },
+});
+
+// ---------------------------------------------------------------------------
+// config parsers remove
+// ---------------------------------------------------------------------------
+const configParsersRemoveCommand = defineCommand({
+  meta: {
+    name: "remove",
+    description: "Remove a configured parser",
+  },
+  args: {
+    mime: {
+      type: "string",
+      description: "MIME type",
+      required: true,
+    },
+  },
+  async run({ args }) {
+    const deleted = await deleteParser(args.mime);
+    const json = JSON.stringify({ mimeType: args.mime, deleted }, null, 2);
+    await writeOutput("-", json);
+  },
+});
+
+// ---------------------------------------------------------------------------
+// config parsers (parent)
+// ---------------------------------------------------------------------------
+const configParsersCommand = defineCommand({
+  meta: {
+    name: "parsers",
+    description: "Manage file parsers by MIME type",
+  },
+  subCommands: {
+    list: configParsersListCommand,
+    get: configParsersGetCommand,
+    add: configParsersAddCommand,
+    remove: configParsersRemoveCommand,
+  },
+});
+
+// ---------------------------------------------------------------------------
+// config (parent) — houses models, providers, parsers
+// ---------------------------------------------------------------------------
+const configCommand = defineCommand({
+  meta: {
+    name: "config",
+    description: "Manage struktur configuration",
+  },
+  subCommands: {
+    models: modelsCommand,
+    providers: providersCommand,
+    parsers: configParsersCommand,
+  },
+});
+
 const main = defineCommand({
   meta: {
     name: "struktur",
@@ -798,8 +1166,8 @@ const main = defineCommand({
   },
   subCommands: {
     extract: extractCommand,
-    models: modelsCommand,
-    providers: providersCommand,
+    parse: parseCommand,
+    config: configCommand,
     verify: verifyCommand,
   },
 });

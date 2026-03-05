@@ -1,4 +1,4 @@
-import { getDefaultModel, resolveAlias } from "../auth/config";
+import { getDefaultModel, listParsers, resolveAlias } from "../auth/config";
 import {
   listStoredProviders,
   resolveProviderEnvVar,
@@ -8,6 +8,8 @@ import {
   parseInputToArtifacts,
   parseSerializedArtifacts,
 } from "../artifacts/input";
+import { detectMimeType, type NpmParserEntry } from "../parsers/mime";
+import type { NpmParserDef, ParsersConfig } from "../parsers/types";
 import { resolveCheapestModel } from "../llm/models";
 import { buildSchemaFromFields } from "../fields";
 import type { AnyJSONSchema, Artifact } from "../types";
@@ -335,6 +337,11 @@ export const loadArtifactsFromOptions = async (
   const stdin = options.stdin;
   const artifact = options.artifact;
   const artifactJson = options["artifact-json"];
+  const noParse = options["no-parse"] === true;
+  const noImages = options["no-images"] === true;
+  const includeImages = noImages ? false : undefined;
+  const mimeOverride = typeof options.mime === "string" ? options.mime : undefined;
+  const parserOverride = typeof options.parser === "string" ? options.parser : undefined;
   const readStdin = deps?.readStdinText ?? readStdinText;
   const stdinIsTTY = deps?.stdinIsTTY ?? process.stdin.isTTY;
   const inferredStdin =
@@ -359,12 +366,117 @@ export const loadArtifactsFromOptions = async (
   }
 
   if (stdinRequested) {
-    const stdinText = await readStdin();
-    return parseInputToArtifacts({ kind: "text", text: stdinText });
+    const stdinBuffer = Buffer.from(await readStdin());
+
+    // MIME detection for stdin
+    let detectedMime: string | null = null;
+    if (!noParse) {
+      // Load parsers config to get npm parser entries for detectFileType
+      let parsersConfig: ParsersConfig = {};
+      try {
+        parsersConfig = await listParsers();
+      } catch {
+        // Ignore config load failures
+      }
+
+      const npmParserEntries: NpmParserEntry[] = Object.entries(parsersConfig)
+        .filter((entry): entry is [string, NpmParserDef] => entry[1].type === "npm")
+        .map(([mimeType, def]) => ({ mimeType, def: def as NpmParserDef }));
+
+      detectedMime = await detectMimeType({
+        buffer: stdinBuffer,
+        mimeOverride,
+        npmParsers: npmParserEntries,
+      });
+    }
+
+    const mimeType = detectedMime ?? "text/plain";
+
+    if (mimeType === "text/plain") {
+      // Treat as raw text
+      return parseInputToArtifacts({ kind: "text", text: stdinBuffer.toString() });
+    }
+
+    // Build effective parsers config
+    let effectiveParsers: ParsersConfig | undefined;
+    if (!noParse) {
+      let parsersConfig: ParsersConfig = {};
+      try {
+        parsersConfig = await listParsers();
+      } catch {
+        // Ignore config load failures
+      }
+
+      if (parserOverride) {
+        parsersConfig = { ...parsersConfig, [mimeType]: { type: "npm", package: parserOverride } };
+      }
+
+      effectiveParsers = Object.keys(parsersConfig).length > 0 ? parsersConfig : undefined;
+    }
+
+    return parseInputToArtifacts(
+      { kind: "buffer", buffer: stdinBuffer, mimeType },
+      { parserConfig: effectiveParsers, includeImages }
+    );
   }
 
   if (typeof input === "string") {
-    return parseInputToArtifacts({ kind: "file", path: input });
+    // Build effective parsers config for file input
+    let effectiveParsers: ParsersConfig | undefined;
+    let detectedMime: string | null = null;
+
+    if (!noParse) {
+      let parsersConfig: ParsersConfig = {};
+      try {
+        parsersConfig = await listParsers();
+      } catch {
+        // Ignore config load failures
+      }
+
+      // Read first 512 bytes for magic byte detection
+      let headerBuffer: Buffer | undefined;
+      try {
+        const file = Bun.file(input);
+        const arrayBuf = await file.slice(0, 512).arrayBuffer();
+        headerBuffer = Buffer.from(arrayBuf);
+      } catch {
+        // Ignore read failures for detection
+      }
+
+      const npmParserEntries: NpmParserEntry[] = Object.entries(parsersConfig)
+        .filter((entry): entry is [string, NpmParserDef] => entry[1].type === "npm")
+        .map(([mimeType, def]) => ({ mimeType, def: def as NpmParserDef }));
+
+      detectedMime = await detectMimeType({
+        buffer: headerBuffer,
+        filePath: input,
+        mimeOverride,
+        npmParsers: npmParserEntries,
+      });
+
+      if (parserOverride && detectedMime) {
+        parsersConfig = { ...parsersConfig, [detectedMime]: { type: "npm", package: parserOverride } };
+      }
+
+      effectiveParsers = Object.keys(parsersConfig).length > 0 ? parsersConfig : undefined;
+    } else {
+      // Even with --no-parse, apply --mime override
+      detectedMime = await detectMimeType({
+        filePath: input,
+        mimeOverride,
+      });
+    }
+
+    if (!noParse && !mimeOverride && detectedMime === null) {
+      throw new Error(
+        `Cannot detect MIME type for file "${input}". Use --mime to specify the type.`
+      );
+    }
+
+    return parseInputToArtifacts(
+      { kind: "file", path: input, mimeType: detectedMime ?? undefined },
+      { parserConfig: effectiveParsers, includeImages }
+    );
   }
 
   throw new Error("No input provided.");

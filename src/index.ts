@@ -44,3 +44,7 @@ export {
 } from "./artifacts/input";
 
 export * from "./strategies";
+
+// Parsers public API
+export { collectStream } from "./parsers/collect";
+export type { ParserDef, ParsersConfig } from "./parsers/types";

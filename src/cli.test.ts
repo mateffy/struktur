@@ -97,9 +97,9 @@ test("CLI shows help when no arguments provided", async () => {
   expect(stderr).toContain("No command specified");
 });
 
-test("providers list command works", async () => {
+test("config providers list command works", async () => {
   const result = Bun.spawnSync({
-    cmd: [process.execPath, "src/cli.ts", "providers", "list"],
+    cmd: [process.execPath, "src/cli.ts", "config", "providers", "list"],
     stdout: "pipe",
     stderr: "pipe",
   });
@@ -110,9 +110,9 @@ test("providers list command works", async () => {
   expect(JSON.parse(output)).toHaveProperty("providers");
 });
 
-test("models list command works", async () => {
+test("config models list command works", async () => {
   const result = Bun.spawnSync({
-    cmd: [process.execPath, "src/cli.ts", "models", "list"],
+    cmd: [process.execPath, "src/cli.ts", "config", "models", "list"],
     stdout: "pipe",
     stderr: "pipe",
   });

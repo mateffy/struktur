@@ -5,18 +5,35 @@
 - CLI Framework: uses `citty` for elegant command parsing with subcommands.
 - Command tree:
   - `extract`  — structured data extraction (main command)
-  - `models list`  — list available models per provider
-  - `models alias list`  — list all aliases
-  - `models alias get <alias>`  — get the model behind an alias
-  - `models alias set <alias> <model>`  — create or update an alias
-  - `models alias remove <alias>`  — delete an alias
-  - `models use <alias_or_model>`  — set the default model
-  - `providers list`  — show all 5 supported providers with configured status
-  - `providers add <provider>`  — store an API token (--token/--token-stdin, --storage, --default)
-  - `providers remove <provider>`  — delete a stored token
+    - `--no-parse` — skip custom parsers; use only built-in text/image/artifact-JSON detection
+    - `--no-images` — skip image extraction; do not include images in the artifact output (passed to PDF parser)
+    - `--mime <type>` — override MIME type detection for the input
+    - `--parser <npm-pkg>` — use this npm package as the parser, overriding configured parser
+  - `parse`  — convert a file or stdin to Artifact JSON
+    - `--input <path>` / `-i` — file to parse; omit or `-` for stdin
+    - `--mime <type>` — override MIME type detection
+    - `--output <path|->` / `-o` — output destination (default: stdout)
+    - `--parser <pkg>` — override configured parser with this npm package name
+    - `--no-images` — skip image extraction; do not include images in the artifact output (PDF only)
+  - `config`  — manage struktur configuration
+    - `config models list`  — list available models per provider
+    - `config models alias list`  — list all aliases
+    - `config models alias get <alias>`  — get the model behind an alias
+    - `config models alias set <alias> <model>`  — create or update an alias
+    - `config models alias remove <alias>`  — delete an alias
+    - `config models use <alias_or_model>`  — set the default model
+    - `config providers list`  — show all 5 supported providers with configured status
+    - `config providers add <provider>`  — store an API token (--token/--token-stdin, --storage, --default)
+    - `config providers remove <provider>`  — delete a stored token
+    - `config parsers list`  — list all configured parsers
+    - `config parsers get --mime <type>`  — get parser for a MIME type
+    - `config parsers add --mime <type> (--npm <pkg> | --file-command "<cmd>" | --stdin-command "<cmd>")`  — configure a parser
+    - `config parsers remove --mime <type>`  — remove a configured parser
   - `verify`  — validate artifact JSON
 - Alias resolution: `resolveAlias` (from `auth/config.ts`) is called in both `resolveDefaultModelSpec` and `resolveExplicitModelSpec` so aliases work transparently for `--model` and the stored default.
 - Progress indication: uses `yocto-spinner` with descriptive messages showing current LLM operations (e.g. "Processing batch 3/10", "Pass 1: Merging results"). Spinner clears when done.
 - Design: keep CLI behavior consistent for both interactive and non-interactive runs. Schema loading supports local files, inline JSON, and HTTP(S) URLs with JSON accept headers.
 - Model resolution (`resolveModel` in `shared.ts`): supports openai, anthropic, google, opencode (Zen), and openrouter providers. OpenCode Zen uses different AI SDK packages based on model family (openai for GPT, anthropic for Claude, google for Gemini, openai-compatible for others).
 - OpenRouter provider routing: Supports hashtag syntax for provider selection (e.g., `openrouter/anthropic/claude-3.5-sonnet#cerebras`). The hashtag prefix is stripped from the model name and passed to the LLM layer as a routing preference.
+- `loadArtifactsFromOptions` (in `shared.ts`): accepts `--no-parse`, `--mime`, and `--parser` options. When `--input <file>` is used, loads `parsers` config, detects MIME type (magic bytes + extension + npm `detectFileType`), and passes config to `parseInputToArtifacts`. For stdin, runs MIME detection on the buffer then falls back to `text/plain`.
+- Breaking change: `models` and `providers` are now subcommands of `config` (no backward-compat aliases — pre-1.0).

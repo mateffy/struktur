@@ -8,6 +8,8 @@ Three major workstreams:
 2. **`struktur parse` command** — converts any file/stdin to Artifact JSON
 3. **`struktur config` command tree** — replaces top-level `models` and `providers`; adds `config parsers` subcommand
 
+> **Status:** Fully implemented. See section 12 for a summary of deviations from the original plan and the `--no-images` additions made after initial implementation.
+
 ---
 
 ## 1. `src/parsers/` — New Module
@@ -114,7 +116,7 @@ Where `ParserInput = { kind: "file"; path: string } | { kind: "buffer"; buffer: 
 
 ### 1.5 MIME Detection (`src/parsers/mime.ts`)
 
-Two-layer detection system:
+Two-layer detection system (actual implementation uses three layers):
 
 **Layer 1 — Built-in magic bytes** (checked first, authoritative):
 - `application/pdf` → `%PDF` (`25 50 44 46`)
@@ -124,7 +126,11 @@ Two-layer detection system:
 - `image/webp` → `52 49 46 46 ... 57 45 42 50`
 - Standard Office/ZIP formats (DOCX/XLSX/PPTX all start with `PK 03 04`)
 
-**Layer 2 — Extension database** (used when magic bytes don't match, for file inputs):
+**Layer 2 — npm parser `detectFileType`** (checked after magic bytes, before extension):
+
+If a configured npm parser exports `detectFileType(header: Uint8Array): boolean`, we pass the first 512 bytes of the input to it. This is checked after our own magic byte matching so built-ins always take priority.
+
+**Layer 3 — Extension database** (fallback for file inputs when no magic bytes match):
 
 A static lookup table of common extensions to MIME types, e.g.:
 ```ts
@@ -150,10 +156,6 @@ const EXTENSION_MIME_MAP: Record<string, string> = {
 };
 ```
 
-**Layer 3 — npm parser `detectFileType`** (optional, checked after built-ins):
-
-If a configured npm parser exports `detectFileType(header: Uint8Array): boolean`, we pass the first 512 bytes of the input to it. This is checked after our own magic byte matching so built-ins always take priority.
-
 **`--mime` flag override:**
 - When `--mime <type>` is passed, skip all detection and use it directly
 - Applies to both `parse` and `extract` commands
@@ -174,12 +176,31 @@ export async function detectMimeType(options: {
 
 ### 1.6 Built-in PDF Parser (`src/parsers/pdf.ts`)
 
-Uses `@documenso/pdf-lib` (or the most appropriate available package — to be verified at implementation time):
+Uses the `pdf-parse` npm package (not `@documenso/pdf-lib` as originally planned):
+
+```ts
+export type ParsePdfOptions = {
+  /**
+   * Whether to extract embedded images from each page and include them as
+   * base64-encoded ArtifactImage entries in the media field.
+   * Defaults to true. Pass false to skip image extraction entirely.
+   */
+  includeImages?: boolean;
+};
+
+export async function parsePdf(
+  input: Buffer | ReadableStream<Uint8Array>,
+  options?: ParsePdfOptions,
+): Promise<Artifact>
+```
 
 - Accepts `Buffer` or `ReadableStream<Uint8Array>`
-- Extracts text per-page into `ArtifactContent[]` with `page` numbers set
+- Extracts per-page text via `parser.getText()` into `ArtifactContent[]` with `page` numbers set; falls back to full document text when no per-page info is available
+- Extracts embedded images per-page via `parser.getImage({ imageBuffer: false, imageDataUrl: true })` — each image becomes an `ArtifactImage` with `base64` (data-URL prefix stripped), `width`, and `height`; images are merged into the `media` array of the matching content entry; pages with images but no text produce their own content entry
+- `includeImages: false` skips `getImage()` entirely — used by the `--no-images` CLI flag
+- Image extraction failure is non-fatal; the parser continues and returns text-only content
 - Returns an `Artifact` with `type: "pdf"`
-- Automatically registered in `defaultArtifactProviders` for `application/pdf`
+- **Not** automatically registered in `defaultArtifactProviders` — instead, `parseBufferInput` in `src/artifacts/input.ts` has a built-in `application/pdf` case that calls `parsePdf` directly
 
 > DocX support is deferred to a future iteration.
 
@@ -190,6 +211,7 @@ export type { ParserDef, ParsersConfig, NpmParserDef, CommandFileDef, CommandStd
 export { runParser } from "./runner";
 export { detectMimeType } from "./mime";
 export { collectStream } from "./collect";
+export type { ParsePdfOptions } from "./pdf";
 ```
 
 ### 1.8 `src/parsers/AGENTS.md`
@@ -226,9 +248,9 @@ Update `src/auth/AGENTS.md` to document the parsers config API.
 
 ## 3. Artifact Input Integration (`src/artifacts/input.ts`)
 
-### 3.1 Accept `parsers` config in `parseBufferInput`
+### 3.1 Accept `parsers` config and `includeImages` in `parseBufferInput`
 
-Update the signature:
+Actual implemented signature:
 
 ```ts
 const parseBufferInput = async (
@@ -236,18 +258,31 @@ const parseBufferInput = async (
   mimeType: string,
   id?: string,
   providers?: ArtifactProviders,
-  parsers?: ParsersConfig,   // NEW
+  parsers?: ParsersConfig,
+  includeImages?: boolean,   // NEW — passed to parsePdf
 ): Promise<Artifact[]>
 ```
 
-Resolution order:
-1. `parsers` config (new) — if MIME type has a `ParserDef`, call `runParser()`
-2. `providers` registry (existing) — user-registered `ArtifactProvider` functions
-3. Built-in `text/*` → text artifact
-4. Built-in `image/*` → image artifact
-5. Throw `Unsupported MIME type`
+Resolution order (as implemented):
+1. `parsers` config — if MIME type has a `ParserDef`, call `runParser()`
+2. `providers` registry — user-registered `ArtifactProvider` functions
+3. JSON auto-detection (`application/json`)
+4. **Built-in `application/pdf`** — calls `parsePdf(buffer, { includeImages })` via dynamic import
+5. Built-in `text/*` → text artifact
+6. Built-in `image/*` → image artifact
+7. Throw `Unsupported MIME type`
 
-Pass `parsers` through `fileParser` and `bufferParser` options too.
+Pass `parsers` and `includeImages` through `fileParser` and `bufferParser` options.
+
+`parseInputToArtifacts` options type:
+```ts
+options?: {
+  parsers?: ArtifactInputParser[];
+  providers?: ArtifactProviders;
+  parserConfig?: ParsersConfig;
+  includeImages?: boolean;   // NEW
+}
+```
 
 ### 3.2 JSON Artifact Auto-detection
 
@@ -258,8 +293,6 @@ When MIME type is `application/json`:
 2. Try `validateSerializedArtifacts(parsed)` — if valid, return `hydrateSerializedArtifacts(result)` directly (no further parsing)
 3. If invalid: check if a custom parser is configured for `application/json` in the `parsers` config; if yes, run it; if no, throw a clear error explaining the JSON is not in artifact format and no parser is configured
 
-Update `src/artifacts/AGENTS.md`.
-
 ---
 
 ## 4. `loadArtifactsFromOptions` Changes (`src/cli/shared.ts`)
@@ -267,13 +300,20 @@ Update `src/artifacts/AGENTS.md`.
 When `--input <path>` is used:
 
 1. Load `parsers` config from `listParsers()` (from `src/auth/config.ts`)
-2. Detect MIME type using the new `detectMimeType()` (magic bytes + extension + npm `detectFileType`)
+2. Detect MIME type using the new `detectMimeType()` (magic bytes + npm `detectFileType` + extension)
 3. Pass `parsers` and detected `mimeType` to `parseInputToArtifacts({ kind: "file", path, mimeType })`
 
-New option added to `loadArtifactsFromOptions`:
-- `noParse?: boolean` — if true, skip custom parsers (ignore `parsers` config); built-in text/image/artifact-JSON fallbacks still apply
-- `mimeOverride?: string` — from `--mime` flag; forwarded to `detectMimeType`
-- `parser?: string` — from `--parser` flag; if set, treat as an npm package name and override the configured parser for this invocation
+Options wired through `loadArtifactsFromOptions`:
+- `"no-parse": boolean` — if true, skip custom parsers; built-in text/image/artifact-JSON/PDF fallbacks still apply
+- `"mime": string` — from `--mime` flag; forwarded to `detectMimeType`
+- `"parser": string` — from `--parser` flag; overrides the configured parser for this invocation
+- `"no-images": boolean` — **NEW** — if true, derives `includeImages: false` and passes it to `parseInputToArtifacts`
+
+```ts
+const noImages = options["no-images"] === true;
+const includeImages = noImages ? false : undefined;
+// ... forwarded to both stdin and file-path call sites
+```
 
 ### Stdin MIME detection for `extract`
 
@@ -283,8 +323,6 @@ When stdin is used as input (piped), read as buffer first, then:
 3. If `--mime` was provided, use it
 4. Fallback: treat as `text/plain`
 
-Update `src/cli/AGENTS.md`.
-
 ---
 
 ## 5. `struktur parse` Command
@@ -292,7 +330,7 @@ Update `src/cli/AGENTS.md`.
 New top-level subcommand:
 
 ```
-struktur parse [--input <file>|-] [--mime <type>] [--output <path|->] [--parser <npm-pkg>]
+struktur parse [--input <file>|-] [--mime <type>] [--output <path|->] [--parser <npm-pkg>] [--no-images]
 ```
 
 **Flags:**
@@ -300,18 +338,22 @@ struktur parse [--input <file>|-] [--mime <type>] [--output <path|->] [--parser 
 - `--mime <type>` — override MIME type detection
 - `--output <path|->` / `-o` — output destination (default: stdout)
 - `--parser <pkg>` — override configured parser with this npm package name
+- `--no-images` — **NEW** — skip image extraction (PDF only); do not include images in the artifact output
 
 **Behavior:**
 1. Read input: file path → buffer from disk; stdin → buffer from stdin stream
 2. Detect MIME type:
    - `--mime` override takes precedence
-   - Otherwise: magic bytes → extension database → npm `detectFileType` callbacks
+   - Otherwise: magic bytes → npm `detectFileType` callbacks → extension database
    - For stdin with no `--mime`: fall back to `text/plain`
    - For file with undetectable type: error, prompt to use `--mime`
 3. JSON auto-detection: if MIME is `application/json`, validate as `SerializedArtifact[]`; if valid, pass through
 4. Resolve parser: `--parser` flag > configured parser in `parsers` config > built-in (PDF, text, image)
-5. Run parser → get `Artifact[]`
-6. Serialize (`SerializedArtifact[]`) → output as JSON
+5. For PDF inputs: passes `{ includeImages: args["no-images"] !== true }` directly to `parsePdf`
+6. Run parser → get `Artifact[]`
+7. Serialize (`SerializedArtifact[]`) → output as JSON
+
+> Note: the `parse` command calls `parsePdf` directly (via dynamic import) rather than going through `loadArtifactsFromOptions`, so `--no-images` is wired directly at the `parsePdf` call site.
 
 ---
 
@@ -322,6 +364,7 @@ struktur parse [--input <file>|-] [--mime <type>] [--output <path|->] [--parser 
 - `--no-parse` — skip custom parsers; treat `--input` file as raw text/image using only built-in detection
 - `--mime <type>` — override MIME type detection for the input
 - `--parser <npm-pkg>` — use this npm package as the parser, overriding any configured parser for the detected MIME type
+- `--no-images` — **NEW** — skip image extraction; do not include images in the artifact output (passed through to PDF parser)
 
 ### Logic:
 
@@ -329,10 +372,11 @@ When `--input <path>` is given:
 - Automatically load `parsers` config and apply (unless `--no-parse`)
 - Apply `--mime` override and `--parser` override as described above
 - JSON auto-detection: `.json` files that are valid `SerializedArtifact[]` are hydrated directly without parsing
+- `--no-images` is forwarded as `"no-images"` to `loadArtifactsFromOptions`
 
 When stdin is used:
 - Buffer stdin, run MIME detection (magic bytes → npm `detectFileType` → fallback `text/plain`)
-- Apply same parser/no-parse logic as file inputs
+- Apply same parser/no-parse/no-images logic as file inputs
 
 ---
 
@@ -371,8 +415,6 @@ struktur config
 ### Output format (consistent with existing style):
 All config commands output JSON objects, same pattern as existing `providers` and `models` commands.
 
-Update `src/cli/AGENTS.md` with the new command tree.
-
 ---
 
 ## 8. Public API Additions (`src/index.ts`)
@@ -393,30 +435,31 @@ export type { ParserDef, ParsersConfig } from "./parsers/types";
 | `src/parsers/mime.ts` | **NEW** — `detectMimeType()`, magic bytes, extension map |
 | `src/parsers/npm.ts` | **NEW** — npm parser contract types and dynamic import runner |
 | `src/parsers/runner.ts` | **NEW** — `runParser()` dispatch logic |
-| `src/parsers/pdf.ts` | **NEW** — built-in PDF parser (libpdf/Documenso) |
-| `src/parsers/index.ts` | **NEW** — module re-exports |
+| `src/parsers/pdf.ts` | **NEW** — built-in PDF parser using `pdf-parse`; includes `ParsePdfOptions` with `includeImages` |
+| `src/parsers/index.ts` | **NEW** — module re-exports (includes `ParsePdfOptions`) |
 | `src/parsers/AGENTS.md` | **NEW** — module docs |
 | `src/auth/config.ts` | **EXTEND** — add `parsers` field + `listParsers`, `getParser`, `setParser`, `deleteParser` |
 | `src/auth/AGENTS.md` | **UPDATE** — document parsers config API |
-| `src/artifacts/input.ts` | **EXTEND** — accept `parsers` in `parseBufferInput`; JSON artifact auto-detection |
-| `src/artifacts/AGENTS.md` | **UPDATE** |
-| `src/cli/shared.ts` | **EXTEND** — load parsers from config; MIME detection; `--no-parse`, `--mime`, `--parser` options wired through |
-| `src/cli/AGENTS.md` | **UPDATE** — document new command tree and flags |
-| `src/cli.ts` | **MAJOR EXTEND** — add `parse` command; add `config` command tree (moving `models` + `providers` under it); add `--no-parse`, `--mime`, `--parser` to `extract` |
+| `src/artifacts/input.ts` | **EXTEND** — built-in `application/pdf` case in `parseBufferInput`; `includeImages` option threaded through; JSON artifact auto-detection |
+| `src/artifacts/AGENTS.md` | **UPDATE** — documents new PDF built-in step and `includeImages` |
+| `src/cli/shared.ts` | **EXTEND** — load parsers from config; MIME detection; `--no-parse`, `--mime`, `--parser`, `--no-images` options wired through |
+| `src/cli/AGENTS.md` | **UPDATE** — document new command tree and flags including `--no-images` |
+| `src/cli.ts` | **MAJOR EXTEND** — add `parse` command; add `config` command tree (moving `models` + `providers` under it); add `--no-parse`, `--mime`, `--parser`, `--no-images` to `extract`; add `--no-images` to `parse` |
 | `src/index.ts` | **EXTEND** — export `collectStream`, parser types |
 
 ---
 
-## 10. Tests to Add/Update
+## 10. Tests Added/Updated
 
-| File | What to test |
+| File | What is tested |
 |---|---|
 | `src/parsers/mime.test.ts` | Magic byte detection, extension lookup, override, fallback |
 | `src/parsers/runner.test.ts` | npm parser selection logic (both fns / one fn / neither), command-file temp file cleanup, command-stdin piping |
 | `src/parsers/collect.test.ts` | `collectStream` with various stream inputs |
+| `src/parsers/pdf.test.ts` | Per-page text, full-text fallback, image attachment, base64 stripping, image-only pages, `getImage()` error resilience, empty document, metadata, raw buffer, `includeImages: false` skips `getImage()`, `includeImages: true` matches default |
 | `src/auth/config.test.ts` | `listParsers`, `setParser`, `deleteParser`, `getParser` |
-| `src/artifacts/input.test.ts` | JSON auto-detection passthrough, custom parsers resolution order |
-| `src/cli/shared.test.ts` | `--no-parse`, `--mime` override, `--parser` override in `loadArtifactsFromOptions` |
+| `src/artifacts/input.test.ts` | JSON auto-detection passthrough, custom parsers resolution order, built-in `application/pdf` routing, `includeImages: false` threading |
+| `src/cli/shared.test.ts` | `--no-parse`, `--mime` override, `--parser` override, `--no-images` accepted for text and stdin inputs |
 
 ---
 
@@ -424,4 +467,58 @@ export type { ParserDef, ParsersConfig } from "./parsers/types";
 
 - **DocX support**: Deferred. Will follow same pattern as PDF once a suitable library is identified.
 - **`detectFileType` bytes vs function**: npm packages can either export `detectFileType(header: Uint8Array): boolean` (function-based) or we may later add a `magicBytes: Uint8Array[]` export as a simpler alternative. For now, function-based only.
-- **PDF library selection**: `@documenso/pdf-lib` or equivalent — verify exact package name and API at implementation time before coding `src/parsers/pdf.ts`.
+- **PDF library selection**: Resolved — `pdf-parse` was used (not `@documenso/pdf-lib`).
+
+---
+
+## 12. Post-Implementation Additions: `--no-images`
+
+After the initial implementation was complete, a `--no-images` flag was added to both the `parse` and `extract` CLI commands. This section documents the full scope of those changes.
+
+### What was added
+
+**`src/parsers/pdf.ts`**
+- Added `ParsePdfOptions` type exported from the module:
+  ```ts
+  export type ParsePdfOptions = { includeImages?: boolean };
+  ```
+- Updated `parsePdf` signature to accept `options?: ParsePdfOptions`
+- `getImage()` is only called when `options?.includeImages !== false`
+
+**`src/parsers/index.ts`**
+- Added `export type { ParsePdfOptions } from "./pdf"`
+
+**`src/artifacts/input.ts`**
+- Added `import type { ParsePdfOptions } from "../parsers/pdf"`
+- Added `includeImages?: boolean` to `ArtifactInputParser.parse()` options type
+- Added built-in `application/pdf` case to `parseBufferInput` (step 4 in resolution order):
+  ```ts
+  if (mimeType === "application/pdf") {
+    const { parsePdf } = await import("../parsers/pdf");
+    return [await parsePdf(buffer, { includeImages })];
+  }
+  ```
+  > Prior to this change, `parseBufferInput` had no built-in PDF handling and would throw `Unsupported MIME type` for `application/pdf` unless a custom parser or provider was registered.
+- `fileParser` and `bufferParser` both forward `options?.includeImages` to `parseBufferInput`
+- `parseInputToArtifacts` options type extended with `includeImages?: boolean`
+
+**`src/cli/shared.ts`**
+- In `loadArtifactsFromOptions`: reads `options["no-images"]`, derives `includeImages` (`false` when `no-images` is `true`, `undefined` otherwise), passes `includeImages` to both `parseInputToArtifacts` call sites (stdin buffer and file path)
+
+**`src/cli.ts`**
+- `parse` command: added `"no-images"` arg (`type: "boolean"`, `default: false`); passes `{ includeImages: args["no-images"] !== true }` directly to `parsePdf` call
+- `extract` command: added `"no-images"` arg (`type: "boolean"`, `default: false`); passes `"no-images": args["no-images"]` to `loadArtifactsFromOptions`
+
+**`src/parsers/AGENTS.md`** — updated to document `ParsePdfOptions.includeImages` and `--no-images`
+
+**`src/cli/AGENTS.md`** — updated to document `--no-images` for both `extract` and `parse`
+
+**`src/artifacts/AGENTS.md`** — updated to document the built-in PDF step (step 4) and `includeImages` threading
+
+### Test coverage for `--no-images`
+
+| File | Tests added |
+|---|---|
+| `src/parsers/pdf.test.ts` | `includeImages: false` → no `media` on output; `includeImages: true` → images present; no options → images present (default) |
+| `src/artifacts/input.test.ts` | `application/pdf` buffer routes to built-in `parsePdf`; `includeImages: false` threads through `parseInputToArtifacts` |
+| `src/cli/shared.test.ts` | `"no-images": true` accepted without error for text file inputs; `"no-images": true` accepted without error for stdin text inputs |

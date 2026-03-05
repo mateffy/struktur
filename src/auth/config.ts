@@ -1,11 +1,13 @@
 import path from "node:path";
 import os from "node:os";
 import { chmod, mkdir } from "node:fs/promises";
+import type { ParserDef, ParsersConfig } from "../parsers/types";
 
 type ConfigStore = {
   version: 1;
   defaultModel?: string;
   aliases?: Record<string, string>;
+  parsers?: ParsersConfig;
 };
 
 const CONFIG_DIR_ENV = "STRUKTUR_CONFIG_DIR";
@@ -90,4 +92,38 @@ export const deleteAlias = async (alias: string): Promise<boolean> => {
 export const resolveAlias = async (modelSpec: string): Promise<string> => {
   const aliases = await listAliases();
   return aliases[modelSpec] ?? modelSpec;
+};
+
+// --- Parser config management ---
+
+export const listParsers = async (): Promise<ParsersConfig> => {
+  const store = await readConfigStore();
+  return store.parsers ?? {};
+};
+
+export const getParser = async (mimeType: string): Promise<ParserDef | undefined> => {
+  const store = await readConfigStore();
+  return store.parsers?.[mimeType];
+};
+
+export const setParser = async (mimeType: string, def: ParserDef): Promise<void> => {
+  if (def.type === "command-file" && !def.command.includes("FILE_PATH")) {
+    throw new Error(
+      `command-file parser must contain FILE_PATH placeholder in the command string. Got: "${def.command}"`
+    );
+  }
+  const store = await readConfigStore();
+  store.parsers ??= {};
+  store.parsers[mimeType] = def;
+  await writeConfigStore(store);
+};
+
+export const deleteParser = async (mimeType: string): Promise<boolean> => {
+  const store = await readConfigStore();
+  if (!store.parsers?.[mimeType]) {
+    return false;
+  }
+  delete store.parsers[mimeType];
+  await writeConfigStore(store);
+  return true;
 };

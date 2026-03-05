@@ -1,6 +1,9 @@
 import type { Artifact, ArtifactContent, ArtifactImage, ArtifactType } from "../types";
 import { createAjv, validateOrThrow } from "../validation/validator";
 import { defaultArtifactProviders, type ArtifactProviders } from "./providers";
+import type { ParsersConfig } from "../parsers/types";
+import { runParser } from "../parsers/runner";
+import type { ParsePdfOptions } from "../parsers/pdf";
 
 export type SerializedArtifactImage = Omit<ArtifactImage, "contents"> & {
   contents?: never;
@@ -28,7 +31,7 @@ export type ArtifactInputParser = {
   canParse: (input: ArtifactInput) => boolean;
   parse: (
     input: ArtifactInput,
-    options?: { providers?: ArtifactProviders }
+    options?: { providers?: ArtifactProviders; parsers?: ParsersConfig; includeImages?: boolean }
   ) => Promise<Artifact[]>;
 };
 
@@ -158,18 +161,53 @@ const parseBufferInput = async (
   buffer: Buffer,
   mimeType: string,
   id?: string,
-  providers?: ArtifactProviders
+  providers?: ArtifactProviders,
+  parsers?: ParsersConfig,
+  includeImages?: boolean,
 ): Promise<Artifact[]> => {
+  // Resolution order:
+  // 1. parsers config (custom ParserDef) — if MIME type has a configured parser, use it
+  if (parsers) {
+    const parserDef = parsers[mimeType];
+    if (parserDef) {
+      return runParser(parserDef, { kind: "buffer", buffer }, mimeType);
+    }
+  }
+
+  // 2. providers registry (user-registered ArtifactProvider functions)
   const registry = providers ?? defaultArtifactProviders;
   const provider = registry[mimeType];
   if (provider) {
     return [await provider(buffer)];
   }
 
+  // JSON auto-detection: if MIME is application/json, try to parse as SerializedArtifact[]
+  if (mimeType === "application/json") {
+    try {
+      const parsed = JSON.parse(buffer.toString()) as unknown;
+      const serialized = validateSerializedArtifacts(parsed);
+      return hydrateSerializedArtifacts(serialized);
+    } catch {
+      // If no custom parser is configured for application/json, throw clear error
+      throw new Error(
+        "Input is JSON but not in SerializedArtifact format. To parse arbitrary JSON files, configure a parser: struktur config parsers add --mime application/json ..."
+      );
+    }
+  }
+
+  // 3. Built-in PDF → pdf artifact
+  if (mimeType === "application/pdf") {
+    const { parsePdf } = await import("../parsers/pdf");
+    const pdfOptions: ParsePdfOptions = { includeImages };
+    return [await parsePdf(buffer, pdfOptions)];
+  }
+
+  // 4. Built-in text/* → text artifact
   if (mimeType.startsWith("text/")) {
     return [bufferToTextArtifact(buffer, id)];
   }
 
+  // 5. Built-in image/* → image artifact
   if (mimeType.startsWith("image/")) {
     return [bufferToImageArtifact(buffer, id)];
   }
@@ -208,10 +246,32 @@ const fileParser: ArtifactInputParser = {
     if (input.kind !== "file") {
       return [];
     }
+    const mimeType = input.mimeType ?? (await detectMimeType(input.path));
+
+    // JSON auto-detection: if MIME type is application/json, first try to validate as SerializedArtifact[]
+    if (mimeType === "application/json") {
+      const text = await Bun.file(input.path).text();
+      try {
+        const parsed = JSON.parse(text) as unknown;
+        const serialized = validateSerializedArtifacts(parsed);
+        return hydrateSerializedArtifacts(serialized);
+      } catch {
+        // Not valid artifact JSON — try custom parser or throw
+        if (options?.parsers) {
+          const parserDef = options.parsers[mimeType];
+          if (parserDef) {
+            return runParser(parserDef, { kind: "file", path: input.path }, mimeType);
+          }
+        }
+        throw new Error(
+          `File "${input.path}" is JSON but not in SerializedArtifact format. To parse arbitrary JSON files, configure a parser: struktur config parsers add --mime application/json ...`
+        );
+      }
+    }
+
     const file = Bun.file(input.path);
     const buffer = Buffer.from(await file.arrayBuffer());
-    const mimeType = input.mimeType ?? (await detectMimeType(input.path));
-    return parseBufferInput(buffer, mimeType, input.id, options?.providers);
+    return parseBufferInput(buffer, mimeType, input.id, options?.providers, options?.parsers, options?.includeImages);
   },
 };
 
@@ -226,14 +286,16 @@ const bufferParser: ArtifactInputParser = {
       input.buffer,
       input.mimeType,
       input.id,
-      options?.providers
+      options?.providers,
+      options?.parsers,
+      options?.includeImages,
     );
   },
 };
 
 export const parseInputToArtifacts = async (
   input: ArtifactInput,
-  options?: { parsers?: ArtifactInputParser[]; providers?: ArtifactProviders }
+  options?: { parsers?: ArtifactInputParser[]; providers?: ArtifactProviders; parserConfig?: ParsersConfig; includeImages?: boolean }
 ): Promise<Artifact[]> => {
   const parsers =
     options?.parsers ??
@@ -250,5 +312,5 @@ export const parseInputToArtifacts = async (
     throw new Error(`No artifact input parser available for ${input.kind}`);
   }
 
-  return parser.parse(input, { providers: options?.providers });
+  return parser.parse(input, { providers: options?.providers, parsers: options?.parserConfig, includeImages: options?.includeImages });
 };
