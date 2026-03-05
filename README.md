@@ -22,7 +22,6 @@
 
 <br />
 <br />
-<br />
     
 ```bash
 struktur extract --input ./invoice.pdf --fields "number, vendor, total:number"
