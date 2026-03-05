@@ -1,0 +1,107 @@
+
+
+Synopsis [#synopsis]
+
+```bash
+struktur [extract] [options]
+```
+
+Input options (exactly one required) [#input-options-exactly-one-required]
+
+| Flag                     | Type    | Description                                            |
+| ------------------------ | ------- | ------------------------------------------------------ |
+| `--input <path>`         | string  | Read from a file path. MIME type auto-detected.        |
+| `--stdin`                | boolean | Read raw text from stdin. Auto-detected when piped.    |
+| `--text <string>`        | string  | Use inline text as input.                              |
+| `--artifact <path\|->`   | string  | Read pre-built artifact JSON from file or stdin (`-`). |
+| `--artifact-json <json>` | string  | Inline artifact JSON string.                           |
+
+Schema options (exactly one required) [#schema-options-exactly-one-required]
+
+| Flag                   | Short | Type   | Description                                                               |
+| ---------------------- | ----- | ------ | ------------------------------------------------------------------------- |
+| `--schema <path\|url>` |       | string | JSON Schema file path or HTTP(S) URL.                                     |
+| `--schema-json <json>` |       | string | Inline JSON Schema string.                                                |
+| `--fields <string>`    | `-f`  | string | [Fields shorthand](/docs/cli/fields) — comma-separated field definitions. |
+
+`--fields` is the quickest way to define a schema without writing JSON. See [--fields reference](/docs/cli/fields) for the full syntax.
+
+Model [#model]
+
+| Flag             | Type   | Default                        | Description                            |
+| ---------------- | ------ | ------------------------------ | -------------------------------------- |
+| `--model <spec>` | string | configured default or cheapest | Model spec in `provider/model` format. |
+
+Supported providers: `openai`, `anthropic`, `google`.
+
+Strategy [#strategy]
+
+| Flag                    | Type   | Default  | Description             |
+| ----------------------- | ------ | -------- | ----------------------- |
+| `--strategy <name>`     | string | `simple` | Strategy name.          |
+| `--chunk-size <number>` | number | `10000`  | Token budget per batch. |
+
+Strategy names: `simple`, `parallel`, `sequential`, `parallelAutoMerge`, `sequentialAutoMerge`, `doublePass`, `doublePassAutoMerge`.
+
+:::note
+When using `--strategy` other than `simple`, both `model` and `mergeModel`/`dedupeModel` are set to the same model. For different models per role, use the TypeScript SDK.
+:::
+
+Output [#output]
+
+| Flag                 | Type   | Default | Description                         |
+| -------------------- | ------ | ------- | ----------------------------------- |
+| `--output <path\|->` | string | `-`     | Write JSON to file or stdout (`-`). |
+
+Progress [#progress]
+
+When stderr is a TTY, a progress bar is shown:
+
+```
+◈ ▰▰▰▰▰▱▱▱▱▱ 50% | batch 2/5
+```
+
+The bar is suppressed in non-interactive mode (piped stderr).
+
+Examples [#examples]
+
+**Fields shorthand (quickest):**
+
+```bash
+echo "Invoice #1042 from Acme Corp. Total: $2,400.00." | \
+  struktur --stdin -f "invoice_number, vendor, total:number" \
+  --model openai/gpt-4o-mini
+```
+
+**File input with inline schema:**
+
+```bash
+struktur --input report.txt \
+  --schema-json '{"type":"object","properties":{"summary":{"type":"string"}},"required":["summary"],"additionalProperties":false}' \
+  --model openai/gpt-4o-mini
+```
+
+**Stdin with schema file:**
+
+```bash
+cat document.md | struktur --stdin --schema schema.json --model anthropic/claude-3-5-haiku-20241022
+```
+
+**Parallel strategy with output to file:**
+
+```bash
+struktur --input large.md --schema schema.json --model openai/gpt-4o --strategy parallel --output result.json
+```
+
+**Schema from URL:**
+
+```bash
+struktur --input data.txt --schema https://myserver.com/schemas/invoice.json --model openai/gpt-4o-mini
+```
+
+See also [#see-also]
+
+* [--fields reference](/docs/cli/fields) — fields shorthand syntax and examples
+* [Installation & Setup](/docs/cli/installation) — getting started
+* [auth](/docs/cli/auth) — token management
+* [Strategies](/docs/explanation/strategies) — strategy reference

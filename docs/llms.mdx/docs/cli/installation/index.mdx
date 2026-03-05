@@ -1,0 +1,86 @@
+
+
+Install [#install]
+
+```bash
+# Using npm
+npm install -g @mateffy/struktur
+
+# Or using Bun (recommended)
+bun install -g @mateffy/struktur
+```
+
+Verify:
+
+```bash
+struktur --help
+```
+
+Configure a provider (required) [#configure-a-provider-required]
+
+Two methods:
+
+Option A: Environment variable (not persisted) [#option-a-environment-variable-not-persisted]
+
+```bash
+export OPENAI_API_KEY=sk-...
+export ANTHROPIC_API_KEY=sk-ant-...
+export GOOGLE_GENERATIVE_AI_API_KEY=AI...
+```
+
+Option B: Stored token (persisted) [#option-b-stored-token-persisted]
+
+```bash
+echo "$OPENAI_API_KEY" | struktur auth set --provider openai --token-stdin
+```
+
+**Storage:**
+
+* macOS: Keychain (auto)
+* Linux/Windows: `~/.config/struktur/tokens.json`
+
+**Permissions:**
+
+* Config dir: `chmod 700`
+* Tokens file: `chmod 600`
+
+Set a default model [#set-a-default-model]
+
+```bash
+struktur auth default openai
+# or explicitly:
+struktur auth default --model openai/gpt-4o-mini
+```
+
+Once set, `--model` is optional in extract commands.
+
+Environment variables [#environment-variables]
+
+Provider API keys [#provider-api-keys]
+
+| Variable                       | Purpose                        |
+| ------------------------------ | ------------------------------ |
+| `OPENAI_API_KEY`               | OpenAI API token               |
+| `ANTHROPIC_API_KEY`            | Anthropic API token            |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Google Generative AI API token |
+
+Environment variables override stored tokens.
+
+Configuration [#configuration]
+
+| Variable                    | Purpose                                                   |
+| --------------------------- | --------------------------------------------------------- |
+| `STRUKTUR_CONFIG_DIR`       | Override config directory (default: `~/.config/struktur`) |
+| `STRUKTUR_DISABLE_KEYCHAIN` | Set to any value to disable macOS Keychain                |
+| `STRUKTUR_KEYCHAIN_SERVICE` | Override Keychain service name                            |
+
+SDK behavior [#sdk-behavior]
+
+| Variable              | Purpose                                                              |
+| --------------------- | -------------------------------------------------------------------- |
+| `AI_SDK_LOG_WARNINGS` | Set to `false` to suppress AI SDK warnings (default: `false` in CLI) |
+
+See also [#see-also]
+
+* [extract](/docs/cli/extract) — main extraction command
+* [auth](/docs/cli/auth) — token management

@@ -23,7 +23,7 @@ flowchart LR
 
 Struktur operates on **Artifacts**, not raw files. The boundary is intentional — you handle parsing (PDF → text, HTML → markdown), Struktur handles extraction. This keeps the tool focused and lets you use best-of-breed parsers per format.
 
-See [Artifacts](./artifacts) for the artifact concept.
+See [Artifacts](/docs/explanation/preprocessing/artifact-format) for the artifact concept.
 
 ## The Strategy layer
 
@@ -31,7 +31,7 @@ A strategy is the orchestration engine. It decides how to split the input, how m
 
 Built-in strategies cover the common patterns. You can also write your own.
 
-See [Strategies](./strategies) for the strategy concept.
+See [Strategies](/docs/explanation/strategies) for the strategy concept.
 
 ## Validation inside the loop
 
@@ -43,7 +43,7 @@ Most extractions converge within two attempts. This happens **inside** the strat
 
 Default: `maxAttempts` = 3.
 
-See [Validation & Retries](./validation) for the validation concept.
+See [Validation & Retries](/docs/explanation/validation) for the validation concept.
 
 ## The result
 
@@ -57,7 +57,7 @@ The extraction result has three fields:
 
 ## See also
 
-- [Artifacts](./artifacts) — the input format
-- [Strategies](./strategies) — orchestration patterns
-- [Chunking & Token Budgets](./chunking) — how large documents are split
-- [Validation & Retries](./validation) — the retry loop
+- [Artifacts](/docs/explanation/preprocessing/artifact-format) — the input format
+- [Strategies](/docs/explanation/strategies) — orchestration patterns
+- [Chunking & Token Budgets](/docs/explanation/chunking) — how large documents are split
+- [Validation & Retries](/docs/explanation/validation) — the retry loop

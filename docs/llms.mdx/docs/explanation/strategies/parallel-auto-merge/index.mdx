@@ -1,0 +1,103 @@
+
+
+At a glance [#at-a-glance]
+
+| Property    | Value                                 |
+| ----------- | ------------------------------------- |
+| Name        | `"parallel-auto-merge"`               |
+| LLM calls   | N batches + 1 dedupe                  |
+| Parallelism | Full                                  |
+| Merge step  | Schema-aware auto-merge               |
+| Dedupe step | CRC32 hash + LLM semantic             |
+| Best for    | Array extraction, duplicates possible |
+
+Configuration [#configuration]
+
+| Field                | Required | Default         | Description                                                        |
+| -------------------- | -------- | --------------- | ------------------------------------------------------------------ |
+| `model`              | Yes      | -               | Model for extraction                                               |
+| `chunkSize`          | Yes      | -               | Token budget per batch                                             |
+| `concurrency`        | No       | All batches     | Max parallel batches                                               |
+| `maxImages`          | No       | Unlimited       | Max images per batch                                               |
+| `outputInstructions` | No       | -               | Extra instructions                                                 |
+| `dedupeModel`        | No       | Same as `model` | Model for semantic dedupe                                          |
+| `strict`             | No       | `false`         | Validate required fields on every step (disables smart validation) |
+
+Algorithm [#algorithm]
+
+1. Split artifacts into batches
+2. Extract from each batch concurrently
+3. Validate each batch output with retry
+4. **Schema-aware merge:** arrays concatenate, objects shallow-merge, scalars prefer new values
+5. **Hash dedupe:** CRC32 to remove exact duplicates
+6. **Semantic dedupe:** LLM identifies semantically equivalent entries
+7. Return final result
+
+Validation behavior [#validation-behavior]
+
+Each batch extraction is validated with retry.
+
+Merge behavior [#merge-behavior]
+
+Schema-aware auto-merge via `SmartDataMerger`:
+
+* **Arrays:** concatenated
+* **Objects:** shallow-merged (later keys overwrite earlier)
+* **Scalars:** prefer newer non-empty values
+
+No LLM merge call — deterministic.
+
+Deduplication [#deduplication]
+
+Two-stage:
+
+1. **CRC32 hash:** Exact duplicates removed without LLM call
+2. **LLM semantic:** Model identifies near-duplicates (e.g., "iPhone 15" vs "Apple iPhone 15 128GB")
+
+Token cost profile [#token-cost-profile]
+
+**Medium** — N extraction calls + 1 dedupe call. No merge call.
+
+Example [#example]
+
+```js
+import { extract, parallelAutoMerge } from "@mateffy/struktur";
+import { openai } from "@ai-sdk/openai";
+
+const result = await extract({
+  artifacts,
+  schema,
+  strategy: parallelAutoMerge({
+    model: openai("gpt-4o-mini"),
+    dedupeModel: openai("gpt-4o-mini"),
+    chunkSize: 10000,
+    concurrency: 3,
+  }),
+});
+```
+
+CLI [#cli]
+
+```bash
+struktur --input catalog.pdf --schema schema.json --strategy parallelAutoMerge --model openai/gpt-4o-mini
+```
+
+When to use [#when-to-use]
+
+* Extracting arrays that may have duplicates across chunks
+* Want to consolidate results without LLM merge cost
+* Documents have repeated information across pages
+* Need deterministic merge behavior
+
+Best for: invoices with line items, real estate with multiple units, catalogs with products that appear on multiple pages.
+
+When to avoid [#when-to-avoid]
+
+* Schema is primarily scalars (use `parallel`)
+* Need complex cross-chunk synthesis (use `parallel` with LLM merge)
+
+See also [#see-also]
+
+* [parallel](/docs/explanation/strategies/parallel) — for scalar schemas
+* [sequentialAutoMerge](/docs/explanation/strategies/sequential-auto-merge) — for ordered extraction
+* [Choosing a Strategy](/docs/explanation/strategies/choosing) — decision guide

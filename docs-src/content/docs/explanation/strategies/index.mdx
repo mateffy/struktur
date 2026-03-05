@@ -66,25 +66,25 @@ Strategies own their config (model, chunk size, concurrency). All strategies gua
 
 | Strategy | Description |
 |----------|-------------|
-| [simple](./simple) | Single-shot extraction for small inputs |
-| [parallel](./parallel) | Concurrent batches with LLM merge |
-| [sequential](./sequential) | Ordered batches with context carryover |
-| [parallelAutoMerge](./parallel-auto-merge) | Parallel with schema-aware merge + dedupe |
-| [sequentialAutoMerge](./sequential-auto-merge) | Sequential with schema-aware merge + dedupe |
-| [doublePass](./double-pass) | Parallel pass + sequential refinement |
-| [doublePassAutoMerge](./double-pass-auto-merge) | Double-pass with auto-merge |
+| [simple](/docs/explanation/strategies/simple) | Single-shot extraction for small inputs |
+| [parallel](/docs/explanation/strategies/parallel) | Concurrent batches with LLM merge |
+| [sequential](/docs/explanation/strategies/sequential) | Ordered batches with context carryover |
+| [parallelAutoMerge](/docs/explanation/strategies/parallel-auto-merge) | Parallel with schema-aware merge + dedupe |
+| [sequentialAutoMerge](/docs/explanation/strategies/sequential-auto-merge) | Sequential with schema-aware merge + dedupe |
+| [doublePass](/docs/explanation/strategies/double-pass) | Parallel pass + sequential refinement |
+| [doublePassAutoMerge](/docs/explanation/strategies/double-pass-auto-merge) | Double-pass with auto-merge |
 
 ### Choosing a strategy
 
-See [Choosing a Strategy](./choosing) for a decision guide.
+See [Choosing a Strategy](/docs/explanation/strategies/choosing) for a decision guide.
 
 ### Custom strategies
 
-See [Writing a Custom Strategy](./custom-strategy) to implement your own.
+See [Writing a Custom Strategy](/docs/explanation/strategies/custom-strategy) to implement your own.
 
 ---
 
 ## See also
 
-- [The Extraction Pipeline](../pipeline) — how data flows through Struktur
-- [Quickstart](../../quickstart) — get started in 5 minutes
+- [The Extraction Pipeline](/docs/explanation/pipeline) — how data flows through Struktur
+- [Quickstart](/docs/quickstart) — get started in 5 minutes

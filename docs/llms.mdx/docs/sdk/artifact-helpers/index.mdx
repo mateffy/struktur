@@ -1,0 +1,74 @@
+
+
+fileToArtifact(buffer, options) [#filetoartifactbuffer-options]
+
+Creates an artifact from a Buffer. Resolves the MIME type against the provider registry.
+
+If no provider is registered:
+
+* `text/*` → text artifact (split on double newlines)
+* `image/*` → image artifact (single media slice with raw buffer)
+* Anything else → throws `Unsupported MIME type`
+
+```js
+import { fileToArtifact } from "@mateffy/struktur";
+import fs from "node:fs/promises";
+
+const buffer = Buffer.from(await fs.readFile("document.pdf"));
+const artifact = await fileToArtifact(buffer, {
+  mimeType: "application/pdf",
+  providers: { /* custom providers */ }
+});
+```
+
+urlToArtifact(url) [#urltoartifacturl]
+
+Fetches a URL and expects it to return pre-serialized artifact JSON. Validates and hydrates.
+
+```js
+import { urlToArtifact } from "@mateffy/struktur";
+
+const artifacts = await urlToArtifact("https://example.com/artifact.json");
+```
+
+parseInputToArtifacts(input, options?) [#parseinputtoartifactsinput-options]
+
+Low-level dispatcher. Supports:
+
+| Input kind                             | Description                           |
+| -------------------------------------- | ------------------------------------- |
+| `{ kind: "text", text }`               | Text artifact                         |
+| `{ kind: "file", path, mimeType? }`    | File artifact via provider registry   |
+| `{ kind: "buffer", buffer, mimeType }` | Buffer artifact via provider registry |
+| `{ kind: "artifact-json", data }`      | Validates and hydrates                |
+
+```js
+import { parseInputToArtifacts } from "@mateffy/struktur";
+
+const artifacts = await parseInputToArtifacts(
+  { kind: "file", path: "document.pdf" },
+  { providers: { "application/pdf": myProvider } }
+);
+```
+
+parseSerializedArtifacts(text) [#parseserializedartifactstext]
+
+Parses a JSON string into artifacts with Ajv validation.
+
+validateSerializedArtifacts(data) [#validateserializedartifactsdata]
+
+Validates an already-parsed value against the artifact schema.
+
+hydrateSerializedArtifacts(items) [#hydrateserializedartifactsitems]
+
+Adds the `raw()` function to serialized artifacts.
+
+splitTextIntoContents(text) [#splittextintocontentstext]
+
+Splits a text string on double newlines into content slices.
+
+See also [#see-also]
+
+* [The Artifact Format](/docs/explanation/preprocessing/artifact-format) — JSON spec
+* [Built-in Input Types](/docs/explanation/preprocessing/built-in-inputs) — CLI input methods
+* [Writing a Custom Provider](/docs/explanation/preprocessing/custom-provider) — extending MIME type support

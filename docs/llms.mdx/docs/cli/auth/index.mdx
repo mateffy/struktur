@@ -1,0 +1,82 @@
+
+
+auth set [#auth-set]
+
+Store a token for a provider.
+
+```bash
+struktur auth set --provider <name> --token <token>
+struktur auth set --provider <name> --token-stdin
+```
+
+| Flag                               | Type    | Description                                                         |
+| ---------------------------------- | ------- | ------------------------------------------------------------------- |
+| `--provider <name>`                | string  | Required. Provider ID: `openai`, `anthropic`, `google`.             |
+| `--token <token>`                  | string  | API token value (avoid — visible in shell history).                 |
+| `--token-stdin`                    | boolean | Read token from stdin.                                              |
+| `--storage <auto\|keychain\|file>` | string  | Storage backend. Default: `auto`.                                   |
+| `--default`                        | boolean | After storing, set the cheapest model for this provider as default. |
+
+Output: `{ "provider": "openai", "stored": "keychain" }` (or `"file"`).
+
+auth get [#auth-get]
+
+Retrieve a stored token (masked by default).
+
+```bash
+struktur auth get --provider <name> [--raw]
+```
+
+| Flag                | Type    | Description                       |
+| ------------------- | ------- | --------------------------------- |
+| `--provider <name>` | string  | Required.                         |
+| `--raw`             | boolean | Print full token without masking. |
+
+auth delete [#auth-delete]
+
+Remove a stored token.
+
+```bash
+struktur auth delete --provider <name>
+```
+
+Output: `{ "provider": "openai", "deleted": true }`.
+
+auth list [#auth-list]
+
+List all configured providers and their storage backend.
+
+```bash
+struktur auth list
+```
+
+Output:
+
+```json
+{
+  "providers": [
+    { "provider": "openai", "storage": "keychain" },
+    { "provider": "anthropic", "storage": "file" }
+  ]
+}
+```
+
+auth default [#auth-default]
+
+Set or auto-select the default model.
+
+```bash
+struktur auth default <provider>
+struktur auth default --model <provider/model>
+```
+
+When given a provider name, queries the API for available models and selects the cheapest.
+
+Preference order for OpenAI: `gpt-4.1-nano`, `gpt-4.1-mini`, `gpt-4o-mini`, `gpt-4o`.
+
+Output: `{ "defaultModel": "openai/gpt-4o-mini" }`.
+
+See also [#see-also]
+
+* [Installation & Setup](/docs/cli/installation) — initial setup
+* [Environment Variables](/docs/cli/environment) — env vars

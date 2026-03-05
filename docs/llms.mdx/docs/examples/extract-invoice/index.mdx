@@ -1,0 +1,135 @@
+
+
+Schema [#schema]
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "invoice_number": { "type": "string" },
+    "vendor": { "type": "string" },
+    "invoice_date": { "type": "string" },
+    "due_date": { "type": "string" },
+    "currency": { "type": "string" },
+    "line_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "description": { "type": "string" },
+          "quantity": { "type": "number" },
+          "unit_price": { "type": "number" },
+          "total": { "type": "number" }
+        },
+        "required": ["description", "total"],
+        "additionalProperties": false
+      }
+    },
+    "subtotal": { "type": "number" },
+    "tax": { "type": "number" },
+    "total": { "type": "number" }
+  },
+  "required": ["invoice_number", "vendor", "total"],
+  "additionalProperties": false
+}
+```
+
+CLI approach [#cli-approach]
+
+Single invoice:
+
+```bash
+struktur --input invoice.pdf \
+  --schema invoice-schema.json \
+  --model openai/gpt-4o-mini
+```
+
+Multiple invoices:
+
+```bash
+for file in invoices/*.pdf; do
+  struktur --input "$file" \
+    --schema invoice-schema.json \
+    --model openai/gpt-4o-mini \
+    --output "outputs/$(basename $file .pdf).json"
+done
+```
+
+Pipeline with markitdown:
+
+```bash
+find invoices -name "*.pdf" -exec markitdown {} \; | \
+  struktur --stdin \
+    --schema invoice-schema.json \
+    --model openai/gpt-4o-mini
+```
+
+SDK [#sdk]
+
+Small invoices (1-3 pages):
+
+```js
+import { extract, simple } from "@mateffy/struktur";
+import { openai } from "@ai-sdk/openai";
+import { fileToArtifact } from "@mateffy/struktur";
+import fs from "node:fs/promises";
+
+const buffer = Buffer.from(await fs.readFile("invoice.pdf"));
+const artifact = await fileToArtifact(buffer, { mimeType: "application/pdf" });
+
+const result = await extract({
+  artifacts: [artifact],
+  schema: invoiceSchema,
+  strategy: simple({ model: openai("gpt-4o-mini") }),
+});
+```
+
+Multi-page invoices with many line items:
+
+```js
+import { extract, sequentialAutoMerge } from "@mateffy/struktur";
+import { openai } from "@ai-sdk/openai";
+
+const result = await extract({
+  artifacts: [artifact],
+  schema: invoiceSchema,
+  strategy: sequentialAutoMerge({
+    model: openai("gpt-4o-mini"),
+    dedupeModel: openai("gpt-4o-mini"),
+    chunkSize: 8000,
+  }),
+});
+```
+
+Strategy choice [#strategy-choice]
+
+| Invoice type                         | Strategy              |
+| ------------------------------------ | --------------------- |
+| 1-3 pages                            | `simple`              |
+| Multi-page, line items may duplicate | `sequentialAutoMerge` |
+| Many invoices in parallel            | `parallelAutoMerge`   |
+
+Expected output [#expected-output]
+
+```json
+{
+  "invoice_number": "1042",
+  "vendor": "Acme Corp",
+  "invoice_date": "2024-03-01",
+  "due_date": "2024-04-01",
+  "currency": "USD",
+  "line_items": [
+    { "description": "Widget A", "quantity": 10, "unit_price": 50, "total": 500 },
+    { "description": "Widget B", "quantity": 5, "unit_price": 200, "total": 1000 }
+  ],
+  "subtotal": 1500,
+  "tax": 150,
+  "total": 1650
+}
+```
+
+See also [#see-also]
+
+* [parallelAutoMerge](/docs/explanation/strategies/parallel-auto-merge) — for batch processing
+* [sequentialAutoMerge](/docs/explanation/strategies/sequential-auto-merge) — for multi-page invoices
+* [Process a Directory of Files](/docs/examples/process-directory) — batch processing

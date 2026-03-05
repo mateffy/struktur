@@ -1,0 +1,94 @@
+
+
+Extract structured data from any file in 3 commands. About 5 minutes.
+
+What we'll build [#what-well-build]
+
+We will extract structured invoice data from a text string using the CLI.
+
+Expected output:
+
+```json
+{
+  "invoice_number": "1042",
+  "vendor": "Acme Corp",
+  "total": 2400,
+  "due_date": "April 1, 2026"
+}
+```
+
+Prerequisites [#prerequisites]
+
+* Node.js 18+ or Bun installed
+* An API key from OpenAI, Anthropic, or Google
+
+Step 1: Install [#step-1-install]
+
+```bash
+# Using npm
+npm install -g @mateffy/struktur
+
+# Or using Bun (recommended)
+bun install -g @mateffy/struktur
+```
+
+Verify:
+
+```bash
+struktur --help
+```
+
+You should see the usage output.
+
+Step 2: Configure your API key [#step-2-configure-your-api-key]
+
+**Option A (quick, for testing):**
+
+```bash
+export OPENAI_API_KEY=sk-...
+```
+
+**Option B (secure, persisted):**
+
+```bash
+echo "sk-..." | struktur auth set --provider openai --token-stdin
+```
+
+Output: `{ "provider": "openai", "stored": "keychain" }` (or `"file"` on Linux).
+
+Step 3: Extract your first data [#step-3-extract-your-first-data]
+
+```bash
+echo "Invoice #1042 from Acme Corp. Total: $2,400.00. Due: April 1, 2026." | \
+  struktur --stdin \
+  --fields "invoice_number, vendor, total:number, due_date" \
+  --model openai/gpt-4o-mini
+```
+
+The `--fields` flag builds a JSON Schema on the fly. Each field defaults to `string`; append `:number`, `:integer`, `:bool`, etc. to set the type. See [--fields reference](/docs/cli/fields) for the full syntax.
+
+If you need more control (optional fields, nested objects), pass a full schema instead:
+
+```bash
+echo "Invoice #1042 from Acme Corp. Total: $2,400.00. Due: April 1, 2026." | \
+struktur --stdin \
+--schema-json '{"type":"object","properties":{"invoice_number":{"type":"string"},"vendor":{"type":"string"},"total":{"type":"number"},"due_date":{"type":"string"}},"required":["invoice_number","vendor","total","due_date"],"additionalProperties":false}' \
+--model openai/gpt-4o-mini
+```
+
+Notice that `total` is a number, not a string — Struktur enforced the schema.
+
+What happened? [#what-happened]
+
+Three things: stdin input was loaded as an artifact, the LLM generated output, and Ajv validated it against your schema. The `simple` strategy handled this in a single LLM call.
+
+To understand what happened inside, read [The Extraction Pipeline](/docs/explanation/pipeline).
+
+Where to go next [#where-to-go-next]
+
+| Goal                  | Link                                                   |
+| --------------------- | ------------------------------------------------------ |
+| Keep learning         | [The Extraction Pipeline](/docs/explanation/pipeline)  |
+| Solve a real problem  | [Extract Invoice Data](/docs/examples/extract-invoice) |
+| Look up all CLI flags | [CLI Reference](/docs/cli/extract)                     |
+| Use it in TypeScript  | [TypeScript SDK](/docs/sdk/installation)               |

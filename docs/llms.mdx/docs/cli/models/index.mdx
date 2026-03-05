@@ -1,0 +1,36 @@
+
+
+```bash
+struktur models [--provider <name>] [--all]
+```
+
+| Flag                | Type    | Default                   | Description                    |
+| ------------------- | ------- | ------------------------- | ------------------------------ |
+| `--provider <name>` | string  | —                         | Query a single provider.       |
+| `--all`             | boolean | true (if no `--provider`) | Query all supported providers. |
+
+Output:
+
+```json
+{
+  "providers": [
+    {
+      "provider": "openai",
+      "ok": true,
+      "models": ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", ...]
+    },
+    {
+      "provider": "anthropic",
+      "ok": true,
+      "models": ["claude-3-5-sonnet-20241022", ...]
+    }
+  ]
+}
+```
+
+When a provider has no token configured, its entry will have `"ok": false` and an `"error"` field.
+
+See also [#see-also]
+
+* [auth](/docs/cli/auth) — configure providers
+* [extract](/docs/cli/extract) — use models in extraction

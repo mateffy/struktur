@@ -1,0 +1,55 @@
+---
+title: Environment Variables
+description: Configure Struktur via environment variables.
+---
+
+Struktur can be configured via environment variables as an alternative to CLI flags or the config file.
+
+## Provider Tokens
+
+Instead of using `struktur auth set`, you can set provider tokens via environment variables:
+
+| Variable | Description |
+|----------|-------------|
+| `OPENAI_API_KEY` | OpenAI API token |
+| `ANTHROPIC_API_KEY` | Anthropic API token |
+| `GOOGLE_API_KEY` | Google AI API token |
+| `MIXEDBREAD_API_KEY` | Mixedbread API token |
+
+## Default Model
+
+Set the default model for extractions:
+
+| Variable | Description |
+|----------|-------------|
+| `STRUKTUR_DEFAULT_MODEL` | Default model (e.g., `openai/gpt-4o-mini`) |
+
+## Config File Location
+
+Override the default config file location:
+
+| Variable | Description |
+|----------|-------------|
+| `STRUKTUR_CONFIG_PATH` | Path to config file (default: `~/.struktur/config.json`) |
+
+## Token Storage
+
+Control how tokens are stored:
+
+| Variable | Description |
+|----------|-------------|
+| `STRUKTUR_TOKEN_STORAGE` | Storage backend: `auto`, `keychain`, or `file` |
+
+## Precedence
+
+Configuration is resolved in this order (later overrides earlier):
+
+1. Built-in defaults
+2. Config file (`~/.struktur/config.json`)
+3. Environment variables
+4. CLI flags
+
+## See also
+
+- [auth](/docs/cli/auth) — token management commands
+- [Installation & Setup](/docs/cli/installation) — initial setup

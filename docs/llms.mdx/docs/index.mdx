@@ -1,0 +1,54 @@
+
+
+Struktur is a structured data extraction engine that turns pre-parsed documents into validated, schema-typed JSON. It operates on JSON-based artifact DTOs, chunks them by token budgets, runs extraction strategies, validates results with Ajv, and merges or deduplicates outputs where needed.
+
+Why Struktur? [#why-struktur]
+
+* **Schema-first:** You define the shape, Struktur guarantees it.
+* **Fields shorthand:** Skip the JSON Schema boilerplate with `--fields "title, price:number, status:enum{draft|live}"`.
+* **Strategy-driven:** From single-shot to double-pass refinement.
+* **Pipeline-native:** Reads stdin, writes stdout, composes with `jq`.
+
+A 10-second demo [#a-10-second-demo]
+
+```bash
+echo "Invoice #1042, Acme Corp, $2,400.00 due April 1" | \
+  struktur --stdin \
+  --fields "number, vendor, total:number" \
+  --model openai/gpt-4o-mini
+```
+
+Expected output:
+
+```json
+{
+  "number": "1042",
+  "vendor": "Acme Corp",
+  "total": 2400
+}
+```
+
+What Struktur is NOT [#what-struktur-is-not]
+
+* **It does not parse PDFs, HTML, Word docs, or images.** You handle that upstream (e.g. with `markitdown`, `pdftotext`, or your own parser).
+* **It is not a managed API.** It runs locally and calls your provider directly.
+* **It does not stream.** Input in, JSON out.
+* **It is not a general LLM orchestration framework.**
+
+For the full mental model, see [The Extraction Pipeline](/docs/explanation/pipeline).
+
+Who is it for? [#who-is-it-for]
+
+**CLI users** — data engineers, analysts, shell pipeline builders — use Struktur for one-off extractions, batch processing, and CI/CD automation without writing code.
+
+**SDK users** — TypeScript developers embedding extraction in applications — use Struktur for typed results, custom strategies, and fine-grained control over the extraction pipeline.
+
+Quick navigation [#quick-navigation]
+
+| Goal                               | Section                              |
+| ---------------------------------- | ------------------------------------ |
+| New here?                          | [Quickstart](/docs/quickstart)       |
+| Need to accomplish something?      | [Examples](/docs/examples)           |
+| Looking up a flag or type?         | [CLI Reference](/docs/cli)           |
+| Quick schema without writing JSON? | [Fields Shorthand](/docs/cli/fields) |
+| Want to understand how it works?   | [Concepts](/docs/explanation)        |

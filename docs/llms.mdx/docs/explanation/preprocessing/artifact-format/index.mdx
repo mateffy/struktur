@@ -1,0 +1,128 @@
+
+
+The normalization boundary [#the-normalization-boundary]
+
+Different document types (PDF, HTML, Excel, email) require different parsing strategies. But LLM extraction is the same regardless of source format. The Artifact is the normalized form that crosses that boundary.
+
+Struktur only cares about what is in the artifact, not where it came from.
+
+What an artifact contains [#what-an-artifact-contains]
+
+An artifact has:
+
+* `id`: unique identifier
+* `type`: type hint (`text`, `image`, `pdf`, `file`)
+* `contents`: a sequence of content slices
+
+Each content slice may have:
+
+* `text`: the text content
+* `page`: page number (for paginated documents)
+* `media`: embedded images
+
+This structure naturally maps to paginated documents (each page is a content slice) or segmented text (each paragraph/section is a slice).
+
+Why text + images together? [#why-text--images-together]
+
+Some documents (real estate exposés, product datasheets) have critical information in images. Because images are embedded directly in content slices alongside text, the LLM sees them in context.
+
+Image limits per chunk are configurable on parallel strategies via `maxImages`.
+
+Complete specification [#complete-specification]
+
+Top-level shape [#top-level-shape]
+
+| Field      | Required | Description                            |
+| ---------- | -------- | -------------------------------------- |
+| `id`       | Yes      | Unique identifier                      |
+| `type`     | Yes      | One of: `text`, `image`, `pdf`, `file` |
+| `contents` | Yes      | Array of content slices (at least one) |
+| `metadata` | No       | Pass-through metadata object           |
+| `tokens`   | No       | Pre-computed token count hint          |
+
+Accepted as: a single object or an array `[{...}, {...}]`.
+
+Content slices [#content-slices]
+
+Each item in `contents` has:
+
+| Field   | Required | Description                            |
+| ------- | -------- | -------------------------------------- |
+| `page`  | No       | Page number for paginated documents    |
+| `text`  | No       | Text content of this slice             |
+| `media` | No       | Array of images embedded in this slice |
+
+At least one of `text` or `media` must be present.
+
+Images [#images]
+
+Each item in `media` has:
+
+| Field                       | Required | Description                                     |
+| --------------------------- | -------- | ----------------------------------------------- |
+| `type`                      | Yes      | Must be `"image"`                               |
+| `url`                       | No       | URL to image (mutually exclusive with `base64`) |
+| `base64`                    | No       | Base64-encoded image data                       |
+| `text`                      | No       | Alt text or OCR output                          |
+| `x`, `y`, `width`, `height` | No       | Optional spatial metadata                       |
+
+Either `url` or `base64` must be present.
+
+Complete example [#complete-example]
+
+```json
+[
+  {
+    "id": "invoice-2024-1042",
+    "type": "pdf",
+    "contents": [
+      {
+        "page": 1,
+        "text": "INVOICE\nInvoice #: 1042\nDate: 2024-03-01\nBill To: Acme Corp\n...",
+        "media": [
+          {
+            "type": "image",
+            "base64": "iVBORw0KGgoAAAANS...",
+            "text": "Company logo"
+          }
+        ]
+      },
+      {
+        "page": 2,
+        "text": "Line Items:\n- Widget A x10 @ $50.00 = $500.00\n- Widget B x5 @ $200.00 = $1,000.00\nTotal: $1,500.00"
+      }
+    ],
+    "metadata": {
+      "filename": "invoice-1042.pdf",
+      "source": "email-attachment"
+    }
+  }
+]
+```
+
+Validation [#validation]
+
+Struktur validates artifact JSON before processing. Use the CLI:
+
+```bash
+cat artifacts.json | struktur verify
+# or from a file:
+struktur verify --input artifacts.json
+```
+
+Returns `{ "valid": true, "artifacts": 1 }` on success, throws with error detail on failure.
+
+Built-in artifact creation [#built-in-artifact-creation]
+
+Three paths:
+
+| Path               | Description                                       |
+| ------------------ | ------------------------------------------------- |
+| `fileToArtifact()` | From a file path + provider for the MIME type     |
+| `urlToArtifact()`  | Fetches a pre-serialized artifact JSON from a URL |
+| Text/stdin         | Automatic for plain text/markdown inputs          |
+
+See also [#see-also]
+
+* [Built-in Input Types](/docs/explanation/preprocessing/built-in-inputs) — how to get input into Struktur
+* [Artifact Helpers](/docs/sdk/artifact-helpers) — the SDK API

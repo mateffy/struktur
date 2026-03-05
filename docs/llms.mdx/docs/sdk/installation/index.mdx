@@ -1,0 +1,29 @@
+
+
+```bash
+npm install @mateffy/struktur
+# or
+bun add @mateffy/struktur
+```
+
+Peer dependency: `typescript ^5`.
+
+The package exports all types, functions, and strategy factories from the entrypoint. The `@ai-sdk/*` provider packages are bundled as dependencies — you do not need to install them separately.
+
+Exports [#exports]
+
+```js
+// Main function
+import { extract } from "@mateffy/struktur";
+
+// Strategy factories
+import { simple, parallel, sequential, parallelAutoMerge, sequentialAutoMerge, doublePass, doublePassAutoMerge } from "@mateffy/struktur";
+
+// Artifact helpers
+import { fileToArtifact, urlToArtifact, parseInputToArtifacts } from "@mateffy/struktur";
+```
+
+See also [#see-also]
+
+* [extract()](/docs/sdk/extract) — main extraction function
+* [Artifact Helpers](/docs/sdk/artifact-helpers) — creating artifacts

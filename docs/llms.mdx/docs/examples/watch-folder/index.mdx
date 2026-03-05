@@ -1,0 +1,152 @@
+
+
+Linux: inotifywait [#linux-inotifywait]
+
+```bash
+inotifywait -m ./incoming -e create -e moved_to |
+  while read -r path action file; do
+    echo "New file: $file"
+    markitdown "$path/$file" | struktur --stdin \
+      --schema schema.json \
+      --model openai/gpt-4o-mini \
+      --output "processed/$file.json"
+    mv "$path/$file" ./processed/
+  done
+```
+
+macOS: fswatch [#macos-fswatch]
+
+```bash
+fswatch -o ./incoming | while read f; do
+  for file in ./incoming/*; do
+    [ -f "$file" ] || continue
+    echo "Processing: $file"
+    markitdown "$file" | struktur --stdin \
+      --schema schema.json \
+      --model openai/gpt-4o-mini \
+      --output "processed/$(basename $file).json"
+    mv "$file" ./processed/
+  done
+done
+```
+
+Output to JSONL [#output-to-jsonl]
+
+For streaming ingestion, append to a JSONL file (one JSON object per line):
+
+```bash
+inotifywait -m ./incoming -e create -e moved_to |
+  while read -r path action file; do
+    markitdown "$path/$file" | struktur --stdin \
+      --schema schema.json \
+      --model openai/gpt-4o-mini \
+      >> processed.jsonl
+    mv "$path/$file" ./processed/
+  done
+```
+
+SDK: fs.watch [#sdk-fswatch]
+
+```js
+import { watch } from "node:fs";
+import { extract, simple } from "@mateffy/struktur";
+import { openai } from "@ai-sdk/openai";
+import { parseInputToArtifacts } from "@mateffy/struktur";
+import fs from "node:fs/promises";
+import path from "node:path";
+
+const schema = /* your schema */;
+const incomingDir = "./incoming";
+const processedDir = "./processed";
+
+await fs.mkdir(processedDir, { recursive: true });
+
+const watcher = watch(incomingDir, async (event, filename) => {
+  if (!filename || event !== "rename") return;
+
+  const filePath = path.join(incomingDir, filename);
+  try {
+    await fs.access(filePath);
+  } catch {
+    return;  // File was deleted, not created
+  }
+
+  console.log(`Processing: ${filename}`);
+
+  try {
+    const text = await fs.readFile(filePath, "utf-8");
+    const artifacts = await parseInputToArtifacts({ kind: "text", text });
+
+    const result = await extract({
+      artifacts,
+      schema,
+      strategy: simple({ model: openai("gpt-4o-mini") }),
+    });
+
+    const outputPath = path.join(processedDir, `${filename}.json`);
+    await fs.writeFile(outputPath, JSON.stringify(result.data, null, 2));
+
+    await fs.unlink(filePath);
+    console.log(`  ✓ Processed: ${filename}`);
+  } catch (error) {
+    console.error(`  ✗ Failed: ${error.message}`);
+  }
+});
+
+console.log(`Watching ${incomingDir}...`);
+```
+
+SDK: chokidar [#sdk-chokidar]
+
+For more robust file watching:
+
+```js
+import chokidar from "chokidar";
+import { extract, simple } from "@mateffy/struktur";
+import { openai } from "@ai-sdk/openai";
+import { parseInputToArtifacts } from "@mateffy/struktur";
+import fs from "node:fs/promises";
+import path from "node:path";
+
+const schema = /* your schema */;
+
+const watcher = chokidar.watch("./incoming", {
+  ignored: /(^|[\/\\])\../,
+  persistent: true,
+  awaitWriteFinish: {
+    stabilityThreshold: 2000,
+    pollInterval: 100
+  },
+});
+
+watcher.on("add", async (filePath) => {
+  console.log(`Processing: ${path.basename(filePath)}`);
+
+  try {
+    const text = await fs.readFile(filePath, "utf-8");
+    const artifacts = await parseInputToArtifacts({ kind: "text", text });
+
+    const result = await extract({
+      artifacts,
+      schema,
+      strategy: simple({ model: openai("gpt-4o-mini") }),
+    });
+
+    const outputPath = `./processed/${path.basename(filePath)}.json`;
+    await fs.writeFile(outputPath, JSON.stringify(result.data, null, 2));
+    await fs.unlink(filePath);
+
+    console.log(`  ✓ Processed`);
+  } catch (error) {
+    console.error(`  ✗ Failed: ${error.message}`);
+  }
+});
+
+console.log("Watching ./incoming...");
+```
+
+See also [#see-also]
+
+* [Process a Directory of Files](/docs/examples/process-directory) — batch processing
+* [Shell Pipelines & Patterns](/docs/examples/pipelines) — more shell patterns
+* [simple](/docs/explanation/strategies/simple) — single-shot extraction

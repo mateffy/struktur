@@ -1,0 +1,94 @@
+
+
+At a glance [#at-a-glance]
+
+| Property    | Value                       |
+| ----------- | --------------------------- |
+| Name        | `"sequential"`              |
+| LLM calls   | N batches                   |
+| Parallelism | None                        |
+| Merge step  | Context carryover           |
+| Dedupe step | None                        |
+| Best for    | Context-dependent documents |
+
+Configuration [#configuration]
+
+| Field                | Required | Default   | Description                                                        |
+| -------------------- | -------- | --------- | ------------------------------------------------------------------ |
+| `model`              | Yes      | -         | Model for extraction                                               |
+| `chunkSize`          | Yes      | -         | Token budget per batch                                             |
+| `maxImages`          | No       | Unlimited | Max images per batch                                               |
+| `outputInstructions` | No       | -         | Extra instructions                                                 |
+| `strict`             | No       | `false`   | Validate required fields on every step (disables smart validation) |
+
+Algorithm [#algorithm]
+
+1. Split artifacts into batches
+2. For each batch in order:
+   * Build prompt including previous extraction result as context
+   * Extract from batch
+   * Validate with retry
+   * Store result for next iteration
+3. Return final result
+
+```mermaid
+flowchart LR
+    A[Batch 1] --> B[Extract]
+    B --> C[Result 1]
+    C --> D[Batch 2 + Context]
+    D --> E[Extract]
+    E --> F[Result 2]
+    F --> G[...]
+```
+
+Validation behavior [#validation-behavior]
+
+Each batch extraction is validated with retry. No separate merge step — the final batch result is the output.
+
+Merge behavior [#merge-behavior]
+
+Context carryover. Each batch receives the previous extraction result as context in its prompt. This allows later chunks to build on earlier ones.
+
+Token cost profile [#token-cost-profile]
+
+**Medium** — N extraction calls, no merge call. Each call includes context from previous results.
+
+Example [#example]
+
+```js
+import { extract, sequential } from "@mateffy/struktur";
+import { openai } from "@ai-sdk/openai";
+
+const result = await extract({
+  artifacts,
+  schema,
+  strategy: sequential({
+    model: openai("gpt-4o-mini"),
+    chunkSize: 10000,
+  }),
+});
+```
+
+CLI [#cli]
+
+```bash
+struktur --input report.pdf --schema schema.json --strategy sequential --model openai/gpt-4o-mini
+```
+
+When to use [#when-to-use]
+
+* Context between chunks matters
+* Building data incrementally (e.g., accumulating line items)
+* Later sections reference earlier sections
+* Need better accuracy than parallel
+
+When to avoid [#when-to-avoid]
+
+* Speed is critical (use `parallel`)
+* Extracting arrays that may have duplicates (use `sequentialAutoMerge`)
+
+See also [#see-also]
+
+* [parallel](/docs/explanation/strategies/parallel) — for speed priority
+* [sequentialAutoMerge](/docs/explanation/strategies/sequential-auto-merge) — for array extraction with deduplication
+* [Choosing a Strategy](/docs/explanation/strategies/choosing) — decision guide

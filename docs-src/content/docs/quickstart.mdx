@@ -68,7 +68,7 @@ echo "Invoice #1042 from Acme Corp. Total: $2,400.00. Due: April 1, 2026." | \
   --model openai/gpt-4o-mini
 ```
 
-The `--fields` flag builds a JSON Schema on the fly. Each field defaults to `string`; append `:number`, `:integer`, `:bool`, etc. to set the type. See [--fields reference](../cli/fields) for the full syntax.
+The `--fields` flag builds a JSON Schema on the fly. Each field defaults to `string`; append `:number`, `:integer`, `:bool`, etc. to set the type. See [--fields reference](/docs/cli/fields) for the full syntax.
 
 If you need more control (optional fields, nested objects), pass a full schema instead:
 
@@ -85,13 +85,13 @@ Notice that `total` is a number, not a string — Struktur enforced the schema.
 
 Three things: stdin input was loaded as an artifact, the LLM generated output, and Ajv validated it against your schema. The `simple` strategy handled this in a single LLM call.
 
-To understand what happened inside, read [The Extraction Pipeline](../explanation/pipeline).
+To understand what happened inside, read [The Extraction Pipeline](/docs/explanation/pipeline).
 
 ## Where to go next
 
 | Goal | Link |
 |------|------|
-| Keep learning | [The Extraction Pipeline](../explanation/pipeline) |
-| Solve a real problem | [Extract Invoice Data](../examples/extract-invoice) |
-| Look up all CLI flags | [CLI Reference](../cli/extract) |
-| Use it in TypeScript | [TypeScript SDK](../sdk/installation) |
+| Keep learning | [The Extraction Pipeline](/docs/explanation/pipeline) |
+| Solve a real problem | [Extract Invoice Data](/docs/examples/extract-invoice) |
+| Look up all CLI flags | [CLI Reference](/docs/cli/extract) |
+| Use it in TypeScript | [TypeScript SDK](/docs/sdk/installation) |

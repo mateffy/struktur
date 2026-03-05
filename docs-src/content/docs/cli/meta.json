@@ -5,6 +5,7 @@
     "extract",
     "fields",
 "auth",
+"environment",
 "models",
 "verify"
 ]

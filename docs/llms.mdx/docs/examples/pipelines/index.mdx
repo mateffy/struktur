@@ -1,0 +1,84 @@
+
+
+Extract from a PDF (via markitdown) [#extract-from-a-pdf-via-markitdown]
+
+```bash
+markitdown document.pdf | struktur --stdin --schema schema.json --model openai/gpt-4o-mini
+```
+
+Process a directory of files [#process-a-directory-of-files]
+
+```bash
+find ./invoices -name "*.pdf" -print0 | while IFS= read -r -d '' f; do
+  markitdown "$f" | struktur --stdin --schema invoice.json --model openai/gpt-4o-mini
+done | jq -s '.'
+```
+
+Pipe output to Postgres [#pipe-output-to-postgres]
+
+```bash
+find ./invoices -name "*.pdf" -exec markitdown {} \; | \
+  struktur --stdin --schema invoice.json --model openai/gpt-4o-mini | \
+  jq '.line_items[]' | \
+  psql mydb -c "COPY line_items FROM STDIN (FORMAT csv)"
+```
+
+Watch a folder for new files (Linux) [#watch-a-folder-for-new-files-linux]
+
+```bash
+inotifywait -m ./incoming -e create -e moved_to |
+  while read -r path action file; do
+    [[ "$file" == *.pdf ]] && markitdown "$path/$file" | \
+      struktur --stdin --schema invoice.json --model openai/gpt-4o-mini \
+      >> processed.jsonl
+  done
+```
+
+Watch a folder for new files (macOS) [#watch-a-folder-for-new-files-macos]
+
+```bash
+fswatch -o ./incoming | while read f; do
+  for file in ./incoming/*; do
+    [ -f "$file" ] || continue
+    markitdown "$file" | struktur --stdin \
+      --schema invoice.json \
+      --model openai/gpt-4o-mini \
+      --output "processed/$(basename $file).json"
+    mv "$file" ./processed/
+  done
+done
+```
+
+Enrich records from URLs [#enrich-records-from-urls]
+
+```bash
+cat contracts.json | jq -c '.[]' | while read -r row; do
+  url=$(echo "$row" | jq -r '.contract_url')
+  curl -s "$url" | struktur --stdin \
+    --schema-json '{"type":"object","properties":{"start_date":{"type":"string"},"value":{"type":"number"}},"required":["start_date","value"],"additionalProperties":false}' \
+    --model openai/gpt-4o-mini | \
+  jq --argjson orig "$row" '$orig + .'
+done | jq -s '.'
+```
+
+Test a schema against samples [#test-a-schema-against-samples]
+
+```bash
+for f in samples/*.pdf; do
+  echo "Testing: $f"
+  markitdown "$f" | struktur --stdin --schema v2.json --model openai/gpt-4o-mini 2>&1 | \
+    jq -e '.' && echo "OK: $f" || echo "FAILED: $f"
+done
+```
+
+Save to file instead of stdout [#save-to-file-instead-of-stdout]
+
+```bash
+struktur --input report.pdf --schema schema.json --model openai/gpt-4o-mini --output result.json
+```
+
+See also [#see-also]
+
+* [extract](/docs/cli/extract) — CLI flags
+* [Process a Directory of Files](/docs/examples/process-directory) — detailed example
+* [Watch a Folder for New Files](/docs/examples/watch-folder) — detailed example
