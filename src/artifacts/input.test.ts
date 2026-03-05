@@ -201,3 +201,43 @@ test("parseInputToArtifacts passes includeImages: false to parsePdf", async () =
   expect(artifacts).toHaveLength(1);
   expect(artifacts[0]?.type).toBe("pdf");
 });
+
+test("validateSerializedArtifacts accepts imageType field in media", () => {
+  const artifacts = validateSerializedArtifacts({
+    id: "a1",
+    type: "pdf",
+    contents: [
+      {
+        page: 1,
+        text: "page text",
+        media: [
+          { type: "image", base64: "abc123", imageType: "embedded" },
+          { type: "image", base64: "def456", imageType: "screenshot" },
+        ],
+      },
+    ],
+  });
+
+  expect(artifacts).toHaveLength(1);
+  expect(artifacts[0]?.contents[0]?.media).toHaveLength(2);
+  expect(artifacts[0]?.contents[0]?.media![0]?.imageType).toBe("embedded");
+  expect(artifacts[0]?.contents[0]?.media![1]?.imageType).toBe("screenshot");
+});
+
+test("validateSerializedArtifacts accepts media without imageType (optional field)", () => {
+  const artifacts = validateSerializedArtifacts({
+    id: "a1",
+    type: "pdf",
+    contents: [
+      {
+        page: 1,
+        text: "page text",
+        media: [{ type: "image", base64: "abc123" }],
+      },
+    ],
+  });
+
+  expect(artifacts).toHaveLength(1);
+  expect(artifacts[0]?.contents[0]?.media).toHaveLength(1);
+  expect(artifacts[0]?.contents[0]?.media![0]?.imageType).toBeUndefined();
+});

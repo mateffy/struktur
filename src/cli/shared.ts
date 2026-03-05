@@ -291,7 +291,8 @@ const ensureSingleInput = (inputs: Array<string | boolean | undefined>) => {
 
 export type LoadSchemaResult =
   | { kind: "schema"; schema: AnyJSONSchema }
-  | { kind: "fields"; fields: string };
+  | { kind: "fields"; fields: string }
+  | { kind: "missing" };
 
 export const loadSchema = async (
   options: Record<string, string | boolean | undefined>,
@@ -325,7 +326,7 @@ export const loadSchema = async (
     return { kind: "schema", schema: (await readJsonFile(schemaPath)) as AnyJSONSchema };
   }
 
-  throw new Error("Schema is required (--schema, --schema-json, or --fields).");
+  return { kind: "missing" };
 };
 
 export const loadArtifactsFromOptions = async (
@@ -338,8 +339,14 @@ export const loadArtifactsFromOptions = async (
   const artifact = options.artifact;
   const artifactJson = options["artifact-json"];
   const noParse = options["no-parse"] === true;
-  const noImages = options["no-images"] === true;
-  const includeImages = noImages ? false : undefined;
+  const images = options.images === true;
+  const screenshots = options.screenshots === true;
+  const screenshotScale = typeof options["screenshot-scale"] === "string" 
+    ? parseFloat(options["screenshot-scale"]) 
+    : undefined;
+  const screenshotWidth = typeof options["screenshot-width"] === "string" 
+    ? parseInt(options["screenshot-width"], 10) 
+    : undefined;
   const mimeOverride = typeof options.mime === "string" ? options.mime : undefined;
   const parserOverride = typeof options.parser === "string" ? options.parser : undefined;
   const readStdin = deps?.readStdinText ?? readStdinText;
@@ -416,7 +423,13 @@ export const loadArtifactsFromOptions = async (
 
     return parseInputToArtifacts(
       { kind: "buffer", buffer: stdinBuffer, mimeType },
-      { parserConfig: effectiveParsers, includeImages }
+      { 
+        parserConfig: effectiveParsers, 
+        includeImages: images,
+        screenshots,
+        screenshotScale,
+        screenshotWidth,
+      }
     );
   }
 
@@ -475,7 +488,13 @@ export const loadArtifactsFromOptions = async (
 
     return parseInputToArtifacts(
       { kind: "file", path: input, mimeType: detectedMime ?? undefined },
-      { parserConfig: effectiveParsers, includeImages }
+      { 
+        parserConfig: effectiveParsers, 
+        includeImages: images,
+        screenshots,
+        screenshotScale,
+        screenshotWidth,
+      }
     );
   }
 

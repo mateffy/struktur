@@ -47,6 +47,10 @@ Uses `pdf-parse` (npm package). Extracts per-page text **and** embedded images i
 with `page` numbers set. Returns an `Artifact` with `type: "pdf"`.
 
 - Text extraction: per-page via `parser.getText()`; falls back to full document text when no per-page info is available.
-- Image extraction: per-page via `parser.getImage({ imageBuffer: false, imageDataUrl: true })`. Each embedded image is mapped to an `ArtifactImage` with `base64` (raw base64 string, data-URL prefix stripped), `width`, and `height`. Images are merged into the `media` array of the matching `ArtifactContent` entry. Pages that contain images but no text produce their own content entry. Image extraction failure is non-fatal — the parser continues and returns text-only content.
+- Image extraction: per-page via `parser.getImage({ imageBuffer: false, imageDataUrl: true })`. Each embedded image is mapped to an `ArtifactImage` with `base64` (raw base64 string, data-URL prefix stripped), `width`, `height`, and `imageType: "embedded"`. Images are merged into the `media` array of the matching `ArtifactContent` entry. Pages that contain images but no text produce their own content entry. Image extraction failure is non-fatal — the parser continues and returns text-only content.
+- Screenshot rendering: per-page via `parser.getScreenshot()`. Each page is rendered to a PNG image and added to the `media` array with `imageType: "screenshot"`. Screenshots are appended to any embedded images for the same page. Screenshot rendering failure is non-fatal — the parser continues without screenshots.
 - `imageThreshold` defaults to 80 px (from pdf-parse), filtering out tiny decorative images.
 - `ParsePdfOptions.includeImages` (default `true`): set to `false` to skip `getImage()` entirely and return text-only content. This is used by the `--no-images` CLI flag.
+- `ParsePdfOptions.screenshots` (default `false`): set to `true` to render page screenshots and include them as images. This is used by the `--screenshots` CLI flag.
+- `ParsePdfOptions.screenshotScale` (default `1.5`): scale factor for screenshot rendering. Higher values produce larger, higher-quality images.
+- `ParsePdfOptions.screenshotWidth`: target width in pixels for screenshots. If specified, takes precedence over `screenshotScale` and height is calculated to maintain aspect ratio.

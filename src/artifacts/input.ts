@@ -31,7 +31,14 @@ export type ArtifactInputParser = {
   canParse: (input: ArtifactInput) => boolean;
   parse: (
     input: ArtifactInput,
-    options?: { providers?: ArtifactProviders; parsers?: ParsersConfig; includeImages?: boolean }
+    options?: { 
+      providers?: ArtifactProviders; 
+      parsers?: ParsersConfig; 
+      includeImages?: boolean;
+      screenshots?: boolean;
+      screenshotScale?: number;
+      screenshotWidth?: number;
+    }
   ) => Promise<Artifact[]>;
 };
 
@@ -47,6 +54,7 @@ const serializedArtifactImageSchema = {
     y: { type: "number" },
     width: { type: "number" },
     height: { type: "number" },
+    imageType: { enum: ["embedded", "screenshot"] },
   },
   additionalProperties: false,
   anyOf: [{ required: ["url"] }, { required: ["base64"] }],
@@ -164,6 +172,9 @@ const parseBufferInput = async (
   providers?: ArtifactProviders,
   parsers?: ParsersConfig,
   includeImages?: boolean,
+  screenshots?: boolean,
+  screenshotScale?: number,
+  screenshotWidth?: number,
 ): Promise<Artifact[]> => {
   // Resolution order:
   // 1. parsers config (custom ParserDef) — if MIME type has a configured parser, use it
@@ -198,7 +209,12 @@ const parseBufferInput = async (
   // 3. Built-in PDF → pdf artifact
   if (mimeType === "application/pdf") {
     const { parsePdf } = await import("../parsers/pdf");
-    const pdfOptions: ParsePdfOptions = { includeImages };
+    const pdfOptions: ParsePdfOptions = { 
+      includeImages, 
+      screenshots, 
+      screenshotScale, 
+      screenshotWidth 
+    };
     return [await parsePdf(buffer, pdfOptions)];
   }
 
@@ -271,7 +287,17 @@ const fileParser: ArtifactInputParser = {
 
     const file = Bun.file(input.path);
     const buffer = Buffer.from(await file.arrayBuffer());
-    return parseBufferInput(buffer, mimeType, input.id, options?.providers, options?.parsers, options?.includeImages);
+    return parseBufferInput(
+      buffer, 
+      mimeType, 
+      input.id, 
+      options?.providers, 
+      options?.parsers, 
+      options?.includeImages,
+      options?.screenshots,
+      options?.screenshotScale,
+      options?.screenshotWidth,
+    );
   },
 };
 
@@ -289,13 +315,24 @@ const bufferParser: ArtifactInputParser = {
       options?.providers,
       options?.parsers,
       options?.includeImages,
+      options?.screenshots,
+      options?.screenshotScale,
+      options?.screenshotWidth,
     );
   },
 };
 
 export const parseInputToArtifacts = async (
   input: ArtifactInput,
-  options?: { parsers?: ArtifactInputParser[]; providers?: ArtifactProviders; parserConfig?: ParsersConfig; includeImages?: boolean }
+  options?: { 
+    parsers?: ArtifactInputParser[]; 
+    providers?: ArtifactProviders; 
+    parserConfig?: ParsersConfig; 
+    includeImages?: boolean;
+    screenshots?: boolean;
+    screenshotScale?: number;
+    screenshotWidth?: number;
+  }
 ): Promise<Artifact[]> => {
   const parsers =
     options?.parsers ??
@@ -312,5 +349,12 @@ export const parseInputToArtifacts = async (
     throw new Error(`No artifact input parser available for ${input.kind}`);
   }
 
-  return parser.parse(input, { providers: options?.providers, parsers: options?.parserConfig, includeImages: options?.includeImages });
+  return parser.parse(input, { 
+    providers: options?.providers, 
+    parsers: options?.parserConfig, 
+    includeImages: options?.includeImages,
+    screenshots: options?.screenshots,
+    screenshotScale: options?.screenshotScale,
+    screenshotWidth: options?.screenshotWidth,
+  });
 };

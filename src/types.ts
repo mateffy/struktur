@@ -3,6 +3,8 @@ import type { DebugLogger } from "./debug/logger";
 
 export type ArtifactType = "text" | "image" | "pdf" | "file";
 
+export type ImageType = "embedded" | "screenshot";
+
 export type ArtifactImage = {
   type: "image";
   url?: string;
@@ -13,6 +15,7 @@ export type ArtifactImage = {
   y?: number;
   width?: number;
   height?: number;
+  imageType?: ImageType;
 };
 
 export type ArtifactContent = {

@@ -8,6 +8,22 @@ export type ParsePdfOptions = {
    * Defaults to true. Pass false to skip image extraction entirely.
    */
   includeImages?: boolean;
+  /**
+   * Whether to render page screenshots and include them as ArtifactImage entries.
+   * When true, each page is rendered to a PNG image and added to the media field.
+   * Defaults to false.
+   */
+  screenshots?: boolean;
+  /**
+   * Scale factor for screenshots. Higher values produce larger, higher-quality images.
+   * Defaults to 1.5.
+   */
+  screenshotScale?: number;
+  /**
+   * Target width in pixels for screenshots. If specified, takes precedence over screenshotScale.
+   * Height is calculated to maintain aspect ratio.
+   */
+  screenshotWidth?: number;
 };
 
 /**
@@ -52,6 +68,29 @@ export async function parsePdf(
     }
   }
 
+  // Render page screenshots if requested
+  let screenshotResult;
+  if (options?.screenshots === true) {
+    try {
+      const screenshotParams: {
+        imageBuffer: boolean;
+        imageDataUrl: boolean;
+        scale?: number;
+        desiredWidth?: number;
+      } = { imageBuffer: false, imageDataUrl: true };
+      
+      if (options.screenshotWidth !== undefined) {
+        screenshotParams.desiredWidth = options.screenshotWidth;
+      } else {
+        screenshotParams.scale = options.screenshotScale ?? 1.5;
+      }
+      
+      screenshotResult = await parser.getScreenshot(screenshotParams);
+    } catch {
+      // Screenshot rendering is optional — continue without screenshots if it fails
+    }
+  }
+
   // Build a page-number → ArtifactImage[] map from extracted images
   const pageImageMap = new Map<number, ArtifactImage[]>();
   if (imageResult) {
@@ -66,11 +105,32 @@ export async function parsePdf(
             base64,
             width: img.width,
             height: img.height,
+            imageType: "embedded",
           };
           return artifactImage;
         });
       if (artifactImages.length > 0) {
         pageImageMap.set(pageImages.pageNumber, artifactImages);
+      }
+    }
+  }
+
+  // Add screenshots to the pageImageMap
+  if (screenshotResult) {
+    for (const screenshot of screenshotResult.pages) {
+      if (screenshot.dataUrl) {
+        // Strip the "data:<mime>;base64," prefix to get the raw base64 string
+        const base64 = screenshot.dataUrl.replace(/^data:[^;]+;base64,/, "");
+        const artifactImage: ArtifactImage = {
+          type: "image",
+          base64,
+          width: screenshot.width,
+          height: screenshot.height,
+          imageType: "screenshot",
+        };
+        // Append to existing images for this page, or create new entry
+        const existing = pageImageMap.get(screenshot.pageNumber) ?? [];
+        pageImageMap.set(screenshot.pageNumber, [...existing, artifactImage]);
       }
     }
   }

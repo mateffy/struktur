@@ -7,4 +7,5 @@ Artifacts module
 - JSON auto-detection: when MIME type is `application/json`, `fileParser` first attempts to validate the file as `SerializedArtifact[]`. If valid, it hydrates and returns them directly. If not valid, it checks `parsers` config for a custom parser; if none, throws a clear error.
 - `parseBufferInput` resolution order: (1) parsers config, (2) providers registry, (3) JSON auto-detection, (4) built-in `application/pdf` (via `parsePdf`), (5) built-in text/*, (6) built-in image/*, (7) error.
 - `parseInputToArtifacts` accepts `includeImages?: boolean` which is forwarded to `parsePdf` for PDF inputs. Set to `false` to suppress image extraction (used by `--no-images` CLI flag).
+- `SerializedArtifactImage` schema validation accepts an optional `imageType` field with values `"embedded"` or `"screenshot"` to differentiate between embedded images extracted from PDFs and page screenshots.
 - Tests: `fileToArtifact.test.ts`, `urlToArtifact.test.ts`, `input.test.ts`, `providers.test.ts`.

@@ -6,7 +6,10 @@
 - Command tree:
   - `extract`  — structured data extraction (main command)
     - `--no-parse` — skip custom parsers; use only built-in text/image/artifact-JSON detection
-    - `--no-images` — skip image extraction; do not include images in the artifact output (passed to PDF parser)
+    - `--images` — extract embedded images from documents (PDFs)
+    - `--screenshots` — render page screenshots and include them as images in the artifact output
+    - `--screenshot-scale <num>` — scale factor for screenshots (default: 1.5)
+    - `--screenshot-width <px>` — target width in pixels for screenshots (overrides scale)
     - `--mime <type>` — override MIME type detection for the input
     - `--parser <npm-pkg>` — use this npm package as the parser, overriding configured parser
   - `parse`  — convert a file or stdin to Artifact JSON
@@ -14,7 +17,10 @@
     - `--mime <type>` — override MIME type detection
     - `--output <path|->` / `-o` — output destination (default: stdout)
     - `--parser <pkg>` — override configured parser with this npm package name
-    - `--no-images` — skip image extraction; do not include images in the artifact output (PDF only)
+    - `--images` — extract embedded images from documents (PDFs)
+    - `--screenshots` — render page screenshots and include them as images in the artifact output
+    - `--screenshot-scale <num>` — scale factor for screenshots (default: 1.5)
+    - `--screenshot-width <px>` — target width in pixels for screenshots (overrides scale)
   - `config`  — manage struktur configuration
     - `config models list`  — list available models per provider
     - `config models alias list`  — list all aliases
@@ -30,10 +36,22 @@
     - `config parsers add --mime <type> (--npm <pkg> | --file-command "<cmd>" | --stdin-command "<cmd>")`  — configure a parser
     - `config parsers remove --mime <type>`  — remove a configured parser
   - `verify`  — validate artifact JSON
+  - `utils`  — utility commands
+    - `utils artifact-viewer` — generate an HTML viewer for artifact JSON
+      - `--input <path>` / `-i` — artifact JSON file to view
+      - `--stdin` — read artifact JSON from stdin
+      - `--output <path|->` / `-o` — output HTML file (default: stdout)
+      - The viewer includes:
+        - Default view showing artifacts with image miniatures (click to enlarge)
+        - Optional "Batching Mode" to visualize chunking/batching
+        - Image filtering by type (normal, embedded, screenshot)
+        - Version stamp to verify chunking algorithm matches Struktur version
 - Alias resolution: `resolveAlias` (from `auth/config.ts`) is called in both `resolveDefaultModelSpec` and `resolveExplicitModelSpec` so aliases work transparently for `--model` and the stored default.
 - Progress indication: uses `yocto-spinner` with descriptive messages showing current LLM operations (e.g. "Processing batch 3/10", "Pass 1: Merging results"). Spinner clears when done.
 - Design: keep CLI behavior consistent for both interactive and non-interactive runs. Schema loading supports local files, inline JSON, and HTTP(S) URLs with JSON accept headers.
 - Model resolution (`resolveModel` in `shared.ts`): supports openai, anthropic, google, opencode (Zen), and openrouter providers. OpenCode Zen uses different AI SDK packages based on model family (openai for GPT, anthropic for Claude, google for Gemini, openai-compatible for others).
 - OpenRouter provider routing: Supports hashtag syntax for provider selection (e.g., `openrouter/anthropic/claude-3.5-sonnet#cerebras`). The hashtag prefix is stripped from the model name and passed to the LLM layer as a routing preference.
-- `loadArtifactsFromOptions` (in `shared.ts`): accepts `--no-parse`, `--mime`, and `--parser` options. When `--input <file>` is used, loads `parsers` config, detects MIME type (magic bytes + extension + npm `detectFileType`), and passes config to `parseInputToArtifacts`. For stdin, runs MIME detection on the buffer then falls back to `text/plain`.
+- `loadArtifactsFromOptions` (in `shared.ts`): accepts `--no-parse`, `--images`, `--screenshots`, `--screenshot-scale`, `--screenshot-width`, `--mime`, and `--parser` options. When `--input <file>` is used, loads `parsers` config, detects MIME type (magic bytes + extension + npm `detectFileType`), and passes config to `parseInputToArtifacts`. For stdin, runs MIME detection on the buffer then falls back to `text/plain`. Image and screenshot options are passed to the PDF parser.
 - Breaking change: `models` and `providers` are now subcommands of `config` (no backward-compat aliases — pre-1.0).
+
+IMPORTANT: The artifact viewer (`generateArtifactViewerHtml` in `cli.ts`) contains a client-side JavaScript implementation of the chunking/batching logic. When modifying `ArtifactSplitter.ts` or `ArtifactBatcher.ts`, you MUST also update the JavaScript in `generateArtifactViewerHtml` to keep them in sync. The viewer includes a version stamp to help users verify they're using the correct algorithm version.

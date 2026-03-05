@@ -8,12 +8,15 @@ import { test, expect, mock } from "bun:test";
 type TextPage = { num: number; text: string };
 type EmbeddedImageStub = { dataUrl: string; width: number; height: number };
 type PageImagesStub = { pageNumber: number; images: EmbeddedImageStub[] };
+type ScreenshotPageStub = { pageNumber: number; dataUrl: string; width: number; height: number };
 
 // Configurable stubs — tests update these before importing parsePdf.
 let stubTextPages: TextPage[] = [];
 let stubTextFull = "";
 let stubImagePages: PageImagesStub[] = [];
+let stubScreenshotPages: ScreenshotPageStub[] = [];
 let stubGetImageThrows = false;
+let stubGetScreenshotThrows = false;
 
 mock.module("pdf-parse", () => ({
   PDFParse: class {
@@ -30,6 +33,13 @@ mock.module("pdf-parse", () => ({
       return {
         pages: stubImagePages,
         total: stubImagePages.length,
+      };
+    }
+    async getScreenshot(_params?: unknown) {
+      if (stubGetScreenshotThrows) throw new Error("screenshot rendering failed");
+      return {
+        pages: stubScreenshotPages,
+        total: stubScreenshotPages.length,
       };
     }
     async getInfo() {
@@ -61,7 +71,9 @@ test("parsePdf extracts per-page text when pages are present", async () => {
   ];
   stubTextFull = "Hello page one\nHello page two";
   stubImagePages = [];
+  stubScreenshotPages = [];
   stubGetImageThrows = false;
+  stubGetScreenshotThrows = false;
 
   const artifact = await parsePdf(makeBuffer());
 
@@ -75,7 +87,9 @@ test("parsePdf falls back to full text when no pages are returned", async () => 
   stubTextPages = [];
   stubTextFull = "entire document text";
   stubImagePages = [];
+  stubScreenshotPages = [];
   stubGetImageThrows = false;
+  stubGetScreenshotThrows = false;
 
   const artifact = await parsePdf(makeBuffer());
 
@@ -96,7 +110,9 @@ test("parsePdf attaches images to the matching page content entry", async () => 
       images: [{ dataUrl: "data:image/png;base64,abc123", width: 100, height: 50 }],
     },
   ];
+  stubScreenshotPages = [];
   stubGetImageThrows = false;
+  stubGetScreenshotThrows = false;
 
   const artifact = await parsePdf(makeBuffer());
 
@@ -127,7 +143,9 @@ test("parsePdf strips data URL prefix to produce raw base64", async () => {
       images: [{ dataUrl: "data:image/jpeg;base64,/9j/4AAQ==", width: 200, height: 200 }],
     },
   ];
+  stubScreenshotPages = [];
   stubGetImageThrows = false;
+  stubGetScreenshotThrows = false;
 
   const artifact = await parsePdf(makeBuffer());
   const img = artifact.contents[0]?.media?.[0];
@@ -143,7 +161,9 @@ test("parsePdf creates a content entry for pages that have only images (no text)
       images: [{ dataUrl: "data:image/png;base64,img2", width: 80, height: 80 }],
     },
   ];
+  stubScreenshotPages = [];
   stubGetImageThrows = false;
+  stubGetScreenshotThrows = false;
 
   const artifact = await parsePdf(makeBuffer());
 
@@ -161,7 +181,9 @@ test("parsePdf continues without images when getImage() throws", async () => {
   stubTextPages = [{ num: 1, text: "resilient page" }];
   stubTextFull = "";
   stubImagePages = [];
+  stubScreenshotPages = [];
   stubGetImageThrows = true;
+  stubGetScreenshotThrows = false;
 
   const artifact = await parsePdf(makeBuffer());
 
@@ -174,7 +196,9 @@ test("parsePdf produces at least one content entry for empty documents", async (
   stubTextPages = [];
   stubTextFull = "";
   stubImagePages = [];
+  stubScreenshotPages = [];
   stubGetImageThrows = false;
+  stubGetScreenshotThrows = false;
 
   const artifact = await parsePdf(makeBuffer());
 
@@ -186,7 +210,9 @@ test("parsePdf includes numpages in metadata", async () => {
   stubTextPages = [{ num: 1, text: "one" }];
   stubTextFull = "";
   stubImagePages = [];
+  stubScreenshotPages = [];
   stubGetImageThrows = false;
+  stubGetScreenshotThrows = false;
 
   const artifact = await parsePdf(makeBuffer());
 
@@ -198,7 +224,9 @@ test("parsePdf raw() returns the original buffer", async () => {
   stubTextPages = [{ num: 1, text: "raw test" }];
   stubTextFull = "";
   stubImagePages = [];
+  stubScreenshotPages = [];
   stubGetImageThrows = false;
+  stubGetScreenshotThrows = false;
 
   const buf = makeBuffer();
   const artifact = await parsePdf(buf);
@@ -215,7 +243,9 @@ test("parsePdf with includeImages: false skips image extraction", async () => {
       images: [{ dataUrl: "data:image/png;base64,abc123", width: 100, height: 50 }],
     },
   ];
+  stubScreenshotPages = [];
   stubGetImageThrows = false;
+  stubGetScreenshotThrows = false;
 
   // Even though stubImagePages has data, passing includeImages: false should
   // cause getImage() to not be called, so no media on the content entry.
@@ -235,7 +265,9 @@ test("parsePdf with includeImages: true behaves the same as the default", async 
       images: [{ dataUrl: "data:image/png;base64,xyz456", width: 80, height: 80 }],
     },
   ];
+  stubScreenshotPages = [];
   stubGetImageThrows = false;
+  stubGetScreenshotThrows = false;
 
   const artifact = await parsePdf(makeBuffer(), { includeImages: true });
 
@@ -252,10 +284,111 @@ test("parsePdf with no options still includes images by default", async () => {
       images: [{ dataUrl: "data:image/png;base64,def789", width: 60, height: 60 }],
     },
   ];
+  stubScreenshotPages = [];
   stubGetImageThrows = false;
+  stubGetScreenshotThrows = false;
 
   const artifact = await parsePdf(makeBuffer());
 
   expect(artifact.contents[0]?.media).toHaveLength(1);
   expect(artifact.contents[0]?.media![0]?.base64).toBe("def789");
+});
+
+test("parsePdf marks embedded images with imageType: 'embedded'", async () => {
+  stubTextPages = [{ num: 1, text: "page with embedded image" }];
+  stubTextFull = "";
+  stubImagePages = [
+    {
+      pageNumber: 1,
+      images: [{ dataUrl: "data:image/png;base64,embedded123", width: 100, height: 100 }],
+    },
+  ];
+  stubScreenshotPages = [];
+  stubGetImageThrows = false;
+  stubGetScreenshotThrows = false;
+
+  const artifact = await parsePdf(makeBuffer());
+
+  expect(artifact.contents[0]?.media).toHaveLength(1);
+  expect(artifact.contents[0]?.media![0]?.imageType).toBe("embedded");
+});
+
+test("parsePdf marks screenshots with imageType: 'screenshot'", async () => {
+  stubTextPages = [{ num: 1, text: "page with screenshot" }];
+  stubTextFull = "";
+  stubImagePages = [];
+  stubScreenshotPages = [
+    { pageNumber: 1, dataUrl: "data:image/png;base64,screenshot456", width: 800, height: 600 },
+  ];
+  stubGetImageThrows = false;
+  stubGetScreenshotThrows = false;
+
+  const artifact = await parsePdf(makeBuffer(), { screenshots: true });
+
+  expect(artifact.contents[0]?.media).toHaveLength(1);
+  expect(artifact.contents[0]?.media![0]?.imageType).toBe("screenshot");
+});
+
+test("parsePdf correctly differentiates embedded images and screenshots on the same page", async () => {
+  stubTextPages = [{ num: 1, text: "page with both" }];
+  stubTextFull = "";
+  stubImagePages = [
+    {
+      pageNumber: 1,
+      images: [{ dataUrl: "data:image/png;base64,embedded789", width: 100, height: 100 }],
+    },
+  ];
+  stubScreenshotPages = [
+    { pageNumber: 1, dataUrl: "data:image/png;base64,screenshot012", width: 800, height: 600 },
+  ];
+  stubGetImageThrows = false;
+  stubGetScreenshotThrows = false;
+
+  const artifact = await parsePdf(makeBuffer(), { screenshots: true });
+
+  expect(artifact.contents[0]?.media).toHaveLength(2);
+  
+  const embeddedImage = artifact.contents[0]?.media?.find(img => img.imageType === "embedded");
+  const screenshotImage = artifact.contents[0]?.media?.find(img => img.imageType === "screenshot");
+  
+  expect(embeddedImage).toBeDefined();
+  expect(embeddedImage?.base64).toBe("embedded789");
+  expect(screenshotImage).toBeDefined();
+  expect(screenshotImage?.base64).toBe("screenshot012");
+});
+
+test("parsePdf without screenshots option does not include screenshot images", async () => {
+  stubTextPages = [{ num: 1, text: "page" }];
+  stubTextFull = "";
+  stubImagePages = [
+    {
+      pageNumber: 1,
+      images: [{ dataUrl: "data:image/png;base64,embedded345", width: 100, height: 100 }],
+    },
+  ];
+  stubScreenshotPages = [
+    { pageNumber: 1, dataUrl: "data:image/png;base64,screenshot678", width: 800, height: 600 },
+  ];
+  stubGetImageThrows = false;
+  stubGetScreenshotThrows = false;
+
+  const artifact = await parsePdf(makeBuffer());
+
+  expect(artifact.contents[0]?.media).toHaveLength(1);
+  expect(artifact.contents[0]?.media![0]?.imageType).toBe("embedded");
+});
+
+test("parsePdf continues without screenshots when getScreenshot() throws", async () => {
+  stubTextPages = [{ num: 1, text: "resilient page" }];
+  stubTextFull = "";
+  stubImagePages = [];
+  stubScreenshotPages = [];
+  stubGetImageThrows = false;
+  stubGetScreenshotThrows = true;
+
+  const artifact = await parsePdf(makeBuffer(), { screenshots: true });
+
+  expect(artifact.contents).toHaveLength(1);
+  expect(artifact.contents[0]?.text).toBe("resilient page");
+  expect(artifact.contents[0]?.media).toBeUndefined();
 });
