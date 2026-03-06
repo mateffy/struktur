@@ -856,7 +856,7 @@ function Home() {
             >
               Before extracting, Struktur normalizes your raw data into the{" "}
               <a
-                href="/docs/explanation/artifacts"
+                href="/docs/explanation/artifact-format"
                 style={{ color: "#3d2b15", fontWeight: 500, textDecoration: "none" }}
               >
                 Artifact format
@@ -1081,7 +1081,7 @@ function Home() {
             </div>
 
             <a
-              href="/docs/explanation/parsers"
+              href="/docs/explanation/document-parsing"
               style={{
                 fontSize: "14px",
                 color: "#3d2b15",
@@ -1300,7 +1300,7 @@ function Home() {
                     → Choosing a strategy
                   </a>
                   <a
-                    href="/docs/explanation/parsers"
+                    href="/docs/explanation/document-parsing"
                     style={{
                       fontSize: "13px",
                       color: "#3d2b15",
