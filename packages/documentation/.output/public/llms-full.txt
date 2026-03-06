@@ -3404,6 +3404,8 @@ Quick navigation [#quick-navigation]
 
 Extract structured data from any file in 3 commands. About 5 minutes.
 
+> **Using an AI assistant?** Point it at `https://struktur.sh/llms.txt` for LLM-optimized docs, or install the [Agent Skill](/docs/skill) for built-in Struktur knowledge.
+
 Prerequisites [#prerequisites]
 
 * Node.js 18+ or Bun installed
@@ -3842,6 +3844,8 @@ See also [#see-also]
 
 
 Struktur provides an Agent Skill that teaches AI coding assistants (like Claude Code, OpenCode, Codex, etc.) how to use Struktur effectively.
+
+**Raw skill file:** [SKILL.md on GitHub](https://github.com/mateffy/struktur/blob/main/packages/skill/skills/struktur/SKILL.md)
 
 What is an Agent Skill? [#what-is-an-agent-skill]
 

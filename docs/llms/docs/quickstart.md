@@ -2,6 +2,8 @@
 
 Extract structured data from any file in 3 commands. About 5 minutes.
 
+> **Using an AI assistant?** Point it at `https://struktur.sh/llms.txt` for LLM-optimized docs, or install the [Agent Skill](/docs/skill) for built-in Struktur knowledge.
+
 Prerequisites [#prerequisites]
 
 * Node.js 18+ or Bun installed
