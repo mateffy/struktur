@@ -1,10 +1,9 @@
 {
-"title": "SDK",
-"pages": [
-"installation",
+  "title": "SDK",
+  "pages": [
+    "installation",
     "extract",
-    "fields",
-"artifact-helpers",
-"events"
-]
+    "parse",
+    "events"
+  ]
 }

@@ -1,9 +1,0 @@
-{
-  "title": "Document Processing",
-  "pages": [
-    "index",
-    "artifact-format",
-    "built-in-inputs",
-    "custom-provider"
-  ]
-}

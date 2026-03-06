@@ -169,7 +169,7 @@ Exactly one of `--npm`, `--file-command`, or `--stdin-command` must be specified
 | `--file-command "<cmd>"` | Shell command with `FILE_PATH` placeholder (replaced with the actual file path at runtime) |
 | `--stdin-command "<cmd>"` | Shell command that reads file from stdin and writes `SerializedArtifact[]` JSON to stdout |
 
-**npm parser** — install a package that implements the [npm parser contract](/docs/explanation/parsers#npm-parser-contract):
+**npm parser** — install a package that implements the [npm parser contract](/docs/explanation/document-parsing#npm-package-parser):
 
 ```bash
 struktur config parsers add \
@@ -223,6 +223,5 @@ This is passed through to OpenRouter's provider routing feature.
 
 ## See also
 
-- [Installation & Setup](/docs/cli/installation) — initial setup
-- [Environment Variables](/docs/cli/environment) — env var alternatives to stored tokens
-- [Parsers](/docs/explanation/parsers) — how the parser system works
+- [Installation & Setup](/docs/cli/installation) — initial setup and environment variables
+- [Document Parsing](/docs/explanation/document-parsing) — how the parser system works

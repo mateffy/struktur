@@ -47,18 +47,47 @@ field  = name
 
 Whitespace around commas and colons is ignored.
 
+***
+
 Scalar types [#scalar-types]
 
-| Type        | JSON Schema                 | Notes                            |
-| ----------- | --------------------------- | -------------------------------- |
-| *(omitted)* | `string`                    | Default when no type given       |
-| `string`    | `string`                    |                                  |
-| `number`    | `number`                    |                                  |
-| `float`     | `number`                    | Alias for `number`               |
-| `boolean`   | `boolean`                   |                                  |
-| `bool`      | `boolean`                   | Alias for `boolean`              |
-| `integer`   | `integer`                   | Whole numbers (JSON Schema spec) |
-| `int`       | `integer` + `multipleOf: 1` | Explicitly disallows fractions   |
+string [#string]
+
+```bash
+--fields "title"
+--fields "title:string"
+```
+
+Default when no type is specified. Produces `{ "type": "string" }`.
+
+number / float [#number--float]
+
+```bash
+--fields "price:number"
+--fields "price:float"
+```
+
+Any numeric value. Both produce `{ "type": "number" }`. `float` is an alias for `number`.
+
+integer / int [#integer--int]
+
+```bash
+--fields "count:integer"
+--fields "count:int"
+```
+
+Whole numbers only. `integer` produces `{ "type": "integer" }`. `int` produces `{ "type": "integer", "multipleOf": 1 }` — explicitly disallows fractions.
+
+boolean / bool [#boolean--bool]
+
+```bash
+--fields "active:boolean"
+--fields "active:bool"
+```
+
+Both produce `{ "type": "boolean" }`. `bool` is an alias for `boolean`.
+
+***
 
 Enums [#enums]
 
@@ -67,6 +96,8 @@ Enums [#enums]
 ```
 
 Values are separated by `|`. At least two values are required.
+
+***
 
 Arrays [#arrays]
 
@@ -152,6 +183,72 @@ All fields are required. For optional fields, nested objects, or `$ref`, use `--
 
 ***
 
+SDK Usage [#sdk-usage]
+
+The `fields` parameter is also available in the SDK:
+
+```ts
+import { extract, simple } from "@mateffy/struktur";
+import { openai } from "@ai-sdk/openai";
+
+const result = await extract({
+  artifacts,
+  fields: "title, author, year:integer, genre:enum{fiction|nonfiction|reference}",
+  strategy: simple({ model: openai("gpt-4o-mini") }),
+});
+
+// result.data is typed as Record<string, unknown> when using fields
+console.log(result.data.title);
+```
+
+For full TypeScript inference on `result.data`, use `schema` with `JSONSchemaType<T>` instead.
+
+Utility exports [#utility-exports]
+
+The parser and schema builder are exported for use outside of `extract()`:
+
+```ts
+import {
+  parseFieldsString,
+  buildSchemaFromParsedFields,
+  buildSchemaFromFields,
+} from "@mateffy/struktur";
+
+// Parse to an intermediate representation
+const parsed = parseFieldsString("title, price:number, status:enum{draft|live}");
+// [
+//   { name: "title",  kind: "scalar", type: "string" },
+//   { name: "price",  kind: "scalar", type: "number" },
+//   { name: "status", kind: "enum",   values: ["draft", "live"] }
+// ]
+
+// Build a schema directly
+const schema = buildSchemaFromFields("title, price:number");
+```
+
+parseFieldsString(fields: string): ParsedField[] [#parsefieldsstringfields-string-parsedfield]
+
+Parses the fields string into an array of `ParsedField` discriminated union entries:
+
+```ts
+type ParsedField =
+  | { name: string; kind: "scalar"; type: ScalarFieldType }
+  | { name: string; kind: "enum";   values: string[] }
+  | { name: string; kind: "array";  items: ScalarFieldType };
+
+type ScalarFieldType = "string" | "number" | "boolean" | "integer" | "int";
+```
+
+buildSchemaFromParsedFields(fields: ParsedField[]): AnyJSONSchema [#buildschemafromparsedfieldsfields-parsedfield-anyjsonschema]
+
+Builds the JSON Schema object from a pre-parsed array. Useful if you want to inspect or modify the parsed fields before building.
+
+buildSchemaFromFields(fields: string): AnyJSONSchema [#buildschemafromfieldsfields-string-anyjsonschema]
+
+Convenience one-liner: parses and builds in a single call.
+
+***
+
 Error messages [#error-messages]
 
 Bad field definitions fail immediately with a helpful message:
@@ -176,17 +273,17 @@ Bad field definitions fail immediately with a helpful message:
 
 When to use --fields vs --schema [#when-to-use---fields-vs---schema]
 
-| Situation                                  | Use        |
-| ------------------------------------------ | ---------- |
-| Quick one-liner or experiment              | `--fields` |
-| All fields are flat, all required          | `--fields` |
-| Need optional properties or nested objects | `--schema` |
-| Schema is reused across many runs          | `--schema` |
-| Need `$ref`, `allOf`, custom formats       | `--schema` |
+| Situation                                  | Use                                 |
+| ------------------------------------------ | ----------------------------------- |
+| Quick one-liner or experiment              | `--fields`                          |
+| All fields are flat, all required          | `--fields`                          |
+| Need optional properties or nested objects | `--schema`                          |
+| Schema is reused across many runs          | `--schema`                          |
+| Need `$ref`, `allOf`, custom formats       | `--schema`                          |
+| Need TypeScript inference on `result.data` | `--schema` with `JSONSchemaType<T>` |
 
 ***
 
 See also [#see-also]
 
 * [extract](/docs/cli/extract) — full CLI flag reference
-* [SDK Fields Shorthand](/docs/sdk/fields) — using fields from TypeScript

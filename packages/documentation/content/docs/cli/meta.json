@@ -4,10 +4,9 @@
     "installation",
     "extract",
     "parse",
-    "config",
-    "utils",
+    "verify",
     "fields",
-    "environment",
-    "verify"
+    "config",
+    "utils"
   ]
 }

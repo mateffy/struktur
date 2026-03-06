@@ -1,0 +1,374 @@
+
+
+Struktur's parser system converts files into [Artifact format](/docs/explanation/artifact-format) before any LLM work happens. Parsers are resolved by MIME type and are fully configurable.
+
+MIME Detection [#mime-detection]
+
+MIME type is detected in three layers (tried in order):
+
+1. **Magic bytes** (authoritative): PDF (`%PDF-`), PNG, JPEG, GIF, WebP, and ZIP-based Office formats are identified from the first bytes of the file.
+2. **npm `detectFileType` callback**: A custom npm parser may export a `detectFileType(header: Uint8Array): boolean` function to claim MIME types beyond what magic bytes cover.
+3. **File extension database**: Fallback for inputs where magic bytes don't match a known signature.
+
+Override MIME detection with `--mime <type>` on any command that accepts input.
+
+Built-in Parsers [#built-in-parsers]
+
+| MIME type          | Behavior                                                                                                                                                                                                     |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `application/pdf`  | Per-page text via `pdf-parse`. Embedded images require `--images`. Page screenshots require `--screenshots`. Image deduplication filters images smaller than \~80px. Non-fatal on image/screenshot failures. |
+| `text/*`           | Split on double newlines into content slices.                                                                                                                                                                |
+| `image/*`          | Single-content artifact with one media item.                                                                                                                                                                 |
+| `application/json` | If it validates as `SerializedArtifact[]`, passed through unchanged without invoking any parser.                                                                                                             |
+
+Built-in Input Types [#built-in-input-types]
+
+Plain text / markdown (CLI) [#plain-text--markdown-cli]
+
+| Flag              | Description                                                                                               |
+| ----------------- | --------------------------------------------------------------------------------------------------------- |
+| `--stdin`         | Reads stdin as UTF-8 text. Auto-detected when piped with no other input flag.                             |
+| `--text <string>` | Inline text as a CLI argument.                                                                            |
+| `--input <path>`  | Reads a file. MIME type auto-detected; text files become text artifacts, PDFs invoke the PDF parser, etc. |
+
+Text is split on double newlines into content slices automatically.
+
+Artifact JSON (CLI) [#artifact-json-cli]
+
+| Flag                          | Description                                                  |
+| ----------------------------- | ------------------------------------------------------------ |
+| `--stdin`                     | Reads stdin. Auto-detects artifact JSON or raw text.         |
+| `--artifact-file <path\|url>` | Reads pre-built artifact JSON from file path or HTTP(S) URL. |
+| `--artifact-json <json>`      | Inline artifact JSON string.                                 |
+
+Both accept a single artifact object or an array.
+
+Schema loading [#schema-loading]
+
+| Flag                   | Description                                      |
+| ---------------------- | ------------------------------------------------ |
+| `--schema <path\|url>` | JSON Schema file (local path or HTTP/HTTPS URL). |
+| `--schema-json <json>` | Inline JSON Schema string.                       |
+
+Schema loading from URLs sends `Accept: application/schema+json, application/json` headers.
+
+Custom Parsers [#custom-parsers]
+
+There are three ways to extend Struktur with support for new file formats:
+
+1. **Configuration-level (recommended):** `struktur config parsers add` — zero code, works in CLI and SDK via `parserConfig`
+2. **SDK-level inline parser:** Add an `InlineParserDef` to `parserConfig` — code-only, works with `parse()`
+3. **Legacy providers:** Use the deprecated `providers` registry with `fileToArtifact()`
+
+Option 1: Configuration-level (recommended) [#option-1-configuration-level-recommended]
+
+Register a parser by MIME type using the CLI. This works transparently for all `--input` and `parse` calls.
+
+```bash
+# npm package parser
+struktur config parsers add \
+  --mime application/vnd.ms-excel \
+  --npm @myorg/xlsx-parser
+
+# Shell command with file path
+struktur config parsers add \
+  --mime application/vnd.openxmlformats-officedocument.wordprocessingml.document \
+  --file-command "markitdown FILE_PATH"
+```
+
+See [config parsers](/docs/cli/config#config-parsers) for the full reference.
+
+For the SDK, pass a `parserConfig` to `parse`:
+
+```typescript
+import { parse } from "@mateffy/struktur";
+
+const artifacts = await parse(
+  { kind: "file", path: "report.xlsx" },
+  {
+    parserConfig: {
+      "application/vnd.ms-excel": { type: "npm", package: "@myorg/xlsx-parser" },
+    },
+  }
+);
+```
+
+Option 2: SDK-level inline parser [#option-2-sdk-level-inline-parser]
+
+Add an `InlineParserDef` to your `parserConfig`. This is the modern way to register code-only parsers that work with `parse()`.
+
+```typescript
+import { parse } from "@mateffy/struktur";
+import * as XLSX from "xlsx";
+
+const artifacts = await parse(
+  { kind: "file", path: "report.xlsx" },
+  {
+    parserConfig: {
+      "application/vnd.ms-excel": {
+        type: "inline",
+        handler: async (buffer) => {
+          const workbook = XLSX.read(buffer);
+          const contents = workbook.SheetNames.map((name, i) => ({
+            page: i + 1,
+            text: XLSX.utils.sheet_to_csv(workbook.Sheets[name]),
+          }));
+
+          return {
+            id: `excel-${crypto.randomUUID()}`,
+            type: "file",
+            raw: async () => buffer,
+            contents,
+          };
+        },
+      },
+    },
+  }
+);
+```
+
+The inline parser signature [#the-inline-parser-signature]
+
+An inline parser is an async function that takes a Buffer and returns an Artifact:
+
+```typescript
+type InlineParserHandler = (buffer: Buffer) => Promise<Artifact>;
+
+const myParser: InlineParserHandler = async (buffer) => {
+  const pages = await parseMyFormat(buffer);
+
+  return {
+    id: `doc-${crypto.randomUUID()}`,
+    type: "file",
+    raw: async () => buffer,
+    contents: pages.map((page, i) => ({
+      page: i + 1,
+      text: page.text,
+      media: page.images.map((img) => ({
+        type: "image",
+        base64: img.base64,
+      })),
+    })),
+  };
+};
+```
+
+Common patterns [#common-patterns]
+
+Excel with xlsx package [#excel-with-xlsx-package]
+
+```typescript
+import * as XLSX from "xlsx";
+import type { InlineParserDef } from "@mateffy/struktur";
+
+const excelParser: InlineParserDef = {
+  type: "inline",
+  handler: async (buffer) => {
+    const workbook = XLSX.read(buffer);
+    const contents = workbook.SheetNames.map((name, i) => ({
+      page: i + 1,
+      text: XLSX.utils.sheet_to_csv(workbook.Sheets[name]),
+    }));
+
+    return {
+      id: `excel-${crypto.randomUUID()}`,
+      type: "file",
+      raw: async () => buffer,
+      contents,
+    };
+  },
+};
+```
+
+Email with mailparser [#email-with-mailparser]
+
+```typescript
+import { simpleParser } from "mailparser";
+import type { InlineParserDef } from "@mateffy/struktur";
+
+const emailParser: InlineParserDef = {
+  type: "inline",
+  handler: async (buffer) => {
+    const parsed = await simpleParser(buffer);
+    
+    return {
+      id: `email-${crypto.randomUUID()}`,
+      type: "text",
+      raw: async () => buffer,
+      contents: [{
+        text: `Subject: ${parsed.subject}\n\n${parsed.text}`,
+      }],
+      metadata: {
+        from: parsed.from?.text,
+        date: parsed.date,
+      },
+    };
+  },
+};
+```
+
+Option 3: Legacy providers (deprecated) [#option-3-legacy-providers-deprecated]
+
+The old `providers` registry is deprecated. Use `InlineParserDef` in `parserConfig` instead.
+
+If you need backward compatibility, you can still use `fileToArtifact` with the providers registry:
+
+```js
+import { fileToArtifact } from "@mateffy/struktur";
+import { readFile } from "node:fs/promises";
+
+const buffer = Buffer.from(await readFile("document.xlsx"));
+
+const artifact = await fileToArtifact(buffer, {
+  mimeType: "application/vnd.ms-excel",
+  providers: {
+    "application/vnd.ms-excel": myProvider,
+  },
+});
+```
+
+**Note:** This approach does not support MIME detection or the parser system — it only applies when you call `fileToArtifact` directly with an explicit `mimeType`.
+
+npm Package Parser [#npm-package-parser]
+
+Install a package that implements the `NpmParserModule` interface:
+
+```typescript
+import type { Artifact } from "@mateffy/struktur";
+
+// At least one of these is required:
+export async function parseStream(
+  stream: ReadableStream<Uint8Array>,
+  mimeType: string
+): Promise<Artifact[]>;
+
+export async function parseFile(
+  filePath: string,
+  mimeType: string
+): Promise<Artifact[]>;
+
+// Optional: return true if your parser handles these bytes
+export function detectFileType(header: Uint8Array): boolean;
+```
+
+When both `parseFile` and `parseStream` are exported, Struktur prefers `parseFile` for file inputs (zero-copy) and `parseStream` for buffer or stdin inputs. A temp file is created as a fallback if needed.
+
+Register it:
+
+```bash
+struktur config parsers add \
+  --mime application/vnd.openxmlformats-officedocument.wordprocessingml.document \
+  --npm @myorg/docx-parser
+```
+
+Shell Command Parsers [#shell-command-parsers]
+
+File-based [#file-based]
+
+The `FILE_PATH` placeholder is replaced with the actual file path at runtime. For buffer inputs, a temp file is created automatically.
+
+```bash
+struktur config parsers add \
+  --mime application/vnd.ms-excel \
+  --file-command "python3 /path/to/excel2artifact.py FILE_PATH"
+```
+
+`FILE_PATH` must appear in the command string — an error is thrown if it is missing.
+
+The command must write `SerializedArtifact[]` JSON to stdout.
+
+Stdin-based [#stdin-based]
+
+File contents are piped to the command's stdin.
+
+```bash
+struktur config parsers add \
+  --mime text/html \
+  --stdin-command "my-html-to-artifact-tool"
+```
+
+The command must write `SerializedArtifact[]` JSON to stdout. Plain text output will fail validation.
+
+Parser Resolution Order [#parser-resolution-order]
+
+For any input, parsers are resolved in this order:
+
+1. `--parser <pkg>` flag on the CLI — always wins, bypasses all config
+2. Parser configured for the detected MIME type (`config parsers add`)
+3. Built-in parser (PDF, text/\*, image/\*, JSON)
+4. Error with a suggestion to use `config parsers add`
+
+Ad-hoc Parser Override [#ad-hoc-parser-override]
+
+Use `--parser` to override the configured parser for a single run without changing config:
+
+```bash
+struktur parse --input report.docx --parser @myorg/experimental-docx-parser
+struktur --input data.xlsx --parser @myorg/xlsx-parser --fields "..." --model openai/gpt-4o-mini
+```
+
+SDK Usage [#sdk-usage]
+
+parse(input, options?) [#parseinput-options]
+
+The primary SDK function for loading input into artifacts. Handles MIME detection and parser resolution automatically.
+
+```typescript
+import { parse } from "@mateffy/struktur";
+
+const artifacts = await parse(
+  { kind: "file", path: "document.pdf" },
+  {
+    parserConfig: parsersConfig,   // ParsersConfig — keyed by MIME type (optional)
+    includeImages: true,           // extract embedded PDF images
+    screenshots: false,            // render PDF page screenshots
+    screenshotScale: 1.5,          // scale factor for screenshots
+    screenshotWidth: undefined,    // target width in pixels (overrides screenshotScale)
+  }
+);
+```
+
+Supported input kinds:
+
+| Input kind                             | Description                                             |
+| -------------------------------------- | ------------------------------------------------------- |
+| `{ kind: "text", text }`               | Text artifact (split on double newlines)                |
+| `{ kind: "file", path, mimeType? }`    | File artifact with MIME detection and parser resolution |
+| `{ kind: "buffer", buffer, mimeType }` | Buffer artifact with parser resolution                  |
+| `{ kind: "artifact-json", data }`      | Validates and hydrates pre-built artifact JSON          |
+
+When `kind: "file"` is used, MIME detection and parser resolution happen automatically based on `parserConfig`.
+
+fileToArtifact(buffer, options) [#filetoartifactbuffer-options]
+
+Lower-level helper that creates an artifact from a Buffer. **Deprecated:** use `parse()` with `InlineParserDef` in `parserConfig` instead.
+
+**Important:** `fileToArtifact` uses the legacy `providers` registry, which does not include the built-in PDF parser or any parsers configured via `config parsers add`. For PDF and other format support, use `parse` instead.
+
+```js
+import { fileToArtifact } from "@mateffy/struktur";
+import fs from "node:fs/promises";
+
+const buffer = Buffer.from(await fs.readFile("document.txt"));
+const artifact = await fileToArtifact(buffer, {
+  mimeType: "text/plain",
+  providers: { /* deprecated — use parserConfig with InlineParserDef instead */ }
+});
+```
+
+urlToArtifact(url) [#urltoartifacturl]
+
+Fetches a URL and expects it to return pre-serialized artifact JSON. Validates and hydrates.
+
+```js
+import { urlToArtifact } from "@mateffy/struktur";
+
+const artifacts = await urlToArtifact("https://example.com/artifact.json");
+```
+
+See also [#see-also]
+
+* [config parsers](/docs/cli/config#config-parsers) — CLI commands for managing parsers
+* [parse](/docs/cli/parse) — Convert files to artifact JSON
+* [Artifact Format](/docs/explanation/artifact-format) — The output data structure
+* [parse()](/docs/sdk/parse) — SDK API

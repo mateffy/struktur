@@ -168,7 +168,7 @@ Exactly one of `--npm`, `--file-command`, or `--stdin-command` must be specified
 | `--file-command "<cmd>"`  | Shell command with `FILE_PATH` placeholder (replaced with the actual file path at runtime) |
 | `--stdin-command "<cmd>"` | Shell command that reads file from stdin and writes `SerializedArtifact[]` JSON to stdout  |
 
-**npm parser** — install a package that implements the [npm parser contract](/docs/explanation/parsers#npm-parser-contract):
+**npm parser** — install a package that implements the [npm parser contract](/docs/explanation/document-parsing#npm-package-parser):
 
 ```bash
 struktur config parsers add \
@@ -222,59 +222,8 @@ This is passed through to OpenRouter's provider routing feature.
 
 See also [#see-also]
 
-* [Installation & Setup](/docs/cli/installation) — initial setup
-* [Environment Variables](/docs/cli/environment) — env var alternatives to stored tokens
-* [Parsers](/docs/explanation/parsers) — how the parser system works
-
-
-# Environment Variables
-
-
-
-Struktur can be configured via environment variables as an alternative to CLI flags or the config file.
-
-Provider Tokens [#provider-tokens]
-
-Set provider API keys directly as environment variables. When both a stored token and an environment variable are present, the environment variable takes precedence.
-
-| Variable                       | Provider     | Description                    |
-| ------------------------------ | ------------ | ------------------------------ |
-| `OPENAI_API_KEY`               | `openai`     | OpenAI API token               |
-| `ANTHROPIC_API_KEY`            | `anthropic`  | Anthropic API token            |
-| `GOOGLE_GENERATIVE_AI_API_KEY` | `google`     | Google Generative AI API token |
-| `OPENCODE_API_KEY`             | `opencode`   | OpenCode Zen API token         |
-| `OPENROUTER_API_KEY`           | `openrouter` | OpenRouter API token           |
-
-Configuration [#configuration]
-
-| Variable                    | Default              | Description                                                        |
-| --------------------------- | -------------------- | ------------------------------------------------------------------ |
-| `STRUKTUR_CONFIG_DIR`       | `~/.config/struktur` | Override config directory for both `config.json` and `tokens.json` |
-| `STRUKTUR_DISABLE_KEYCHAIN` | —                    | Set to any value to force file-based token storage on macOS        |
-| `STRUKTUR_KEYCHAIN_SERVICE` | `struktur`           | Override the macOS Keychain service name                           |
-
-SDK / AI SDK [#sdk--ai-sdk]
-
-| Variable              | Default | Description                                     |
-| --------------------- | ------- | ----------------------------------------------- |
-| `AI_SDK_LOG_WARNINGS` | `false` | Set to `true` to enable AI SDK warning messages |
-
-Precedence [#precedence]
-
-Configuration is resolved in this order (later overrides earlier):
-
-1. Built-in defaults
-2. Config file (`~/.config/struktur/config.json`)
-3. Stored tokens (`~/.config/struktur/tokens.json` or macOS Keychain)
-4. Environment variables
-5. CLI flags
-
-There is no `STRUKTUR_DEFAULT_MODEL` environment variable — the default model is set with `struktur config models use`, not an env var.
-
-See also [#see-also]
-
-* [config](/docs/cli/config) — provider and model management commands
-* [Installation & Setup](/docs/cli/installation) — initial setup
+* [Installation & Setup](/docs/cli/installation) — initial setup and environment variables
+* [Document Parsing](/docs/explanation/document-parsing) — how the parser system works
 
 
 # extract
@@ -463,11 +412,11 @@ See also [#see-also]
 * [--fields reference](/docs/cli/fields) — fields shorthand syntax and examples
 * [parse](/docs/cli/parse) — convert files to artifact JSON for inspection
 * [config](/docs/cli/config) — provider and model management
-* [Parsers](/docs/explanation/parsers) — how file parsing works
+* [Document Parsing](/docs/explanation/document-parsing) — how file parsing works
 * [Strategies](/docs/explanation/strategies) — strategy reference
 
 
-# --fields
+# Fields Shorthand
 
 
 
@@ -518,18 +467,47 @@ field  = name
 
 Whitespace around commas and colons is ignored.
 
+***
+
 Scalar types [#scalar-types]
 
-| Type        | JSON Schema                 | Notes                            |
-| ----------- | --------------------------- | -------------------------------- |
-| *(omitted)* | `string`                    | Default when no type given       |
-| `string`    | `string`                    |                                  |
-| `number`    | `number`                    |                                  |
-| `float`     | `number`                    | Alias for `number`               |
-| `boolean`   | `boolean`                   |                                  |
-| `bool`      | `boolean`                   | Alias for `boolean`              |
-| `integer`   | `integer`                   | Whole numbers (JSON Schema spec) |
-| `int`       | `integer` + `multipleOf: 1` | Explicitly disallows fractions   |
+string [#string]
+
+```bash
+--fields "title"
+--fields "title:string"
+```
+
+Default when no type is specified. Produces `{ "type": "string" }`.
+
+number / float [#number--float]
+
+```bash
+--fields "price:number"
+--fields "price:float"
+```
+
+Any numeric value. Both produce `{ "type": "number" }`. `float` is an alias for `number`.
+
+integer / int [#integer--int]
+
+```bash
+--fields "count:integer"
+--fields "count:int"
+```
+
+Whole numbers only. `integer` produces `{ "type": "integer" }`. `int` produces `{ "type": "integer", "multipleOf": 1 }` — explicitly disallows fractions.
+
+boolean / bool [#boolean--bool]
+
+```bash
+--fields "active:boolean"
+--fields "active:bool"
+```
+
+Both produce `{ "type": "boolean" }`. `bool` is an alias for `boolean`.
+
+***
 
 Enums [#enums]
 
@@ -538,6 +516,8 @@ Enums [#enums]
 ```
 
 Values are separated by `|`. At least two values are required.
+
+***
 
 Arrays [#arrays]
 
@@ -623,6 +603,72 @@ All fields are required. For optional fields, nested objects, or `$ref`, use `--
 
 ***
 
+SDK Usage [#sdk-usage]
+
+The `fields` parameter is also available in the SDK:
+
+```ts
+import { extract, simple } from "@mateffy/struktur";
+import { openai } from "@ai-sdk/openai";
+
+const result = await extract({
+  artifacts,
+  fields: "title, author, year:integer, genre:enum{fiction|nonfiction|reference}",
+  strategy: simple({ model: openai("gpt-4o-mini") }),
+});
+
+// result.data is typed as Record<string, unknown> when using fields
+console.log(result.data.title);
+```
+
+For full TypeScript inference on `result.data`, use `schema` with `JSONSchemaType<T>` instead.
+
+Utility exports [#utility-exports]
+
+The parser and schema builder are exported for use outside of `extract()`:
+
+```ts
+import {
+  parseFieldsString,
+  buildSchemaFromParsedFields,
+  buildSchemaFromFields,
+} from "@mateffy/struktur";
+
+// Parse to an intermediate representation
+const parsed = parseFieldsString("title, price:number, status:enum{draft|live}");
+// [
+//   { name: "title",  kind: "scalar", type: "string" },
+//   { name: "price",  kind: "scalar", type: "number" },
+//   { name: "status", kind: "enum",   values: ["draft", "live"] }
+// ]
+
+// Build a schema directly
+const schema = buildSchemaFromFields("title, price:number");
+```
+
+parseFieldsString(fields: string): ParsedField[] [#parsefieldsstringfields-string-parsedfield]
+
+Parses the fields string into an array of `ParsedField` discriminated union entries:
+
+```ts
+type ParsedField =
+  | { name: string; kind: "scalar"; type: ScalarFieldType }
+  | { name: string; kind: "enum";   values: string[] }
+  | { name: string; kind: "array";  items: ScalarFieldType };
+
+type ScalarFieldType = "string" | "number" | "boolean" | "integer" | "int";
+```
+
+buildSchemaFromParsedFields(fields: ParsedField[]): AnyJSONSchema [#buildschemafromparsedfieldsfields-parsedfield-anyjsonschema]
+
+Builds the JSON Schema object from a pre-parsed array. Useful if you want to inspect or modify the parsed fields before building.
+
+buildSchemaFromFields(fields: string): AnyJSONSchema [#buildschemafromfieldsfields-string-anyjsonschema]
+
+Convenience one-liner: parses and builds in a single call.
+
+***
+
 Error messages [#error-messages]
 
 Bad field definitions fail immediately with a helpful message:
@@ -647,20 +693,20 @@ Bad field definitions fail immediately with a helpful message:
 
 When to use --fields vs --schema [#when-to-use---fields-vs---schema]
 
-| Situation                                  | Use        |
-| ------------------------------------------ | ---------- |
-| Quick one-liner or experiment              | `--fields` |
-| All fields are flat, all required          | `--fields` |
-| Need optional properties or nested objects | `--schema` |
-| Schema is reused across many runs          | `--schema` |
-| Need `$ref`, `allOf`, custom formats       | `--schema` |
+| Situation                                  | Use                                 |
+| ------------------------------------------ | ----------------------------------- |
+| Quick one-liner or experiment              | `--fields`                          |
+| All fields are flat, all required          | `--fields`                          |
+| Need optional properties or nested objects | `--schema`                          |
+| Schema is reused across many runs          | `--schema`                          |
+| Need `$ref`, `allOf`, custom formats       | `--schema`                          |
+| Need TypeScript inference on `result.data` | `--schema` with `JSONSchemaType<T>` |
 
 ***
 
 See also [#see-also]
 
 * [extract](/docs/cli/extract) — full CLI flag reference
-* [SDK Fields Shorthand](/docs/sdk/fields) — using fields from TypeScript
 
 
 # CLI
@@ -702,23 +748,21 @@ struktur --help
 
 Configure a provider (required) [#configure-a-provider-required]
 
-Option A: Environment variable (not persisted) [#option-a-environment-variable-not-persisted]
-
-```bash
-export OPENAI_API_KEY=sk-...
-export ANTHROPIC_API_KEY=sk-ant-...
-export GOOGLE_GENERATIVE_AI_API_KEY=AI...
-export OPENCODE_API_KEY=...
-export OPENROUTER_API_KEY=...
-```
-
-Option B: Stored token (persisted) [#option-b-stored-token-persisted]
+Store your API key securely with the CLI:
 
 ```bash
 echo "$OPENAI_API_KEY" | struktur config providers add openai --token-stdin
 ```
 
 On macOS, tokens are stored in Keychain. On other platforms, `~/.config/struktur/tokens.json` (chmod 600).
+
+Quick setup with --default [#quick-setup-with---default]
+
+```bash
+echo "$OPENAI_API_KEY" | struktur config providers add openai --token-stdin --default
+```
+
+The `--default` flag automatically queries the provider API and sets the cheapest available model as default. One command, fully ready.
 
 Set a default model [#set-a-default-model]
 
@@ -733,15 +777,9 @@ struktur config models use fast
 
 Once set, `--model` is optional in `extract` commands.
 
-Quick setup with --default [#quick-setup-with---default]
-
-```bash
-echo "$OPENAI_API_KEY" | struktur config providers add openai --token-stdin --default
-```
-
-The `--default` flag automatically queries the provider API and sets the cheapest available model as default. One command, fully ready.
-
 Environment variables [#environment-variables]
+
+Provider API keys can also be set via environment variables. This is useful for CI/CD or temporary sessions, but stored tokens are recommended for regular use.
 
 Provider API keys [#provider-api-keys]
 
@@ -869,8 +907,8 @@ open viewer.html
 See also [#see-also]
 
 * [config parsers](/docs/cli/config#config-parsers) — Configure custom parsers
-* [Parsers](/docs/explanation/parsers) — Parser system overview
-* [Artifact Format](/docs/explanation/preprocessing/artifact-format) — Output format
+* [Document Parsing](/docs/explanation/document-parsing) — Parser system overview
+* [Artifact Format](/docs/explanation/artifact-format) — Output format
 * [utils artifact-viewer](/docs/cli/utils) — Visualize parsed artifacts
 
 
@@ -932,7 +970,7 @@ struktur extract --input contract.pdf --images --schema schema.json \
 See also [#see-also]
 
 * [parse](/docs/cli/parse) — Generate artifact JSON from files
-* [Artifact Format](/docs/explanation/preprocessing/artifact-format) — Understanding artifacts
+* [Artifact Format](/docs/explanation/artifact-format) — Understanding artifacts
 * [Chunking & Token Budgets](/docs/explanation/chunking) — How chunking works
 
 
@@ -977,7 +1015,7 @@ struktur parse --input document.pdf | struktur verify --stdin
 
 See also [#see-also]
 
-* [Artifact Format](/docs/explanation/preprocessing/artifact-format) — the JSON spec
+* [Artifact Format](/docs/explanation/artifact-format) — the JSON spec
 * [parse](/docs/cli/parse) — convert files to artifact JSON
 
 
@@ -1088,8 +1126,8 @@ async function enrichRecordsParallel(records, concurrency = 5) {
 
 See also [#see-also]
 
-* [urlToArtifact](/docs/sdk/artifact-helpers) — fetching pre-built artifacts
-* [simple](/docs/explanation/strategies/simple) — single-shot extraction
+* [parse()](/docs/sdk/parse) — fetching pre-built artifacts
+* [Extraction Strategies](/docs/explanation/strategies) — strategy reference
 * [Shell Pipelines & Patterns](/docs/examples/pipelines) — more shell patterns
 
 
@@ -1228,8 +1266,7 @@ Expected output [#expected-output]
 
 See also [#see-also]
 
-* [parallelAutoMerge](/docs/explanation/strategies/parallel-auto-merge) — for batch processing
-* [sequentialAutoMerge](/docs/explanation/strategies/sequential-auto-merge) — for multi-page invoices
+* [Extraction Strategies](/docs/explanation/strategies) — strategy reference
 * [Process a Directory of Files](/docs/examples/process-directory) — batch processing
 
 
@@ -1351,9 +1388,8 @@ Expected output [#expected-output]
 
 See also [#see-also]
 
-* [sequentialAutoMerge](/docs/explanation/strategies/sequential-auto-merge) — strategy reference
-* [Choosing a Strategy](/docs/explanation/strategies/choosing) — decision guide
-* [The Artifact Format](/docs/explanation/preprocessing/artifact-format) — handling images
+* [Extraction Strategies](/docs/explanation/strategies) — strategy reference and decision guide
+* [The Artifact Format](/docs/explanation/artifact-format) — handling images
 
 
 # Examples
@@ -1587,7 +1623,7 @@ done | jq -s '.'
 See also [#see-also]
 
 * [Watch a Folder for New Files](/docs/examples/watch-folder) — continuous processing
-* [parallelAutoMerge](/docs/explanation/strategies/parallel-auto-merge) — parallel strategy
+* [Extraction Strategies](/docs/explanation/strategies) — strategy reference
 * [Shell Pipelines & Patterns](/docs/examples/pipelines) — more shell patterns
 
 
@@ -1757,351 +1793,7 @@ See also [#see-also]
 
 * [Process a Directory of Files](/docs/examples/process-directory) — batch processing
 * [Shell Pipelines & Patterns](/docs/examples/pipelines) — more shell patterns
-* [simple](/docs/explanation/strategies/simple) — single-shot extraction
-
-
-# Chunking & Token Budgets
-
-
-
-The context window problem [#the-context-window-problem]
-
-LLMs have finite context windows. Documents — especially multi-page PDFs, large datasets, or many files at once — often exceed them. Struktur's chunker splits artifact contents into batches that fit within a configurable token budget (`chunkSize`).
-
-How splitting works [#how-splitting-works]
-
-Splitting happens at two levels:
-
-1. **ArtifactSplitter:** splits a single large artifact's contents into smaller parts, respecting content slice boundaries (e.g., page boundaries).
-2. **ArtifactBatcher:** groups artifacts or artifact parts into batches that stay within the token budget and optional image count limit.
-
-The tokenizer uses a character-approximation (not exact token counting). `chunkSize` defaults to 10,000 tokens.
-
-Images and maxImages [#images-and-maximages]
-
-Some strategies accept `maxImages` to cap how many images appear per chunk. This matters when images consume disproportionate context. If a batch would exceed `maxImages`, extra images are moved to the next batch.
-
-Why simple does not chunk [#why-simple-does-not-chunk]
-
-The `simple` strategy loads all artifacts as-is. If the input exceeds the context window, the LLM call may fail or produce degraded results. For large inputs, use a chunked strategy.
-
-This is a deliberate trade-off: `simple` is fast and cheap for small inputs, not suitable for large ones.
-
-Merging partial results [#merging-partial-results]
-
-When a document is split into N chunks and each chunk is extracted independently, you get N partial objects.
-
-For a scalar-heavy schema (title, author, date), you want the best answer from all chunks.
-
-For an array-heavy schema (line items, product listings), you want to concatenate all arrays and remove duplicates.
-
-LLM merge (parallel, doublePass) [#llm-merge-parallel-doublepass]
-
-These strategies send all partial results to a **merge model** in a single call, with a prompt asking it to produce a single coherent output. The merge model sees the full schema and all partial outputs.
-
-This is powerful but costs extra tokens.
-
-Schema-aware auto-merge [#schema-aware-auto-merge]
-
-`parallelAutoMerge`, `sequentialAutoMerge`, and `doublePassAutoMerge` use `SmartDataMerger`:
-
-* **Arrays:** concatenated. `items` from chunk 1 + `items` from chunk 2 = `items` in merged.
-* **Objects:** shallow-merged. Keys from later chunks overwrite keys from earlier ones.
-* **Scalars:** prefer newer non-empty values.
-
-This approach avoids an extra LLM call and works well for list-extraction schemas. It does not handle complex cross-chunk synthesis — for that, use LLM merge.
-
-Deduplication [#deduplication]
-
-After auto-merging concatenated arrays, there may be duplicates. Dedup runs in two stages:
-
-**Stage 1: CRC32 hash-based.** Exact duplicates (byte-for-byte identical after stable JSON stringification) are removed without any LLM call. Fast and cheap.
-
-**Stage 2: LLM-based semantic dedup.** A dedupe model is given the merged array and asked to identify semantically equivalent entries (e.g., "iPhone 15" vs "Apple iPhone 15 128GB"). It returns a list of dot-path keys to remove (e.g., `items.3`).
-
-Only the auto-merge variants include this step.
-
-When dedup matters [#when-dedup-matters]
-
-Dedup is valuable when:
-
-* The same item legitimately appears in multiple chunks.
-* The same document segment appears in multiple artifacts.
-
-Dedup adds token cost and latency. For schemas without arrays, or for inputs with no expected overlap, use strategies without auto-merge.
-
-See also [#see-also]
-
-* [The Extraction Pipeline](/docs/explanation/pipeline) — the full flow
-* [Strategies](/docs/explanation/strategies) — which strategies use chunking
-* [parallel](/docs/explanation/strategies/parallel) — chunked parallel extraction
-* [sequential](/docs/explanation/strategies/sequential) — chunked sequential extraction
-
-
-# Explanation
-
-
-
-Deep dives into Struktur's architecture, strategies, and design decisions.
-
-Topics [#topics]
-
-* [pipeline](/docs/explanation/pipeline) — How data flows through Struktur
-* [chunking](/docs/explanation/chunking) — Token-aware document splitting
-* [validation](/docs/explanation/validation) — Schema validation and retry logic
-* [strategies](/docs/explanation/strategies) — Extraction strategies overview
-* [preprocessing](/docs/explanation/preprocessing) — Input handling and artifact format
-
-
-# Parsers
-
-
-
-Struktur's parser system converts files into [Artifact format](/docs/explanation/preprocessing/artifact-format) before any LLM work happens. Parsers are resolved by MIME type and are fully configurable.
-
-MIME Detection [#mime-detection]
-
-MIME type is detected in three layers (tried in order):
-
-1. **Magic bytes** (authoritative): PDF (`%PDF-`), PNG, JPEG, GIF, WebP, and ZIP-based Office formats are identified from the first bytes of the file.
-2. **npm `detectFileType` callback**: A custom npm parser may export a `detectFileType(header: Uint8Array): boolean` function to claim MIME types beyond what magic bytes cover.
-3. **File extension database**: Fallback for inputs where magic bytes don't match a known signature.
-
-Override MIME detection with `--mime <type>` on any command that accepts input.
-
-Built-in Parsers [#built-in-parsers]
-
-| MIME type          | Behavior                                                                                                                                                                                                     |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `application/pdf`  | Per-page text via `pdf-parse`. Embedded images require `--images`. Page screenshots require `--screenshots`. Image deduplication filters images smaller than \~80px. Non-fatal on image/screenshot failures. |
-| `text/*`           | Split on double newlines into content slices.                                                                                                                                                                |
-| `image/*`          | Single-content artifact with one media item.                                                                                                                                                                 |
-| `application/json` | If it validates as `SerializedArtifact[]`, passed through unchanged without invoking any parser.                                                                                                             |
-
-Custom Parsers [#custom-parsers]
-
-Four types are supported. Three are registered with `struktur config parsers add`, and one is for SDK-only use.
-
-npm package parser [#npm-package-parser]
-
-Install a package that implements the `NpmParserModule` interface:
-
-```typescript
-import type { Artifact } from "@mateffy/struktur";
-
-// At least one of these is required:
-export async function parseStream(
-  stream: ReadableStream<Uint8Array>,
-  mimeType: string
-): Promise<Artifact[]>;
-
-export async function parseFile(
-  filePath: string,
-  mimeType: string
-): Promise<Artifact[]>;
-
-// Optional: return true if your parser handles these bytes
-export function detectFileType(header: Uint8Array): boolean;
-```
-
-When both `parseFile` and `parseStream` are exported, Struktur prefers `parseFile` for file inputs (zero-copy) and `parseStream` for buffer or stdin inputs. A temp file is created as a fallback if needed.
-
-Register it:
-
-```bash
-struktur config parsers add \
-  --mime application/vnd.openxmlformats-officedocument.wordprocessingml.document \
-  --npm @myorg/docx-parser
-```
-
-Shell command (file-based) [#shell-command-file-based]
-
-The `FILE_PATH` placeholder is replaced with the actual file path at runtime. For buffer inputs, a temp file is created automatically.
-
-```bash
-struktur config parsers add \
-  --mime application/vnd.ms-excel \
-  --file-command "python3 /path/to/excel2artifact.py FILE_PATH"
-```
-
-`FILE_PATH` must appear in the command string — an error is thrown if it is missing.
-
-The command must write `SerializedArtifact[]` JSON to stdout.
-
-Shell command (stdin-based) [#shell-command-stdin-based]
-
-File contents are piped to the command's stdin.
-
-```bash
-struktur config parsers add \
-  --mime text/html \
-  --stdin-command "my-html-to-artifact-tool"
-```
-
-The command must write `SerializedArtifact[]` JSON to stdout. Plain text output will fail validation.
-
-Inline parser (SDK only) [#inline-parser-sdk-only]
-
-For code-only parsers in the SDK, use `InlineParserDef`:
-
-```typescript
-import { parse } from "@mateffy/struktur";
-import type { InlineParserDef } from "@mateffy/struktur";
-import * as XLSX from "xlsx";
-
-const excelParser: InlineParserDef = {
-  type: "inline",
-  handler: async (buffer) => {
-    const workbook = XLSX.read(buffer);
-    const contents = workbook.SheetNames.map((name, i) => ({
-      page: i + 1,
-      text: XLSX.utils.sheet_to_csv(workbook.Sheets[name]),
-    }));
-
-    return {
-      id: `excel-${crypto.randomUUID()}`,
-      type: "file",
-      raw: async () => buffer,
-      contents,
-    };
-  },
-};
-
-const artifacts = await parse(
-  { kind: "file", path: "report.xlsx" },
-  {
-    parserConfig: {
-      "application/vnd.ms-excel": excelParser,
-    },
-  }
-);
-```
-
-Inline parsers are the modern replacement for the deprecated `providers` registry.
-
-Parser Resolution Order [#parser-resolution-order]
-
-For any input, parsers are resolved in this order:
-
-1. `--parser <pkg>` flag on the CLI — always wins, bypasses all config
-2. Parser configured for the detected MIME type (`config parsers add`)
-3. Built-in parser (PDF, text/\*, image/\*, JSON)
-4. Error with a suggestion to use `config parsers add`
-
-Ad-hoc Parser Override [#ad-hoc-parser-override]
-
-Use `--parser` to override the configured parser for a single run without changing config:
-
-```bash
-struktur parse --input report.docx --parser @myorg/experimental-docx-parser
-struktur --input data.xlsx --parser @myorg/xlsx-parser --fields "..." --model openai/gpt-4o-mini
-```
-
-SDK Usage [#sdk-usage]
-
-Pass a `parserConfig` to `parse` to use custom parsers without CLI config:
-
-```typescript
-import { parse } from "@mateffy/struktur";
-import type { ParsersConfig, InlineParserDef } from "@mateffy/struktur";
-
-// npm package parser
-const parserConfig: ParsersConfig = {
-  "application/vnd.ms-excel": {
-    type: "npm",
-    package: "@myorg/xlsx-parser",
-  },
-};
-
-// or inline parser
-const inlineParserConfig: ParsersConfig = {
-  "application/vnd.ms-excel": {
-    type: "inline",
-    handler: async (buffer) => {
-      // parse and return Artifact
-    },
-  },
-};
-
-const artifacts = await parse(
-  { kind: "file", path: "report.xlsx" },
-  { parserConfig }
-);
-```
-
-See also [#see-also]
-
-* [config parsers](/docs/cli/config#config-parsers) — CLI commands for managing parsers
-* [parse](/docs/cli/parse) — Convert files to artifact JSON
-* [Artifact Format](/docs/explanation/preprocessing/artifact-format) — The output data structure
-* [Built-in Input Types](/docs/explanation/preprocessing/built-in-inputs) — SDK input helpers
-
-
-# Extraction Lifecycle
-
-
-
-```mermaid
-flowchart LR
-    A[Input] --> B[Parse]
-    B --> C[Artifacts]
-    C --> D[Strategy]
-    D --> E[Output]
-    
-    subgraph StrategyInternals [Strategy]
-        direction TB
-        D1[Chunking] --> D2[LLM Calls]
-        D2 --> D3[Validation + Retry]
-        D3 --> D4[Merge/Dedupe]
-    end
-    
-    D --> StrategyInternals --> E
-```
-
-Inputs and Artifacts [#inputs-and-artifacts]
-
-Struktur converts input files into **Artifacts** before extraction. For plain text or stdin, this is trivial. For structured files (PDFs, Office documents), Struktur runs a parser — built-in or custom — that extracts text and images per-page.
-
-See [Parsers](/docs/explanation/parsers) for how files are converted to artifacts.
-See [Artifact Format](/docs/explanation/preprocessing/artifact-format) for the data structure.
-
-The Strategy layer [#the-strategy-layer]
-
-A strategy is the orchestration engine. It decides how to split the input, how many LLM calls to make, whether to run them concurrently or sequentially, and how to combine results.
-
-Built-in strategies cover the common patterns. You can also write your own.
-
-See [Strategies](/docs/explanation/strategies) for the strategy concept.
-
-Validation inside the loop [#validation-inside-the-loop]
-
-The validation loop is a key differentiator. Every LLM response is validated against the schema using Ajv **before** the strategy considers it done. If validation fails, the errors are serialized and sent back to the model as a follow-up message.
-
-**Smart validation**: For multi-step strategies (parallel, sequential, double-pass), Struktur uses lenient validation during intermediate steps—required field violations are allowed until the final step. This prevents false failures when data is split across chunks. Use the `strict` option to disable this behavior.
-
-Most extractions converge within two attempts. This happens **inside** the strategy, not as a post-processing step.
-
-Default: `maxAttempts` = 3.
-
-See [Validation & Retries](/docs/explanation/validation) for the validation concept.
-
-The result [#the-result]
-
-The extraction result has three fields:
-
-| Field   | Description                                                                       |
-| ------- | --------------------------------------------------------------------------------- |
-| `data`  | Validated output matching your schema. If `error` is set, may not be trustworthy. |
-| `usage` | Aggregated token counts across all LLM calls.                                     |
-| `error` | Set if extraction encountered a non-fatal error.                                  |
-
-See also [#see-also]
-
-* [Parsers](/docs/explanation/parsers) — how files are converted to artifacts
-* [Artifacts](/docs/explanation/preprocessing/artifact-format) — the input format
-* [Strategies](/docs/explanation/strategies) — orchestration patterns
-* [Chunking & Token Budgets](/docs/explanation/chunking) — how large documents are split
-* [Validation & Retries](/docs/explanation/validation) — the retry loop
+* [Extraction Strategies](/docs/explanation/strategies) — strategy reference
 
 
 # Artifact Format
@@ -2241,14 +1933,112 @@ Built-in artifact creation [#built-in-artifact-creation]
 
 See also [#see-also]
 
-* [Built-in Input Types](/docs/explanation/preprocessing/built-in-inputs) — how to get input into Struktur
-* [Artifact Helpers](/docs/sdk/artifact-helpers) — the SDK API
-* [Parsers](/docs/explanation/parsers) — how files are converted to artifacts
+* [Document Parsing](/docs/explanation/document-parsing) — how to get input into Struktur and how files are converted to artifacts
+* [parse()](/docs/sdk/parse) — the SDK API
 
 
-# Built-in Input Types
+# Chunking & Token Budgets
 
 
+
+The context window problem [#the-context-window-problem]
+
+LLMs have finite context windows. Documents — especially multi-page PDFs, large datasets, or many files at once — often exceed them. Struktur's chunker splits artifact contents into batches that fit within a configurable token budget (`chunkSize`).
+
+How splitting works [#how-splitting-works]
+
+Splitting happens at two levels:
+
+1. **ArtifactSplitter:** splits a single large artifact's contents into smaller parts, respecting content slice boundaries (e.g., page boundaries).
+2. **ArtifactBatcher:** groups artifacts or artifact parts into batches that stay within the token budget and optional image count limit.
+
+The tokenizer uses a character-approximation (not exact token counting). `chunkSize` defaults to 10,000 tokens.
+
+Images and maxImages [#images-and-maximages]
+
+Some strategies accept `maxImages` to cap how many images appear per chunk. This matters when images consume disproportionate context. If a batch would exceed `maxImages`, extra images are moved to the next batch.
+
+Why simple does not chunk [#why-simple-does-not-chunk]
+
+The `simple` strategy loads all artifacts as-is. If the input exceeds the context window, the LLM call may fail or produce degraded results. For large inputs, use a chunked strategy.
+
+This is a deliberate trade-off: `simple` is fast and cheap for small inputs, not suitable for large ones.
+
+Merging partial results [#merging-partial-results]
+
+When a document is split into N chunks and each chunk is extracted independently, you get N partial objects.
+
+For a scalar-heavy schema (title, author, date), you want the best answer from all chunks.
+
+For an array-heavy schema (line items, product listings), you want to concatenate all arrays and remove duplicates.
+
+LLM merge (parallel, doublePass) [#llm-merge-parallel-doublepass]
+
+These strategies send all partial results to a **merge model** in a single call, with a prompt asking it to produce a single coherent output. The merge model sees the full schema and all partial outputs.
+
+This is powerful but costs extra tokens.
+
+Schema-aware auto-merge [#schema-aware-auto-merge]
+
+`parallelAutoMerge`, `sequentialAutoMerge`, and `doublePassAutoMerge` use `SmartDataMerger`:
+
+* **Arrays:** concatenated. `items` from chunk 1 + `items` from chunk 2 = `items` in merged.
+* **Objects:** shallow-merged. Keys from later chunks overwrite keys from earlier ones.
+* **Scalars:** prefer newer non-empty values.
+
+This approach avoids an extra LLM call and works well for list-extraction schemas. It does not handle complex cross-chunk synthesis — for that, use LLM merge.
+
+Deduplication [#deduplication]
+
+After auto-merging concatenated arrays, there may be duplicates. Dedup runs in two stages:
+
+**Stage 1: CRC32 hash-based.** Exact duplicates (byte-for-byte identical after stable JSON stringification) are removed without any LLM call. Fast and cheap.
+
+**Stage 2: LLM-based semantic dedup.** A dedupe model is given the merged array and asked to identify semantically equivalent entries (e.g., "iPhone 15" vs "Apple iPhone 15 128GB"). It returns a list of dot-path keys to remove (e.g., `items.3`).
+
+Only the auto-merge variants include this step.
+
+When dedup matters [#when-dedup-matters]
+
+Dedup is valuable when:
+
+* The same item legitimately appears in multiple chunks.
+* The same document segment appears in multiple artifacts.
+
+Dedup adds token cost and latency. For schemas without arrays, or for inputs with no expected overlap, use strategies without auto-merge.
+
+See also [#see-also]
+
+* [The Extraction Pipeline](/docs/explanation/pipeline) — the full flow
+* [Extraction Strategies](/docs/explanation/strategies) — which strategies use chunking
+
+
+# Document Parsing
+
+
+
+Struktur's parser system converts files into [Artifact format](/docs/explanation/artifact-format) before any LLM work happens. Parsers are resolved by MIME type and are fully configurable.
+
+MIME Detection [#mime-detection]
+
+MIME type is detected in three layers (tried in order):
+
+1. **Magic bytes** (authoritative): PDF (`%PDF-`), PNG, JPEG, GIF, WebP, and ZIP-based Office formats are identified from the first bytes of the file.
+2. **npm `detectFileType` callback**: A custom npm parser may export a `detectFileType(header: Uint8Array): boolean` function to claim MIME types beyond what magic bytes cover.
+3. **File extension database**: Fallback for inputs where magic bytes don't match a known signature.
+
+Override MIME detection with `--mime <type>` on any command that accepts input.
+
+Built-in Parsers [#built-in-parsers]
+
+| MIME type          | Behavior                                                                                                                                                                                                     |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `application/pdf`  | Per-page text via `pdf-parse`. Embedded images require `--images`. Page screenshots require `--screenshots`. Image deduplication filters images smaller than \~80px. Non-fatal on image/screenshot failures. |
+| `text/*`           | Split on double newlines into content slices.                                                                                                                                                                |
+| `image/*`          | Single-content artifact with one media item.                                                                                                                                                                 |
+| `application/json` | If it validates as `SerializedArtifact[]`, passed through unchanged without invoking any parser.                                                                                                             |
+
+Built-in Input Types [#built-in-input-types]
 
 Plain text / markdown (CLI) [#plain-text--markdown-cli]
 
@@ -2279,74 +2069,7 @@ Schema loading [#schema-loading]
 
 Schema loading from URLs sends `Accept: application/schema+json, application/json` headers.
 
-SDK: parse(input, options?) [#sdk-parseinput-options]
-
-The primary SDK function for loading input into artifacts. Handles MIME detection and parser resolution automatically.
-
-```typescript
-import { parse } from "@mateffy/struktur";
-
-const artifacts = await parse(
-  { kind: "file", path: "document.pdf" },
-  {
-    parserConfig: parsersConfig,   // ParsersConfig — keyed by MIME type (optional)
-    includeImages: true,           // extract embedded PDF images
-    screenshots: false,            // render PDF page screenshots
-    screenshotScale: 1.5,          // scale factor for screenshots
-    screenshotWidth: undefined,    // target width in pixels (overrides screenshotScale)
-  }
-);
-```
-
-Supported input kinds:
-
-| Input kind                             | Description                                             |
-| -------------------------------------- | ------------------------------------------------------- |
-| `{ kind: "text", text }`               | Text artifact (split on double newlines)                |
-| `{ kind: "file", path, mimeType? }`    | File artifact with MIME detection and parser resolution |
-| `{ kind: "buffer", buffer, mimeType }` | Buffer artifact with parser resolution                  |
-| `{ kind: "artifact-json", data }`      | Validates and hydrates pre-built artifact JSON          |
-
-When `kind: "file"` is used, MIME detection and parser resolution happen automatically based on `parserConfig`. See [Parsers](/docs/explanation/parsers) for resolution order.
-
-SDK: fileToArtifact(buffer, options) [#sdk-filetoartifactbuffer-options]
-
-Lower-level helper that creates an artifact from a Buffer. **Deprecated:** use `parse()` with `InlineParserDef` in `parserConfig` instead.
-
-**Important:** `fileToArtifact` uses the legacy `providers` registry, which does not include the built-in PDF parser or any parsers configured via `config parsers add`. For PDF and other format support, use `parse` instead.
-
-```js
-import { fileToArtifact } from "@mateffy/struktur";
-import fs from "node:fs/promises";
-
-const buffer = Buffer.from(await fs.readFile("document.txt"));
-const artifact = await fileToArtifact(buffer, {
-  mimeType: "text/plain",
-  providers: { /* deprecated — use parserConfig with InlineParserDef instead */ }
-});
-```
-
-SDK: urlToArtifact(url) [#sdk-urltoartifacturl]
-
-Fetches a URL and expects it to return pre-serialized artifact JSON. Validates and hydrates.
-
-```js
-import { urlToArtifact } from "@mateffy/struktur";
-
-const artifacts = await urlToArtifact("https://example.com/artifact.json");
-```
-
-See also [#see-also]
-
-* [The Artifact Format](/docs/explanation/preprocessing/artifact-format) — the JSON spec
-* [Artifact Helpers](/docs/sdk/artifact-helpers) — SDK API
-* [Parsers](/docs/explanation/parsers) — the parser system for file conversion
-* [Custom Parser](/docs/explanation/preprocessing/custom-provider) — extending the parser system
-
-
-# Custom Parser
-
-
+Custom Parsers [#custom-parsers]
 
 There are three ways to extend Struktur with support for new file formats:
 
@@ -2370,7 +2093,7 @@ struktur config parsers add \
   --file-command "markitdown FILE_PATH"
 ```
 
-See [config parsers](/docs/cli/config#config-parsers) and [Parsers](/docs/explanation/parsers) for the full reference.
+See [config parsers](/docs/cli/config#config-parsers) for the full reference.
 
 For the SDK, pass a `parserConfig` to `parse`:
 
@@ -2523,32 +2246,754 @@ const artifact = await fileToArtifact(buffer, {
 
 **Note:** This approach does not support MIME detection or the parser system — it only applies when you call `fileToArtifact` directly with an explicit `mimeType`.
 
+npm Package Parser [#npm-package-parser]
+
+Install a package that implements the `NpmParserModule` interface:
+
+```typescript
+import type { Artifact } from "@mateffy/struktur";
+
+// At least one of these is required:
+export async function parseStream(
+  stream: ReadableStream<Uint8Array>,
+  mimeType: string
+): Promise<Artifact[]>;
+
+export async function parseFile(
+  filePath: string,
+  mimeType: string
+): Promise<Artifact[]>;
+
+// Optional: return true if your parser handles these bytes
+export function detectFileType(header: Uint8Array): boolean;
+```
+
+When both `parseFile` and `parseStream` are exported, Struktur prefers `parseFile` for file inputs (zero-copy) and `parseStream` for buffer or stdin inputs. A temp file is created as a fallback if needed.
+
+Register it:
+
+```bash
+struktur config parsers add \
+  --mime application/vnd.openxmlformats-officedocument.wordprocessingml.document \
+  --npm @myorg/docx-parser
+```
+
+Shell Command Parsers [#shell-command-parsers]
+
+File-based [#file-based]
+
+The `FILE_PATH` placeholder is replaced with the actual file path at runtime. For buffer inputs, a temp file is created automatically.
+
+```bash
+struktur config parsers add \
+  --mime application/vnd.ms-excel \
+  --file-command "python3 /path/to/excel2artifact.py FILE_PATH"
+```
+
+`FILE_PATH` must appear in the command string — an error is thrown if it is missing.
+
+The command must write `SerializedArtifact[]` JSON to stdout.
+
+Stdin-based [#stdin-based]
+
+File contents are piped to the command's stdin.
+
+```bash
+struktur config parsers add \
+  --mime text/html \
+  --stdin-command "my-html-to-artifact-tool"
+```
+
+The command must write `SerializedArtifact[]` JSON to stdout. Plain text output will fail validation.
+
+Parser Resolution Order [#parser-resolution-order]
+
+For any input, parsers are resolved in this order:
+
+1. `--parser <pkg>` flag on the CLI — always wins, bypasses all config
+2. Parser configured for the detected MIME type (`config parsers add`)
+3. Built-in parser (PDF, text/\*, image/\*, JSON)
+4. Error with a suggestion to use `config parsers add`
+
+Ad-hoc Parser Override [#ad-hoc-parser-override]
+
+Use `--parser` to override the configured parser for a single run without changing config:
+
+```bash
+struktur parse --input report.docx --parser @myorg/experimental-docx-parser
+struktur --input data.xlsx --parser @myorg/xlsx-parser --fields "..." --model openai/gpt-4o-mini
+```
+
+SDK Usage [#sdk-usage]
+
+parse(input, options?) [#parseinput-options]
+
+The primary SDK function for loading input into artifacts. Handles MIME detection and parser resolution automatically.
+
+```typescript
+import { parse } from "@mateffy/struktur";
+
+const artifacts = await parse(
+  { kind: "file", path: "document.pdf" },
+  {
+    parserConfig: parsersConfig,   // ParsersConfig — keyed by MIME type (optional)
+    includeImages: true,           // extract embedded PDF images
+    screenshots: false,            // render PDF page screenshots
+    screenshotScale: 1.5,          // scale factor for screenshots
+    screenshotWidth: undefined,    // target width in pixels (overrides screenshotScale)
+  }
+);
+```
+
+Supported input kinds:
+
+| Input kind                             | Description                                             |
+| -------------------------------------- | ------------------------------------------------------- |
+| `{ kind: "text", text }`               | Text artifact (split on double newlines)                |
+| `{ kind: "file", path, mimeType? }`    | File artifact with MIME detection and parser resolution |
+| `{ kind: "buffer", buffer, mimeType }` | Buffer artifact with parser resolution                  |
+| `{ kind: "artifact-json", data }`      | Validates and hydrates pre-built artifact JSON          |
+
+When `kind: "file"` is used, MIME detection and parser resolution happen automatically based on `parserConfig`.
+
+fileToArtifact(buffer, options) [#filetoartifactbuffer-options]
+
+Lower-level helper that creates an artifact from a Buffer. **Deprecated:** use `parse()` with `InlineParserDef` in `parserConfig` instead.
+
+**Important:** `fileToArtifact` uses the legacy `providers` registry, which does not include the built-in PDF parser or any parsers configured via `config parsers add`. For PDF and other format support, use `parse` instead.
+
+```js
+import { fileToArtifact } from "@mateffy/struktur";
+import fs from "node:fs/promises";
+
+const buffer = Buffer.from(await fs.readFile("document.txt"));
+const artifact = await fileToArtifact(buffer, {
+  mimeType: "text/plain",
+  providers: { /* deprecated — use parserConfig with InlineParserDef instead */ }
+});
+```
+
+urlToArtifact(url) [#urltoartifacturl]
+
+Fetches a URL and expects it to return pre-serialized artifact JSON. Validates and hydrates.
+
+```js
+import { urlToArtifact } from "@mateffy/struktur";
+
+const artifacts = await urlToArtifact("https://example.com/artifact.json");
+```
+
 See also [#see-also]
 
-* [config parsers](/docs/cli/config#config-parsers) — CLI-level parser registration (recommended)
-* [Parsers](/docs/explanation/parsers) — parser system overview and npm parser contract
-* [The Artifact Format](/docs/explanation/preprocessing/artifact-format) — the return type spec
-* [Built-in Input Types](/docs/explanation/preprocessing/built-in-inputs) — default input handling
+* [config parsers](/docs/cli/config#config-parsers) — CLI commands for managing parsers
+* [parse](/docs/cli/parse) — Convert files to artifact JSON
+* [Artifact Format](/docs/explanation/artifact-format) — The output data structure
+* [parse()](/docs/sdk/parse) — SDK API
 
 
-# Document Processing
+# Explanation
 
 
 
-How Struktur handles input documents and converts them to artifacts for extraction.
+Deep dives into Struktur's architecture, strategies, and design decisions.
 
 Topics [#topics]
 
-* [Artifact Format](/docs/explanation/preprocessing/artifact-format) — The JSON structure Struktur operates on
-* [Built-in Inputs](/docs/explanation/preprocessing/built-in-inputs) — Pre-built helpers for common document formats
-* [Custom Parser](/docs/explanation/preprocessing/custom-provider) — Extending the parser system with inline, npm, or command parsers
-
-For a conceptual overview of the parser system (MIME detection, custom parsers, shell commands), see [Parsers](/docs/explanation/parsers).
-
-
-# Choosing a Strategy
+* [pipeline](/docs/explanation/pipeline) — How data flows through Struktur
+* [artifact-format](/docs/explanation/artifact-format) — The artifact JSON structure
+* [document-parsing](/docs/explanation/document-parsing) — How files are converted to artifacts
+* [strategies](/docs/explanation/strategies) — Extraction strategies overview
+* [chunking](/docs/explanation/chunking) — Token-aware document splitting
+* [validation](/docs/explanation/validation) — Schema validation and retry logic
 
 
+# Extraction Lifecycle
+
+
+
+```mermaid
+flowchart LR
+    A[Input] --> B[Parse]
+    B --> C[Artifacts]
+    C --> D[Strategy]
+    D --> E[Output]
+    
+    subgraph StrategyInternals [Strategy]
+        direction TB
+        D1[Chunking] --> D2[LLM Calls]
+        D2 --> D3[Validation + Retry]
+        D3 --> D4[Merge/Dedupe]
+    end
+    
+    D --> StrategyInternals --> E
+```
+
+Inputs and Artifacts [#inputs-and-artifacts]
+
+Struktur converts input files into **Artifacts** before extraction. For plain text or stdin, this is trivial. For structured files (PDFs, Office documents), Struktur runs a parser — built-in or custom — that extracts text and images per-page.
+
+See [Document Parsing](/docs/explanation/document-parsing) for how files are converted to artifacts.
+See [Artifact Format](/docs/explanation/artifact-format) for the data structure.
+
+The Strategy layer [#the-strategy-layer]
+
+A strategy is the orchestration engine. It decides how to split the input, how many LLM calls to make, whether to run them concurrently or sequentially, and how to combine results.
+
+Built-in strategies cover the common patterns. You can also write your own.
+
+See [Strategies](/docs/explanation/strategies) for the strategy concept.
+
+Validation inside the loop [#validation-inside-the-loop]
+
+The validation loop is a key differentiator. Every LLM response is validated against the schema using Ajv **before** the strategy considers it done. If validation fails, the errors are serialized and sent back to the model as a follow-up message.
+
+**Smart validation**: For multi-step strategies (parallel, sequential, double-pass), Struktur uses lenient validation during intermediate steps—required field violations are allowed until the final step. This prevents false failures when data is split across chunks. Use the `strict` option to disable this behavior.
+
+Most extractions converge within two attempts. This happens **inside** the strategy, not as a post-processing step.
+
+Default: `maxAttempts` = 3.
+
+See [Validation & Retries](/docs/explanation/validation) for the validation concept.
+
+The result [#the-result]
+
+The extraction result has three fields:
+
+| Field   | Description                                                                       |
+| ------- | --------------------------------------------------------------------------------- |
+| `data`  | Validated output matching your schema. If `error` is set, may not be trustworthy. |
+| `usage` | Aggregated token counts across all LLM calls.                                     |
+| `error` | Set if extraction encountered a non-fatal error.                                  |
+
+See also [#see-also]
+
+* [Document Parsing](/docs/explanation/document-parsing) — how files are converted to artifacts
+* [Artifacts](/docs/explanation/artifact-format) — the input format
+* [Strategies](/docs/explanation/strategies) — orchestration patterns
+* [Chunking & Token Budgets](/docs/explanation/chunking) — how large documents are split
+* [Validation & Retries](/docs/explanation/validation) — the retry loop
+
+
+# Extraction Strategies
+
+
+
+A strategy is the orchestration engine. It decides how to split the input, how many LLM calls to make, whether to run them concurrently or sequentially, and how to combine results.
+
+Strategy comparison [#strategy-comparison]
+
+| Strategy              | Speed   | Context | Arrays        | Token Cost |
+| --------------------- | ------- | ------- | ------------- | ---------- |
+| `simple`              | Fastest | Full    | —             | Lowest     |
+| `parallel`            | Fast    | None    | LLM merge     | Medium     |
+| `sequential`          | Medium  | Full    | Context       | Medium     |
+| `parallelAutoMerge`   | Fast    | None    | Auto + dedupe | Medium     |
+| `sequentialAutoMerge` | Medium  | Full    | Auto + dedupe | Medium     |
+| `doublePass`          | Slow    | Full    | LLM merge     | High       |
+| `doublePassAutoMerge` | Slow    | Full    | Auto + dedupe | High       |
+
+***
+
+simple [#simple]
+
+Single-shot extraction for small inputs.
+
+| Property    | Value                      |
+| ----------- | -------------------------- |
+| Name        | `"simple"`                 |
+| LLM calls   | 1                          |
+| Parallelism | None                       |
+| Merge step  | None                       |
+| Dedupe step | None                       |
+| Best for    | Small, single-chunk inputs |
+
+Configuration [#configuration]
+
+| Field                | Required | Default | Description                                                   |
+| -------------------- | -------- | ------- | ------------------------------------------------------------- |
+| `model`              | Yes      | -       | Model instance from `@ai-sdk/*`                               |
+| `outputInstructions` | No       | -       | Extra instructions for the model                              |
+| `strict`             | No       | `false` | Always `true` for simple (single-shot, no intermediate steps) |
+
+Algorithm [#algorithm]
+
+1. Build extraction prompt from artifacts + schema
+2. Send to LLM
+3. Validate output with Ajv
+4. Retry on validation failure (up to 3 attempts)
+5. Return validated output
+
+Example [#example]
+
+```js
+import { extract, simple } from "@mateffy/struktur";
+import { openai } from "@ai-sdk/openai";
+
+const result = await extract({
+  artifacts,
+  schema,
+  strategy: simple({
+    model: openai("gpt-4o-mini"),
+  }),
+});
+```
+
+CLI [#cli]
+
+```bash
+struktur --input document.txt --schema schema.json --model openai/gpt-4o-mini
+# --strategy simple is the default
+```
+
+When to use [#when-to-use]
+
+* Document fits within the model's context window (\~10k tokens)
+* Simple schema without nested arrays
+* Testing or prototyping
+* Speed is the priority
+
+***
+
+parallel [#parallel]
+
+Concurrent batch processing with LLM merge.
+
+| Property    | Value                        |
+| ----------- | ---------------------------- |
+| Name        | `"parallel"`                 |
+| LLM calls   | N batches + 1 merge          |
+| Parallelism | Full                         |
+| Merge step  | LLM merge                    |
+| Dedupe step | None                         |
+| Best for    | Large inputs, speed priority |
+
+Configuration [#configuration-1]
+
+| Field                | Required | Default     | Description                            |
+| -------------------- | -------- | ----------- | -------------------------------------- |
+| `model`              | Yes      | -           | Model for extraction                   |
+| `mergeModel`         | Yes      | -           | Model for merging partial results      |
+| `chunkSize`          | Yes      | -           | Token budget per batch                 |
+| `concurrency`        | No       | All batches | Max parallel batches                   |
+| `maxImages`          | No       | Unlimited   | Max images per batch                   |
+| `outputInstructions` | No       | -           | Extra instructions                     |
+| `strict`             | No       | `false`     | Validate required fields on every step |
+
+Algorithm [#algorithm-1]
+
+1. Split artifacts into batches (respecting `chunkSize` and `maxImages`)
+2. Extract from each batch concurrently
+3. Validate each batch output with retry
+4. Send all partial results to `mergeModel` for LLM merge
+5. Validate merged output
+6. Return final result
+
+Example [#example-1]
+
+```js
+import { extract, parallel } from "@mateffy/struktur";
+import { openai } from "@ai-sdk/openai";
+
+const result = await extract({
+  artifacts,
+  schema,
+  strategy: parallel({
+    model: openai("gpt-4o-mini"),
+    mergeModel: openai("gpt-4o-mini"),
+    chunkSize: 10000,
+    concurrency: 3,
+  }),
+});
+```
+
+CLI [#cli-1]
+
+```bash
+struktur --input large.pdf --schema schema.json --strategy parallel --model openai/gpt-4o-mini
+```
+
+When to use [#when-to-use-1]
+
+* Speed is the top priority
+* Chunks are relatively independent
+* Many documents to process
+* Can accept potential loss of cross-chunk context
+
+***
+
+sequential [#sequential]
+
+Process chunks in order with context preservation.
+
+| Property    | Value                       |
+| ----------- | --------------------------- |
+| Name        | `"sequential"`              |
+| LLM calls   | N batches                   |
+| Parallelism | None                        |
+| Merge step  | Context carryover           |
+| Dedupe step | None                        |
+| Best for    | Context-dependent documents |
+
+Configuration [#configuration-2]
+
+| Field                | Required | Default   | Description                            |
+| -------------------- | -------- | --------- | -------------------------------------- |
+| `model`              | Yes      | -         | Model for extraction                   |
+| `chunkSize`          | Yes      | -         | Token budget per batch                 |
+| `maxImages`          | No       | Unlimited | Max images per batch                   |
+| `outputInstructions` | No       | -         | Extra instructions                     |
+| `strict`             | No       | `false`   | Validate required fields on every step |
+
+Algorithm [#algorithm-2]
+
+1. Split artifacts into batches
+2. For each batch in order:
+   * Build prompt including previous extraction result as context
+   * Extract from batch
+   * Validate with retry
+   * Store result for next iteration
+3. Return final result
+
+Example [#example-2]
+
+```js
+import { extract, sequential } from "@mateffy/struktur";
+import { openai } from "@ai-sdk/openai";
+
+const result = await extract({
+  artifacts,
+  schema,
+  strategy: sequential({
+    model: openai("gpt-4o-mini"),
+    chunkSize: 10000,
+  }),
+});
+```
+
+CLI [#cli-2]
+
+```bash
+struktur --input report.pdf --schema schema.json --strategy sequential --model openai/gpt-4o-mini
+```
+
+When to use [#when-to-use-2]
+
+* Context between chunks matters
+* Building data incrementally (e.g., accumulating line items)
+* Later sections reference earlier sections
+* Need better accuracy than parallel
+
+***
+
+parallelAutoMerge [#parallelautomerge]
+
+Parallel extraction with schema-aware merge and deduplication.
+
+| Property    | Value                                 |
+| ----------- | ------------------------------------- |
+| Name        | `"parallel-auto-merge"`               |
+| LLM calls   | N batches + 1 dedupe                  |
+| Parallelism | Full                                  |
+| Merge step  | Schema-aware auto-merge               |
+| Dedupe step | CRC32 hash + LLM semantic             |
+| Best for    | Array extraction, duplicates possible |
+
+Configuration [#configuration-3]
+
+| Field                | Required | Default         | Description                            |
+| -------------------- | -------- | --------------- | -------------------------------------- |
+| `model`              | Yes      | -               | Model for extraction                   |
+| `chunkSize`          | Yes      | -               | Token budget per batch                 |
+| `concurrency`        | No       | All batches     | Max parallel batches                   |
+| `maxImages`          | No       | Unlimited       | Max images per batch                   |
+| `outputInstructions` | No       | -               | Extra instructions                     |
+| `dedupeModel`        | No       | Same as `model` | Model for semantic dedupe              |
+| `strict`             | No       | `false`         | Validate required fields on every step |
+
+Algorithm [#algorithm-3]
+
+1. Split artifacts into batches
+2. Extract from each batch concurrently
+3. Validate each batch output with retry
+4. **Schema-aware merge:** arrays concatenate, objects shallow-merge, scalars prefer new values
+5. **Hash dedupe:** CRC32 to remove exact duplicates
+6. **Semantic dedupe:** LLM identifies semantically equivalent entries
+7. Return final result
+
+Merge behavior [#merge-behavior]
+
+Schema-aware auto-merge via `SmartDataMerger`:
+
+* **Arrays:** concatenated
+* **Objects:** shallow-merged (later keys overwrite earlier)
+* **Scalars:** prefer newer non-empty values
+
+No LLM merge call — deterministic.
+
+Deduplication [#deduplication]
+
+Two-stage:
+
+1. **CRC32 hash:** Exact duplicates removed without LLM call
+2. **LLM semantic:** Model identifies near-duplicates (e.g., "iPhone 15" vs "Apple iPhone 15 128GB")
+
+Example [#example-3]
+
+```js
+import { extract, parallelAutoMerge } from "@mateffy/struktur";
+import { openai } from "@ai-sdk/openai";
+
+const result = await extract({
+  artifacts,
+  schema,
+  strategy: parallelAutoMerge({
+    model: openai("gpt-4o-mini"),
+    dedupeModel: openai("gpt-4o-mini"),
+    chunkSize: 10000,
+    concurrency: 3,
+  }),
+});
+```
+
+CLI [#cli-3]
+
+```bash
+struktur --input catalog.pdf --schema schema.json --strategy parallelAutoMerge --model openai/gpt-4o-mini
+```
+
+When to use [#when-to-use-3]
+
+* Extracting arrays that may have duplicates across chunks
+* Want to consolidate results without LLM merge cost
+* Documents have repeated information across pages
+* Need deterministic merge behavior
+
+Best for: invoices with line items, real estate with multiple units, catalogs with products that appear on multiple pages.
+
+***
+
+sequentialAutoMerge [#sequentialautomerge]
+
+Sequential extraction with schema-aware merge and deduplication.
+
+| Property    | Value                                     |
+| ----------- | ----------------------------------------- |
+| Name        | `"sequential-auto-merge"`                 |
+| LLM calls   | N batches + 1 dedupe                      |
+| Parallelism | None                                      |
+| Merge step  | Schema-aware auto-merge                   |
+| Dedupe step | CRC32 hash + LLM semantic                 |
+| Best for    | Ordered array extraction, context matters |
+
+Configuration [#configuration-4]
+
+| Field                | Required | Default         | Description                            |
+| -------------------- | -------- | --------------- | -------------------------------------- |
+| `model`              | Yes      | -               | Model for extraction                   |
+| `chunkSize`          | Yes      | -               | Token budget per batch                 |
+| `maxImages`          | No       | Unlimited       | Max images per batch                   |
+| `outputInstructions` | No       | -               | Extra instructions                     |
+| `dedupeModel`        | No       | Same as `model` | Model for semantic dedupe              |
+| `strict`             | No       | `false`         | Validate required fields on every step |
+
+Algorithm [#algorithm-4]
+
+1. Split artifacts into batches
+2. For each batch in order:
+   * Extract from batch
+   * Validate with retry
+   * **Schema-aware merge** with previous results
+3. **Hash dedupe:** CRC32 to remove exact duplicates
+4. **Semantic dedupe:** LLM identifies semantically equivalent entries
+5. Return final result
+
+Example [#example-4]
+
+```js
+import { extract, sequentialAutoMerge } from "@mateffy/struktur";
+import { openai } from "@ai-sdk/openai";
+
+const result = await extract({
+  artifacts,
+  schema,
+  strategy: sequentialAutoMerge({
+    model: openai("gpt-4o-mini"),
+    dedupeModel: openai("gpt-4o-mini"),
+    chunkSize: 10000,
+  }),
+});
+```
+
+CLI [#cli-4]
+
+```bash
+struktur --input invoice.pdf --schema schema.json --strategy sequentialAutoMerge --model openai/gpt-4o-mini
+```
+
+When to use [#when-to-use-4]
+
+* Ordered list extraction with cross-chunk dependencies
+* Later chunks need context from earlier chunks
+* Arrays may have duplicates across pages
+* Context preservation matters
+
+Best for: multi-page invoices with line items that span pages, real estate exposés with units referenced across pages.
+
+***
+
+doublePass [#doublepass]
+
+Parallel pass for speed, sequential pass for refinement.
+
+| Property    | Value                                          |
+| ----------- | ---------------------------------------------- |
+| Name        | `"double-pass"`                                |
+| LLM calls   | N × 2 batches + 1 merge                        |
+| Parallelism | First pass full, second pass none              |
+| Merge step  | LLM merge (pass 1), context carryover (pass 2) |
+| Dedupe step | None                                           |
+| Best for    | High-stakes extraction, maximum quality        |
+
+Configuration [#configuration-5]
+
+| Field                | Required | Default     | Description                            |
+| -------------------- | -------- | ----------- | -------------------------------------- |
+| `model`              | Yes      | -           | Model for extraction                   |
+| `mergeModel`         | Yes      | -           | Model for merging partial results      |
+| `chunkSize`          | Yes      | -           | Token budget per batch                 |
+| `concurrency`        | No       | All batches | Max parallel batches                   |
+| `maxImages`          | No       | Unlimited   | Max images per batch                   |
+| `outputInstructions` | No       | -           | Extra instructions                     |
+| `strict`             | No       | `false`     | Validate required fields on every step |
+
+Algorithm [#algorithm-5]
+
+**Pass 1 (parallel):**
+
+1. Split artifacts into batches
+2. Extract from each batch concurrently
+3. Validate each batch output with retry
+4. LLM merge all partial results
+
+**Pass 2 (sequential):**
+
+5. For each batch in order:
+   * Build prompt including pass 1 result as context
+   * Extract from batch
+   * Validate with retry
+   * Store result for next iteration
+6. Return final result
+
+Example [#example-5]
+
+```js
+import { extract, doublePass } from "@mateffy/struktur";
+import { openai } from "@ai-sdk/openai";
+
+const result = await extract({
+  artifacts,
+  schema,
+  strategy: doublePass({
+    model: openai("gpt-4o-mini"),
+    mergeModel: openai("gpt-4o-mini"),
+    chunkSize: 10000,
+  }),
+});
+```
+
+CLI [#cli-5]
+
+```bash
+struktur --input critical.pdf --schema schema.json --strategy doublePass --model openai/gpt-4o
+```
+
+When to use [#when-to-use-5]
+
+* Accuracy is more important than cost
+* High-stakes extractions
+* Complex schemas
+* Can afford two full passes
+
+***
+
+doublePassAutoMerge [#doublepassautomerge]
+
+Double-pass extraction with schema-aware merge and deduplication.
+
+| Property    | Value                                   |
+| ----------- | --------------------------------------- |
+| Name        | `"double-pass-auto-merge"`              |
+| LLM calls   | N × 2 batches + 1 dedupe                |
+| Parallelism | First pass full, second pass none       |
+| Merge step  | Schema-aware auto-merge                 |
+| Dedupe step | CRC32 hash + LLM semantic               |
+| Best for    | Large array extraction, maximum quality |
+
+Configuration [#configuration-6]
+
+| Field                | Required | Default         | Description                            |
+| -------------------- | -------- | --------------- | -------------------------------------- |
+| `model`              | Yes      | -               | Model for extraction                   |
+| `chunkSize`          | Yes      | -               | Token budget per batch                 |
+| `concurrency`        | No       | All batches     | Max parallel batches                   |
+| `maxImages`          | No       | Unlimited       | Max images per batch                   |
+| `outputInstructions` | No       | -               | Extra instructions                     |
+| `dedupeModel`        | No       | Same as `model` | Model for semantic dedupe              |
+| `strict`             | No       | `false`         | Validate required fields on every step |
+
+Algorithm [#algorithm-6]
+
+**Pass 1 (parallel):**
+
+1. Split artifacts into batches
+2. Extract from each batch concurrently
+3. Validate each batch output with retry
+4. **Schema-aware merge** all partial results
+5. **Hash dedupe:** CRC32
+6. **Semantic dedupe:** LLM
+
+**Pass 2 (sequential):**
+
+7. For each batch in order:
+   * Build prompt including deduped pass 1 result as context
+   * Extract from batch
+   * Validate with retry
+   * Store result for next iteration
+8. Return final result
+
+Example [#example-6]
+
+```js
+import { extract, doublePassAutoMerge } from "@mateffy/struktur";
+import { openai } from "@ai-sdk/openai";
+
+const result = await extract({
+  artifacts,
+  schema,
+  strategy: doublePassAutoMerge({
+    model: openai("gpt-4o-mini"),
+    dedupeModel: openai("gpt-4o-mini"),
+    chunkSize: 10000,
+  }),
+});
+```
+
+CLI [#cli-6]
+
+```bash
+struktur --input catalog.pdf --schema schema.json --strategy doublePassAutoMerge --model openai/gpt-4o
+```
+
+When to use [#when-to-use-6]
+
+* Large array extraction with maximum quality requirement
+* Arrays may have duplicates
+* Cross-chunk context matters
+* Quality trumps cost
+
+***
+
+Choosing a Strategy [#choosing-a-strategy]
 
 Quick decision flowchart [#quick-decision-flowchart]
 
@@ -2564,18 +3009,6 @@ flowchart TD
     F -->|Yes| I[sequential or doublePass]
     F -->|No| J[parallel]
 ```
-
-Strategy comparison [#strategy-comparison]
-
-| Strategy              | Speed   | Context | Arrays        | Token Cost |
-| --------------------- | ------- | ------- | ------------- | ---------- |
-| `simple`              | Fastest | Full    | —             | Lowest     |
-| `parallel`            | Fast    | None    | LLM merge     | Medium     |
-| `sequential`          | Medium  | Full    | Context       | Medium     |
-| `parallelAutoMerge`   | Fast    | None    | Auto + dedupe | Medium     |
-| `sequentialAutoMerge` | Medium  | Full    | Auto + dedupe | Medium     |
-| `doublePass`          | Slow    | Full    | LLM merge     | High       |
-| `doublePassAutoMerge` | Slow    | Full    | Auto + dedupe | High       |
 
 Worked examples [#worked-examples]
 
@@ -2631,17 +3064,9 @@ When arrays matter [#when-arrays-matter]
 
 Use auto-merge variants (`parallelAutoMerge`, `sequentialAutoMerge`, `doublePassAutoMerge`). They handle deduplication automatically.
 
-See also [#see-also]
+***
 
-* [Strategies](/docs/explanation/strategies) — all strategies
-* [simple](/docs/explanation/strategies/simple) — single-shot extraction
-* [parallel](/docs/explanation/strategies/parallel) — concurrent processing
-* [sequential](/docs/explanation/strategies/sequential) — ordered processing
-
-
-# Writing a Custom Strategy
-
-
+Writing a Custom Strategy [#writing-a-custom-strategy]
 
 The interface [#the-interface]
 
@@ -2736,835 +3161,13 @@ await options.events?.onStep?.({
 });
 ```
 
-See also [#see-also]
-
-* [What are Strategies](/docs/explanation/strategies) — built-in strategies
-* [Choosing a Strategy](/docs/explanation/strategies/choosing) — decision guide
-
-
-# doublePassAutoMerge
-
-
-
-At a glance [#at-a-glance]
-
-| Property    | Value                                   |
-| ----------- | --------------------------------------- |
-| Name        | `"double-pass-auto-merge"`              |
-| LLM calls   | N × 2 batches + 1 dedupe                |
-| Parallelism | First pass full, second pass none       |
-| Merge step  | Schema-aware auto-merge                 |
-| Dedupe step | CRC32 hash + LLM semantic               |
-| Best for    | Large array extraction, maximum quality |
-
-Configuration [#configuration]
-
-| Field                | Required | Default         | Description                                                        |
-| -------------------- | -------- | --------------- | ------------------------------------------------------------------ |
-| `model`              | Yes      | -               | Model for extraction                                               |
-| `chunkSize`          | Yes      | -               | Token budget per batch                                             |
-| `concurrency`        | No       | All batches     | Max parallel batches                                               |
-| `maxImages`          | No       | Unlimited       | Max images per batch                                               |
-| `outputInstructions` | No       | -               | Extra instructions                                                 |
-| `dedupeModel`        | No       | Same as `model` | Model for semantic dedupe                                          |
-| `strict`             | No       | `false`         | Validate required fields on every step (disables smart validation) |
-
-Algorithm [#algorithm]
-
-**Pass 1 (parallel):**
-
-1. Split artifacts into batches
-2. Extract from each batch concurrently
-3. Validate each batch output with retry
-4. **Schema-aware merge** all partial results
-5. **Hash dedupe:** CRC32
-6. **Semantic dedupe:** LLM
-
-**Pass 2 (sequential):**
-
-7. For each batch in order:
-   * Build prompt including deduped pass 1 result as context
-   * Extract from batch
-   * Validate with retry
-   * Store result for next iteration
-8. Return final result
-
-Validation behavior [#validation-behavior]
-
-Each batch extraction (both passes) is validated with retry.
-
-Merge behavior [#merge-behavior]
-
-Schema-aware auto-merge after pass 1 extraction:
-
-* **Arrays:** concatenated
-* **Objects:** shallow-merged
-* **Scalars:** prefer newer non-empty values
-
-No LLM merge call.
-
-Deduplication [#deduplication]
-
-After pass 1 merge:
-
-1. **CRC32 hash:** Exact duplicates
-2. **LLM semantic:** Near-duplicates
-
-Token cost profile [#token-cost-profile]
-
-**High** — 2 × N extraction calls + 1 dedupe call. High cost, maximum quality for array extraction.
-
-Example [#example]
-
-```js
-import { extract, doublePassAutoMerge } from "@mateffy/struktur";
-import { openai } from "@ai-sdk/openai";
-
-const result = await extract({
-  artifacts,
-  schema,
-  strategy: doublePassAutoMerge({
-    model: openai("gpt-4o-mini"),
-    dedupeModel: openai("gpt-4o-mini"),
-    chunkSize: 10000,
-  }),
-});
-```
-
-CLI [#cli]
-
-```bash
-struktur --input catalog.pdf --schema schema.json --strategy doublePassAutoMerge --model openai/gpt-4o
-```
-
-When to use [#when-to-use]
-
-* Large array extraction with maximum quality requirement
-* Arrays may have duplicates
-* Cross-chunk context matters
-* Quality trumps cost
-
-When to avoid [#when-to-avoid]
-
-* Cost is a concern (use `parallelAutoMerge`)
-* Speed is critical
-* Schema is primarily scalars (use `doublePass`)
-
-See also [#see-also]
-
-* [doublePass](/docs/explanation/strategies/double-pass) — for scalar schemas
-* [parallelAutoMerge](/docs/explanation/strategies/parallel-auto-merge) — for speed priority
-* [Choosing a Strategy](/docs/explanation/strategies/choosing) — decision guide
-
-
-# doublePass
-
-
-
-At a glance [#at-a-glance]
-
-| Property    | Value                                          |
-| ----------- | ---------------------------------------------- |
-| Name        | `"double-pass"`                                |
-| LLM calls   | N × 2 batches + 1 merge                        |
-| Parallelism | First pass full, second pass none              |
-| Merge step  | LLM merge (pass 1), context carryover (pass 2) |
-| Dedupe step | None                                           |
-| Best for    | High-stakes extraction, maximum quality        |
-
-Configuration [#configuration]
-
-| Field                | Required | Default     | Description                                                        |
-| -------------------- | -------- | ----------- | ------------------------------------------------------------------ |
-| `model`              | Yes      | -           | Model for extraction                                               |
-| `mergeModel`         | Yes      | -           | Model for merging partial results                                  |
-| `chunkSize`          | Yes      | -           | Token budget per batch                                             |
-| `concurrency`        | No       | All batches | Max parallel batches                                               |
-| `maxImages`          | No       | Unlimited   | Max images per batch                                               |
-| `outputInstructions` | No       | -           | Extra instructions                                                 |
-| `strict`             | No       | `false`     | Validate required fields on every step (disables smart validation) |
-
-Algorithm [#algorithm]
-
-**Pass 1 (parallel):**
-
-1. Split artifacts into batches
-2. Extract from each batch concurrently
-3. Validate each batch output with retry
-4. LLM merge all partial results
-
-**Pass 2 (sequential):**
-
-5. For each batch in order:
-   * Build prompt including pass 1 result as context
-   * Extract from batch
-   * Validate with retry
-   * Store result for next iteration
-6. Return final result
-
-```mermaid
-flowchart TB
-    subgraph Pass1 [Pass 1: Parallel]
-        A[Artifacts] --> B[Batches]
-        B --> C[Extract Concurrent]
-        C --> D[LLM Merge]
-    end
-    D --> E[Pass 1 Result]
-    subgraph Pass2 [Pass 2: Sequential]
-        E --> F[Batch 1 + Context]
-        F --> G[Extract]
-        G --> H[Batch 2 + Context]
-        H --> I[Extract]
-        I --> J[...]
-    end
-    J --> K[Final Output]
-```
-
-Validation behavior [#validation-behavior]
-
-Each batch extraction (both passes) is validated with retry. The pass 1 merge is also validated.
-
-Merge behavior [#merge-behavior]
-
-**Pass 1:** LLM merge. All partial results sent to merge model.
-
-**Pass 2:** Context carryover. Each batch sees previous pass 2 result as context.
-
-Token cost profile [#token-cost-profile]
-
-**High** — 2 × N extraction calls + 1 merge call. Highest cost strategy.
-
-Example [#example]
-
-```js
-import { extract, doublePass } from "@mateffy/struktur";
-import { openai } from "@ai-sdk/openai";
-
-const result = await extract({
-  artifacts,
-  schema,
-  strategy: doublePass({
-    model: openai("gpt-4o-mini"),
-    mergeModel: openai("gpt-4o-mini"),
-    chunkSize: 10000,
-  }),
-});
-```
-
-CLI [#cli]
-
-```bash
-struktur --input critical.pdf --schema schema.json --strategy doublePass --model openai/gpt-4o
-```
-
-When to use [#when-to-use]
-
-* Accuracy is more important than cost
-* High-stakes extractions
-* Complex schemas
-* Can afford two full passes
-
-When to avoid [#when-to-avoid]
-
-* Cost is a concern (use `parallel` or `sequential`)
-* Speed is critical
-* Schema is simple (use `simple`)
-
-See also [#see-also]
-
-* [doublePassAutoMerge](/docs/explanation/strategies/double-pass-auto-merge) — for array extraction
-* [parallel](/docs/explanation/strategies/parallel) — for speed priority
-* [sequential](/docs/explanation/strategies/sequential) — for single-pass sequential
-* [Choosing a Strategy](/docs/explanation/strategies/choosing) — decision guide
-
-
-# Struktur
-
-
-
-Why Struktur? [#why-struktur]
-
-Large document batches arrive with data locked in semi-structured text. Invoices need to flow into spreadsheets. Product datasheets need to become database rows. The tooling exists, but the orchestration overhead is disproportionate to the extraction task itself.
-
-Managed APIs charge per page, impose schema constraints, and require document uploads to external infrastructure. LLM SDKs provide raw model access but leave you to write chunking, validation, retries, and merging every time.
-
-Struktur fills the gap: a focused extraction engine that handles the orchestration so you can focus on the output.
-
-Why not managed APIs? [#why-not-managed-apis]
-
-| Limitation         | Impact                                  |
-| ------------------ | --------------------------------------- |
-| Per-page pricing   | Does not scale for large batches        |
-| Schema constraints | You work within their data model        |
-| Document upload    | Non-starter for confidential workloads  |
-| Black-box behavior | Debugging extraction failures is opaque |
-
-Why not a plain LLM SDK call? [#why-not-a-plain-llm-sdk-call]
-
-A single `generateText()` call gives you:
-
-* No chunking for large documents
-* No retries on schema validation failure
-* No merging of multi-chunk results
-* No typed output inferred from your schema
-
-You write the same orchestration boilerplate every time. Struktur packages that orchestration into tested, configurable strategies.
-
-Design philosophy [#design-philosophy]
-
-**Narrow scope, intentionally.** Struktur does extraction only. No parsing. No streaming. No general-purpose LLM orchestration. This focus keeps the API small and the behavior predictable.
-
-**Shell-composable by default.** Reads stdin, writes stdout, speaks JSON. Integrates with `jq`, `find`, `curl`, and any tool in your pipeline.
-
-**Strategy-first.** Different documents need different approaches. A single-page invoice needs simple extraction. A 100-page catalog with duplicate products needs parallel extraction with deduplication. Strategies encode these patterns.
-
-**Validation in the loop.** Errors go back to the model, not to you. The retry loop means most extractions converge within two attempts.
-
-Trade-offs [#trade-offs]
-
-| Trade-off                          | Rationale                                                                          |
-| ---------------------------------- | ---------------------------------------------------------------------------------- |
-| Requires upstream preprocessing    | Keeps Struktur focused; use best-of-breed parsers per format                       |
-| Batch-only, no streaming           | Simpler mental model; input in, JSON out                                           |
-| Depends on Vercel AI SDK providers | OpenAI, Anthropic, Google supported; self-hosted models need OpenAI-compatible API |
-| Token costs depend on strategy     | `doublePass` costs more than `simple`; know your rates                             |
-
-***
-
-What are Strategies? [#what-are-strategies]
-
-A strategy implements:
-
-* `name`: string identifier
-* `run()`: the orchestration logic
-* `getEstimatedSteps()`: optional, for progress tracking
-
-Strategies own their config (model, chunk size, concurrency). All strategies guarantee: output validates against the schema or they throw.
-
-Built-in strategies [#built-in-strategies]
-
-| Strategy                                                                   | Description                                 |
-| -------------------------------------------------------------------------- | ------------------------------------------- |
-| [simple](/docs/explanation/strategies/simple)                              | Single-shot extraction for small inputs     |
-| [parallel](/docs/explanation/strategies/parallel)                          | Concurrent batches with LLM merge           |
-| [sequential](/docs/explanation/strategies/sequential)                      | Ordered batches with context carryover      |
-| [parallelAutoMerge](/docs/explanation/strategies/parallel-auto-merge)      | Parallel with schema-aware merge + dedupe   |
-| [sequentialAutoMerge](/docs/explanation/strategies/sequential-auto-merge)  | Sequential with schema-aware merge + dedupe |
-| [doublePass](/docs/explanation/strategies/double-pass)                     | Parallel pass + sequential refinement       |
-| [doublePassAutoMerge](/docs/explanation/strategies/double-pass-auto-merge) | Double-pass with auto-merge                 |
-
-Choosing a strategy [#choosing-a-strategy]
-
-See [Choosing a Strategy](/docs/explanation/strategies/choosing) for a decision guide.
-
-Custom strategies [#custom-strategies]
-
-See [Writing a Custom Strategy](/docs/explanation/strategies/custom-strategy) to implement your own.
-
 ***
 
 See also [#see-also]
 
-* [The Extraction Pipeline](/docs/explanation/pipeline) — how data flows through Struktur
-* [Quickstart](/docs/quickstart) — get started in 5 minutes
-
-
-# parallelAutoMerge
-
-
-
-At a glance [#at-a-glance]
-
-| Property    | Value                                 |
-| ----------- | ------------------------------------- |
-| Name        | `"parallel-auto-merge"`               |
-| LLM calls   | N batches + 1 dedupe                  |
-| Parallelism | Full                                  |
-| Merge step  | Schema-aware auto-merge               |
-| Dedupe step | CRC32 hash + LLM semantic             |
-| Best for    | Array extraction, duplicates possible |
-
-Configuration [#configuration]
-
-| Field                | Required | Default         | Description                                                        |
-| -------------------- | -------- | --------------- | ------------------------------------------------------------------ |
-| `model`              | Yes      | -               | Model for extraction                                               |
-| `chunkSize`          | Yes      | -               | Token budget per batch                                             |
-| `concurrency`        | No       | All batches     | Max parallel batches                                               |
-| `maxImages`          | No       | Unlimited       | Max images per batch                                               |
-| `outputInstructions` | No       | -               | Extra instructions                                                 |
-| `dedupeModel`        | No       | Same as `model` | Model for semantic dedupe                                          |
-| `strict`             | No       | `false`         | Validate required fields on every step (disables smart validation) |
-
-Algorithm [#algorithm]
-
-1. Split artifacts into batches
-2. Extract from each batch concurrently
-3. Validate each batch output with retry
-4. **Schema-aware merge:** arrays concatenate, objects shallow-merge, scalars prefer new values
-5. **Hash dedupe:** CRC32 to remove exact duplicates
-6. **Semantic dedupe:** LLM identifies semantically equivalent entries
-7. Return final result
-
-Validation behavior [#validation-behavior]
-
-Each batch extraction is validated with retry.
-
-Merge behavior [#merge-behavior]
-
-Schema-aware auto-merge via `SmartDataMerger`:
-
-* **Arrays:** concatenated
-* **Objects:** shallow-merged (later keys overwrite earlier)
-* **Scalars:** prefer newer non-empty values
-
-No LLM merge call — deterministic.
-
-Deduplication [#deduplication]
-
-Two-stage:
-
-1. **CRC32 hash:** Exact duplicates removed without LLM call
-2. **LLM semantic:** Model identifies near-duplicates (e.g., "iPhone 15" vs "Apple iPhone 15 128GB")
-
-Token cost profile [#token-cost-profile]
-
-**Medium** — N extraction calls + 1 dedupe call. No merge call.
-
-Example [#example]
-
-```js
-import { extract, parallelAutoMerge } from "@mateffy/struktur";
-import { openai } from "@ai-sdk/openai";
-
-const result = await extract({
-  artifacts,
-  schema,
-  strategy: parallelAutoMerge({
-    model: openai("gpt-4o-mini"),
-    dedupeModel: openai("gpt-4o-mini"),
-    chunkSize: 10000,
-    concurrency: 3,
-  }),
-});
-```
-
-CLI [#cli]
-
-```bash
-struktur --input catalog.pdf --schema schema.json --strategy parallelAutoMerge --model openai/gpt-4o-mini
-```
-
-When to use [#when-to-use]
-
-* Extracting arrays that may have duplicates across chunks
-* Want to consolidate results without LLM merge cost
-* Documents have repeated information across pages
-* Need deterministic merge behavior
-
-Best for: invoices with line items, real estate with multiple units, catalogs with products that appear on multiple pages.
-
-When to avoid [#when-to-avoid]
-
-* Schema is primarily scalars (use `parallel`)
-* Need complex cross-chunk synthesis (use `parallel` with LLM merge)
-
-See also [#see-also]
-
-* [parallel](/docs/explanation/strategies/parallel) — for scalar schemas
-* [sequentialAutoMerge](/docs/explanation/strategies/sequential-auto-merge) — for ordered extraction
-* [Choosing a Strategy](/docs/explanation/strategies/choosing) — decision guide
-
-
-# parallel
-
-
-
-At a glance [#at-a-glance]
-
-| Property    | Value                        |
-| ----------- | ---------------------------- |
-| Name        | `"parallel"`                 |
-| LLM calls   | N batches + 1 merge          |
-| Parallelism | Full                         |
-| Merge step  | LLM merge                    |
-| Dedupe step | None                         |
-| Best for    | Large inputs, speed priority |
-
-Configuration [#configuration]
-
-| Field                | Required | Default     | Description                                                        |
-| -------------------- | -------- | ----------- | ------------------------------------------------------------------ |
-| `model`              | Yes      | -           | Model for extraction                                               |
-| `mergeModel`         | Yes      | -           | Model for merging partial results                                  |
-| `chunkSize`          | Yes      | -           | Token budget per batch                                             |
-| `concurrency`        | No       | All batches | Max parallel batches                                               |
-| `maxImages`          | No       | Unlimited   | Max images per batch                                               |
-| `outputInstructions` | No       | -           | Extra instructions                                                 |
-| `strict`             | No       | `false`     | Validate required fields on every step (disables smart validation) |
-
-Algorithm [#algorithm]
-
-1. Split artifacts into batches (respecting `chunkSize` and `maxImages`)
-2. Extract from each batch concurrently
-3. Validate each batch output with retry
-4. Send all partial results to `mergeModel` for LLM merge
-5. Validate merged output
-6. Return final result
-
-```mermaid
-flowchart LR
-    A[Artifacts] --> B[Batch 1]
-    A --> C[Batch 2]
-    A --> D[Batch N]
-    B --> E[Extract]
-    C --> E
-    D --> E
-    E --> F[LLM Merge]
-    F --> G[Output]
-```
-
-Validation behavior [#validation-behavior]
-
-Each batch extraction is validated with retry. The final merge is also validated.
-
-Merge behavior [#merge-behavior]
-
-LLM merge. All partial results are sent to a merge model with a prompt asking it to produce a single coherent output. The merge model sees the full schema and all partial outputs.
-
-Token cost profile [#token-cost-profile]
-
-**Medium** — N extraction calls + 1 merge call. Merge model can be cheaper than extraction model.
-
-Example [#example]
-
-```js
-import { extract, parallel } from "@mateffy/struktur";
-import { openai } from "@ai-sdk/openai";
-
-const result = await extract({
-  artifacts,
-  schema,
-  strategy: parallel({
-    model: openai("gpt-4o-mini"),
-    mergeModel: openai("gpt-4o-mini"),
-    chunkSize: 10000,
-    concurrency: 3,
-  }),
-});
-```
-
-CLI [#cli]
-
-```bash
-struktur --input large.pdf --schema schema.json --strategy parallel --model openai/gpt-4o-mini
-```
-
-When to use [#when-to-use]
-
-* Speed is the top priority
-* Chunks are relatively independent
-* Many documents to process
-* Can accept potential loss of cross-chunk context
-
-When to avoid [#when-to-avoid]
-
-* Later chunks depend on earlier chunks (use `sequential`)
-* Extracting arrays that may have duplicates (use `parallelAutoMerge`)
-
-See also [#see-also]
-
-* [sequential](/docs/explanation/strategies/sequential) — for context-dependent documents
-* [parallelAutoMerge](/docs/explanation/strategies/parallel-auto-merge) — for array extraction with deduplication
-* [Choosing a Strategy](/docs/explanation/strategies/choosing) — decision guide
-
-
-# sequentialAutoMerge
-
-
-
-At a glance [#at-a-glance]
-
-| Property    | Value                                     |
-| ----------- | ----------------------------------------- |
-| Name        | `"sequential-auto-merge"`                 |
-| LLM calls   | N batches + 1 dedupe                      |
-| Parallelism | None                                      |
-| Merge step  | Schema-aware auto-merge                   |
-| Dedupe step | CRC32 hash + LLM semantic                 |
-| Best for    | Ordered array extraction, context matters |
-
-Configuration [#configuration]
-
-| Field                | Required | Default         | Description                                                        |
-| -------------------- | -------- | --------------- | ------------------------------------------------------------------ |
-| `model`              | Yes      | -               | Model for extraction                                               |
-| `chunkSize`          | Yes      | -               | Token budget per batch                                             |
-| `maxImages`          | No       | Unlimited       | Max images per batch                                               |
-| `outputInstructions` | No       | -               | Extra instructions                                                 |
-| `dedupeModel`        | No       | Same as `model` | Model for semantic dedupe                                          |
-| `strict`             | No       | `false`         | Validate required fields on every step (disables smart validation) |
-
-Algorithm [#algorithm]
-
-1. Split artifacts into batches
-2. For each batch in order:
-   * Extract from batch
-   * Validate with retry
-   * **Schema-aware merge** with previous results
-3. **Hash dedupe:** CRC32 to remove exact duplicates
-4. **Semantic dedupe:** LLM identifies semantically equivalent entries
-5. Return final result
-
-Validation behavior [#validation-behavior]
-
-Each batch extraction is validated with retry.
-
-Merge behavior [#merge-behavior]
-
-Schema-aware auto-merge after each batch:
-
-* **Arrays:** concatenated
-* **Objects:** shallow-merged
-* **Scalars:** prefer newer non-empty values
-
-No LLM merge call.
-
-Deduplication [#deduplication]
-
-Two-stage:
-
-1. **CRC32 hash:** Exact duplicates
-2. **LLM semantic:** Near-duplicates
-
-Token cost profile [#token-cost-profile]
-
-**Medium** — N extraction calls + 1 dedupe call. Each call builds on previous results.
-
-Example [#example]
-
-```js
-import { extract, sequentialAutoMerge } from "@mateffy/struktur";
-import { openai } from "@ai-sdk/openai";
-
-const result = await extract({
-  artifacts,
-  schema,
-  strategy: sequentialAutoMerge({
-    model: openai("gpt-4o-mini"),
-    dedupeModel: openai("gpt-4o-mini"),
-    chunkSize: 10000,
-  }),
-});
-```
-
-CLI [#cli]
-
-```bash
-struktur --input invoice.pdf --schema schema.json --strategy sequentialAutoMerge --model openai/gpt-4o-mini
-```
-
-When to use [#when-to-use]
-
-* Ordered list extraction with cross-chunk dependencies
-* Later chunks need context from earlier chunks
-* Arrays may have duplicates across pages
-* Context preservation matters
-
-Best for: multi-page invoices with line items that span pages, real estate exposés with units referenced across pages.
-
-When to avoid [#when-to-avoid]
-
-* Speed is critical (use `parallelAutoMerge`)
-* Schema is primarily scalars (use `sequential`)
-
-See also [#see-also]
-
-* [parallelAutoMerge](/docs/explanation/strategies/parallel-auto-merge) — for speed priority
-* [sequential](/docs/explanation/strategies/sequential) — for scalar schemas
-* [Choosing a Strategy](/docs/explanation/strategies/choosing) — decision guide
-
-
-# sequential
-
-
-
-At a glance [#at-a-glance]
-
-| Property    | Value                       |
-| ----------- | --------------------------- |
-| Name        | `"sequential"`              |
-| LLM calls   | N batches                   |
-| Parallelism | None                        |
-| Merge step  | Context carryover           |
-| Dedupe step | None                        |
-| Best for    | Context-dependent documents |
-
-Configuration [#configuration]
-
-| Field                | Required | Default   | Description                                                        |
-| -------------------- | -------- | --------- | ------------------------------------------------------------------ |
-| `model`              | Yes      | -         | Model for extraction                                               |
-| `chunkSize`          | Yes      | -         | Token budget per batch                                             |
-| `maxImages`          | No       | Unlimited | Max images per batch                                               |
-| `outputInstructions` | No       | -         | Extra instructions                                                 |
-| `strict`             | No       | `false`   | Validate required fields on every step (disables smart validation) |
-
-Algorithm [#algorithm]
-
-1. Split artifacts into batches
-2. For each batch in order:
-   * Build prompt including previous extraction result as context
-   * Extract from batch
-   * Validate with retry
-   * Store result for next iteration
-3. Return final result
-
-```mermaid
-flowchart LR
-    A[Batch 1] --> B[Extract]
-    B --> C[Result 1]
-    C --> D[Batch 2 + Context]
-    D --> E[Extract]
-    E --> F[Result 2]
-    F --> G[...]
-```
-
-Validation behavior [#validation-behavior]
-
-Each batch extraction is validated with retry. No separate merge step — the final batch result is the output.
-
-Merge behavior [#merge-behavior]
-
-Context carryover. Each batch receives the previous extraction result as context in its prompt. This allows later chunks to build on earlier ones.
-
-Token cost profile [#token-cost-profile]
-
-**Medium** — N extraction calls, no merge call. Each call includes context from previous results.
-
-Example [#example]
-
-```js
-import { extract, sequential } from "@mateffy/struktur";
-import { openai } from "@ai-sdk/openai";
-
-const result = await extract({
-  artifacts,
-  schema,
-  strategy: sequential({
-    model: openai("gpt-4o-mini"),
-    chunkSize: 10000,
-  }),
-});
-```
-
-CLI [#cli]
-
-```bash
-struktur --input report.pdf --schema schema.json --strategy sequential --model openai/gpt-4o-mini
-```
-
-When to use [#when-to-use]
-
-* Context between chunks matters
-* Building data incrementally (e.g., accumulating line items)
-* Later sections reference earlier sections
-* Need better accuracy than parallel
-
-When to avoid [#when-to-avoid]
-
-* Speed is critical (use `parallel`)
-* Extracting arrays that may have duplicates (use `sequentialAutoMerge`)
-
-See also [#see-also]
-
-* [parallel](/docs/explanation/strategies/parallel) — for speed priority
-* [sequentialAutoMerge](/docs/explanation/strategies/sequential-auto-merge) — for array extraction with deduplication
-* [Choosing a Strategy](/docs/explanation/strategies/choosing) — decision guide
-
-
-# simple
-
-
-
-At a glance [#at-a-glance]
-
-| Property    | Value                      |
-| ----------- | -------------------------- |
-| Name        | `"simple"`                 |
-| LLM calls   | 1                          |
-| Parallelism | None                       |
-| Merge step  | None                       |
-| Dedupe step | None                       |
-| Best for    | Small, single-chunk inputs |
-
-Configuration [#configuration]
-
-| Field                | Required | Default | Description                                                   |
-| -------------------- | -------- | ------- | ------------------------------------------------------------- |
-| `model`              | Yes      | -       | Model instance from `@ai-sdk/*`                               |
-| `outputInstructions` | No       | -       | Extra instructions for the model                              |
-| `strict`             | No       | `false` | Always `true` for simple (single-shot, no intermediate steps) |
-
-Algorithm [#algorithm]
-
-1. Build extraction prompt from artifacts + schema
-2. Send to LLM
-3. Validate output with Ajv
-4. Retry on validation failure (up to 3 attempts)
-5. Return validated output
-
-Validation behavior [#validation-behavior]
-
-Each LLM call is validated with retry. If the LLM fails to produce valid output after 3 attempts, the strategy throws.
-
-Merge behavior [#merge-behavior]
-
-None. Single-shot.
-
-Token cost profile [#token-cost-profile]
-
-**Low** — 1 LLM call per extraction.
-
-Example [#example]
-
-```js
-import { extract, simple } from "@mateffy/struktur";
-import { openai } from "@ai-sdk/openai";
-
-const result = await extract({
-  artifacts,
-  schema,
-  strategy: simple({
-    model: openai("gpt-4o-mini"),
-  }),
-});
-```
-
-CLI [#cli]
-
-```bash
-struktur --input document.txt --schema schema.json --model openai/gpt-4o-mini
-# --strategy simple is the default
-```
-
-When to use [#when-to-use]
-
-* Document fits within the model's context window (\~10k tokens)
-* Simple schema without nested arrays
-* Testing or prototyping
-* Speed is the priority
-
-When to avoid [#when-to-avoid]
-
-* Large documents exceeding context window
-* Complex schemas with many fields
-
-See also [#see-also]
-
-* [parallel](/docs/explanation/strategies/parallel) — for large documents
-* [sequential](/docs/explanation/strategies/sequential) — for context-dependent documents
-* [Choosing a Strategy](/docs/explanation/strategies/choosing) — decision guide
+* [The Extraction Pipeline](/docs/explanation/pipeline) — where strategies fit
+* [Chunking & Token Budgets](/docs/explanation/chunking) — how batches are formed
+* [Validation & Retries](/docs/explanation/validation) — the retry loop
 
 
 # Validation & Retries
@@ -3651,7 +3254,7 @@ See also [#see-also]
 
 * [The Extraction Pipeline](/docs/explanation/pipeline) — where validation fits
 * [Events & Observability](/docs/sdk/events) — the events API
-* [The Artifact Format](/docs/explanation/preprocessing/artifact-format) — schema format
+* [The Artifact Format](/docs/explanation/artifact-format) — schema format
 
 
 # What is Struktur?
@@ -3662,10 +3265,54 @@ Struktur is a structured data extraction engine that turns pre-parsed documents 
 
 Why Struktur? [#why-struktur]
 
-* **Schema-first:** You define the shape, Struktur guarantees it.
-* **Fields shorthand:** Skip the JSON Schema boilerplate with `--fields "title, price:number, status:enum{draft|live}"`.
-* **Strategy-driven:** From single-shot to double-pass refinement.
-* **Pipeline-native:** Reads stdin, writes stdout, composes with `jq`.
+Large document batches arrive with data locked in semi-structured text. Invoices need to flow into spreadsheets. Product datasheets need to become database rows. The tooling exists, but the orchestration overhead is disproportionate to the extraction task itself.
+
+Managed APIs charge per page, impose schema constraints, and require document uploads to external infrastructure. LLM SDKs provide raw model access but leave you to write chunking, validation, retries, and merging every time.
+
+Struktur fills the gap: a focused extraction engine that handles the orchestration so you can focus on the output.
+
+Why not managed APIs? [#why-not-managed-apis]
+
+| Limitation         | Impact                                  |
+| ------------------ | --------------------------------------- |
+| Per-page pricing   | Does not scale for large batches        |
+| Schema constraints | You work within their data model        |
+| Document upload    | Non-starter for confidential workloads  |
+| Black-box behavior | Debugging extraction failures is opaque |
+
+Why not a plain LLM SDK call? [#why-not-a-plain-llm-sdk-call]
+
+A single `generateText()` call gives you:
+
+* No chunking for large documents
+* No retries on schema validation failure
+* No merging of multi-chunk results
+* No typed output inferred from your schema
+
+You write the same orchestration boilerplate every time. Struktur packages that orchestration into tested, configurable strategies.
+
+Design philosophy [#design-philosophy]
+
+**Narrow scope, intentionally.** Struktur does extraction only. No parsing. No streaming. No general-purpose LLM orchestration. This focus keeps the API small and the behavior predictable.
+
+**Shell-composable by default.** Reads stdin, writes stdout, speaks JSON. Integrates with `jq`, `find`, `curl`, and any tool in your pipeline.
+
+**Strategy-first.** Different documents need different approaches. A single-page invoice needs simple extraction. A 100-page catalog with duplicate products needs parallel extraction with deduplication. Strategies encode these patterns.
+
+**Validation in the loop.** Errors go back to the model, not to you. The retry loop means most extractions converge within two attempts.
+
+**Schema-first.** You define the shape, Struktur guarantees it.
+
+**Fields shorthand.** Skip the JSON Schema boilerplate with `--fields "title, price:number, status:enum{draft|live}"`.
+
+Trade-offs [#trade-offs]
+
+| Trade-off                          | Rationale                                                                          |
+| ---------------------------------- | ---------------------------------------------------------------------------------- |
+| Requires upstream preprocessing    | Keeps Struktur focused; use best-of-breed parsers per format                       |
+| Batch-only, no streaming           | Simpler mental model; input in, JSON out                                           |
+| Depends on Vercel AI SDK providers | OpenAI, Anthropic, Google supported; self-hosted models need OpenAI-compatible API |
+| Token costs depend on strategy     | `doublePass` costs more than `simple`; know your rates                             |
 
 A 10-second demo [#a-10-second-demo]
 
@@ -3700,16 +3347,40 @@ Who is it for? [#who-is-it-for]
 
 **SDK users** — TypeScript developers embedding extraction in applications — use Struktur for typed results, custom strategies, and fine-grained control over the extraction pipeline.
 
+What are Strategies? [#what-are-strategies]
+
+A strategy implements:
+
+* `name`: string identifier
+* `run()`: the orchestration logic
+* `getEstimatedSteps()`: optional, for progress tracking
+
+Strategies own their config (model, chunk size, concurrency). All strategies guarantee: output validates against the schema or they throw.
+
+Built-in strategies [#built-in-strategies]
+
+| Strategy              | Description                                 |
+| --------------------- | ------------------------------------------- |
+| `simple`              | Single-shot extraction for small inputs     |
+| `parallel`            | Concurrent batches with LLM merge           |
+| `sequential`          | Ordered batches with context carryover      |
+| `parallelAutoMerge`   | Parallel with schema-aware merge + dedupe   |
+| `sequentialAutoMerge` | Sequential with schema-aware merge + dedupe |
+| `doublePass`          | Parallel pass + sequential refinement       |
+| `doublePassAutoMerge` | Double-pass with auto-merge                 |
+
+See [Extraction Strategies](/docs/explanation/strategies) for details on each strategy and how to choose.
+
 Quick navigation [#quick-navigation]
 
-| Goal                               | Section                              |
-| ---------------------------------- | ------------------------------------ |
-| New here?                          | [Quickstart](/docs/quickstart)       |
-| Need to accomplish something?      | [Examples](/docs/examples)           |
-| Looking up a flag or type?         | [CLI Reference](/docs/cli)           |
-| Quick schema without writing JSON? | [Fields Shorthand](/docs/cli/fields) |
-| Want to understand how it works?   | [Concepts](/docs/explanation)        |
-| Parse files into artifacts?        | [Parsers](/docs/explanation/parsers) |
+| Goal                               | Section                                                |
+| ---------------------------------- | ------------------------------------------------------ |
+| New here?                          | [Quickstart](/docs/quickstart)                         |
+| Need to accomplish something?      | [Examples](/docs/examples)                             |
+| Looking up a flag or type?         | [CLI Reference](/docs/cli)                             |
+| Quick schema without writing JSON? | [Fields Shorthand](/docs/cli/fields)                   |
+| Want to understand how it works?   | [Concepts](/docs/explanation)                          |
+| Parse files into artifacts?        | [Document Parsing](/docs/explanation/document-parsing) |
 
 
 # Quickstart
@@ -3717,21 +3388,6 @@ Quick navigation [#quick-navigation]
 
 
 Extract structured data from any file in 3 commands. About 5 minutes.
-
-What we'll build [#what-well-build]
-
-We will extract structured invoice data from a PDF using the CLI.
-
-Expected output:
-
-```json
-{
-  "invoice_number": "1042",
-  "vendor": "Acme Corp",
-  "total": 2400,
-  "due_date": "April 1, 2026"
-}
-```
 
 Prerequisites [#prerequisites]
 
@@ -3758,21 +3414,7 @@ You should see the usage output.
 
 Step 2: Configure your API key [#step-2-configure-your-api-key]
 
-**Option A (quick, for testing):**
-
-```bash
-export OPENAI_API_KEY=sk-...
-```
-
-**Option B (secure, persisted):**
-
-```bash
-echo "sk-..." | struktur config providers add openai --token-stdin
-```
-
-Output: `{ "provider": "openai", "stored": "keychain" }` (or `"file"` on Linux).
-
-**Option C (one command, fully ready):**
+Store your API key securely with the CLI:
 
 ```bash
 echo "sk-..." | struktur config providers add openai --token-stdin --default
@@ -3780,9 +3422,9 @@ echo "sk-..." | struktur config providers add openai --token-stdin --default
 
 The `--default` flag automatically queries the provider API and sets the cheapest available model as default, so `--model` becomes optional in all future commands.
 
-Step 2b: Set a default model (optional) [#step-2b-set-a-default-model-optional]
+Output: `{ "provider": "openai", "stored": "keychain" }` (or `"file"` on Linux).
 
-If you didn't use `--default` above, set a default model explicitly:
+Set a default model (if not using --default) [#set-a-default-model-if-not-using---default]
 
 ```bash
 struktur config models use openai/gpt-4o-mini
@@ -3809,7 +3451,7 @@ struktur --input invoice.pdf \
   --model openai/gpt-4o-mini
 ```
 
-The `--fields` flag builds a JSON Schema on the fly. Each field defaults to `string`; append `:number`, `:integer`, `:bool`, etc. to set the type. See [--fields reference](/docs/cli/fields) for the full syntax.
+The `--fields` flag builds a JSON Schema on the fly. Each field defaults to `string`; append `:number`, `:integer`, `:bool`, etc. to set the type. See [Fields Shorthand](/docs/cli/fields) for the full syntax.
 
 If you need more control (optional fields, nested objects), pass a full schema instead:
 
@@ -3837,96 +3479,7 @@ Where to go next [#where-to-go-next]
 | Solve a real problem    | [Extract Invoice Data](/docs/examples/extract-invoice) |
 | Look up all CLI flags   | [CLI Reference](/docs/cli/extract)                     |
 | Use it in TypeScript    | [TypeScript SDK](/docs/sdk/installation)               |
-| Understand file parsing | [Parsers](/docs/explanation/parsers)                   |
-
-
-# Artifact Helpers
-
-
-
-parse(input, options?) [#parseinput-options]
-
-The primary way to load files and text into artifacts. Handles MIME detection, parser resolution, and PDF image extraction automatically.
-
-```typescript
-import { parse } from "@mateffy/struktur";
-
-const artifacts = await parse(
-  { kind: "file", path: "document.pdf" },
-  {
-    parserConfig: parsersConfig,   // ParsersConfig — keyed by MIME type
-    includeImages: true,           // extract embedded PDF images
-    screenshots: false,            // render PDF page screenshots
-    screenshotScale: 1.5,          // scale factor for screenshots
-    screenshotWidth: undefined,    // target width in pixels (overrides screenshotScale)
-  }
-);
-```
-
-Supported input kinds:
-
-| Input kind                             | Description                                                                            |
-| -------------------------------------- | -------------------------------------------------------------------------------------- |
-| `{ kind: "text", text }`               | Text artifact (split on double newlines)                                               |
-| `{ kind: "file", path, mimeType? }`    | File artifact — MIME auto-detected, parser resolved from `parserConfig` then built-ins |
-| `{ kind: "buffer", buffer, mimeType }` | Buffer artifact — parser resolved from `parserConfig` then built-ins                   |
-| `{ kind: "artifact-json", data }`      | Validates and hydrates pre-built artifact JSON                                         |
-
-fileToArtifact(buffer, options) [#filetoartifactbuffer-options]
-
-Lower-level helper that creates an artifact from a Buffer. **Deprecated:** use `parse()` with `InlineParserDef` in `parserConfig` instead.
-
-**Important:** `fileToArtifact` uses the legacy `providers` registry, which does not include the built-in PDF parser or any parsers configured via `config parsers add`. For PDF and other format support, use `parse` instead.
-
-If no provider is registered for the MIME type:
-
-* `text/*` → text artifact (split on double newlines)
-* `image/*` → image artifact (single media slice)
-* Anything else → throws `Unsupported MIME type`
-
-```js
-import { fileToArtifact } from "@mateffy/struktur";
-import fs from "node:fs/promises";
-
-const buffer = Buffer.from(await fs.readFile("document.txt"));
-const artifact = await fileToArtifact(buffer, {
-  mimeType: "text/plain",
-  providers: { /* deprecated — use parserConfig with InlineParserDef instead */ }
-});
-```
-
-urlToArtifact(url) [#urltoartifacturl]
-
-Fetches a URL and expects it to return pre-serialized artifact JSON. Validates and hydrates.
-
-```js
-import { urlToArtifact } from "@mateffy/struktur";
-
-const artifacts = await urlToArtifact("https://example.com/artifact.json");
-```
-
-parseSerializedArtifacts(text) [#parseserializedartifactstext]
-
-Parses a JSON string into artifacts with Ajv validation.
-
-validateSerializedArtifacts(data) [#validateserializedartifactsdata]
-
-Validates an already-parsed value against the artifact schema.
-
-hydrateSerializedArtifacts(items) [#hydrateserializedartifactsitems]
-
-Adds the `raw()` function to serialized artifacts.
-
-splitTextIntoContents(text) [#splittextintocontentstext]
-
-Splits a text string on double newlines into content slices.
-
-See also [#see-also]
-
-* [The Artifact Format](/docs/explanation/preprocessing/artifact-format) — JSON spec
-* [Built-in Input Types](/docs/explanation/preprocessing/built-in-inputs) — CLI input methods
-* [Parsers](/docs/explanation/parsers) — how files are converted to artifacts
-* [Custom Parser](/docs/explanation/preprocessing/custom-provider) — extending the parser system
+| Understand file parsing | [Document Parsing](/docs/explanation/document-parsing) |
 
 
 # Events & Observability
@@ -4009,7 +3562,7 @@ Options [#options]
 | ----------- | --------------------------- | ------------------------------------------------------------------------ |
 | `artifacts` | Yes                         | Array of artifacts to extract from                                       |
 | `schema`    | One of `schema` or `fields` | JSON Schema for output validation                                        |
-| `fields`    | One of `schema` or `fields` | [Fields shorthand](/docs/sdk/fields) — comma-separated field definitions |
+| `fields`    | One of `schema` or `fields` | [Fields shorthand](/docs/cli/fields) — comma-separated field definitions |
 | `strategy`  | Yes                         | A strategy instance                                                      |
 | `events`    | No                          | Event handlers for progress tracking                                     |
 
@@ -4035,262 +3588,14 @@ const result = await extract({
 });
 ```
 
-`fields` supports scalar types (`string`, `number`/`float`, `boolean`/`bool`, `integer`, `int`), enum sets (`status:enum{draft|live}`), and arrays (`tags:array{string}`). See the [Fields Shorthand](/docs/sdk/fields) reference for the full syntax.
+`fields` supports scalar types (`string`, `number`/`float`, `boolean`/`bool`, `integer`, `int`), enum sets (`status:enum{draft|live}`), and arrays (`tags:array{string}`). See the [Fields Shorthand](/docs/cli/fields) reference for the full syntax.
 
 See also [#see-also]
 
-* [Fields Shorthand](/docs/sdk/fields) — quick schema syntax reference
+* [Fields Shorthand](/docs/cli/fields) — quick schema syntax reference
 * [Installation & Setup](/docs/cli/installation) — getting started
-* [Strategy Factory Functions](/docs/explanation/strategies) — creating strategies
+* [Extraction Strategies](/docs/explanation/strategies) — creating strategies
 * [Events & Observability](/docs/sdk/events) — progress tracking
-
-
-# Fields Shorthand
-
-
-
-The `fields` parameter lets you describe extraction output as a concise comma-separated string instead of writing a full JSON Schema object. It is designed for quick experiments, CLI one-liners, and any situation where you know the fields you want but don't need schema reuse or complex constraints.
-
-```ts
-const result = await extract({
-  artifacts,
-  fields: "title, author, year:integer, price:number",
-  strategy: simple({ model: openai("gpt-4o-mini") }),
-});
-```
-
-`fields` and `schema` are mutually exclusive. Pass exactly one.
-
-***
-
-Syntax [#syntax]
-
-```
-fields = field ("," field)*
-field  = name | name ":" type
-name   = /[^\s,:{}]+/
-type   = scalar | enum | array
-```
-
-Whitespace around commas and colons is ignored. A trailing comma is silently dropped.
-
-***
-
-Scalar types [#scalar-types]
-
-Every field without an explicit type defaults to `string`.
-
-| Type keyword | JSON Schema output                       | Notes                                    |
-| ------------ | ---------------------------------------- | ---------------------------------------- |
-| `string`     | `{ "type": "string" }`                   | Default when type is omitted             |
-| `number`     | `{ "type": "number" }`                   | Any numeric value                        |
-| `float`      | `{ "type": "number" }`                   | Alias for `number`                       |
-| `boolean`    | `{ "type": "boolean" }`                  |                                          |
-| `bool`       | `{ "type": "boolean" }`                  | Alias for `boolean`                      |
-| `integer`    | `{ "type": "integer" }`                  | Whole numbers only (JSON Schema spec)    |
-| `int`        | `{ "type": "integer", "multipleOf": 1 }` | Stricter: explicitly disallows fractions |
-
-```ts
-// All scalar types
-extract({ fields: "title, count:integer, price:float, active:bool", ... })
-```
-
-int vs integer [#int-vs-integer]
-
-Both resolve to `"type": "integer"` in the schema, but `int` adds `"multipleOf": 1`. This makes the no-fractions constraint explicit and validator-enforced rather than implied. Use `int` when you want to be unambiguous; `integer` when you want to stay close to JSON Schema vocabulary.
-
-***
-
-Enum type [#enum-type]
-
-Use `enum{value1|value2|...}` for fields that must be one of a fixed set of strings. Values are separated by `|` and trimmed of surrounding whitespace.
-
-```ts
-extract({ fields: "status:enum{draft|published|archived}", ... })
-// => { "type": "string", "enum": ["draft", "published", "archived"] }
-```
-
-At least two values are required.
-
-```ts
-extract({ fields: "name, role:enum{admin|user|guest}, active:bool", ... })
-```
-
-***
-
-Array type [#array-type]
-
-Use `array{itemType}` for array fields. The item type can be any scalar keyword including aliases. You can also use `array` as a shorthand for `array{string}`.
-
-```ts
-extract({ fields: "tags:array", ... })
-// => { "type": "array", "items": { "type": "string" } }
-
-extract({ fields: "tags:array{string}", ... })
-// => { "type": "array", "items": { "type": "string" } }
-
-extract({ fields: "scores:array{float}", ... })
-// => { "type": "array", "items": { "type": "number" } }
-
-extract({ fields: "ids:array{int}", ... })
-// => { "type": "array", "items": { "type": "integer", "multipleOf": 1 } }
-```
-
-***
-
-Generated schema shape [#generated-schema-shape]
-
-Every `fields` string produces an object schema with:
-
-* `"type": "object"`
-* All named fields as properties
-* All fields listed in `"required"`
-* `"additionalProperties": false`
-
-```ts
-buildSchemaFromFields("title, price:number, tags:array")
-// =>
-{
-  "type": "object",
-  "properties": {
-    "title": { "type": "string" },
-    "price": { "type": "number" },
-    "tags":  { "type": "array", "items": { "type": "string" } }
-  },
-  "required": ["title", "price", "tags"],
-  "additionalProperties": false
-}
-```
-
-All fields are required. There is no way to mark a field optional through the `fields` syntax — use a full `schema` object if you need optional properties, nested objects, or `$ref`.
-
-***
-
-Using fields with extract() [#using-fields-with-extract]
-
-```ts
-import { extract, simple } from "@mateffy/struktur";
-import { openai } from "@ai-sdk/openai";
-
-const result = await extract({
-  artifacts,
-  fields: "title, author, year:integer, genre:enum{fiction|nonfiction|reference}",
-  strategy: simple({ model: openai("gpt-4o-mini") }),
-});
-
-// result.data is typed as Record<string, unknown> when using fields
-console.log(result.data.title);
-```
-
-For full TypeScript inference on `result.data`, use `schema` with `JSONSchemaType<T>` instead.
-
-***
-
-Mutual exclusion [#mutual-exclusion]
-
-Only one schema source may be provided per call. Providing more than one throws immediately with a clear error.
-
-| Combination         | Result   |
-| ------------------- | -------- |
-| `fields` only       | ✅ Valid  |
-| `schema` only       | ✅ Valid  |
-| `fields` + `schema` | ❌ Throws |
-| Neither             | ❌ Throws |
-
-```ts
-// ❌ throws: "Provide exactly one of `schema` or `fields`"
-await extract({ artifacts, schema: mySchema, fields: "title", strategy });
-```
-
-***
-
-Utility exports [#utility-exports]
-
-The parser and schema builder are exported for use outside of `extract()`.
-
-```ts
-import {
-  parseFieldsString,
-  buildSchemaFromParsedFields,
-  buildSchemaFromFields,
-} from "@mateffy/struktur";
-
-// Parse to an intermediate representation
-const parsed = parseFieldsString("title, price:number, status:enum{draft|live}");
-// [
-//   { name: "title",  kind: "scalar", type: "string" },
-//   { name: "price",  kind: "scalar", type: "number" },
-//   { name: "status", kind: "enum",   values: ["draft", "live"] }
-// ]
-
-// Build a schema directly
-const schema = buildSchemaFromFields("title, price:number");
-```
-
-parseFieldsString(fields: string): ParsedField[] [#parsefieldsstringfields-string-parsedfield]
-
-Parses the fields string into an array of `ParsedField` discriminated union entries:
-
-```ts
-type ParsedField =
-  | { name: string; kind: "scalar"; type: ScalarFieldType }
-  | { name: string; kind: "enum";   values: string[] }
-  | { name: string; kind: "array";  items: ScalarFieldType };
-
-type ScalarFieldType = "string" | "number" | "boolean" | "integer" | "int";
-```
-
-buildSchemaFromParsedFields(fields: ParsedField[]): AnyJSONSchema [#buildschemafromparsedfieldsfields-parsedfield-anyjsonschema]
-
-Builds the JSON Schema object from a pre-parsed array. Useful if you want to inspect or modify the parsed fields before building.
-
-buildSchemaFromFields(fields: string): AnyJSONSchema [#buildschemafromfieldsfields-string-anyjsonschema]
-
-Convenience one-liner: parses and builds in a single call.
-
-***
-
-Error messages [#error-messages]
-
-Parse errors include the offending field name and a hint toward valid alternatives.
-
-```ts
-parseFieldsString("count:bigint")
-// Error: Unknown type "bigint" for field "count".
-//        Scalar types: bool, boolean, float, int, integer, number, string.
-//        Complex types: enum{a|b|c}, array{string}, or array (shorthand for array{string}).
-
-parseFieldsString("role:enum{admin}")
-// Error: enum for field "role" must have at least two values separated by "|", got: "admin".
-
-parseFieldsString("tags:array{}")
-// Error: array for field "tags" requires an item type, e.g. array{string}.
-
-parseFieldsString("name:enum{a|b")
-// Error: Unmatched braces in fields string.
-```
-
-***
-
-When to use fields vs schema [#when-to-use-fields-vs-schema]
-
-| Situation                                                     | Use                               |
-| ------------------------------------------------------------- | --------------------------------- |
-| Quick experiment, ad-hoc query                                | `fields`                          |
-| CLI one-liner                                                 | `fields` / `--fields`             |
-| All fields are required flat scalars, enums, or simple arrays | `fields`                          |
-| Need optional properties                                      | `schema`                          |
-| Need nested objects                                           | `schema`                          |
-| Need TypeScript inference on `result.data`                    | `schema` with `JSONSchemaType<T>` |
-| Schema is reused across calls                                 | `schema`                          |
-| Need `$ref`, `allOf`, `anyOf`, custom formats                 | `schema`                          |
-
-***
-
-See also [#see-also]
-
-* [extract()](/docs/sdk/extract) — full option reference
-* [CLI `--fields`](/docs/cli/fields) — using fields from the command line
 
 
 # SDK
@@ -4303,7 +3608,7 @@ Topics [#topics]
 
 * [installation](/docs/sdk/installation) — Install and configure the SDK
 * [extract](/docs/sdk/extract) — Core extraction function
-* [artifact-helpers](/docs/sdk/artifact-helpers) — Building artifacts from URLs and files
+* [parse](/docs/sdk/parse) — Building artifacts from URLs and files
 * [events](/docs/sdk/events) — Monitoring extraction progress
 
 
@@ -4337,7 +3642,181 @@ import { parse, fileToArtifact, urlToArtifact } from "@mateffy/struktur";
 See also [#see-also]
 
 * [extract()](/docs/sdk/extract) — main extraction function
-* [Artifact Helpers](/docs/sdk/artifact-helpers) — creating artifacts
+* [parse()](/docs/sdk/parse) — creating artifacts
+
+
+# parse()
+
+
+
+The `parse()` function is the primary way to load files and text into artifacts. It handles MIME detection, parser resolution, and PDF image extraction automatically.
+
+```typescript
+import { parse } from "@mateffy/struktur";
+
+const artifacts = await parse(
+  { kind: "file", path: "document.pdf" },
+  {
+    parserConfig: parsersConfig,   // ParsersConfig — keyed by MIME type
+    includeImages: true,           // extract embedded PDF images
+    screenshots: false,            // render PDF page screenshots
+    screenshotScale: 1.5,          // scale factor for screenshots
+    screenshotWidth: undefined,    // target width in pixels (overrides screenshotScale)
+  }
+);
+```
+
+***
+
+Input kinds [#input-kinds]
+
+| Input kind                             | Description                                                                            |
+| -------------------------------------- | -------------------------------------------------------------------------------------- |
+| `{ kind: "text", text }`               | Text artifact (split on double newlines)                                               |
+| `{ kind: "file", path, mimeType? }`    | File artifact — MIME auto-detected, parser resolved from `parserConfig` then built-ins |
+| `{ kind: "buffer", buffer, mimeType }` | Buffer artifact — parser resolved from `parserConfig` then built-ins                   |
+| `{ kind: "artifact-json", data }`      | Validates and hydrates pre-built artifact JSON                                         |
+
+***
+
+Options [#options]
+
+| Option            | Type            | Default | Description                                          |
+| ----------------- | --------------- | ------- | ---------------------------------------------------- |
+| `parserConfig`    | `ParsersConfig` | `{}`    | Custom parsers keyed by MIME type                    |
+| `includeImages`   | `boolean`       | `false` | Extract embedded images from PDFs                    |
+| `screenshots`     | `boolean`       | `false` | Render PDF page screenshots                          |
+| `screenshotScale` | `number`        | `1.5`   | Scale factor for screenshots                         |
+| `screenshotWidth` | `number`        | —       | Target width in pixels (overrides `screenshotScale`) |
+
+***
+
+Custom Parsers [#custom-parsers]
+
+Pass a `parserConfig` to use custom parsers without CLI config:
+
+```typescript
+import { parse } from "@mateffy/struktur";
+import type { ParsersConfig, InlineParserDef } from "@mateffy/struktur";
+import * as XLSX from "xlsx";
+
+// npm package parser
+const parserConfig: ParsersConfig = {
+  "application/vnd.ms-excel": {
+    type: "npm",
+    package: "@myorg/xlsx-parser",
+  },
+};
+
+// or inline parser
+const inlineParserConfig: ParsersConfig = {
+  "application/vnd.ms-excel": {
+    type: "inline",
+    handler: async (buffer) => {
+      const workbook = XLSX.read(buffer);
+      const contents = workbook.SheetNames.map((name, i) => ({
+        page: i + 1,
+        text: XLSX.utils.sheet_to_csv(workbook.Sheets[name]),
+      }));
+
+      return {
+        id: `excel-${crypto.randomUUID()}`,
+        type: "file",
+        raw: async () => buffer,
+        contents,
+      };
+    },
+  },
+};
+
+const artifacts = await parse(
+  { kind: "file", path: "report.xlsx" },
+  { parserConfig: inlineParserConfig }
+);
+```
+
+Inline parser signature [#inline-parser-signature]
+
+An inline parser is an async function that takes a Buffer and returns an Artifact:
+
+```typescript
+type InlineParserHandler = (buffer: Buffer) => Promise<Artifact>;
+
+const myParser: InlineParserHandler = async (buffer) => {
+  const pages = await parseMyFormat(buffer);
+
+  return {
+    id: `doc-${crypto.randomUUID()}`,
+    type: "file",
+    raw: async () => buffer,
+    contents: pages.map((page, i) => ({
+      page: i + 1,
+      text: page.text,
+      media: page.images.map((img) => ({
+        type: "image",
+        base64: img.base64,
+      })),
+    })),
+  };
+};
+```
+
+***
+
+Other Helpers [#other-helpers]
+
+urlToArtifact(url) [#urltoartifacturl]
+
+Fetches a URL and expects it to return pre-serialized artifact JSON. Validates and hydrates.
+
+```js
+import { urlToArtifact } from "@mateffy/struktur";
+
+const artifacts = await urlToArtifact("https://example.com/artifact.json");
+```
+
+parseSerializedArtifacts(text) [#parseserializedartifactstext]
+
+Parses a JSON string into artifacts with Ajv validation.
+
+validateSerializedArtifacts(data) [#validateserializedartifactsdata]
+
+Validates an already-parsed value against the artifact schema.
+
+hydrateSerializedArtifacts(items) [#hydrateserializedartifactsitems]
+
+Adds the `raw()` function to serialized artifacts.
+
+splitTextIntoContents(text) [#splittextintocontentstext]
+
+Splits a text string on double newlines into content slices.
+
+***
+
+Deprecated: fileToArtifact [#deprecated-filetoartifact]
+
+`fileToArtifact` is deprecated. Use `parse()` with `InlineParserDef` in `parserConfig` instead.
+
+**Important:** `fileToArtifact` uses the legacy `providers` registry, which does not include the built-in PDF parser or any parsers configured via `config parsers add`. For PDF and other format support, use `parse` instead.
+
+```js
+// Deprecated — use parse() instead
+import { fileToArtifact } from "@mateffy/struktur";
+import fs from "node:fs/promises";
+
+const buffer = Buffer.from(await fs.readFile("document.txt"));
+const artifact = await fileToArtifact(buffer, {
+  mimeType: "text/plain",
+  providers: { /* deprecated */ }
+});
+```
+
+***
+
+See also [#see-also]
+
+* [The Artifact Format](/docs/explanation/artifact-format) — JSON spec
+* [Document Parsing](/docs/explanation/document-parsing) — how files are converted to artifacts and extending the parser system
 
 
 # Agent Skill

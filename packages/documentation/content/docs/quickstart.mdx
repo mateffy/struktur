@@ -5,21 +5,6 @@ description: Get started with Struktur in under 5 minutes. Extract structured da
 
 Extract structured data from any file in 3 commands. About 5 minutes.
 
-## What we'll build
-
-We will extract structured invoice data from a PDF using the CLI.
-
-Expected output:
-
-```json
-{
-  "invoice_number": "1042",
-  "vendor": "Acme Corp",
-  "total": 2400,
-  "due_date": "April 1, 2026"
-}
-```
-
 ## Prerequisites
 
 - Node.js 18+ or Bun installed
@@ -45,21 +30,7 @@ You should see the usage output.
 
 ## Step 2: Configure your API key
 
-**Option A (quick, for testing):**
-
-```bash
-export OPENAI_API_KEY=sk-...
-```
-
-**Option B (secure, persisted):**
-
-```bash
-echo "sk-..." | struktur config providers add openai --token-stdin
-```
-
-Output: `{ "provider": "openai", "stored": "keychain" }` (or `"file"` on Linux).
-
-**Option C (one command, fully ready):**
+Store your API key securely with the CLI:
 
 ```bash
 echo "sk-..." | struktur config providers add openai --token-stdin --default
@@ -67,9 +38,9 @@ echo "sk-..." | struktur config providers add openai --token-stdin --default
 
 The `--default` flag automatically queries the provider API and sets the cheapest available model as default, so `--model` becomes optional in all future commands.
 
-## Step 2b: Set a default model (optional)
+Output: `{ "provider": "openai", "stored": "keychain" }` (or `"file"` on Linux).
 
-If you didn't use `--default` above, set a default model explicitly:
+### Set a default model (if not using --default)
 
 ```bash
 struktur config models use openai/gpt-4o-mini
@@ -96,7 +67,7 @@ struktur --input invoice.pdf \
   --model openai/gpt-4o-mini
 ```
 
-The `--fields` flag builds a JSON Schema on the fly. Each field defaults to `string`; append `:number`, `:integer`, `:bool`, etc. to set the type. See [--fields reference](/docs/cli/fields) for the full syntax.
+The `--fields` flag builds a JSON Schema on the fly. Each field defaults to `string`; append `:number`, `:integer`, `:bool`, etc. to set the type. See [Fields Shorthand](/docs/cli/fields) for the full syntax.
 
 If you need more control (optional fields, nested objects), pass a full schema instead:
 
@@ -124,4 +95,4 @@ To understand what happened inside, read [The Extraction Pipeline](/docs/explana
 | Solve a real problem | [Extract Invoice Data](/docs/examples/extract-invoice) |
 | Look up all CLI flags | [CLI Reference](/docs/cli/extract) |
 | Use it in TypeScript | [TypeScript SDK](/docs/sdk/installation) |
-| Understand file parsing | [Parsers](/docs/explanation/parsers) |
+| Understand file parsing | [Document Parsing](/docs/explanation/document-parsing) |

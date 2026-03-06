@@ -2,10 +2,10 @@
   "title": "Concepts",
   "pages": [
     "pipeline",
-    "parsers",
-    "preprocessing",
-    "chunking",
+    "document-parsing",
+    "artifact-format",
     "strategies",
+    "chunking",
     "validation"
   ]
 }

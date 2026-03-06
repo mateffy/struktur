@@ -21,23 +21,21 @@ struktur --help
 
 ## Configure a provider (required)
 
-### Option A: Environment variable (not persisted)
-
-```bash
-export OPENAI_API_KEY=sk-...
-export ANTHROPIC_API_KEY=sk-ant-...
-export GOOGLE_GENERATIVE_AI_API_KEY=AI...
-export OPENCODE_API_KEY=...
-export OPENROUTER_API_KEY=...
-```
-
-### Option B: Stored token (persisted)
+Store your API key securely with the CLI:
 
 ```bash
 echo "$OPENAI_API_KEY" | struktur config providers add openai --token-stdin
 ```
 
 On macOS, tokens are stored in Keychain. On other platforms, `~/.config/struktur/tokens.json` (chmod 600).
+
+## Quick setup with --default
+
+```bash
+echo "$OPENAI_API_KEY" | struktur config providers add openai --token-stdin --default
+```
+
+The `--default` flag automatically queries the provider API and sets the cheapest available model as default. One command, fully ready.
 
 ## Set a default model
 
@@ -52,15 +50,9 @@ struktur config models use fast
 
 Once set, `--model` is optional in `extract` commands.
 
-## Quick setup with --default
-
-```bash
-echo "$OPENAI_API_KEY" | struktur config providers add openai --token-stdin --default
-```
-
-The `--default` flag automatically queries the provider API and sets the cheapest available model as default. One command, fully ready.
-
 ## Environment variables
+
+Provider API keys can also be set via environment variables. This is useful for CI/CD or temporary sessions, but stored tokens are recommended for regular use.
 
 ### Provider API keys
 

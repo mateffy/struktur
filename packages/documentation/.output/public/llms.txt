@@ -1,9 +1,8 @@
 # Documentation
 
 - [config](/docs/cli/config): Manage providers, models, and parsers.
-- [Environment Variables](/docs/cli/environment): Configure Struktur via environment variables.
 - [extract](/docs/cli/extract): Main extraction command for Struktur CLI.
-- [--fields](/docs/cli/fields): Build schemas on the fly from the CLI using a concise field definition string.
+- [Fields Shorthand](/docs/cli/fields): Build schemas on the fly from the CLI using a concise field definition string.
 - [CLI](/docs/cli): undefined
 - [Installation & Setup](/docs/cli/installation): Install and configure Struktur.
 - [parse](/docs/cli/parse): Convert files to Artifact JSON for inspection or pre-processing.
@@ -16,33 +15,20 @@
 - [Shell Pipelines & Patterns](/docs/examples/pipelines): Practical patterns for using Struktur in shell workflows.
 - [Process a Directory of Files](/docs/examples/process-directory): Batch processing with shell pipelines or scripts.
 - [Watch a Folder for New Files](/docs/examples/watch-folder): Process files as they arrive in a folder.
+- [Artifact Format](/docs/explanation/artifact-format): The artifact abstraction and complete specification.
 - [Chunking & Token Budgets](/docs/explanation/chunking): How large documents are split and merged to fit within context windows.
+- [Document Parsing](/docs/explanation/document-parsing): How Struktur converts files into Artifacts before extraction.
 - [Explanation](/docs/explanation): undefined
-- [Parsers](/docs/explanation/parsers): How Struktur converts files into Artifacts before extraction.
 - [Extraction Lifecycle](/docs/explanation/pipeline): How data flows through Struktur from input to output.
-- [Artifact Format](/docs/explanation/preprocessing/artifact-format): The artifact abstraction and complete specification.
-- [Built-in Input Types](/docs/explanation/preprocessing/built-in-inputs): All the ways to get input into Struktur without building a custom provider.
-- [Custom Parser](/docs/explanation/preprocessing/custom-provider): How to add support for a new file format at the SDK level.
-- [Document Processing](/docs/explanation/preprocessing): undefined
-- [Choosing a Strategy](/docs/explanation/strategies/choosing): Decision guide for selecting the right extraction strategy.
-- [Writing a Custom Strategy](/docs/explanation/strategies/custom-strategy): How to implement your own extraction strategy.
-- [doublePassAutoMerge](/docs/explanation/strategies/double-pass-auto-merge): Double-pass extraction with schema-aware merge and deduplication.
-- [doublePass](/docs/explanation/strategies/double-pass): Parallel pass for speed, sequential pass for refinement.
-- [Struktur](/docs/explanation/strategies): The design philosophy, trade-offs, and extraction strategies behind Struktur.
-- [parallelAutoMerge](/docs/explanation/strategies/parallel-auto-merge): Parallel extraction with schema-aware merge and deduplication.
-- [parallel](/docs/explanation/strategies/parallel): Concurrent batch processing with LLM merge.
-- [sequentialAutoMerge](/docs/explanation/strategies/sequential-auto-merge): Sequential extraction with schema-aware merge and deduplication.
-- [sequential](/docs/explanation/strategies/sequential): Process chunks in order with context preservation.
-- [simple](/docs/explanation/strategies/simple): Single-shot extraction for small inputs.
+- [Extraction Strategies](/docs/explanation/strategies): Built-in strategies for different extraction patterns and how to choose the right one.
 - [Validation & Retries](/docs/explanation/validation): How the schema validation loop works and why it matters.
 - [What is Struktur?](/docs): Struktur is a structured data extraction engine that turns pre-parsed documents into validated JSON using LLMs.
 - [Quickstart](/docs/quickstart): Get started with Struktur in under 5 minutes. Extract structured data from any file.
-- [Artifact Helpers](/docs/sdk/artifact-helpers): Functions to create artifacts from various sources.
 - [Events & Observability](/docs/sdk/events): Event handlers for progress tracking and observability.
 - [extract()](/docs/sdk/extract): Main extraction function for the TypeScript SDK.
-- [Fields Shorthand](/docs/sdk/fields): Build JSON schemas on the fly with a simple comma-separated string instead of writing full JSON Schema objects.
 - [SDK](/docs/sdk): undefined
 - [Installation](/docs/sdk/installation): Install the Struktur TypeScript SDK.
+- [parse()](/docs/sdk/parse): Load files and text into artifacts for extraction.
 - [Agent Skill](/docs/skill): Install the Struktur agent skill to teach AI coding assistants how to use Struktur.
 - [Installation](/docs/skill/installation): Install the Struktur agent skill for your preferred AI coding tool.
 - [Usage](/docs/skill/usage): How to use the Struktur agent skill with your AI coding assistant.

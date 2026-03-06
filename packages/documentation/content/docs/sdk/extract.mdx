@@ -25,7 +25,7 @@ console.log(result.usage.totalTokens);
 |-------|----------|-------------|
 | `artifacts` | Yes | Array of artifacts to extract from |
 | `schema` | One of `schema` or `fields` | JSON Schema for output validation |
-| `fields` | One of `schema` or `fields` | [Fields shorthand](/docs/sdk/fields) — comma-separated field definitions |
+| `fields` | One of `schema` or `fields` | [Fields shorthand](/docs/cli/fields) — comma-separated field definitions |
 | `strategy` | Yes | A strategy instance |
 | `events` | No | Event handlers for progress tracking |
 
@@ -51,11 +51,11 @@ const result = await extract({
 });
 ```
 
-`fields` supports scalar types (`string`, `number`/`float`, `boolean`/`bool`, `integer`, `int`), enum sets (`status:enum{draft|live}`), and arrays (`tags:array{string}`). See the [Fields Shorthand](/docs/sdk/fields) reference for the full syntax.
+`fields` supports scalar types (`string`, `number`/`float`, `boolean`/`bool`, `integer`, `int`), enum sets (`status:enum{draft|live}`), and arrays (`tags:array{string}`). See the [Fields Shorthand](/docs/cli/fields) reference for the full syntax.
 
 ## See also
 
-- [Fields Shorthand](/docs/sdk/fields) — quick schema syntax reference
+- [Fields Shorthand](/docs/cli/fields) — quick schema syntax reference
 - [Installation & Setup](/docs/cli/installation) — getting started
-- [Strategy Factory Functions](/docs/explanation/strategies) — creating strategies
+- [Extraction Strategies](/docs/explanation/strategies) — creating strategies
 - [Events & Observability](/docs/sdk/events) — progress tracking
