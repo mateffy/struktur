@@ -6,7 +6,9 @@
   ],
   "scripts": {
     "test": "bun test",
-    "build:docs": "bun run --filter @struktur/documentation build",
+    "docs": "bun run docs:build && bun run docs:publish",
+    "docs:build": "bun run --filter @struktur/documentation build",
+    "docs:publish": "git add ./docs ./packages/documentation && git commit -m 'chore: update docs' && git push",
     "version:patch": "bun scripts/version.ts patch",
     "version:minor": "bun scripts/version.ts minor",
     "version:major": "bun scripts/version.ts major",
