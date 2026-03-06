@@ -1,5 +1,5 @@
 <picture>
-  <img src="./resources/og-tight.png" alt="">
+  <img src="./resources/og-tight.webp" alt="">
 </picture>
 
 <picture height="0">
