@@ -12,7 +12,32 @@ const packages = ["packages/sdk", "packages/cli"];
 
 for (const pkg of packages) {
   console.log(`Updating ${pkg}...`);
-  await $`npm version ${versionType} --no-git-tag-version`.cwd(pkg);
+  
+  // Read package.json
+  const pkgPath = `${pkg}/package.json`;
+  const pkgJson = await Bun.file(pkgPath).json();
+  
+  // Parse current version
+  const currentVersion = pkgJson.version;
+  const [major, minor, patch] = currentVersion.split(".").map(Number);
+  
+  // Calculate new version
+  let newVersion: string;
+  if (versionType === "major") {
+    newVersion = `${major + 1}.0.0`;
+  } else if (versionType === "minor") {
+    newVersion = `${major}.${minor + 1}.0`;
+  } else {
+    newVersion = `${major}.${minor}.${patch + 1}`;
+  }
+  
+  // Update version
+  pkgJson.version = newVersion;
+  
+  // Write back
+  await Bun.write(pkgPath, JSON.stringify(pkgJson, null, 2) + "\n");
+  
+  console.log(`${pkgJson.name}: v${newVersion}`);
 }
 
 console.log("Done!");

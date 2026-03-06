@@ -79,3 +79,18 @@ test("hello world", () => {
 ## Agent Notes
 
 - When you add or significantly change code under `packages/*/src/`, update the nearest `AGENTS.md` in that subtree to reflect the current structure and responsibilities.
+
+## Release Process
+
+1. **Version bump**: Run `bun run version:<patch|minor|major>` to bump versions in all packages
+2. **Commit changes**: Commit the version bumps with message "v<version>"
+3. **Publish**: Run `bun run publish` to:
+   - Create a git tag
+   - Push the tag to GitHub
+   - Publish packages to npm
+   - Create a GitHub release with auto-generated notes
+
+The publish script requires:
+- Clean working directory (no uncommitted changes)
+- GitHub CLI (`gh`) installed for creating releases
+- npm authentication configured for publishing
