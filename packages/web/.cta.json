@@ -1,0 +1,23 @@
+{
+  "projectName": "web",
+  "mode": "file-router",
+  "typescript": true,
+  "packageManager": "bun",
+  "includeExamples": false,
+  "tailwind": true,
+  "addOnOptions": {},
+  "envVarValues": {},
+  "git": false,
+  "routerOnly": false,
+  "version": 1,
+  "framework": "react",
+  "chosenAddOns": [
+    "biome",
+    "nitro",
+    "shadcn",
+    "paraglide",
+    "t3env",
+    "store",
+    "tanstack-query"
+  ]
+}

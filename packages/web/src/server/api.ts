@@ -1,0 +1,271 @@
+import {
+  detectMimeType,
+  runParser,
+  parsePdf,
+  splitTextIntoContents,
+  extract,
+  simple,
+  parallel,
+  sequential,
+  parallelAutoMerge,
+  sequentialAutoMerge,
+  doublePass,
+  doublePassAutoMerge,
+  resolveAlias,
+  getDefaultModel,
+  listParsers,
+  hydrateSerializedArtifacts,
+} from '@struktur/sdk'
+import type { SerializedArtifact, ParsersConfig, NpmParserDef } from '@struktur/sdk'
+import { mkdir, writeFile } from 'node:fs/promises'
+import path from 'node:path'
+import os from 'node:os'
+
+const CONFIG_DIR = process.env.STRUKTUR_CONFIG_DIR ?? path.join(os.homedir(), '.config', 'struktur')
+const EXTRACTIONS_DIR = path.join(CONFIG_DIR, 'extractions')
+
+async function ensureExtractionsDir() {
+  await mkdir(EXTRACTIONS_DIR, { recursive: true, mode: 0o700 })
+}
+
+function generateExtractionId() {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+  const random = Math.random().toString(36).slice(2, 8)
+  return `${timestamp}-${random}`
+}
+
+async function saveExtraction(id: string, data: {
+  files: string[]
+  schema: unknown
+  result: unknown
+  artifacts: SerializedArtifact[]
+}) {
+  await ensureExtractionsDir()
+  const filepath = path.join(EXTRACTIONS_DIR, `${id}.json`)
+  await writeFile(filepath, JSON.stringify(data, null, 2), 'utf-8')
+  return filepath
+}
+
+export async function parseFiles(files: File[], options: {
+  images?: boolean
+  screenshots?: boolean
+  parser?: string
+}): Promise<SerializedArtifact[]> {
+  const parsersConfig: ParsersConfig = await listParsers().catch(() => ({}))
+  
+  const artifacts: SerializedArtifact[] = []
+  
+  for (const file of files) {
+    const buffer = Buffer.from(await file.arrayBuffer())
+    const filePath = file.name
+    
+    // Detect MIME type
+    const npmParserEntries = Object.entries(parsersConfig)
+      .filter((entry): entry is [string, NpmParserDef] => entry[1].type === 'npm')
+      .map(([mimeType, def]) => ({ mimeType, def }))
+    
+    const mimeType = await detectMimeType({
+      buffer,
+      filePath,
+      npmParsers: npmParserEntries,
+    })
+    
+    if (!mimeType) {
+      throw new Error(`Cannot detect MIME type for file "${file.name}"`)
+    }
+    
+    // Resolve parser
+    const effectiveParsers: ParsersConfig = { ...parsersConfig }
+    if (options.parser) {
+      effectiveParsers[mimeType] = { type: 'npm', package: options.parser }
+    }
+    
+    const parserDef = effectiveParsers[mimeType]
+    
+    let fileArtifacts: SerializedArtifact[] = []
+    
+    if (parserDef) {
+      const parsed = await runParser(parserDef, { kind: 'buffer', buffer }, mimeType)
+      fileArtifacts = parsed.map(a => serializeArtifact(a))
+    } else if (mimeType === 'application/pdf') {
+      const parsed = await parsePdf(buffer, {
+        includeImages: options.images ?? false,
+        screenshots: options.screenshots ?? false,
+      })
+      fileArtifacts = [serializeArtifact(parsed)]
+    } else if (mimeType.startsWith('text/')) {
+      const text = buffer.toString()
+      const contents = splitTextIntoContents(text)
+      fileArtifacts = [{
+        id: `artifact-${crypto.randomUUID()}`,
+        type: 'text',
+        contents: contents.map(c => ({
+          ...(c.page !== undefined ? { page: c.page } : {}),
+          ...(c.text !== undefined ? { text: c.text } : {}),
+        })),
+      }]
+    } else if (mimeType.startsWith('image/')) {
+      fileArtifacts = [{
+        id: `artifact-${crypto.randomUUID()}`,
+        type: 'image',
+        contents: [{ media: [{ type: 'image', base64: buffer.toString('base64') }] }],
+      }]
+    } else {
+      throw new Error(`No parser configured for MIME type "${mimeType}"`)
+    }
+    
+    artifacts.push(...fileArtifacts)
+  }
+  
+  return artifacts
+}
+
+function serializeArtifact(artifact: any): SerializedArtifact {
+  const contents = artifact.contents.map((c: any) => {
+    const entry: any = {}
+    if (c.page !== undefined) entry.page = c.page
+    if (c.text !== undefined) entry.text = c.text
+    if (c.media) {
+      entry.media = c.media.map((m: any) => {
+        const img: any = { type: 'image' }
+        if (m.url) img.url = m.url
+        if (m.base64) img.base64 = m.base64
+        if (m.contents) img.base64 = m.contents.toString('base64')
+        if (m.text) img.text = m.text
+        if (m.width !== undefined) img.width = m.width
+        if (m.height !== undefined) img.height = m.height
+        if (m.imageType) img.imageType = m.imageType
+        return img
+      })
+    }
+    return entry
+  })
+  
+  const result: any = {
+    id: artifact.id,
+    type: artifact.type,
+    contents,
+  }
+  
+  if (artifact.metadata) {
+    result.metadata = JSON.parse(JSON.stringify(artifact.metadata))
+  }
+  
+  return result
+}
+
+export async function extractData(
+  artifacts: SerializedArtifact[],
+  schemaMode: 'json' | 'fields',
+  schemaJson: string | null,
+  fields: string | null,
+  modelSpec: string,
+  strategyName: string,
+  chunkSize: number,
+): Promise<{ data: unknown; usage: { inputTokens: number; outputTokens: number } }> {
+  // Resolve model
+  const resolvedModel = modelSpec || await getDefaultModel() || 'openai/gpt-4o-mini'
+  const model = await resolveAlias(resolvedModel)
+  
+  // Create strategy
+  const strategy = createStrategy(strategyName, model, chunkSize)
+  
+  // Build schema
+  let schema: any
+  if (schemaMode === 'json' && schemaJson) {
+    schema = JSON.parse(schemaJson)
+  } else if (schemaMode === 'fields' && fields) {
+    schema = parseFieldsShorthand(fields)
+  } else {
+    throw new Error('Schema is required')
+  }
+  
+  // Run extraction
+  const hydratedArtifacts = await hydrateSerializedArtifacts(artifacts)
+  const result = await extract({
+    artifacts: hydratedArtifacts,
+    schema,
+    strategy,
+  })
+  
+  if (result.error) {
+    throw result.error
+  }
+  
+  return {
+    data: result.data,
+    usage: result.usage,
+  }
+}
+
+function createStrategy(name: string, model: string, chunkSize: number) {
+  switch (name) {
+    case 'simple':
+      return simple({ model: { provider: model.split('/')[0], id: model.split('/')[1] } })
+    case 'parallel':
+      return parallel({ model: { provider: model.split('/')[0], id: model.split('/')[1] }, mergeModel: { provider: model.split('/')[0], id: model.split('/')[1] }, chunkSize })
+    case 'sequential':
+      return sequential({ model: { provider: model.split('/')[0], id: model.split('/')[1] }, chunkSize })
+    case 'parallelAutoMerge':
+      return parallelAutoMerge({ model: { provider: model.split('/')[0], id: model.split('/')[1] }, dedupeModel: { provider: model.split('/')[0], id: model.split('/')[1] }, chunkSize })
+    case 'sequentialAutoMerge':
+      return sequentialAutoMerge({ model: { provider: model.split('/')[0], id: model.split('/')[1] }, dedupeModel: { provider: model.split('/')[0], id: model.split('/')[1] }, chunkSize })
+    case 'doublePass':
+      return doublePass({ model: { provider: model.split('/')[0], id: model.split('/')[1] }, mergeModel: { provider: model.split('/')[0], id: model.split('/')[1] }, chunkSize })
+    case 'doublePassAutoMerge':
+      return doublePassAutoMerge({ model: { provider: model.split('/')[0], id: model.split('/')[1] }, dedupeModel: { provider: model.split('/')[0], id: model.split('/')[1] }, chunkSize })
+    default:
+      throw new Error(`Unknown strategy: ${name}`)
+  }
+}
+
+function parseFieldsShorthand(fields: string): any {
+  const properties: any = {}
+  const required: string[] = []
+  
+  const parts = fields.split(',').map(s => s.trim()).filter(Boolean)
+  
+  for (const part of parts) {
+    const match = part.match(/^(\w+)(?::(\w+))?(?:\{([^}]+)\})?$/)
+    if (!match) continue
+    
+    const [, name, type, subtype] = match
+    required.push(name)
+    
+    if (type === 'number') {
+      properties[name] = { type: 'number' }
+    } else if (type === 'boolean') {
+      properties[name] = { type: 'boolean' }
+    } else if (type === 'array') {
+      if (subtype) {
+        if (subtype.includes('|')) {
+          // enum array
+          properties[name] = {
+            type: 'array',
+            items: { enum: subtype.split('|') }
+          }
+        } else {
+          // typed array
+          properties[name] = {
+            type: 'array',
+            items: { type: subtype }
+          }
+        }
+      } else {
+        properties[name] = { type: 'array' }
+      }
+    } else if (type === 'enum' && subtype) {
+      properties[name] = { enum: subtype.split('|') }
+    } else {
+      properties[name] = { type: 'string' }
+    }
+  }
+  
+  return {
+    type: 'object',
+    properties,
+    required,
+  }
+}
+
+export { saveExtraction, generateExtractionId }

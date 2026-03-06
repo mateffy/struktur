@@ -1,0 +1,12 @@
+{
+  "extract.title": "Extract",
+  "extract.description": "Extract structured data from documents",
+  "extract.upload": "Upload files",
+  "extract.parse": "Parse Only",
+  "extract.extract": "Extract",
+  "extract.schema": "Schema",
+  "extract.settings": "Settings",
+  "extract.progress": "Progress",
+  "extract.jsonOutput": "JSON Output",
+  "extract.formatted": "Formatted"
+}
