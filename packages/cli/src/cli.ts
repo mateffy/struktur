@@ -32,6 +32,7 @@ import {
   listAllProviderModels,
   listProviderModels,
   resolveCheapestModel,
+  resolveModel,
 } from "@struktur/sdk";
 import type {
   ExtractionEvents,
@@ -63,7 +64,6 @@ import {
   readStdinText,
   resolveDefaultModelSpec,
   resolveExplicitModelSpec,
-  resolveModel,
   stdinConsumed,
   UserError,
 } from "./cli/shared";
@@ -1450,9 +1450,9 @@ const providersCommand = defineCommand({
   },
 });
 
-const verifyCommand = defineCommand({
+const utilsVerifyArtifactCommand = defineCommand({
   meta: {
-    name: "verify",
+    name: "verify-artifact",
     description: "Validate artifact JSON from file or stdin",
   },
   args: {
@@ -1472,7 +1472,7 @@ const verifyCommand = defineCommand({
     const useStdin = args.stdin === true;
 
     if (!args.input && !useStdin) {
-      const usageText = await renderUsage(verifyCommand);
+      const usageText = await renderUsage(utilsVerifyArtifactCommand);
       process.stderr.write(`${usageText}\n`);
       process.stderr.write("error: Specify an input source: --input <file> or --stdin\n");
       process.exit(1);
@@ -2190,6 +2190,7 @@ const utilsCommand = defineCommand({
   },
   subCommands: {
     "artifact-viewer": utilsArtifactViewerCommand,
+    "verify-artifact": utilsVerifyArtifactCommand,
   },
 });
 
@@ -2203,7 +2204,6 @@ const main = defineCommand({
     extract: extractCommand,
     parse: parseCommand,
     config: configCommand,
-    verify: verifyCommand,
     utils: utilsCommand,
   },
 });

@@ -5,15 +5,15 @@ import {
   ModelSelectorContent,
   ModelSelectorEmpty,
   ModelSelectorGroup,
+  ModelSelectorGroupHeading,
   ModelSelectorInput,
   ModelSelectorItem,
   ModelSelectorList,
   ModelSelectorName,
   ModelSelectorTrigger,
-  ModelSelectorLogo,
+  ModelSelectorSeparator,
 } from '@/components/ai-elements/model-selector'
-import { ChevronsUpDown } from 'lucide-react'
-import { fetchModels, fetchConfig } from '@/server/models'
+import { ChevronsUpDown, Sparkles, Zap, Check } from 'lucide-react'
 
 type Model = {
   id: string
@@ -25,6 +25,22 @@ type Model = {
 type Alias = {
   alias: string
   model: string
+}
+
+async function fetchModels(): Promise<Model[]> {
+  const response = await fetch('/api/models')
+  if (!response.ok) {
+    throw new Error('Failed to fetch models')
+  }
+  return response.json()
+}
+
+async function fetchConfig(): Promise<{ defaultModel: string | null; aliases: Record<string, string> }> {
+  const response = await fetch('/api/config')
+  if (!response.ok) {
+    throw new Error('Failed to fetch config')
+  }
+  return response.json()
 }
 
 type ModelSelectorProps = {
@@ -44,7 +60,6 @@ function getCachedModels(): Model[] | null {
     const { models, timestamp } = JSON.parse(cached)
     const age = Date.now() - timestamp
     
-    // Return cached models if they're less than 1 hour old
     if (age < CACHE_DURATION) {
       return models
     }
@@ -95,6 +110,28 @@ function setCachedConfig(config: { defaultModel: string | null; aliases: Alias[]
   }
 }
 
+// Provider color mapping for spice
+const PROVIDER_COLORS: Record<string, string> = {
+  openai: '#10a37f',
+  anthropic: '#d97757',
+  google: '#4285f4',
+  mistral: '#fd6c35',
+  groq: '#f97316',
+  togetherai: '#6366f1',
+  fireworks: '#0ea5e9',
+  cerebras: '#ec4899',
+  perplexity: '#22c55e',
+  deepseek: '#6366f1',
+  xai: '#000000',
+  azure: '#0078d4',
+  nebius: '#8b5cf6',
+  lmstudio: '#f59e0b',
+}
+
+function getProviderColor(provider: string): string {
+  return PROVIDER_COLORS[provider.toLowerCase()] || '#7a5c3a'
+}
+
 export function ModelSelectorComponent({ value, onChange }: ModelSelectorProps) {
   const [models, setModels] = useState<Model[]>(() => getCachedModels() || [])
   const [aliases, setAliases] = useState<Alias[]>(() => {
@@ -110,7 +147,6 @@ export function ModelSelectorComponent({ value, onChange }: ModelSelectorProps) 
   const [initialized, setInitialized] = useState(false)
 
   useEffect(() => {
-    // Always fetch in background to keep cache fresh
     Promise.all([fetchModels(), fetchConfig()])
       .then(([fetchedModels, config]) => {
         setModels(fetchedModels)
@@ -129,15 +165,14 @@ export function ModelSelectorComponent({ value, onChange }: ModelSelectorProps) 
         setLoading(false)
       })
       .catch((error) => {
-        // Only show error if we don't have cached data
         if (models.length === 0) {
           console.error('Failed to fetch models:', error)
         }
         setLoading(false)
       })
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-  // Set default model on first load if no value is set
   useEffect(() => {
     if (!initialized && !loading && !value && defaultModel) {
       onChange(defaultModel)
@@ -147,7 +182,6 @@ export function ModelSelectorComponent({ value, onChange }: ModelSelectorProps) 
     }
   }, [initialized, loading, value, defaultModel, onChange])
 
-  // Group models by provider
   const groupedModels = useMemo(() => {
     return models.reduce((acc, model) => {
       if (!acc[model.provider]) {
@@ -161,6 +195,11 @@ export function ModelSelectorComponent({ value, onChange }: ModelSelectorProps) 
   const selectedModel = models.find(m => m.fullId === value)
   const selectedAlias = aliases.find(a => a.alias === value || a.model === value)
 
+  // Get display info
+  const displayName = selectedAlias?.alias || selectedModel?.name || (loading ? 'Loading...' : 'Select model')
+  const displayProvider = selectedModel?.provider || selectedAlias?.model?.split('/')[0]
+  const providerColor = displayProvider ? getProviderColor(displayProvider) : '#7a5c3a'
+
   return (
     <ModelSelector open={open} onOpenChange={setOpen}>
       <ModelSelectorTrigger asChild>
@@ -168,71 +207,112 @@ export function ModelSelectorComponent({ value, onChange }: ModelSelectorProps) 
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between font-normal"
+          className="w-full justify-between h-11 px-3 bg-[#f5efe6] border-[#d4c8b8] text-[#2d1b0e] hover:bg-[#ede5d8] hover:text-[#3d2b15] group transition-all"
           disabled={loading && models.length === 0}
         >
-          {selectedAlias ? (
-            <span className="truncate">
-              {selectedAlias.alias}
+          <div className="flex items-center gap-2 overflow-hidden">
+            {selectedAlias && (
+              <span className="flex items-center justify-center w-5 h-5 rounded bg-[#7a5c3a] text-white">
+                <Zap className="w-3 h-3" />
+              </span>
+            )}
+            {selectedModel && !selectedAlias && (
+              <span 
+                className="w-2 h-2 rounded-full shrink-0"
+                style={{ backgroundColor: providerColor }}
+              />
+            )}
+            <span className="truncate font-medium">
+              {displayName}
             </span>
-          ) : selectedModel ? (
-            <span className="truncate">
-              {selectedModel.name}
-            </span>
-          ) : (
-            <span className="text-muted-foreground">
-              {loading && models.length === 0 ? 'Loading models...' : 'Select model...'}
-            </span>
-          )}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </div>
+          <ChevronsUpDown className="h-4 w-4 shrink-0 text-[#a0926f] group-hover:text-[#7a5c3a] transition-colors" />
         </Button>
       </ModelSelectorTrigger>
-      <ModelSelectorContent className="w-[400px]" title="Select Model">
-        <ModelSelectorInput placeholder="Search models..." />
+      
+      <ModelSelectorContent>
+        <div className="flex items-center gap-2 px-3 py-2 border-b border-[#d4c8b8] bg-[#ede5d8]">
+          <Sparkles className="w-4 h-4 text-[#7a5c3a]" />
+          <span className="text-xs font-semibold uppercase tracking-wider text-[#7a5c3a]">
+            Select Model
+          </span>
+        </div>
+        
+        <ModelSelectorInput placeholder="Search models or aliases..." />
+        
         <ModelSelectorList>
           <ModelSelectorEmpty>No models found.</ModelSelectorEmpty>
+          
           {aliases.length > 0 && (
-            <ModelSelectorGroup key="aliases" heading="ALIASES">
-              {aliases.map((alias) => (
-                <ModelSelectorItem
-                  key={alias.alias}
-                  value={alias.alias}
-                  onSelect={() => {
-                    onChange(alias.alias)
-                    setOpen(false)
-                  }}
-                >
-                  <ModelSelectorName>
-                    <div className="flex flex-col">
-                      <span className="font-medium">{alias.alias}</span>
-                      <span className="text-xs text-muted-foreground">{alias.model}</span>
-                    </div>
-                  </ModelSelectorName>
-                </ModelSelectorItem>
-              ))}
-            </ModelSelectorGroup>
+            <>
+              <ModelSelectorGroupHeading heading="Quick Picks" />
+              <ModelSelectorGroup>
+                {aliases.map((alias) => (
+                  <ModelSelectorItem
+                    key={alias.alias}
+                    value={alias.alias}
+                    onSelect={() => {
+                      onChange(alias.alias)
+                      setOpen(false)
+                    }}
+                  >
+                    <span className="flex items-center justify-center w-6 h-6 rounded bg-[#7a5c3a] text-white mr-2">
+                      <Zap className="w-3 h-3" />
+                    </span>
+                    <ModelSelectorName>
+                      <div className="flex flex-col">
+                        <span className="font-semibold">{alias.alias}</span>
+                        <span className="text-xs text-[#a0926f]">{alias.model}</span>
+                      </div>
+                    </ModelSelectorName>
+                    {value === alias.alias && (
+                      <Check className="w-4 h-4 text-[#7a5c3a] ml-auto" />
+                    )}
+                  </ModelSelectorItem>
+                ))}
+              </ModelSelectorGroup>
+              <ModelSelectorSeparator />
+            </>
           )}
-          {Object.entries(groupedModels).map(([provider, providerModels]) => (
-            <ModelSelectorGroup key={provider} heading={provider.toUpperCase()}>
-              {providerModels.map((model) => (
-                <ModelSelectorItem
-                  key={model.fullId}
-                  value={model.fullId}
-                  onSelect={() => {
-                    onChange(model.fullId)
-                    setOpen(false)
-                  }}
-                >
-                  <ModelSelectorLogo provider={provider} />
-                  <ModelSelectorName>
-                    <div className="flex flex-col">
-                      <span className="font-medium">{model.name}</span>
-                      <span className="text-xs text-muted-foreground">{model.id}</span>
-                    </div>
-                  </ModelSelectorName>
-                </ModelSelectorItem>
-              ))}
-            </ModelSelectorGroup>
+          
+          {Object.entries(groupedModels).map(([provider, providerModels], groupIndex) => (
+            <div key={provider}>
+              {groupIndex > 0 && <ModelSelectorSeparator />}
+              <ModelSelectorGroupHeading 
+                heading={provider.charAt(0).toUpperCase() + provider.slice(1)} 
+              />
+              <ModelSelectorGroup>
+                {providerModels.map((model) => {
+                  const isSelected = value === model.fullId
+                  const color = getProviderColor(provider)
+                  
+                  return (
+                    <ModelSelectorItem
+                      key={model.fullId}
+                      value={model.fullId}
+                      onSelect={() => {
+                        onChange(model.fullId)
+                        setOpen(false)
+                      }}
+                    >
+                      <span 
+                        className="w-2 h-2 rounded-full shrink-0 mr-2"
+                        style={{ backgroundColor: color }}
+                      />
+                      <ModelSelectorName>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{model.name}</span>
+                          <span className="text-xs text-[#a0926f] font-mono">{model.id}</span>
+                        </div>
+                      </ModelSelectorName>
+                      {isSelected && (
+                        <Check className="w-4 h-4 text-[#7a5c3a] ml-auto" />
+                      )}
+                    </ModelSelectorItem>
+                  )
+                })}
+              </ModelSelectorGroup>
+            </div>
           ))}
         </ModelSelectorList>
       </ModelSelectorContent>

@@ -12,6 +12,7 @@ import {
   doublePass,
   doublePassAutoMerge,
   resolveAlias,
+  resolveModel,
   getDefaultModel,
   listParsers,
   hydrateSerializedArtifacts,
@@ -154,6 +155,11 @@ function serializeArtifact(artifact: any): SerializedArtifact {
   return result
 }
 
+export type ExtractionEvent = {
+  type: 'step' | 'message' | 'progress' | 'tokenUsage' | 'retry' | 'complete' | 'error'
+  data: unknown
+}
+
 export async function extractData(
   artifacts: SerializedArtifact[],
   schemaMode: 'json' | 'fields',
@@ -162,10 +168,12 @@ export async function extractData(
   modelSpec: string,
   strategyName: string,
   chunkSize: number,
+  onEvent?: (event: ExtractionEvent) => void,
 ): Promise<{ data: unknown; usage: { inputTokens: number; outputTokens: number } }> {
   // Resolve model
   const resolvedModel = modelSpec || await getDefaultModel() || 'openai/gpt-4o-mini'
-  const model = await resolveAlias(resolvedModel)
+  const modelString = await resolveAlias(resolvedModel)
+  const model = await resolveModel(modelString)
   
   // Create strategy
   const strategy = createStrategy(strategyName, model, chunkSize)
@@ -180,17 +188,27 @@ export async function extractData(
     throw new Error('Schema is required')
   }
   
-  // Run extraction
+  // Run extraction with events
   const hydratedArtifacts = await hydrateSerializedArtifacts(artifacts)
   const result = await extract({
     artifacts: hydratedArtifacts,
     schema,
     strategy,
+    events: {
+      onStep: (info) => onEvent?.({ type: 'step', data: info }),
+      onMessage: (info) => onEvent?.({ type: 'message', data: info }),
+      onProgress: (info) => onEvent?.({ type: 'progress', data: info }),
+      onTokenUsage: (info) => onEvent?.({ type: 'tokenUsage', data: info }),
+      onRetry: (info) => onEvent?.({ type: 'retry', data: info }),
+    },
   })
   
   if (result.error) {
+    onEvent?.({ type: 'error', data: { message: result.error.message } })
     throw result.error
   }
+  
+  onEvent?.({ type: 'complete', data: { usage: result.usage } })
   
   return {
     data: result.data,
@@ -198,22 +216,22 @@ export async function extractData(
   }
 }
 
-function createStrategy(name: string, model: string, chunkSize: number) {
+function createStrategy(name: string, model: unknown, chunkSize: number) {
   switch (name) {
     case 'simple':
-      return simple({ model: { provider: model.split('/')[0], id: model.split('/')[1] } })
+      return simple({ model })
     case 'parallel':
-      return parallel({ model: { provider: model.split('/')[0], id: model.split('/')[1] }, mergeModel: { provider: model.split('/')[0], id: model.split('/')[1] }, chunkSize })
+      return parallel({ model, mergeModel: model, chunkSize })
     case 'sequential':
-      return sequential({ model: { provider: model.split('/')[0], id: model.split('/')[1] }, chunkSize })
+      return sequential({ model, chunkSize })
     case 'parallelAutoMerge':
-      return parallelAutoMerge({ model: { provider: model.split('/')[0], id: model.split('/')[1] }, dedupeModel: { provider: model.split('/')[0], id: model.split('/')[1] }, chunkSize })
+      return parallelAutoMerge({ model, dedupeModel: model, chunkSize })
     case 'sequentialAutoMerge':
-      return sequentialAutoMerge({ model: { provider: model.split('/')[0], id: model.split('/')[1] }, dedupeModel: { provider: model.split('/')[0], id: model.split('/')[1] }, chunkSize })
+      return sequentialAutoMerge({ model, dedupeModel: model, chunkSize })
     case 'doublePass':
-      return doublePass({ model: { provider: model.split('/')[0], id: model.split('/')[1] }, mergeModel: { provider: model.split('/')[0], id: model.split('/')[1] }, chunkSize })
+      return doublePass({ model, mergeModel: model, chunkSize })
     case 'doublePassAutoMerge':
-      return doublePassAutoMerge({ model: { provider: model.split('/')[0], id: model.split('/')[1] }, dedupeModel: { provider: model.split('/')[0], id: model.split('/')[1] }, chunkSize })
+      return doublePassAutoMerge({ model, dedupeModel: model, chunkSize })
     default:
       throw new Error(`Unknown strategy: ${name}`)
   }

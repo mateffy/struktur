@@ -61,26 +61,103 @@ export const generateStructured = async <T>(
       }
     : undefined;
 
-  const result = await generateText({
-    model: request.model as ModelType,
-    output: Output.object({
-      schema: schema as GenerateTextParams extends { schema: infer S }
-        ? S
-        : never,
-      name: request.schemaName ?? "extract",
-      description: request.schemaDescription,
-    }),
-    providerOptions: {
-      openai: {
-        strictJsonSchema: request.strict ?? false,
+  let result;
+  try {
+    result = await generateText({
+      model: request.model as ModelType,
+      output: Output.object({
+        schema: schema as GenerateTextParams extends { schema: infer S }
+          ? S
+          : never,
+        name: request.schemaName ?? "extract",
+        description: request.schemaDescription,
+      }),
+      providerOptions: {
+        openai: {
+          strictJsonSchema: request.strict ?? false,
+        },
       },
-    },
-    system: request.system,
-    messages: (request.messages ?? [
-      { role: "user", content: request.user },
-    ]) as MessageType,
-    ...(providerOptions ? { providerOptions } : {}),
-  });
+      system: request.system,
+      messages: (request.messages ?? [
+        { role: "user", content: request.user },
+      ]) as MessageType,
+      ...(providerOptions ? { providerOptions } : {}),
+    });
+  } catch (error) {
+    if (
+      error &&
+      typeof error === "object" &&
+      "responseBody" in error &&
+      "statusCode" in error
+    ) {
+      const apiError = error as {
+        responseBody: unknown;
+        statusCode: number;
+        data?: {
+          code?: number;
+          message?: string;
+          type?: string | null;
+          param?: string | null;
+        };
+      };
+
+      const modelId =
+        typeof request.model === "object" && request.model !== null
+          ? (request.model as { modelId?: string }).modelId ??
+            JSON.stringify(request.model)
+          : String(request.model);
+
+      const responseBody = apiError.responseBody;
+      const errorData = apiError.data;
+
+      if (
+        typeof responseBody === "string" &&
+        responseBody.includes("No endpoints found that support image input")
+      ) {
+        throw new Error(
+          `Model "${modelId}" does not support image input. Please use a model that supports images (e.g., gpt-4o, claude-3-5-sonnet, gemini-1.5-pro) or remove the --images and --screenshots flags.`,
+        );
+      }
+
+      if (errorData?.code === 500 || errorData?.message?.includes("Internal Server Error")) {
+        throw new Error(
+          `Provider error for model "${modelId}": Internal server error. The model or provider may be experiencing issues. Please try again or use a different model.`,
+        );
+      }
+
+      if (apiError.statusCode === 401 || errorData?.code === 401) {
+        throw new Error(
+          `Authentication failed for model "${modelId}". Please check your API key is valid and has the necessary permissions.`,
+        );
+      }
+
+      if (apiError.statusCode === 403 || errorData?.code === 403) {
+        throw new Error(
+          `Access denied for model "${modelId}". Your API key may not have access to this model. Please check your subscription or try a different model.`,
+        );
+      }
+
+      if (apiError.statusCode === 429 || errorData?.code === 429) {
+        throw new Error(
+          `Rate limit exceeded for model "${modelId}". Please wait a moment and try again, or use a different model.`,
+        );
+      }
+
+      if (apiError.statusCode === 404 || errorData?.code === 404) {
+        const errorMsg = errorData?.message || "Model not found";
+        throw new Error(
+          `Model "${modelId}" not found or unavailable. ${errorMsg} Please check the model name or try a different model.`,
+        );
+      }
+
+      if (errorData?.message) {
+        throw new Error(
+          `Provider error for model "${modelId}": ${errorData.message}`,
+        );
+      }
+    }
+    throw error;
+  }
 
   const usageRaw = result.usage ?? {};
   const inputTokens =

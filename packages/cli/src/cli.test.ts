@@ -7,7 +7,7 @@ const makeTempPath = (name: string) => {
   return join(tmpdir(), `struktur-${name}-${crypto.randomUUID()}.json`);
 };
 
-test("verify command validates artifact JSON", async () => {
+test("verify-artifact command validates artifact JSON", async () => {
   const inputPath = makeTempPath("artifact");
   await Bun.write(
     inputPath,
@@ -15,7 +15,7 @@ test("verify command validates artifact JSON", async () => {
   );
 
   const result = Bun.spawnSync({
-    cmd: [process.execPath, join(import.meta.dir, "cli.ts"), "verify", "--input", inputPath],
+    cmd: [process.execPath, join(import.meta.dir, "cli.ts"), "utils", "verify-artifact", "--input", inputPath],
     stdout: "pipe",
     stderr: "pipe",
   });

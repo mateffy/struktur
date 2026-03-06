@@ -62,6 +62,7 @@ export {
   listProviderModels,
   resolveCheapestModel,
 } from "./llm/models";
+export { resolveModel } from "./llm/resolveModel";
 
 // Validation
 export { SchemaValidationError } from "./validation/validator";

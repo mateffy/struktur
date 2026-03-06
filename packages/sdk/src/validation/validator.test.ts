@@ -82,6 +82,38 @@ test("createAjv supports common formats", () => {
   }
 });
 
+test("createAjv supports artifact-id format", () => {
+  const ajv = createAjv();
+  const schema: JSONSchemaType<string> = { type: "string", format: "artifact-id" };
+
+  const validData = validateOrThrow<string>(ajv, schema, "artifact:123456/images/image1.jpg");
+  expect(validData).toBe("artifact:123456/images/image1.jpg");
+
+  const validData2 = validateOrThrow<string>(ajv, schema, "artifact:abc-xyz/images/image10.png");
+  expect(validData2).toBe("artifact:abc-xyz/images/image10.png");
+
+  try {
+    validateOrThrow<string>(ajv, schema, "not-an-artifact-id");
+    throw new Error("Expected validation error");
+  } catch (error) {
+    expect(error).toBeInstanceOf(SchemaValidationError);
+  }
+
+  try {
+    validateOrThrow<string>(ajv, schema, "artifact:123/images/image");
+    throw new Error("Expected validation error");
+  } catch (error) {
+    expect(error).toBeInstanceOf(SchemaValidationError);
+  }
+
+  try {
+    validateOrThrow<string>(ajv, schema, "https://example.com/image.jpg");
+    throw new Error("Expected validation error");
+  } catch (error) {
+    expect(error).toBeInstanceOf(SchemaValidationError);
+  }
+});
+
 test("isRequiredError identifies required constraint violations", () => {
   const requiredError = { 
     keyword: "required", 

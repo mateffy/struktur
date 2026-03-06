@@ -19,6 +19,8 @@ export class SchemaValidationError extends Error {
   }
 }
 
+const ARTIFACT_ID_PATTERN = /^artifact:[^/]+\/images\/image\d+\.\w+$/;
+
 export const createAjv = () => {
   const ajv = new Ajv({
     allErrors: true,
@@ -26,6 +28,12 @@ export const createAjv = () => {
     allowUnionTypes: true,
   });
   addFormats(ajv);
+  
+  ajv.addFormat("artifact-id", {
+    type: "string",
+    validate: (data: string) => ARTIFACT_ID_PATTERN.test(data),
+  });
+  
   return ajv;
 };
 

@@ -7,6 +7,7 @@ import {
   getDefaultModel,
   listParsers,
   resolveAlias,
+  resolveModel,
   listStoredProviders,
   resolveProviderEnvVar,
   resolveProviderToken,
@@ -199,98 +200,6 @@ const fetchArtifactFromUrl = async (url: string) => {
   }
   const text = await response.text();
   return parseArtifactText(url, text);
-};
-
-export const resolveModel = async (model: string) => {
-  (globalThis as { AI_SDK_LOG_WARNINGS?: boolean }).AI_SDK_LOG_WARNINGS ??= false;
-  process.env.AI_SDK_LOG_WARNINGS ??= "false";
-  const [provider, ...rest] = model.split("/");
-  const modelName = rest.join("/");
-
-  if (!provider || !modelName) {
-    throw new UserError(`Invalid model format: ${model}. Expected format: provider/model (e.g., openai/gpt-4)`);
-  }
-
-  const envVar = resolveProviderEnvVar(provider);
-  if (envVar && !process.env[envVar]) {
-    const storedToken = await resolveProviderToken(provider);
-    if (storedToken) {
-      process.env[envVar] = storedToken;
-    }
-  }
-
-  switch (provider) {
-    case "openai": {
-      const { openai } = await import("@ai-sdk/openai");
-      return openai(modelName);
-    }
-    case "anthropic": {
-      const { anthropic } = await import("@ai-sdk/anthropic");
-      return anthropic(modelName);
-    }
-    case "google": {
-      const { google } = await import("@ai-sdk/google");
-      return google(modelName);
-    }
-    case "opencode": {
-      const envVar = resolveProviderEnvVar("opencode");
-      let apiKey = envVar ? process.env[envVar] : undefined;
-      if (!apiKey) {
-        apiKey = await resolveProviderToken("opencode");
-      }
-      if (!apiKey) {
-        throw new UserError("OpenCode API key is required. Set OPENCODE_API_KEY environment variable or run 'struktur auth set --provider opencode --token <token>'");
-      }
-      
-      // OpenCode Zen uses different AI SDK packages based on model family
-      if (modelName.startsWith("claude-")) {
-        // Claude models use Anthropic SDK
-        const { createAnthropic } = await import("@ai-sdk/anthropic");
-        return createAnthropic({
-          apiKey,
-          baseURL: "https://opencode.ai/zen/v1",
-        })(modelName);
-      } else if (modelName.startsWith("gemini-")) {
-        // Gemini models use Google SDK
-        const { createGoogleGenerativeAI } = await import("@ai-sdk/google");
-        return createGoogleGenerativeAI({
-          apiKey,
-          baseURL: "https://opencode.ai/zen/v1",
-        })(modelName);
-      } else {
-        // GPT models and chat completions (GLM, Kimi, MiniMax, Qwen, etc.)
-        // Use OpenAI SDK with custom baseURL
-        const { createOpenAI } = await import("@ai-sdk/openai");
-        return createOpenAI({
-          apiKey,
-          baseURL: "https://opencode.ai/zen/v1",
-        })(modelName);
-      }
-    }
-    case "openrouter": {
-      const { openrouter } = await import("@openrouter/ai-sdk-provider");
-      // Parse provider preference from hashtag (e.g., "anthropic/claude-3.5-sonnet#cerebras")
-      const hashIndex = modelName.indexOf("#");
-      const actualModelName = hashIndex >= 0 ? modelName.slice(0, hashIndex) : modelName;
-      const preferredProvider = hashIndex >= 0 ? modelName.slice(hashIndex + 1) : undefined;
-      
-      const modelInstance = openrouter(actualModelName);
-      
-      // Attach provider preference to the model object for later use by LLMClient
-      if (preferredProvider) {
-        Object.defineProperty(modelInstance, "__openrouter_provider", {
-          value: preferredProvider,
-          writable: false,
-          enumerable: false,
-          configurable: false,
-        });
-      }
-      
-      return modelInstance;
-    }
-    default:
-      throw new UserError(`Unsupported model provider: ${provider}. Supported providers: openai, anthropic, google, opencode, openrouter`);
-  }
 };
 
 export const resolveDefaultModelSpec = async () => {

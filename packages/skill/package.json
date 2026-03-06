@@ -1,6 +1,6 @@
 {
   "name": "@struktur/skill",
-  "version": "1.0.0",
+  "version": "1.2.1",
   "description": "Agent skill for Struktur - structured data extraction using Vercel AI SDK",
   "type": "module",
   "main": "skills/struktur/SKILL.md",

@@ -1,112 +1,176 @@
 import type { ComponentProps, ReactNode } from "react";
+import { Command as CommandPrimitive } from "cmdk";
 
 import {
   Command,
-  CommandDialog,
   CommandEmpty,
   CommandGroup,
-  CommandInput,
   CommandItem,
   CommandList,
   CommandSeparator,
   CommandShortcut,
 } from "#/components/ui/command";
 import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogTrigger,
-} from "#/components/ui/dialog";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "#/components/ui/popover";
 import { cn } from "#/lib/utils";
 
-export type ModelSelectorProps = ComponentProps<typeof Dialog>;
+export type ModelSelectorProps = ComponentProps<typeof Popover>;
 
 export const ModelSelector = (props: ModelSelectorProps) => (
-  <Dialog {...props} />
+  <Popover {...props} />
 );
 
-export type ModelSelectorTriggerProps = ComponentProps<typeof DialogTrigger>;
+export type ModelSelectorTriggerProps = ComponentProps<typeof PopoverTrigger>;
 
 export const ModelSelectorTrigger = (props: ModelSelectorTriggerProps) => (
-  <DialogTrigger {...props} />
+  <PopoverTrigger {...props} />
 );
 
-export type ModelSelectorContentProps = ComponentProps<typeof DialogContent> & {
+export type ModelSelectorContentProps = ComponentProps<typeof PopoverContent> & {
   title?: ReactNode;
 };
 
 export const ModelSelectorContent = ({
   className,
   children,
-  title = "Model Selector",
   ...props
 }: ModelSelectorContentProps) => (
-  <DialogContent
-    aria-describedby={undefined}
+  <PopoverContent
+    align="start"
+    sideOffset={4}
     className={cn(
-      "outline! border-none! p-0 outline-border! outline-solid!",
+      "w-[360px] p-0 overflow-hidden shadow-xl",
       className
     )}
     {...props}
   >
-    <DialogTitle className="sr-only">{title}</DialogTitle>
-    <Command className="**:data-[slot=command-input-wrapper]:h-auto">
+    <Command className="bg-[#f5efe6]">
       {children}
     </Command>
-  </DialogContent>
+  </PopoverContent>
 );
 
-export type ModelSelectorDialogProps = ComponentProps<typeof CommandDialog>;
-
-export const ModelSelectorDialog = (props: ModelSelectorDialogProps) => (
-  <CommandDialog {...props} />
-);
-
-export type ModelSelectorInputProps = ComponentProps<typeof CommandInput>;
+export type ModelSelectorInputProps = ComponentProps<typeof CommandPrimitive.Input>;
 
 export const ModelSelectorInput = ({
   className,
   ...props
 }: ModelSelectorInputProps) => (
-  <CommandInput className={cn("h-auto py-3.5", className)} {...props} />
+  <div className="border-b border-[#d4c8b8] px-3 py-2.5 bg-[#f5efe6]">
+    <div className="flex items-center gap-2 bg-[#ede5d8] rounded-md px-3 py-2 border border-[#d4c8b8] focus-within:ring-2 focus-within:ring-[#7a5c3a] focus-within:border-transparent transition-all">
+      <svg 
+        className="w-4 h-4 text-[#a0926f] shrink-0" 
+        fill="none" 
+        stroke="currentColor" 
+        viewBox="0 0 24 24"
+        aria-label="Search"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      </svg>
+      <CommandPrimitive.Input
+        className={cn(
+          "flex-1 bg-transparent text-sm text-[#2d1b0e] placeholder:text-[#a0926f] outline-none",
+          className
+        )}
+        {...props}
+      />
+    </div>
+  </div>
 );
 
 export type ModelSelectorListProps = ComponentProps<typeof CommandList>;
 
-export const ModelSelectorList = (props: ModelSelectorListProps) => (
-  <CommandList {...props} />
+export const ModelSelectorList = ({
+  className,
+  ...props
+}: ModelSelectorListProps) => (
+  <CommandList 
+    className={cn(
+      "max-h-[280px] overflow-y-auto py-1",
+      className
+    )} 
+    {...props} 
+  />
 );
 
 export type ModelSelectorEmptyProps = ComponentProps<typeof CommandEmpty>;
 
-export const ModelSelectorEmpty = (props: ModelSelectorEmptyProps) => (
-  <CommandEmpty {...props} />
+export const ModelSelectorEmpty = ({
+  className,
+  ...props
+}: ModelSelectorEmptyProps) => (
+  <CommandEmpty 
+    className={cn(
+      "py-6 text-center text-sm text-[#a0926f]",
+      className
+    )} 
+    {...props} 
+  />
 );
 
 export type ModelSelectorGroupProps = ComponentProps<typeof CommandGroup>;
 
-export const ModelSelectorGroup = (props: ModelSelectorGroupProps) => (
-  <CommandGroup {...props} />
+export const ModelSelectorGroup = ({
+  className,
+  ...props
+}: ModelSelectorGroupProps) => (
+  <CommandGroup 
+    className={cn(
+      "px-2 py-1",
+      className
+    )} 
+    {...props} 
+  />
 );
 
 export type ModelSelectorItemProps = ComponentProps<typeof CommandItem>;
 
-export const ModelSelectorItem = (props: ModelSelectorItemProps) => (
-  <CommandItem {...props} />
+export const ModelSelectorItem = ({
+  className,
+  ...props
+}: ModelSelectorItemProps) => (
+  <CommandItem 
+    className={cn(
+      "relative flex cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-sm text-[#2d1b0e] hover:bg-[#e5dccf] data-[selected=true]:bg-[#e5dccf] data-[selected=true]:text-[#2d1b0e]",
+      className
+    )} 
+    {...props} 
+  />
 );
 
 export type ModelSelectorShortcutProps = ComponentProps<typeof CommandShortcut>;
 
-export const ModelSelectorShortcut = (props: ModelSelectorShortcutProps) => (
-  <CommandShortcut {...props} />
+export const ModelSelectorShortcut = ({
+  className,
+  ...props
+}: ModelSelectorShortcutProps) => (
+  <CommandShortcut 
+    className={cn(
+      "ml-auto text-xs text-[#a0926f]",
+      className
+    )} 
+    {...props} 
+  />
 );
 
 export type ModelSelectorSeparatorProps = ComponentProps<
   typeof CommandSeparator
 >;
 
-export const ModelSelectorSeparator = (props: ModelSelectorSeparatorProps) => (
-  <CommandSeparator {...props} />
+export const ModelSelectorSeparator = ({
+  className,
+  ...props
+}: ModelSelectorSeparatorProps) => (
+  <CommandSeparator 
+    className={cn(
+      "h-px bg-[#d4c8b8] my-1",
+      className
+    )} 
+    {...props} 
+  />
 );
 
 export type ModelSelectorLogoProps = Omit<
@@ -179,14 +243,23 @@ export const ModelSelectorLogo = ({
   className,
   ...props
 }: ModelSelectorLogoProps) => (
-  <img
-    {...props}
-    alt={`${provider} logo`}
-    className={cn("size-3 dark:invert", className)}
-    height={12}
-    src={`https://models.dev/logos/${provider}.svg`}
-    width={12}
-  />
+  <div className={cn(
+    "size-6 rounded-md bg-[#ede5d8] flex items-center justify-center shrink-0 overflow-hidden",
+    className
+  )}>
+    <img
+      {...props}
+      alt={`${provider} logo`}
+      className="size-4 object-contain"
+      height={16}
+      src={`https://models.dev/logos/${provider}.svg`}
+      width={16}
+      onError={(e) => {
+        // Fallback to a generic icon if logo fails to load
+        e.currentTarget.style.display = 'none';
+      }}
+    />
+  </div>
 );
 
 export type ModelSelectorLogoGroupProps = ComponentProps<"div">;
@@ -197,7 +270,7 @@ export const ModelSelectorLogoGroup = ({
 }: ModelSelectorLogoGroupProps) => (
   <div
     className={cn(
-      "flex shrink-0 items-center -space-x-1 [&>img]:rounded-full [&>img]:bg-background [&>img]:p-px [&>img]:ring-1 dark:[&>img]:bg-foreground",
+      "flex shrink-0 items-center -space-x-1 [&>div]:rounded-full [&>div]:ring-1 [&>div]:ring-[#d4c8b8]",
       className
     )}
     {...props}
@@ -210,5 +283,23 @@ export const ModelSelectorName = ({
   className,
   ...props
 }: ModelSelectorNameProps) => (
-  <span className={cn("flex-1 truncate text-left", className)} {...props} />
+  <span className={cn("flex-1 truncate text-left font-medium", className)} {...props} />
+);
+
+export type ModelSelectorGroupHeadingProps = ComponentProps<"div"> & {
+  heading: string;
+};
+
+export const ModelSelectorGroupHeading = ({
+  heading,
+  className,
+}: ModelSelectorGroupHeadingProps) => (
+  <div 
+    className={cn(
+      "px-2 py-1.5 text-xs font-semibold uppercase tracking-wider text-[#7a5c3a]",
+      className
+    )}
+  >
+    {heading}
+  </div>
 );

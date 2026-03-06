@@ -35,7 +35,6 @@
     - `config parsers get --mime <type>`  — get parser for a MIME type
     - `config parsers add --mime <type> (--npm <pkg> | --file-command "<cmd>" | --stdin-command "<cmd>")`  — configure a parser
     - `config parsers remove --mime <type>`  — remove a configured parser
-  - `verify`  — validate artifact JSON
   - `utils`  — utility commands
     - `utils artifact-viewer` — generate an HTML viewer for artifact JSON
       - `--input <path>` / `-i` — artifact JSON file to view
@@ -46,6 +45,9 @@
         - Optional "Batching Mode" to visualize chunking/batching
         - Image filtering by type (normal, embedded, screenshot)
         - Version stamp to verify chunking algorithm matches Struktur version
+    - `utils verify-artifact` — validate artifact JSON from file or stdin
+      - `--input <path>` / `-i` — artifact JSON file to validate
+      - `--stdin` / `-s` — read artifact JSON from stdin
 - Alias resolution: `resolveAlias` (from `auth/config.ts`) is called in both `resolveDefaultModelSpec` and `resolveExplicitModelSpec` so aliases work transparently for `--model` and the stored default.
 - Progress indication: uses `yocto-spinner` with descriptive messages showing current LLM operations (e.g. "Processing batch 3/10", "Pass 1: Merging results"). Spinner clears when done.
 - Design: keep CLI behavior consistent for both interactive and non-interactive runs. Schema loading supports local files, inline JSON, and HTTP(S) URLs with JSON accept headers.
