@@ -518,7 +518,7 @@ function Home() {
               flexShrink: 0,
             }}
           />
-          <div style={{ paddingTop: "8px" }}>
+          <div style={{ paddingTop: "8px" }} className="w-full">
             <div
               style={{
                 fontSize: "14px",
