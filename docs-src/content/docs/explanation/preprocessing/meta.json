@@ -2,7 +2,6 @@
   "title": "Document Processing",
   "pages": [
     "index",
-    "why-no-parsing",
     "artifact-format",
     "built-in-inputs",
     "custom-provider"

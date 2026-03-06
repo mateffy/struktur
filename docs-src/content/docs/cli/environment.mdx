@@ -7,49 +7,43 @@ Struktur can be configured via environment variables as an alternative to CLI fl
 
 ## Provider Tokens
 
-Instead of using `struktur auth set`, you can set provider tokens via environment variables:
+Set provider API keys directly as environment variables. When both a stored token and an environment variable are present, the environment variable takes precedence.
 
-| Variable | Description |
-|----------|-------------|
-| `OPENAI_API_KEY` | OpenAI API token |
-| `ANTHROPIC_API_KEY` | Anthropic API token |
-| `GOOGLE_API_KEY` | Google AI API token |
-| `MIXEDBREAD_API_KEY` | Mixedbread API token |
+| Variable | Provider | Description |
+|----------|----------|-------------|
+| `OPENAI_API_KEY` | `openai` | OpenAI API token |
+| `ANTHROPIC_API_KEY` | `anthropic` | Anthropic API token |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | `google` | Google Generative AI API token |
+| `OPENCODE_API_KEY` | `opencode` | OpenCode Zen API token |
+| `OPENROUTER_API_KEY` | `openrouter` | OpenRouter API token |
 
-## Default Model
+## Configuration
 
-Set the default model for extractions:
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `STRUKTUR_CONFIG_DIR` | `~/.config/struktur` | Override config directory for both `config.json` and `tokens.json` |
+| `STRUKTUR_DISABLE_KEYCHAIN` | — | Set to any value to force file-based token storage on macOS |
+| `STRUKTUR_KEYCHAIN_SERVICE` | `struktur` | Override the macOS Keychain service name |
 
-| Variable | Description |
-|----------|-------------|
-| `STRUKTUR_DEFAULT_MODEL` | Default model (e.g., `openai/gpt-4o-mini`) |
+## SDK / AI SDK
 
-## Config File Location
-
-Override the default config file location:
-
-| Variable | Description |
-|----------|-------------|
-| `STRUKTUR_CONFIG_PATH` | Path to config file (default: `~/.struktur/config.json`) |
-
-## Token Storage
-
-Control how tokens are stored:
-
-| Variable | Description |
-|----------|-------------|
-| `STRUKTUR_TOKEN_STORAGE` | Storage backend: `auto`, `keychain`, or `file` |
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `AI_SDK_LOG_WARNINGS` | `false` | Set to `true` to enable AI SDK warning messages |
 
 ## Precedence
 
 Configuration is resolved in this order (later overrides earlier):
 
 1. Built-in defaults
-2. Config file (`~/.struktur/config.json`)
-3. Environment variables
-4. CLI flags
+2. Config file (`~/.config/struktur/config.json`)
+3. Stored tokens (`~/.config/struktur/tokens.json` or macOS Keychain)
+4. Environment variables
+5. CLI flags
+
+There is no `STRUKTUR_DEFAULT_MODEL` environment variable — the default model is set with `struktur config models use`, not an env var.
 
 ## See also
 
-- [auth](/docs/cli/auth) — token management commands
+- [config](/docs/cli/config) — provider and model management commands
 - [Installation & Setup](/docs/cli/installation) — initial setup

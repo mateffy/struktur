@@ -1,0 +1,130 @@
+
+
+Struktur's parser system converts files into [Artifact format](/docs/explanation/preprocessing/artifact-format) before any LLM work happens. Parsers are resolved by MIME type and are fully configurable.
+
+MIME Detection [#mime-detection]
+
+MIME type is detected in three layers (tried in order):
+
+1. **Magic bytes** (authoritative): PDF (`%PDF-`), PNG, JPEG, GIF, WebP, and ZIP-based Office formats are identified from the first bytes of the file.
+2. **npm `detectFileType` callback**: A custom npm parser may export a `detectFileType(header: Uint8Array): boolean` function to claim MIME types beyond what magic bytes cover.
+3. **File extension database**: Fallback for inputs where magic bytes don't match a known signature.
+
+Override MIME detection with `--mime <type>` on any command that accepts input.
+
+Built-in Parsers [#built-in-parsers]
+
+| MIME type          | Behavior                                                                                                                                                                                                     |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `application/pdf`  | Per-page text via `pdf-parse`. Embedded images require `--images`. Page screenshots require `--screenshots`. Image deduplication filters images smaller than \~80px. Non-fatal on image/screenshot failures. |
+| `text/*`           | Split on double newlines into content slices.                                                                                                                                                                |
+| `image/*`          | Single-content artifact with one media item.                                                                                                                                                                 |
+| `application/json` | If it validates as `SerializedArtifact[]`, passed through unchanged without invoking any parser.                                                                                                             |
+
+Custom Parsers [#custom-parsers]
+
+Three types are supported, registered with `struktur config parsers add`.
+
+npm package parser [#npm-package-parser]
+
+Install a package that implements the `NpmParserModule` interface:
+
+```typescript
+import type { Artifact } from "@mateffy/struktur";
+
+// At least one of these is required:
+export async function parseStream(
+  stream: ReadableStream<Uint8Array>,
+  mimeType: string
+): Promise<Artifact[]>;
+
+export async function parseFile(
+  filePath: string,
+  mimeType: string
+): Promise<Artifact[]>;
+
+// Optional: return true if your parser handles these bytes
+export function detectFileType(header: Uint8Array): boolean;
+```
+
+When both `parseFile` and `parseStream` are exported, Struktur prefers `parseFile` for file inputs (zero-copy) and `parseStream` for buffer or stdin inputs. A temp file is created as a fallback if needed.
+
+Register it:
+
+```bash
+struktur config parsers add \
+  --mime application/vnd.openxmlformats-officedocument.wordprocessingml.document \
+  --npm @myorg/docx-parser
+```
+
+Shell command (file-based) [#shell-command-file-based]
+
+The `FILE_PATH` placeholder is replaced with the actual file path at runtime. For buffer inputs, a temp file is created automatically.
+
+```bash
+struktur config parsers add \
+  --mime application/vnd.ms-excel \
+  --file-command "python3 /path/to/excel2artifact.py FILE_PATH"
+```
+
+`FILE_PATH` must appear in the command string — an error is thrown if it is missing.
+
+The command must write `SerializedArtifact[]` JSON to stdout.
+
+Shell command (stdin-based) [#shell-command-stdin-based]
+
+File contents are piped to the command's stdin.
+
+```bash
+struktur config parsers add \
+  --mime text/html \
+  --stdin-command "my-html-to-artifact-tool"
+```
+
+The command must write `SerializedArtifact[]` JSON to stdout. Plain text output will fail validation.
+
+Parser Resolution Order [#parser-resolution-order]
+
+For any input, parsers are resolved in this order:
+
+1. `--parser <pkg>` flag on the CLI — always wins, bypasses all config
+2. Parser configured for the detected MIME type (`config parsers add`)
+3. Built-in parser (PDF, text/\*, image/\*, JSON)
+4. Error with a suggestion to use `config parsers add`
+
+Ad-hoc Parser Override [#ad-hoc-parser-override]
+
+Use `--parser` to override the configured parser for a single run without changing config:
+
+```bash
+struktur parse --input report.docx --parser @myorg/experimental-docx-parser
+struktur --input data.xlsx --parser @myorg/xlsx-parser --fields "..." --model openai/gpt-4o-mini
+```
+
+SDK Usage [#sdk-usage]
+
+Pass a `parserConfig` to `parseInputToArtifacts` to use custom parsers without CLI config:
+
+```typescript
+import { parseInputToArtifacts } from "@mateffy/struktur";
+import type { ParsersConfig } from "@mateffy/struktur";
+
+const parserConfig: ParsersConfig = {
+  "application/vnd.ms-excel": {
+    type: "npm",
+    package: "@myorg/xlsx-parser",
+  },
+};
+
+const artifacts = await parseInputToArtifacts(
+  { kind: "file", path: "report.xlsx" },
+  { parserConfig }
+);
+```
+
+See also [#see-also]
+
+* [config parsers](/docs/cli/config#config-parsers) — CLI commands for managing parsers
+* [parse](/docs/cli/parse) — Convert files to artifact JSON
+* [Artifact Format](/docs/explanation/preprocessing/artifact-format) — The output data structure
+* [Built-in Input Types](/docs/explanation/preprocessing/built-in-inputs) — SDK input helpers

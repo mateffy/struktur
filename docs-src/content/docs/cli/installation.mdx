@@ -21,51 +21,56 @@ struktur --help
 
 ## Configure a provider (required)
 
-Two methods:
-
 ### Option A: Environment variable (not persisted)
 
 ```bash
 export OPENAI_API_KEY=sk-...
 export ANTHROPIC_API_KEY=sk-ant-...
 export GOOGLE_GENERATIVE_AI_API_KEY=AI...
+export OPENCODE_API_KEY=...
+export OPENROUTER_API_KEY=...
 ```
 
 ### Option B: Stored token (persisted)
 
 ```bash
-echo "$OPENAI_API_KEY" | struktur auth set --provider openai --token-stdin
+echo "$OPENAI_API_KEY" | struktur config providers add openai --token-stdin
 ```
 
-**Storage:**
-
-- macOS: Keychain (auto)
-- Linux/Windows: `~/.config/struktur/tokens.json`
-
-**Permissions:**
-
-- Config dir: `chmod 700`
-- Tokens file: `chmod 600`
+On macOS, tokens are stored in Keychain. On other platforms, `~/.config/struktur/tokens.json` (chmod 600).
 
 ## Set a default model
 
 ```bash
-struktur auth default openai
-# or explicitly:
-struktur auth default --model openai/gpt-4o-mini
+# Set explicitly
+struktur config models use openai/gpt-4o-mini
+
+# Or store a shortcut alias first
+struktur config models alias set fast openai/gpt-4.1-mini
+struktur config models use fast
 ```
 
-Once set, `--model` is optional in extract commands.
+Once set, `--model` is optional in `extract` commands.
+
+## Quick setup with --default
+
+```bash
+echo "$OPENAI_API_KEY" | struktur config providers add openai --token-stdin --default
+```
+
+The `--default` flag automatically queries the provider API and sets the cheapest available model as default. One command, fully ready.
 
 ## Environment variables
 
 ### Provider API keys
 
-| Variable | Purpose |
+| Variable | Provider |
 |----------|---------|
-| `OPENAI_API_KEY` | OpenAI API token |
-| `ANTHROPIC_API_KEY` | Anthropic API token |
-| `GOOGLE_GENERATIVE_AI_API_KEY` | Google Generative AI API token |
+| `OPENAI_API_KEY` | OpenAI |
+| `ANTHROPIC_API_KEY` | Anthropic |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Google |
+| `OPENCODE_API_KEY` | OpenCode |
+| `OPENROUTER_API_KEY` | OpenRouter |
 
 Environment variables override stored tokens.
 
@@ -81,9 +86,9 @@ Environment variables override stored tokens.
 
 | Variable | Purpose |
 |----------|---------|
-| `AI_SDK_LOG_WARNINGS` | Set to `false` to suppress AI SDK warnings (default: `false` in CLI) |
+| `AI_SDK_LOG_WARNINGS` | Set to `true` to enable AI SDK warning messages |
 
 ## See also
 
 - [extract](/docs/cli/extract) — main extraction command
-- [auth](/docs/cli/auth) — token management
+- [config](/docs/cli/config) — provider and model management

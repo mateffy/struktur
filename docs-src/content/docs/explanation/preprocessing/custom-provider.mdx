@@ -1,23 +1,61 @@
 ---
-title: Writing a Custom Provider
-description: How to add support for a new file format.
+title: Custom Provider
+description: How to add support for a new file format at the SDK level.
 ---
 
-## When to write a custom provider
+There are two ways to extend Struktur with support for new file formats:
 
-You need a custom provider when you want `fileToArtifact()` to handle a MIME type that Struktur does not support natively (e.g., `application/pdf`, `application/vnd.ms-excel`, a custom format).
+1. **Configuration-level (recommended):** `struktur config parsers add` — zero code, works in CLI and SDK via `parserConfig`
+2. **SDK-level:** implementing a provider function for `fileToArtifact()`
 
-## The provider signature
+## Option 1: Configuration-level (recommended)
 
-A provider is an async function that takes a Buffer and returns an Artifact:
+Register a parser by MIME type using the CLI. This works transparently for all `--input` and `parseInputToArtifacts` calls.
+
+```bash
+# npm package parser
+struktur config parsers add \
+  --mime application/vnd.ms-excel \
+  --npm @myorg/xlsx-parser
+
+# Shell command with file path
+struktur config parsers add \
+  --mime application/vnd.openxmlformats-officedocument.wordprocessingml.document \
+  --file-command "markitdown FILE_PATH"
+```
+
+See [config parsers](/docs/cli/config#config-parsers) and [Parsers](/docs/explanation/parsers) for the full reference.
+
+For the SDK, pass a `parserConfig` to `parseInputToArtifacts`:
+
+```typescript
+import { parseInputToArtifacts } from "@mateffy/struktur";
+
+const artifacts = await parseInputToArtifacts(
+  { kind: "file", path: "report.xlsx" },
+  {
+    parserConfig: {
+      "application/vnd.ms-excel": { type: "npm", package: "@myorg/xlsx-parser" },
+    },
+  }
+);
+```
+
+## Option 2: SDK-level provider for `fileToArtifact`
+
+A provider is an async function that takes a Buffer and returns an Artifact. This is the lower-level path, suitable for inline one-off providers.
+
+**Note:** this approach does not support MIME detection or the parser system — it only applies when you call `fileToArtifact` directly with an explicit `mimeType`.
+
+### The provider signature
 
 ```js
-const myPdfProvider = async (buffer) => {
-  const pages = await parseMyPdf(buffer);
+const myProvider = async (buffer) => {
+  const pages = await parseMyFormat(buffer);
 
   return {
-    id: `pdf-${crypto.randomUUID()}`,
-    type: "pdf",
+    id: `doc-${crypto.randomUUID()}`,
+    type: "file",
     raw: async () => buffer,
     contents: pages.map((page, i) => ({
       page: i + 1,
@@ -31,55 +69,25 @@ const myPdfProvider = async (buffer) => {
 };
 ```
 
-## Register and use the provider
+### Register and use
 
 ```js
 import { fileToArtifact } from "@mateffy/struktur";
 import { readFile } from "node:fs/promises";
 
-const buffer = Buffer.from(await readFile("document.pdf"));
+const buffer = Buffer.from(await readFile("document.xlsx"));
 
 const artifact = await fileToArtifact(buffer, {
-  mimeType: "application/pdf",
+  mimeType: "application/vnd.ms-excel",
   providers: {
-    "application/pdf": myPdfProvider,
+    "application/vnd.ms-excel": myProvider,
   },
 });
 ```
 
-## Using providers with `parseInputToArtifacts`
+### Common patterns
 
-```js
-import { parseInputToArtifacts } from "@mateffy/struktur";
-
-const artifacts = await parseInputToArtifacts(
-  { kind: "file", path: "document.pdf" },
-  { providers: { "application/pdf": myPdfProvider } }
-);
-```
-
-## Common patterns
-
-### PDF with markitdown subprocess
-
-```js
-import { $ } from "bun";
-
-const pdfViaMarkitdown = async (buffer) => {
-  const tempPath = `/tmp/${crypto.randomUUID()}.pdf`;
-  await Bun.write(tempPath, buffer);
-  const text = await $`markitdown ${tempPath}`.text();
-  
-  return {
-    id: `pdf-${crypto.randomUUID()}`,
-    type: "pdf",
-    raw: async () => buffer,
-    contents: [{ text }],
-  };
-};
-```
-
-### Excel with xlsx package
+#### Excel with xlsx package
 
 ```js
 import * as XLSX from "xlsx";
@@ -100,7 +108,7 @@ const excelProvider = async (buffer) => {
 };
 ```
 
-### Email with mailparser
+#### Email with mailparser
 
 ```js
 import { simpleParser } from "mailparser";
@@ -125,6 +133,7 @@ const emailProvider = async (buffer) => {
 
 ## See also
 
+- [config parsers](/docs/cli/config#config-parsers) — CLI-level parser registration (recommended)
+- [Parsers](/docs/explanation/parsers) — parser system overview and npm parser contract
 - [The Artifact Format](/docs/explanation/preprocessing/artifact-format) — the return type spec
 - [Built-in Input Types](/docs/explanation/preprocessing/built-in-inputs) — default input handling
-- [Artifact Helpers](/docs/sdk/artifact-helpers) — SDK API

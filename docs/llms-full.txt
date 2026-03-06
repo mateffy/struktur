@@ -1,87 +1,230 @@
-# auth
+# config
 
 
 
-auth set [#auth-set]
-
-Store a token for a provider.
+Synopsis [#synopsis]
 
 ```bash
-struktur auth set --provider <name> --token <token>
-struktur auth set --provider <name> --token-stdin
+struktur config providers <subcommand> [options]
+struktur config models <subcommand> [options]
+struktur config parsers <subcommand> [options]
 ```
 
-| Flag                               | Type    | Description                                                         |
-| ---------------------------------- | ------- | ------------------------------------------------------------------- |
-| `--provider <name>`                | string  | Required. Provider ID: `openai`, `anthropic`, `google`.             |
-| `--token <token>`                  | string  | API token value (avoid — visible in shell history).                 |
-| `--token-stdin`                    | boolean | Read token from stdin.                                              |
-| `--storage <auto\|keychain\|file>` | string  | Storage backend. Default: `auto`.                                   |
-| `--default`                        | boolean | After storing, set the cheapest model for this provider as default. |
+Configuration is stored at `~/.config/struktur/config.json`. Override the directory with `STRUKTUR_CONFIG_DIR`.
 
-Output: `{ "provider": "openai", "stored": "keychain" }` (or `"file"`).
+***
 
-auth get [#auth-get]
+config providers [#config-providers]
 
-Retrieve a stored token (masked by default).
+Manage API tokens for LLM providers.
+
+config providers list [#config-providers-list]
+
+List all supported providers with their configuration status.
 
 ```bash
-struktur auth get --provider <name> [--raw]
-```
-
-| Flag                | Type    | Description                       |
-| ------------------- | ------- | --------------------------------- |
-| `--provider <name>` | string  | Required.                         |
-| `--raw`             | boolean | Print full token without masking. |
-
-auth delete [#auth-delete]
-
-Remove a stored token.
-
-```bash
-struktur auth delete --provider <name>
-```
-
-Output: `{ "provider": "openai", "deleted": true }`.
-
-auth list [#auth-list]
-
-List all configured providers and their storage backend.
-
-```bash
-struktur auth list
+struktur config providers list
 ```
 
 Output:
 
 ```json
-{
-  "providers": [
-    { "provider": "openai", "storage": "keychain" },
-    { "provider": "anthropic", "storage": "file" }
-  ]
-}
+[
+  { "provider": "openai", "configured": true, "storage": "keychain" },
+  { "provider": "anthropic", "configured": false, "storage": null },
+  { "provider": "google", "configured": false, "storage": null },
+  { "provider": "opencode", "configured": false, "storage": null },
+  { "provider": "openrouter", "configured": false, "storage": null }
+]
 ```
 
-auth default [#auth-default]
+config providers add [#config-providers-add]
 
-Set or auto-select the default model.
+Store an API token for a provider.
 
 ```bash
-struktur auth default <provider>
-struktur auth default --model <provider/model>
+struktur config providers add <provider> [options]
 ```
 
-When given a provider name, queries the API for available models and selects the cheapest.
+| Flag               | Type    | Description                                                        |
+| ------------------ | ------- | ------------------------------------------------------------------ |
+| `--token <t>`      | string  | API token value (avoid — token may appear in shell history)        |
+| `--token-stdin`    | boolean | Read token from stdin (recommended)                                |
+| `--storage <mode>` | string  | `auto` (default), `keychain`, or `file`                            |
+| `--default`        | boolean | After storing, query the API for cheapest model and set as default |
 
-Preference order for OpenAI: `gpt-4.1-nano`, `gpt-4.1-mini`, `gpt-4o-mini`, `gpt-4o`.
+**Examples:**
 
-Output: `{ "defaultModel": "openai/gpt-4o-mini" }`.
+```bash
+# Store via stdin (recommended)
+echo "$OPENAI_API_KEY" | struktur config providers add openai --token-stdin
+
+# Store and set cheapest model as default in one command
+echo "$OPENAI_API_KEY" | struktur config providers add openai --token-stdin --default
+
+# OpenCode Zen (access to multiple model families via one API)
+echo "$OPENCODE_API_KEY" | struktur config providers add opencode --token-stdin --default
+
+# OpenRouter (route to any provider)
+echo "$OPENROUTER_API_KEY" | struktur config providers add openrouter --token-stdin
+```
+
+Output (without `--default`): `{ "provider": "openai", "stored": "keychain" }`
+
+Output (with `--default`): `{ "provider": "openai", "stored": "keychain", "defaultModel": "openai/gpt-4.1-nano" }`
+
+**Storage:** On macOS, tokens go into Keychain by default. On other platforms, `~/.config/struktur/tokens.json` (chmod 600). Set `STRUKTUR_DISABLE_KEYCHAIN` to force file storage on macOS.
+
+config providers remove [#config-providers-remove]
+
+Delete a stored token.
+
+```bash
+struktur config providers remove <provider>
+```
+
+Output: `{ "provider": "openai", "deleted": true }`
+
+***
+
+config models [#config-models]
+
+Manage the default model and model aliases.
+
+config models list [#config-models-list]
+
+List available models for a provider (queries the provider API).
+
+```bash
+struktur config models list [--provider <name>]
+```
+
+config models use [#config-models-use]
+
+Set the default model. Accepts a `provider/model` spec or a stored alias.
+
+```bash
+struktur config models use openai/gpt-4o-mini
+struktur config models use fast   # if alias "fast" is defined
+```
+
+The alias is resolved before storing, so config always holds a real model string.
+
+config models alias [#config-models-alias]
+
+Manage short aliases for model specs. Aliases resolve transparently everywhere a model is accepted — `--model fast` works identically to `--model openai/gpt-4.1-mini`.
+
+```bash
+# List all aliases
+struktur config models alias list
+
+# Get a specific alias
+struktur config models alias get fast
+
+# Set an alias
+struktur config models alias set fast openai/gpt-4.1-mini
+struktur config models alias set smart anthropic/claude-3-5-haiku-20241022
+
+# Remove an alias
+struktur config models alias remove fast
+```
+
+`alias list` output:
+
+```json
+{ "aliases": { "fast": "openai/gpt-4.1-mini", "smart": "anthropic/claude-3-5-haiku-20241022" } }
+```
+
+***
+
+config parsers [#config-parsers]
+
+Register custom parsers for file formats not supported natively. Parsers are keyed by MIME type.
+
+config parsers list [#config-parsers-list]
+
+```bash
+struktur config parsers list
+```
+
+config parsers get [#config-parsers-get]
+
+```bash
+struktur config parsers get --mime application/vnd.ms-excel
+```
+
+config parsers add [#config-parsers-add]
+
+```bash
+struktur config parsers add --mime <type> (--npm <pkg> | --file-command "<cmd>" | --stdin-command "<cmd>")
+```
+
+Exactly one of `--npm`, `--file-command`, or `--stdin-command` must be specified.
+
+| Flag                      | Description                                                                                |
+| ------------------------- | ------------------------------------------------------------------------------------------ |
+| `--mime <type>`           | MIME type to handle (e.g. `application/vnd.ms-excel`)                                      |
+| `--npm <pkg>`             | npm package name implementing the parser contract                                          |
+| `--file-command "<cmd>"`  | Shell command with `FILE_PATH` placeholder (replaced with the actual file path at runtime) |
+| `--stdin-command "<cmd>"` | Shell command that reads file from stdin and writes `SerializedArtifact[]` JSON to stdout  |
+
+**npm parser** — install a package that implements the [npm parser contract](/docs/explanation/parsers#npm-parser-contract):
+
+```bash
+struktur config parsers add \
+  --mime application/vnd.openxmlformats-officedocument.wordprocessingml.document \
+  --npm @myorg/docx-parser
+```
+
+**file-command** — shell command, `FILE_PATH` is replaced with the actual path:
+
+```bash
+struktur config parsers add \
+  --mime application/vnd.openxmlformats-officedocument.wordprocessingml.document \
+  --file-command "markitdown FILE_PATH"
+```
+
+`FILE_PATH` must appear in the command string — an error is thrown if it is missing.
+
+The command must write `SerializedArtifact[]` JSON to stdout.
+
+**stdin-command** — file contents are piped to stdin:
+
+```bash
+struktur config parsers add \
+  --mime text/html \
+  --stdin-command "my-html-to-artifact-converter"
+```
+
+The command must write `SerializedArtifact[]` JSON to stdout. Plain text output will fail validation.
+
+config parsers remove [#config-parsers-remove]
+
+```bash
+struktur config parsers remove --mime application/vnd.ms-excel
+```
+
+***
+
+OpenRouter provider routing [#openrouter-provider-routing]
+
+When using OpenRouter, you can specify a preferred inference provider using the `#` syntax in the model spec:
+
+```bash
+# Use Claude 3.5 Sonnet via Cerebras for faster inference
+struktur --input doc.pdf --model "openrouter/anthropic/claude-3.5-sonnet#cerebras" --fields "..."
+
+# Use Claude via Together AI
+struktur --input doc.pdf --model "openrouter/anthropic/claude-3.5-sonnet#together" --fields "..."
+```
+
+This is passed through to OpenRouter's provider routing feature.
 
 See also [#see-also]
 
 * [Installation & Setup](/docs/cli/installation) — initial setup
-* [Environment Variables](/docs/cli/environment) — env vars
+* [Environment Variables](/docs/cli/environment) — env var alternatives to stored tokens
+* [Parsers](/docs/explanation/parsers) — how the parser system works
 
 
 # Environment Variables
@@ -92,51 +235,45 @@ Struktur can be configured via environment variables as an alternative to CLI fl
 
 Provider Tokens [#provider-tokens]
 
-Instead of using `struktur auth set`, you can set provider tokens via environment variables:
+Set provider API keys directly as environment variables. When both a stored token and an environment variable are present, the environment variable takes precedence.
 
-| Variable             | Description          |
-| -------------------- | -------------------- |
-| `OPENAI_API_KEY`     | OpenAI API token     |
-| `ANTHROPIC_API_KEY`  | Anthropic API token  |
-| `GOOGLE_API_KEY`     | Google AI API token  |
-| `MIXEDBREAD_API_KEY` | Mixedbread API token |
+| Variable                       | Provider     | Description                    |
+| ------------------------------ | ------------ | ------------------------------ |
+| `OPENAI_API_KEY`               | `openai`     | OpenAI API token               |
+| `ANTHROPIC_API_KEY`            | `anthropic`  | Anthropic API token            |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | `google`     | Google Generative AI API token |
+| `OPENCODE_API_KEY`             | `opencode`   | OpenCode Zen API token         |
+| `OPENROUTER_API_KEY`           | `openrouter` | OpenRouter API token           |
 
-Default Model [#default-model]
+Configuration [#configuration]
 
-Set the default model for extractions:
+| Variable                    | Default              | Description                                                        |
+| --------------------------- | -------------------- | ------------------------------------------------------------------ |
+| `STRUKTUR_CONFIG_DIR`       | `~/.config/struktur` | Override config directory for both `config.json` and `tokens.json` |
+| `STRUKTUR_DISABLE_KEYCHAIN` | —                    | Set to any value to force file-based token storage on macOS        |
+| `STRUKTUR_KEYCHAIN_SERVICE` | `struktur`           | Override the macOS Keychain service name                           |
 
-| Variable                 | Description                                |
-| ------------------------ | ------------------------------------------ |
-| `STRUKTUR_DEFAULT_MODEL` | Default model (e.g., `openai/gpt-4o-mini`) |
+SDK / AI SDK [#sdk--ai-sdk]
 
-Config File Location [#config-file-location]
-
-Override the default config file location:
-
-| Variable               | Description                                              |
-| ---------------------- | -------------------------------------------------------- |
-| `STRUKTUR_CONFIG_PATH` | Path to config file (default: `~/.struktur/config.json`) |
-
-Token Storage [#token-storage]
-
-Control how tokens are stored:
-
-| Variable                 | Description                                    |
-| ------------------------ | ---------------------------------------------- |
-| `STRUKTUR_TOKEN_STORAGE` | Storage backend: `auto`, `keychain`, or `file` |
+| Variable              | Default | Description                                     |
+| --------------------- | ------- | ----------------------------------------------- |
+| `AI_SDK_LOG_WARNINGS` | `false` | Set to `true` to enable AI SDK warning messages |
 
 Precedence [#precedence]
 
 Configuration is resolved in this order (later overrides earlier):
 
 1. Built-in defaults
-2. Config file (`~/.struktur/config.json`)
-3. Environment variables
-4. CLI flags
+2. Config file (`~/.config/struktur/config.json`)
+3. Stored tokens (`~/.config/struktur/tokens.json` or macOS Keychain)
+4. Environment variables
+5. CLI flags
+
+There is no `STRUKTUR_DEFAULT_MODEL` environment variable — the default model is set with `struktur config models use`, not an env var.
 
 See also [#see-also]
 
-* [auth](/docs/cli/auth) — token management commands
+* [config](/docs/cli/config) — provider and model management commands
 * [Installation & Setup](/docs/cli/installation) — initial setup
 
 
@@ -150,15 +287,17 @@ Synopsis [#synopsis]
 struktur [extract] [options]
 ```
 
+`extract` is the default command — `struktur --input file.pdf ...` and `struktur extract --input file.pdf ...` are equivalent.
+
 Input options (exactly one required) [#input-options-exactly-one-required]
 
-| Flag                     | Type    | Description                                            |
-| ------------------------ | ------- | ------------------------------------------------------ |
-| `--input <path>`         | string  | Read from a file path. MIME type auto-detected.        |
-| `--stdin`                | boolean | Read raw text from stdin. Auto-detected when piped.    |
-| `--text <string>`        | string  | Use inline text as input.                              |
-| `--artifact <path\|->`   | string  | Read pre-built artifact JSON from file or stdin (`-`). |
-| `--artifact-json <json>` | string  | Inline artifact JSON string.                           |
+| Flag                     | Type    | Description                                                                         |
+| ------------------------ | ------- | ----------------------------------------------------------------------------------- |
+| `--input <path>`         | string  | Read from a file path. MIME type auto-detected from magic bytes and file extension. |
+| `--stdin`                | boolean | Read raw text from stdin. Auto-detected when piped with no other input flag.        |
+| `--text <string>`        | string  | Use inline text as input.                                                           |
+| `--artifact <path\|->`   | string  | Read pre-built artifact JSON from file or stdin (`-`).                              |
+| `--artifact-json <json>` | string  | Inline artifact JSON string.                                                        |
 
 Schema options (exactly one required) [#schema-options-exactly-one-required]
 
@@ -172,18 +311,44 @@ Schema options (exactly one required) [#schema-options-exactly-one-required]
 
 Model [#model]
 
-| Flag             | Type   | Default                        | Description                            |
-| ---------------- | ------ | ------------------------------ | -------------------------------------- |
-| `--model <spec>` | string | configured default or cheapest | Model spec in `provider/model` format. |
+| Flag             | Type   | Default            | Description                                               |
+| ---------------- | ------ | ------------------ | --------------------------------------------------------- |
+| `--model <spec>` | string | configured default | Model spec in `provider/model` format, or a stored alias. |
 
-Supported providers: `openai`, `anthropic`, `google`.
+Supported providers: `openai`, `anthropic`, `google`, `opencode`, `openrouter`.
+
+For OpenRouter, you can specify a preferred inference provider using `#` syntax:
+
+```bash
+--model "openrouter/anthropic/claude-3.5-sonnet#cerebras"
+```
+
+Parsing options [#parsing-options]
+
+These flags control how `--input` files are parsed before extraction.
+
+| Flag             | Type    | Default | Description                                                                                                                         |
+| ---------------- | ------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `--no-parse`     | boolean | false   | Skip custom parsers; use only built-in text/image/artifact-JSON detection. Ignores any parsers configured via `config parsers add`. |
+| `--mime <type>`  | string  | —       | Override MIME type detection. Useful when extension is missing or wrong.                                                            |
+| `--parser <pkg>` | string  | —       | Use this npm package as parser for the detected MIME type, overriding any configured parser.                                        |
+
+Image options (PDF inputs) [#image-options-pdf-inputs]
+
+| Flag                       | Type    | Default | Description                                                                                                                         |
+| -------------------------- | ------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `--images`                 | boolean | false   | Extract embedded images from PDFs and include them in the artifact.                                                                 |
+| `--screenshots`            | boolean | false   | Render each PDF page as a screenshot image.                                                                                         |
+| `--screenshot-scale <num>` | number  | 1.5     | Scale factor for page screenshots. Higher = larger/sharper images.                                                                  |
+| `--screenshot-width <px>`  | number  | —       | Target width for screenshots in pixels. When set, overrides `--screenshot-scale` and height is calculated to maintain aspect ratio. |
 
 Strategy [#strategy]
 
-| Flag                    | Type   | Default  | Description             |
-| ----------------------- | ------ | -------- | ----------------------- |
-| `--strategy <name>`     | string | `simple` | Strategy name.          |
-| `--chunk-size <number>` | number | `10000`  | Token budget per batch. |
+| Flag                    | Type    | Default  | Description                                                                                                                                   |
+| ----------------------- | ------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--strategy <name>`     | string  | `simple` | Strategy name.                                                                                                                                |
+| `--chunk-size <number>` | number  | `10000`  | Token budget per batch.                                                                                                                       |
+| `--strict`              | boolean | false    | Enforce required-field validation on every step, not just the final one. Useful for single-chunk inputs where partial data is never expected. |
 
 Strategy names: `simple`, `parallel`, `sequential`, `parallelAutoMerge`, `sequentialAutoMerge`, `doublePass`, `doublePassAutoMerge`.
 
@@ -193,9 +358,10 @@ When using `--strategy` other than `simple`, both `model` and `mergeModel`/`dedu
 
 Output [#output]
 
-| Flag                 | Type   | Default | Description                         |
-| -------------------- | ------ | ------- | ----------------------------------- |
-| `--output <path\|->` | string | `-`     | Write JSON to file or stdout (`-`). |
+| Flag                 | Type    | Default | Description                                                                                                                     |
+| -------------------- | ------- | ------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `--output <path\|->` | string  | `-`     | Write JSON to file or stdout (`-`).                                                                                             |
+| `--debug`            | boolean | false   | Enable verbose JSON debug logging to stderr. Shows model resolution, artifact loading, schema details, and per-step LLM events. |
 
 Progress [#progress]
 
@@ -217,6 +383,30 @@ echo "Invoice #1042 from Acme Corp. Total: $2,400.00." | \
   --model openai/gpt-4o-mini
 ```
 
+**PDF input (direct):**
+
+```bash
+struktur --input invoice.pdf \
+  --fields "invoice_number, vendor, total:number" \
+  --model openai/gpt-4o-mini
+```
+
+**PDF with embedded images (for visually rich documents):**
+
+```bash
+struktur --input invoice.pdf --images \
+  --schema invoice-schema.json \
+  --model openai/gpt-4o
+```
+
+**PDF with page screenshots (for slide decks, visual PDFs):**
+
+```bash
+struktur --input slides.pdf --screenshots --screenshot-scale 2 \
+  --fields "title, slide_count:integer" \
+  --model openai/gpt-4o
+```
+
 **File input with inline schema:**
 
 ```bash
@@ -234,7 +424,22 @@ cat document.md | struktur --stdin --schema schema.json --model anthropic/claude
 **Parallel strategy with output to file:**
 
 ```bash
-struktur --input large.md --schema schema.json --model openai/gpt-4o --strategy parallel --output result.json
+struktur --input large.md --schema schema.json --model openai/gpt-4o \
+  --strategy parallel --output result.json
+```
+
+**MIME type override:**
+
+```bash
+struktur --input data.bin --mime application/pdf \
+  --fields "title, author" --model openai/gpt-4o-mini
+```
+
+**Custom parser for a single run:**
+
+```bash
+struktur --input report.docx --parser @myorg/docx-parser \
+  --fields "title, summary" --model openai/gpt-4o-mini
 ```
 
 **Schema from URL:**
@@ -243,11 +448,18 @@ struktur --input large.md --schema schema.json --model openai/gpt-4o --strategy 
 struktur --input data.txt --schema https://myserver.com/schemas/invoice.json --model openai/gpt-4o-mini
 ```
 
+**Debug mode (verbose logging to stderr):**
+
+```bash
+struktur --input doc.pdf --fields "title" --model openai/gpt-4o-mini --debug
+```
+
 See also [#see-also]
 
 * [--fields reference](/docs/cli/fields) — fields shorthand syntax and examples
-* [Installation & Setup](/docs/cli/installation) — getting started
-* [auth](/docs/cli/auth) — token management
+* [parse](/docs/cli/parse) — convert files to artifact JSON for inspection
+* [config](/docs/cli/config) — provider and model management
+* [Parsers](/docs/explanation/parsers) — how file parsing works
 * [Strategies](/docs/explanation/strategies) — strategy reference
 
 
@@ -450,15 +662,17 @@ See also [#see-also]
 
 
 
-The Struktur CLI provides commands for data extraction and authentication management.
+The Struktur CLI provides commands for data extraction, file parsing, and configuration management.
 
 Commands [#commands]
 
-* [installation](/docs/cli/installation) — Install and configure Struktur
-* [extract](/docs/cli/extract) — Extract structured data from documents
-* [auth](/docs/cli/auth) — Manage API tokens and default models
-* [models](/docs/cli/models) — List available models by provider
-* [verify](/docs/cli/verify) — Verify configuration and provider connectivity
+* [extract](/docs/cli/extract) — Extract structured data from files, stdin, or text (default command)
+* [parse](/docs/cli/parse) — Convert a file to Artifact JSON for inspection or pre-processing
+* [config](/docs/cli/config) — Manage providers, models, and parsers
+* [utils](/docs/cli/utils) — Utility commands (artifact viewer)
+* [verify](/docs/cli/verify) — Validate artifact JSON format
+
+`extract` is the default command — `struktur --input file.pdf ...` and `struktur extract --input file.pdf ...` are equivalent.
 
 
 # Installation & Setup
@@ -483,51 +697,56 @@ struktur --help
 
 Configure a provider (required) [#configure-a-provider-required]
 
-Two methods:
-
 Option A: Environment variable (not persisted) [#option-a-environment-variable-not-persisted]
 
 ```bash
 export OPENAI_API_KEY=sk-...
 export ANTHROPIC_API_KEY=sk-ant-...
 export GOOGLE_GENERATIVE_AI_API_KEY=AI...
+export OPENCODE_API_KEY=...
+export OPENROUTER_API_KEY=...
 ```
 
 Option B: Stored token (persisted) [#option-b-stored-token-persisted]
 
 ```bash
-echo "$OPENAI_API_KEY" | struktur auth set --provider openai --token-stdin
+echo "$OPENAI_API_KEY" | struktur config providers add openai --token-stdin
 ```
 
-**Storage:**
-
-* macOS: Keychain (auto)
-* Linux/Windows: `~/.config/struktur/tokens.json`
-
-**Permissions:**
-
-* Config dir: `chmod 700`
-* Tokens file: `chmod 600`
+On macOS, tokens are stored in Keychain. On other platforms, `~/.config/struktur/tokens.json` (chmod 600).
 
 Set a default model [#set-a-default-model]
 
 ```bash
-struktur auth default openai
-# or explicitly:
-struktur auth default --model openai/gpt-4o-mini
+# Set explicitly
+struktur config models use openai/gpt-4o-mini
+
+# Or store a shortcut alias first
+struktur config models alias set fast openai/gpt-4.1-mini
+struktur config models use fast
 ```
 
-Once set, `--model` is optional in extract commands.
+Once set, `--model` is optional in `extract` commands.
+
+Quick setup with --default [#quick-setup-with---default]
+
+```bash
+echo "$OPENAI_API_KEY" | struktur config providers add openai --token-stdin --default
+```
+
+The `--default` flag automatically queries the provider API and sets the cheapest available model as default. One command, fully ready.
 
 Environment variables [#environment-variables]
 
 Provider API keys [#provider-api-keys]
 
-| Variable                       | Purpose                        |
-| ------------------------------ | ------------------------------ |
-| `OPENAI_API_KEY`               | OpenAI API token               |
-| `ANTHROPIC_API_KEY`            | Anthropic API token            |
-| `GOOGLE_GENERATIVE_AI_API_KEY` | Google Generative AI API token |
+| Variable                       | Provider   |
+| ------------------------------ | ---------- |
+| `OPENAI_API_KEY`               | OpenAI     |
+| `ANTHROPIC_API_KEY`            | Anthropic  |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Google     |
+| `OPENCODE_API_KEY`             | OpenCode   |
+| `OPENROUTER_API_KEY`           | OpenRouter |
 
 Environment variables override stored tokens.
 
@@ -541,67 +760,192 @@ Configuration [#configuration]
 
 SDK behavior [#sdk-behavior]
 
-| Variable              | Purpose                                                              |
-| --------------------- | -------------------------------------------------------------------- |
-| `AI_SDK_LOG_WARNINGS` | Set to `false` to suppress AI SDK warnings (default: `false` in CLI) |
+| Variable              | Purpose                                         |
+| --------------------- | ----------------------------------------------- |
+| `AI_SDK_LOG_WARNINGS` | Set to `true` to enable AI SDK warning messages |
 
 See also [#see-also]
 
 * [extract](/docs/cli/extract) — main extraction command
-* [auth](/docs/cli/auth) — token management
+* [config](/docs/cli/config) — provider and model management
 
 
-# models
+# parse
 
 
+
+Synopsis [#synopsis]
 
 ```bash
-struktur models [--provider <name>] [--all]
+struktur parse --input <file> [options]
+struktur parse --stdin [options]
 ```
 
-| Flag                | Type    | Default                   | Description                    |
-| ------------------- | ------- | ------------------------- | ------------------------------ |
-| `--provider <name>` | string  | —                         | Query a single provider.       |
-| `--all`             | boolean | true (if no `--provider`) | Query all supported providers. |
+Description [#description]
 
-Output:
+Converts a file or stdin to Artifact JSON. Use this to:
 
-```json
-{
-  "providers": [
-    {
-      "provider": "openai",
-      "ok": true,
-      "models": ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", ...]
-    },
-    {
-      "provider": "anthropic",
-      "ok": true,
-      "models": ["claude-3-5-sonnet-20241022", ...]
-    }
-  ]
-}
+* Inspect how Struktur will represent your document before running extraction
+* Pre-process files and cache the artifact JSON for repeated extraction
+* Debug parser output when configuring a custom parser
+* Pipe artifacts into `struktur extract --artifact -` for decoupled workflows
+
+Options [#options]
+
+Input (exactly one required) [#input-exactly-one-required]
+
+| Flag             | Short | Type    | Description     |
+| ---------------- | ----- | ------- | --------------- |
+| `--input <path>` | `-i`  | string  | File to parse   |
+| `--stdin`        | `-s`  | boolean | Read from stdin |
+
+Output [#output]
+
+| Flag                 | Short | Type   | Default      | Description                           |
+| -------------------- | ----- | ------ | ------------ | ------------------------------------- |
+| `--output <path\|->` | `-o`  | string | `-` (stdout) | Write artifact JSON to file or stdout |
+
+Parser control [#parser-control]
+
+| Flag             | Type   | Description                                                      |
+| ---------------- | ------ | ---------------------------------------------------------------- |
+| `--mime <type>`  | string | Override MIME type detection                                     |
+| `--parser <pkg>` | string | Use this npm package as parser, overriding any configured parser |
+
+Image extraction (PDF inputs) [#image-extraction-pdf-inputs]
+
+| Flag                       | Type    | Default | Description                                                        |
+| -------------------------- | ------- | ------- | ------------------------------------------------------------------ |
+| `--images`                 | boolean | false   | Extract embedded images from PDFs                                  |
+| `--screenshots`            | boolean | false   | Render page screenshots                                            |
+| `--screenshot-scale <num>` | number  | 1.5     | Scale factor for screenshots                                       |
+| `--screenshot-width <px>`  | number  | —       | Target screenshot width in pixels (overrides `--screenshot-scale`) |
+
+Parser resolution order [#parser-resolution-order]
+
+1. `--parser <pkg>` flag — bypasses all config
+2. Parser configured for the detected MIME type (`struktur config parsers add ...`)
+3. Built-in parser for the MIME type
+4. Error: no parser found — suggests `struktur config parsers add`
+
+Built-in parsers [#built-in-parsers]
+
+| MIME type          | Behavior                                                                                             |
+| ------------------ | ---------------------------------------------------------------------------------------------------- |
+| `application/pdf`  | Per-page text via `pdf-parse`. Add `--images` for embedded images, `--screenshots` for page renders. |
+| `text/*`           | Split on double newlines into content slices.                                                        |
+| `image/*`          | Single-content artifact with the image as a media item.                                              |
+| `application/json` | If it validates as `SerializedArtifact[]`, passed through unchanged.                                 |
+
+Examples [#examples]
+
+```bash
+# Inspect a PDF
+struktur parse --input document.pdf
+
+# Extract PDF with embedded images and page screenshots
+struktur parse --input slides.pdf --images --screenshots --output artifact.json
+
+# Use a configured custom parser
+struktur parse --input report.docx --output artifact.json
+
+# Override the parser on the fly
+struktur parse --input data.xlsx --parser @myorg/xlsx-parser
+
+# Pipe into extract
+struktur parse --input doc.pdf --images | \
+  struktur extract --artifact - --fields "title, author" --model openai/gpt-4o-mini
+
+# Inspect in the browser
+struktur parse --input doc.pdf | struktur utils artifact-viewer --stdin > viewer.html
+open viewer.html
 ```
-
-When a provider has no token configured, its entry will have `"ok": false` and an `"error"` field.
 
 See also [#see-also]
 
-* [auth](/docs/cli/auth) — configure providers
-* [extract](/docs/cli/extract) — use models in extraction
+* [config parsers](/docs/cli/config#config-parsers) — Configure custom parsers
+* [Parsers](/docs/explanation/parsers) — Parser system overview
+* [Artifact Format](/docs/explanation/preprocessing/artifact-format) — Output format
+* [utils artifact-viewer](/docs/cli/utils) — Visualize parsed artifacts
+
+
+# utils
+
+
+
+utils artifact-viewer [#utils-artifact-viewer]
+
+Generates a self-contained HTML file for exploring artifact JSON in a browser.
+
+```bash
+struktur utils artifact-viewer --input artifacts.json --output viewer.html
+struktur parse --input doc.pdf --images | struktur utils artifact-viewer --stdin > viewer.html
+```
+
+Options [#options]
+
+| Flag                 | Short | Type    | Default      | Description                   |
+| -------------------- | ----- | ------- | ------------ | ----------------------------- |
+| `--input <path>`     | `-i`  | string  | —            | Artifact JSON file            |
+| `--stdin`            | `-s`  | boolean | false        | Read artifact JSON from stdin |
+| `--output <path\|->` | `-o`  | string  | `-` (stdout) | Write HTML to file or stdout  |
+
+What the viewer shows [#what-the-viewer-shows]
+
+**Default view** (artifact-by-artifact):
+
+* Each artifact as a card with header showing type, page count, and image count
+* Text content with expand/collapse per-slice (truncated at 500 chars, full text on click)
+* Image thumbnails with click-to-enlarge modal
+* Screenshot images marked with an orange "screenshot" badge
+* Image dimensions overlaid on each thumbnail
+* Metadata section (collapsible)
+
+**Batching Mode** (chunking visualization):
+
+* Sidebar listing batches and chunks with token and image counts
+* Main area shows each chunk with a dashed amber border at chunk boundaries
+* Configurable chunking parameters: Max Tokens, Max Images, Text Ratio, Image Tokens
+* Image type filter: show/hide embedded images and screenshots independently
+* Token and image counts update live as parameters change
+
+The viewer embeds a JavaScript implementation of Struktur's chunking algorithm so batching mode accurately reflects what `parallel`, `sequential`, and other chunked strategies will do with your documents.
+
+Workflow example [#workflow-example]
+
+```bash
+# Parse a PDF, inspect it in the browser before extracting
+struktur parse --input contract.pdf --images --screenshots --output contract-artifacts.json
+struktur utils artifact-viewer --input contract-artifacts.json --output viewer.html
+open viewer.html
+
+# Decide on chunking parameters, then extract
+struktur extract --input contract.pdf --images --schema schema.json \
+  --strategy parallelAutoMerge --chunk-size 8000 --model openai/gpt-4o
+```
+
+See also [#see-also]
+
+* [parse](/docs/cli/parse) — Generate artifact JSON from files
+* [Artifact Format](/docs/explanation/preprocessing/artifact-format) — Understanding artifacts
+* [Chunking & Token Budgets](/docs/explanation/chunking) — How chunking works
 
 
 # verify
 
 
 
+Synopsis [#synopsis]
+
 ```bash
-struktur verify [--input <path|->]
+struktur verify --input <path>
+struktur verify --stdin
 ```
 
-| Flag                | Type   | Default | Description                          |
-| ------------------- | ------ | ------- | ------------------------------------ |
-| `--input <path\|->` | string | stdin   | Artifact JSON file or `-` for stdin. |
+| Flag             | Short | Type    | Description                     |
+| ---------------- | ----- | ------- | ------------------------------- |
+| `--input <path>` | `-i`  | string  | Artifact JSON file to validate. |
+| `--stdin`        | `-s`  | boolean | Read artifact JSON from stdin.  |
 
 Output on success:
 
@@ -616,15 +960,20 @@ Usage [#usage]
 Use this to verify your preprocessing pipeline produces valid artifact format before running extraction.
 
 ```bash
-cat artifacts.json | struktur verify
-# or from a file:
+# From stdin
+cat artifacts.json | struktur verify --stdin
+
+# From a file
 struktur verify --input artifacts.json
+
+# Verify parse output
+struktur parse --input document.pdf | struktur verify --stdin
 ```
 
 See also [#see-also]
 
-* [The Artifact Format](/docs/explanation/preprocessing/artifact-format) — the JSON spec
-* [Built-in Input Types](/docs/explanation/preprocessing/built-in-inputs) — creating artifacts
+* [Artifact Format](/docs/explanation/preprocessing/artifact-format) — the JSON spec
+* [parse](/docs/cli/parse) — convert files to artifact JSON
 
 
 # Enrich Records from URLs
@@ -787,6 +1136,14 @@ struktur --input invoice.pdf \
   --model openai/gpt-4o-mini
 ```
 
+With embedded images (for invoices with stamps, logos, or handwritten amounts):
+
+```bash
+struktur --input invoice.pdf --images \
+  --schema invoice-schema.json \
+  --model openai/gpt-4o
+```
+
 Multiple invoices:
 
 ```bash
@@ -798,30 +1155,21 @@ for file in invoices/*.pdf; do
 done
 ```
 
-Pipeline with markitdown:
-
-```bash
-find invoices -name "*.pdf" -exec markitdown {} \; | \
-  struktur --stdin \
-    --schema invoice-schema.json \
-    --model openai/gpt-4o-mini
-```
-
 SDK [#sdk]
 
 Small invoices (1-3 pages):
 
 ```js
-import { extract, simple } from "@mateffy/struktur";
+import { extract, simple, parseInputToArtifacts } from "@mateffy/struktur";
 import { openai } from "@ai-sdk/openai";
-import { fileToArtifact } from "@mateffy/struktur";
-import fs from "node:fs/promises";
 
-const buffer = Buffer.from(await fs.readFile("invoice.pdf"));
-const artifact = await fileToArtifact(buffer, { mimeType: "application/pdf" });
+const artifacts = await parseInputToArtifacts(
+  { kind: "file", path: "invoice.pdf" },
+  { includeImages: true }
+);
 
 const result = await extract({
-  artifacts: [artifact],
+  artifacts,
   schema: invoiceSchema,
   strategy: simple({ model: openai("gpt-4o-mini") }),
 });
@@ -830,11 +1178,13 @@ const result = await extract({
 Multi-page invoices with many line items:
 
 ```js
-import { extract, sequentialAutoMerge } from "@mateffy/struktur";
+import { extract, sequentialAutoMerge, parseInputToArtifacts } from "@mateffy/struktur";
 import { openai } from "@ai-sdk/openai";
 
+const artifacts = await parseInputToArtifacts({ kind: "file", path: "invoice.pdf" });
+
 const result = await extract({
-  artifacts: [artifact],
+  artifacts,
   schema: invoiceSchema,
   strategy: sequentialAutoMerge({
     model: openai("gpt-4o-mini"),
@@ -1242,6 +1592,22 @@ See also [#see-also]
 
 Linux: inotifywait [#linux-inotifywait]
 
+For PDFs and other supported formats, use `--input` directly — no pre-processing required:
+
+```bash
+inotifywait -m ./incoming -e create -e moved_to |
+  while read -r path action file; do
+    echo "New file: $file"
+    struktur --input "$path/$file" \
+      --schema schema.json \
+      --model openai/gpt-4o-mini \
+      --output "processed/$file.json"
+    mv "$path/$file" ./processed/
+  done
+```
+
+For formats without a built-in parser, pipe through a conversion tool first:
+
 ```bash
 inotifywait -m ./incoming -e create -e moved_to |
   while read -r path action file; do
@@ -1261,7 +1627,7 @@ fswatch -o ./incoming | while read f; do
   for file in ./incoming/*; do
     [ -f "$file" ] || continue
     echo "Processing: $file"
-    markitdown "$file" | struktur --stdin \
+    struktur --input "$file" \
       --schema schema.json \
       --model openai/gpt-4o-mini \
       --output "processed/$(basename $file).json"
@@ -1277,7 +1643,7 @@ For streaming ingestion, append to a JSONL file (one JSON object per line):
 ```bash
 inotifywait -m ./incoming -e create -e moved_to |
   while read -r path action file; do
-    markitdown "$path/$file" | struktur --stdin \
+    struktur --input "$path/$file" \
       --schema schema.json \
       --model openai/gpt-4o-mini \
       >> processed.jsonl
@@ -1289,9 +1655,8 @@ SDK: fs.watch [#sdk-fswatch]
 
 ```js
 import { watch } from "node:fs";
-import { extract, simple } from "@mateffy/struktur";
+import { extract, simple, parseInputToArtifacts } from "@mateffy/struktur";
 import { openai } from "@ai-sdk/openai";
-import { parseInputToArtifacts } from "@mateffy/struktur";
 import fs from "node:fs/promises";
 import path from "node:path";
 
@@ -1314,8 +1679,8 @@ const watcher = watch(incomingDir, async (event, filename) => {
   console.log(`Processing: ${filename}`);
 
   try {
-    const text = await fs.readFile(filePath, "utf-8");
-    const artifacts = await parseInputToArtifacts({ kind: "text", text });
+    // parseInputToArtifacts handles MIME detection and parsing (PDF, text, images, etc.)
+    const artifacts = await parseInputToArtifacts({ kind: "file", path: filePath });
 
     const result = await extract({
       artifacts,
@@ -1342,9 +1707,8 @@ For more robust file watching:
 
 ```js
 import chokidar from "chokidar";
-import { extract, simple } from "@mateffy/struktur";
+import { extract, simple, parseInputToArtifacts } from "@mateffy/struktur";
 import { openai } from "@ai-sdk/openai";
-import { parseInputToArtifacts } from "@mateffy/struktur";
 import fs from "node:fs/promises";
 import path from "node:path";
 
@@ -1363,8 +1727,7 @@ watcher.on("add", async (filePath) => {
   console.log(`Processing: ${path.basename(filePath)}`);
 
   try {
-    const text = await fs.readFile(filePath, "utf-8");
-    const artifacts = await parseInputToArtifacts({ kind: "text", text });
+    const artifacts = await parseInputToArtifacts({ kind: "file", path: filePath });
 
     const result = await extract({
       artifacts,
@@ -1485,31 +1848,167 @@ Topics [#topics]
 * [preprocessing](/docs/explanation/preprocessing) — Input handling and artifact format
 
 
+# Parsers
+
+
+
+Struktur's parser system converts files into [Artifact format](/docs/explanation/preprocessing/artifact-format) before any LLM work happens. Parsers are resolved by MIME type and are fully configurable.
+
+MIME Detection [#mime-detection]
+
+MIME type is detected in three layers (tried in order):
+
+1. **Magic bytes** (authoritative): PDF (`%PDF-`), PNG, JPEG, GIF, WebP, and ZIP-based Office formats are identified from the first bytes of the file.
+2. **npm `detectFileType` callback**: A custom npm parser may export a `detectFileType(header: Uint8Array): boolean` function to claim MIME types beyond what magic bytes cover.
+3. **File extension database**: Fallback for inputs where magic bytes don't match a known signature.
+
+Override MIME detection with `--mime <type>` on any command that accepts input.
+
+Built-in Parsers [#built-in-parsers]
+
+| MIME type          | Behavior                                                                                                                                                                                                     |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `application/pdf`  | Per-page text via `pdf-parse`. Embedded images require `--images`. Page screenshots require `--screenshots`. Image deduplication filters images smaller than \~80px. Non-fatal on image/screenshot failures. |
+| `text/*`           | Split on double newlines into content slices.                                                                                                                                                                |
+| `image/*`          | Single-content artifact with one media item.                                                                                                                                                                 |
+| `application/json` | If it validates as `SerializedArtifact[]`, passed through unchanged without invoking any parser.                                                                                                             |
+
+Custom Parsers [#custom-parsers]
+
+Three types are supported, registered with `struktur config parsers add`.
+
+npm package parser [#npm-package-parser]
+
+Install a package that implements the `NpmParserModule` interface:
+
+```typescript
+import type { Artifact } from "@mateffy/struktur";
+
+// At least one of these is required:
+export async function parseStream(
+  stream: ReadableStream<Uint8Array>,
+  mimeType: string
+): Promise<Artifact[]>;
+
+export async function parseFile(
+  filePath: string,
+  mimeType: string
+): Promise<Artifact[]>;
+
+// Optional: return true if your parser handles these bytes
+export function detectFileType(header: Uint8Array): boolean;
+```
+
+When both `parseFile` and `parseStream` are exported, Struktur prefers `parseFile` for file inputs (zero-copy) and `parseStream` for buffer or stdin inputs. A temp file is created as a fallback if needed.
+
+Register it:
+
+```bash
+struktur config parsers add \
+  --mime application/vnd.openxmlformats-officedocument.wordprocessingml.document \
+  --npm @myorg/docx-parser
+```
+
+Shell command (file-based) [#shell-command-file-based]
+
+The `FILE_PATH` placeholder is replaced with the actual file path at runtime. For buffer inputs, a temp file is created automatically.
+
+```bash
+struktur config parsers add \
+  --mime application/vnd.ms-excel \
+  --file-command "python3 /path/to/excel2artifact.py FILE_PATH"
+```
+
+`FILE_PATH` must appear in the command string — an error is thrown if it is missing.
+
+The command must write `SerializedArtifact[]` JSON to stdout.
+
+Shell command (stdin-based) [#shell-command-stdin-based]
+
+File contents are piped to the command's stdin.
+
+```bash
+struktur config parsers add \
+  --mime text/html \
+  --stdin-command "my-html-to-artifact-tool"
+```
+
+The command must write `SerializedArtifact[]` JSON to stdout. Plain text output will fail validation.
+
+Parser Resolution Order [#parser-resolution-order]
+
+For any input, parsers are resolved in this order:
+
+1. `--parser <pkg>` flag on the CLI — always wins, bypasses all config
+2. Parser configured for the detected MIME type (`config parsers add`)
+3. Built-in parser (PDF, text/\*, image/\*, JSON)
+4. Error with a suggestion to use `config parsers add`
+
+Ad-hoc Parser Override [#ad-hoc-parser-override]
+
+Use `--parser` to override the configured parser for a single run without changing config:
+
+```bash
+struktur parse --input report.docx --parser @myorg/experimental-docx-parser
+struktur --input data.xlsx --parser @myorg/xlsx-parser --fields "..." --model openai/gpt-4o-mini
+```
+
+SDK Usage [#sdk-usage]
+
+Pass a `parserConfig` to `parseInputToArtifacts` to use custom parsers without CLI config:
+
+```typescript
+import { parseInputToArtifacts } from "@mateffy/struktur";
+import type { ParsersConfig } from "@mateffy/struktur";
+
+const parserConfig: ParsersConfig = {
+  "application/vnd.ms-excel": {
+    type: "npm",
+    package: "@myorg/xlsx-parser",
+  },
+};
+
+const artifacts = await parseInputToArtifacts(
+  { kind: "file", path: "report.xlsx" },
+  { parserConfig }
+);
+```
+
+See also [#see-also]
+
+* [config parsers](/docs/cli/config#config-parsers) — CLI commands for managing parsers
+* [parse](/docs/cli/parse) — Convert files to artifact JSON
+* [Artifact Format](/docs/explanation/preprocessing/artifact-format) — The output data structure
+* [Built-in Input Types](/docs/explanation/preprocessing/built-in-inputs) — SDK input helpers
+
+
 # Extraction Lifecycle
 
 
 
 ```mermaid
 flowchart LR
-    A[Input] --> B[Artifacts]
-    B --> C[Strategy]
-    C --> D[Output]
+    A[Input] --> B[Parse]
+    B --> C[Artifacts]
+    C --> D[Strategy]
+    D --> E[Output]
     
     subgraph StrategyInternals [Strategy]
         direction TB
-        C1[Chunking] --> C2[LLM Calls]
-        C2 --> C3[Validation + Retry]
-        C3 --> C4[Merge/Dedupe]
+        D1[Chunking] --> D2[LLM Calls]
+        D2 --> D3[Validation + Retry]
+        D3 --> D4[Merge/Dedupe]
     end
     
-    C --> StrategyInternals --> D
+    D --> StrategyInternals --> E
 ```
 
 Inputs and Artifacts [#inputs-and-artifacts]
 
-Struktur operates on **Artifacts**, not raw files. The boundary is intentional — you handle parsing (PDF → text, HTML → markdown), Struktur handles extraction. This keeps the tool focused and lets you use best-of-breed parsers per format.
+Struktur converts input files into **Artifacts** before extraction. For plain text or stdin, this is trivial. For structured files (PDFs, Office documents), Struktur runs a parser — built-in or custom — that extracts text and images per-page.
 
-See [Artifacts](/docs/explanation/preprocessing/artifact-format) for the artifact concept.
+See [Parsers](/docs/explanation/parsers) for how files are converted to artifacts.
+See [Artifact Format](/docs/explanation/preprocessing/artifact-format) for the data structure.
 
 The Strategy layer [#the-strategy-layer]
 
@@ -1543,6 +2042,7 @@ The extraction result has three fields:
 
 See also [#see-also]
 
+* [Parsers](/docs/explanation/parsers) — how files are converted to artifacts
 * [Artifacts](/docs/explanation/preprocessing/artifact-format) — the input format
 * [Strategies](/docs/explanation/strategies) — orchestration patterns
 * [Chunking & Token Budgets](/docs/explanation/chunking) — how large documents are split
@@ -1611,15 +2111,18 @@ Images [#images]
 
 Each item in `media` has:
 
-| Field                       | Required | Description                                     |
-| --------------------------- | -------- | ----------------------------------------------- |
-| `type`                      | Yes      | Must be `"image"`                               |
-| `url`                       | No       | URL to image (mutually exclusive with `base64`) |
-| `base64`                    | No       | Base64-encoded image data                       |
-| `text`                      | No       | Alt text or OCR output                          |
-| `x`, `y`, `width`, `height` | No       | Optional spatial metadata                       |
+| Field                       | Required | Description                                                                                                                               |
+| --------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `type`                      | Yes      | Must be `"image"`                                                                                                                         |
+| `url`                       | No       | URL to image (mutually exclusive with `base64`)                                                                                           |
+| `base64`                    | No       | Base64-encoded image data (no data-URL prefix)                                                                                            |
+| `text`                      | No       | Alt text or OCR output                                                                                                                    |
+| `x`, `y`, `width`, `height` | No       | Optional spatial metadata (pixels)                                                                                                        |
+| `imageType`                 | No       | `"embedded"` or `"screenshot"`. Distinguishes images extracted from the document body from page renders. Omit for hand-crafted artifacts. |
 
 Either `url` or `base64` must be present.
+
+The `imageType` field is set automatically by the PDF parser: `"embedded"` for images extracted from the PDF body (requires `--images`), `"screenshot"` for full-page renders (requires `--screenshots`). The artifact viewer uses this field to filter and badge images independently.
 
 Complete example [#complete-example]
 
@@ -1636,7 +2139,13 @@ Complete example [#complete-example]
           {
             "type": "image",
             "base64": "iVBORw0KGgoAAAANS...",
-            "text": "Company logo"
+            "text": "Company logo",
+            "imageType": "embedded"
+          },
+          {
+            "type": "image",
+            "base64": "iVBORw0KGgoAAAANS...",
+            "imageType": "screenshot"
           }
         ]
       },
@@ -1658,7 +2167,8 @@ Validation [#validation]
 Struktur validates artifact JSON before processing. Use the CLI:
 
 ```bash
-cat artifacts.json | struktur verify
+# From stdin
+cat artifacts.json | struktur verify --stdin
 # or from a file:
 struktur verify --input artifacts.json
 ```
@@ -1667,18 +2177,18 @@ Returns `{ "valid": true, "artifacts": 1 }` on success, throws with error detail
 
 Built-in artifact creation [#built-in-artifact-creation]
 
-Three paths:
-
-| Path               | Description                                       |
-| ------------------ | ------------------------------------------------- |
-| `fileToArtifact()` | From a file path + provider for the MIME type     |
-| `urlToArtifact()`  | Fetches a pre-serialized artifact JSON from a URL |
-| Text/stdin         | Automatic for plain text/markdown inputs          |
+| Path                            | Description                                                                       |
+| ------------------------------- | --------------------------------------------------------------------------------- |
+| `--input <file>` (CLI)          | MIME detection + parser resolution; PDF uses built-in `parsePdf`                  |
+| `--stdin` (CLI)                 | MIME detection on buffer; `text/plain` falls back to text artifact                |
+| `parseInputToArtifacts()` (SDK) | Accepts `kind: "text"`, `kind: "file"`, `kind: "buffer"`, `kind: "artifact-json"` |
+| `urlToArtifact()` (SDK)         | Fetches URL, validates as `SerializedArtifact[]`                                  |
 
 See also [#see-also]
 
 * [Built-in Input Types](/docs/explanation/preprocessing/built-in-inputs) — how to get input into Struktur
 * [Artifact Helpers](/docs/sdk/artifact-helpers) — the SDK API
+* [Parsers](/docs/explanation/parsers) — how files are converted to artifacts
 
 
 # Built-in Input Types
@@ -1687,11 +2197,11 @@ See also [#see-also]
 
 Plain text / markdown (CLI) [#plain-text--markdown-cli]
 
-| Flag              | Description                                                                                     |
-| ----------------- | ----------------------------------------------------------------------------------------------- |
-| `--stdin`         | Reads stdin as UTF-8 text. Auto-detected when piped with no other input flag.                   |
-| `--text <string>` | Inline text as a CLI argument.                                                                  |
-| `--input <path>`  | Reads a `.txt` or `.md` file. If Bun detects MIME type as `text/*`, it becomes a text artifact. |
+| Flag              | Description                                                                                               |
+| ----------------- | --------------------------------------------------------------------------------------------------------- |
+| `--stdin`         | Reads stdin as UTF-8 text. Auto-detected when piped with no other input flag.                             |
+| `--text <string>` | Inline text as a CLI argument.                                                                            |
+| `--input <path>`  | Reads a file. MIME type auto-detected; text files become text artifacts, PDFs invoke the PDF parser, etc. |
 
 Text is split on double newlines into content slices automatically.
 
@@ -1713,23 +2223,49 @@ Schema loading [#schema-loading]
 
 Schema loading from URLs sends `Accept: application/schema+json, application/json` headers.
 
-SDK: fileToArtifact(buffer, { mimeType, providers }) [#sdk-filetoartifactbuffer--mimetype-providers-]
+SDK: parseInputToArtifacts(input, options?) [#sdk-parseinputtoartifactsinput-options]
 
-Creates an artifact from a Buffer. The provider registry maps MIME types to artifact factories.
+The primary SDK function for loading input into artifacts. Handles MIME detection and parser resolution automatically.
 
-If no provider is registered for the MIME type:
+```typescript
+import { parseInputToArtifacts } from "@mateffy/struktur";
 
-* `text/*` → text artifact (split on double newlines)
-* `image/*` → image artifact (single media slice with raw buffer)
-* Anything else → throws `Unsupported MIME type`
+const artifacts = await parseInputToArtifacts(
+  { kind: "file", path: "document.pdf" },
+  {
+    parserConfig: parsersConfig,   // ParsersConfig — keyed by MIME type (optional)
+    includeImages: true,           // extract embedded PDF images
+    screenshots: false,            // render PDF page screenshots
+    screenshotScale: 1.5,          // scale factor for screenshots
+    screenshotWidth: undefined,    // target width in pixels (overrides screenshotScale)
+  }
+);
+```
+
+Supported input kinds:
+
+| Input kind                             | Description                                             |
+| -------------------------------------- | ------------------------------------------------------- |
+| `{ kind: "text", text }`               | Text artifact (split on double newlines)                |
+| `{ kind: "file", path, mimeType? }`    | File artifact with MIME detection and parser resolution |
+| `{ kind: "buffer", buffer, mimeType }` | Buffer artifact with parser resolution                  |
+| `{ kind: "artifact-json", data }`      | Validates and hydrates pre-built artifact JSON          |
+
+When `kind: "file"` is used, MIME detection and parser resolution happen automatically based on `parserConfig`. See [Parsers](/docs/explanation/parsers) for resolution order.
+
+SDK: fileToArtifact(buffer, options) [#sdk-filetoartifactbuffer-options]
+
+Lower-level helper that creates an artifact from a Buffer using the `providers` registry (a `Record<string, (buffer: Buffer) => Promise<Artifact>>`).
+
+**Important:** `fileToArtifact` does **not** invoke the parser system — it uses the providers registry directly, which does not include the built-in PDF parser or any parsers configured via `config parsers add`. For PDF and other format support, use `parseInputToArtifacts` instead.
 
 ```js
 import { fileToArtifact } from "@mateffy/struktur";
 import fs from "node:fs/promises";
 
-const buffer = Buffer.from(await fs.readFile("document.pdf"));
+const buffer = Buffer.from(await fs.readFile("document.txt"));
 const artifact = await fileToArtifact(buffer, {
-  mimeType: "application/pdf",
+  mimeType: "text/plain",
   providers: { /* custom providers */ }
 });
 ```
@@ -1744,45 +2280,71 @@ import { urlToArtifact } from "@mateffy/struktur";
 const artifacts = await urlToArtifact("https://example.com/artifact.json");
 ```
 
-SDK: parseInputToArtifacts(input, options?) [#sdk-parseinputtoartifactsinput-options]
-
-Low-level function that dispatches to the correct parser. Supports:
-
-| Input kind                             | Description                           |
-| -------------------------------------- | ------------------------------------- |
-| `{ kind: "text", text }`               | Text artifact                         |
-| `{ kind: "file", path, mimeType? }`    | File artifact via provider registry   |
-| `{ kind: "buffer", buffer, mimeType }` | Buffer artifact via provider registry |
-| `{ kind: "artifact-json", data }`      | Validates and hydrates                |
-
-Custom parsers can be registered via `registerArtifactInputParser()`.
-
 See also [#see-also]
 
 * [The Artifact Format](/docs/explanation/preprocessing/artifact-format) — the JSON spec
 * [Artifact Helpers](/docs/sdk/artifact-helpers) — SDK API
-* [Writing a Custom Provider](/docs/explanation/preprocessing/custom-provider) — extending MIME type support
+* [Parsers](/docs/explanation/parsers) — the parser system for file conversion
+* [Custom Provider](/docs/explanation/preprocessing/custom-provider) — extending the provider registry
 
 
-# Writing a Custom Provider
+# Custom Provider
 
 
 
-When to write a custom provider [#when-to-write-a-custom-provider]
+There are two ways to extend Struktur with support for new file formats:
 
-You need a custom provider when you want `fileToArtifact()` to handle a MIME type that Struktur does not support natively (e.g., `application/pdf`, `application/vnd.ms-excel`, a custom format).
+1. **Configuration-level (recommended):** `struktur config parsers add` — zero code, works in CLI and SDK via `parserConfig`
+2. **SDK-level:** implementing a provider function for `fileToArtifact()`
+
+Option 1: Configuration-level (recommended) [#option-1-configuration-level-recommended]
+
+Register a parser by MIME type using the CLI. This works transparently for all `--input` and `parseInputToArtifacts` calls.
+
+```bash
+# npm package parser
+struktur config parsers add \
+  --mime application/vnd.ms-excel \
+  --npm @myorg/xlsx-parser
+
+# Shell command with file path
+struktur config parsers add \
+  --mime application/vnd.openxmlformats-officedocument.wordprocessingml.document \
+  --file-command "markitdown FILE_PATH"
+```
+
+See [config parsers](/docs/cli/config#config-parsers) and [Parsers](/docs/explanation/parsers) for the full reference.
+
+For the SDK, pass a `parserConfig` to `parseInputToArtifacts`:
+
+```typescript
+import { parseInputToArtifacts } from "@mateffy/struktur";
+
+const artifacts = await parseInputToArtifacts(
+  { kind: "file", path: "report.xlsx" },
+  {
+    parserConfig: {
+      "application/vnd.ms-excel": { type: "npm", package: "@myorg/xlsx-parser" },
+    },
+  }
+);
+```
+
+Option 2: SDK-level provider for fileToArtifact [#option-2-sdk-level-provider-for-filetoartifact]
+
+A provider is an async function that takes a Buffer and returns an Artifact. This is the lower-level path, suitable for inline one-off providers.
+
+**Note:** this approach does not support MIME detection or the parser system — it only applies when you call `fileToArtifact` directly with an explicit `mimeType`.
 
 The provider signature [#the-provider-signature]
 
-A provider is an async function that takes a Buffer and returns an Artifact:
-
 ```js
-const myPdfProvider = async (buffer) => {
-  const pages = await parseMyPdf(buffer);
+const myProvider = async (buffer) => {
+  const pages = await parseMyFormat(buffer);
 
   return {
-    id: `pdf-${crypto.randomUUID()}`,
-    type: "pdf",
+    id: `doc-${crypto.randomUUID()}`,
+    type: "file",
     raw: async () => buffer,
     contents: pages.map((page, i) => ({
       page: i + 1,
@@ -1796,53 +2358,23 @@ const myPdfProvider = async (buffer) => {
 };
 ```
 
-Register and use the provider [#register-and-use-the-provider]
+Register and use [#register-and-use]
 
 ```js
 import { fileToArtifact } from "@mateffy/struktur";
 import { readFile } from "node:fs/promises";
 
-const buffer = Buffer.from(await readFile("document.pdf"));
+const buffer = Buffer.from(await readFile("document.xlsx"));
 
 const artifact = await fileToArtifact(buffer, {
-  mimeType: "application/pdf",
+  mimeType: "application/vnd.ms-excel",
   providers: {
-    "application/pdf": myPdfProvider,
+    "application/vnd.ms-excel": myProvider,
   },
 });
 ```
 
-Using providers with parseInputToArtifacts [#using-providers-with-parseinputtoartifacts]
-
-```js
-import { parseInputToArtifacts } from "@mateffy/struktur";
-
-const artifacts = await parseInputToArtifacts(
-  { kind: "file", path: "document.pdf" },
-  { providers: { "application/pdf": myPdfProvider } }
-);
-```
-
 Common patterns [#common-patterns]
-
-PDF with markitdown subprocess [#pdf-with-markitdown-subprocess]
-
-```js
-import { $ } from "bun";
-
-const pdfViaMarkitdown = async (buffer) => {
-  const tempPath = `/tmp/${crypto.randomUUID()}.pdf`;
-  await Bun.write(tempPath, buffer);
-  const text = await $`markitdown ${tempPath}`.text();
-  
-  return {
-    id: `pdf-${crypto.randomUUID()}`,
-    type: "pdf",
-    raw: async () => buffer,
-    contents: [{ text }],
-  };
-};
-```
 
 Excel with xlsx package [#excel-with-xlsx-package]
 
@@ -1890,9 +2422,10 @@ const emailProvider = async (buffer) => {
 
 See also [#see-also]
 
+* [config parsers](/docs/cli/config#config-parsers) — CLI-level parser registration (recommended)
+* [Parsers](/docs/explanation/parsers) — parser system overview and npm parser contract
 * [The Artifact Format](/docs/explanation/preprocessing/artifact-format) — the return type spec
 * [Built-in Input Types](/docs/explanation/preprocessing/built-in-inputs) — default input handling
-* [Artifact Helpers](/docs/sdk/artifact-helpers) — SDK API
 
 
 # Document Processing
@@ -1903,54 +2436,11 @@ How Struktur handles input documents and converts them to artifacts for extracti
 
 Topics [#topics]
 
-* [Why No Parsing?](/docs/explanation/preprocessing/why-no-parsing) — Understanding Struktur's boundary between parsing and extraction
 * [Artifact Format](/docs/explanation/preprocessing/artifact-format) — The JSON structure Struktur operates on
 * [Built-in Inputs](/docs/explanation/preprocessing/built-in-inputs) — Pre-built helpers for common document formats
-* [Custom Provider](/docs/explanation/preprocessing/custom-provider) — Creating your own input provider
+* [Custom Provider](/docs/explanation/preprocessing/custom-provider) — Extending the SDK-level provider registry
 
-
-# Why Struktur Does Not Parse Files
-
-
-
-Parsing is hard and format-specific [#parsing-is-hard-and-format-specific]
-
-PDF parsing, HTML extraction, Excel reading, email decoding — each format has edge cases, vendor quirks, and library ecosystems. Bundling any of them into Struktur would:
-
-* Add dependencies you may not need
-* Force a specific parser even when you have a better one
-* Conflate two distinct problems (format parsing + structured extraction)
-
-Best-of-breed parsers [#best-of-breed-parsers]
-
-Use the right tool for your format:
-
-| Format                         | Recommended tools                                  |
-| ------------------------------ | -------------------------------------------------- |
-| **PDF**                        | `markitdown` (Microsoft), `pdftotext`, `pdf-parse` |
-| **HTML/web**                   | `markitdown`, `readability-js`, `cheerio`          |
-| **Office docs** (.docx, .xlsx) | `markitdown`, `xlsx`, `mammoth`                    |
-| **Images (OCR)**               | Tesseract, Google Vision, AWS Textract             |
-
-:::note
-Struktur *can* receive base64-encoded images directly in artifacts — OCR is not always needed if the vision model is good enough.
-:::
-
-The integration pattern [#the-integration-pattern]
-
-The canonical two-command pipeline:
-
-```bash
-markitdown document.pdf | struktur --stdin --schema schema.json --model openai/gpt-4o-mini
-```
-
-This is the idiomatic usage. You control parsing; Struktur controls extraction.
-
-See also [#see-also]
-
-* [The Artifact Format](/docs/explanation/preprocessing/artifact-format) — the input contract
-* [Built-in Input Types](/docs/explanation/preprocessing/built-in-inputs) — how to get data into Struktur
-* [Writing a Custom Provider](/docs/explanation/preprocessing/custom-provider) — extending MIME type support
+For a conceptual overview of the parser system (MIME detection, custom parsers, shell commands), see [Parsers](/docs/explanation/parsers).
 
 
 # Choosing a Strategy
@@ -3077,8 +3567,7 @@ Why Struktur? [#why-struktur]
 A 10-second demo [#a-10-second-demo]
 
 ```bash
-echo "Invoice #1042, Acme Corp, $2,400.00 due April 1" | \
-  struktur --stdin \
+struktur --input invoice.pdf \
   --fields "number, vendor, total:number" \
   --model openai/gpt-4o-mini
 ```
@@ -3095,7 +3584,7 @@ Expected output:
 
 What Struktur is NOT [#what-struktur-is-not]
 
-* **It does not parse PDFs, HTML, Word docs, or images.** You handle that upstream (e.g. with `markitdown`, `pdftotext`, or your own parser).
+* **It is not a general document conversion tool.** It parses files for extraction purposes, not for format conversion. It does not produce formatted output from documents.
 * **It is not a managed API.** It runs locally and calls your provider directly.
 * **It does not stream.** Input in, JSON out.
 * **It is not a general LLM orchestration framework.**
@@ -3117,6 +3606,7 @@ Quick navigation [#quick-navigation]
 | Looking up a flag or type?         | [CLI Reference](/docs/cli)           |
 | Quick schema without writing JSON? | [Fields Shorthand](/docs/cli/fields) |
 | Want to understand how it works?   | [Concepts](/docs/explanation)        |
+| Parse files into artifacts?        | [Parsers](/docs/explanation/parsers) |
 
 
 # Quickstart
@@ -3127,7 +3617,7 @@ Extract structured data from any file in 3 commands. About 5 minutes.
 
 What we'll build [#what-well-build]
 
-We will extract structured invoice data from a text string using the CLI.
+We will extract structured invoice data from a PDF using the CLI.
 
 Expected output:
 
@@ -3143,7 +3633,7 @@ Expected output:
 Prerequisites [#prerequisites]
 
 * Node.js 18+ or Bun installed
-* An API key from OpenAI, Anthropic, or Google
+* An API key from OpenAI, Anthropic, Google, OpenCode, or OpenRouter
 
 Step 1: Install [#step-1-install]
 
@@ -3174,16 +3664,44 @@ export OPENAI_API_KEY=sk-...
 **Option B (secure, persisted):**
 
 ```bash
-echo "sk-..." | struktur auth set --provider openai --token-stdin
+echo "sk-..." | struktur config providers add openai --token-stdin
 ```
 
 Output: `{ "provider": "openai", "stored": "keychain" }` (or `"file"` on Linux).
 
+**Option C (one command, fully ready):**
+
+```bash
+echo "sk-..." | struktur config providers add openai --token-stdin --default
+```
+
+The `--default` flag automatically queries the provider API and sets the cheapest available model as default, so `--model` becomes optional in all future commands.
+
+Step 2b: Set a default model (optional) [#step-2b-set-a-default-model-optional]
+
+If you didn't use `--default` above, set a default model explicitly:
+
+```bash
+struktur config models use openai/gpt-4o-mini
+```
+
+Once set, `--model` is optional in all `extract` commands.
+
 Step 3: Extract your first data [#step-3-extract-your-first-data]
+
+**From text:**
 
 ```bash
 echo "Invoice #1042 from Acme Corp. Total: $2,400.00. Due: April 1, 2026." | \
   struktur --stdin \
+  --fields "invoice_number, vendor, total:number, due_date" \
+  --model openai/gpt-4o-mini
+```
+
+**From a PDF directly:**
+
+```bash
+struktur --input invoice.pdf \
   --fields "invoice_number, vendor, total:number, due_date" \
   --model openai/gpt-4o-mini
 ```
@@ -3193,51 +3711,83 @@ The `--fields` flag builds a JSON Schema on the fly. Each field defaults to `str
 If you need more control (optional fields, nested objects), pass a full schema instead:
 
 ```bash
-echo "Invoice #1042 from Acme Corp. Total: $2,400.00. Due: April 1, 2026." | \
-struktur --stdin \
---schema-json '{"type":"object","properties":{"invoice_number":{"type":"string"},"vendor":{"type":"string"},"total":{"type":"number"},"due_date":{"type":"string"}},"required":["invoice_number","vendor","total","due_date"],"additionalProperties":false}' \
---model openai/gpt-4o-mini
+struktur --input invoice.pdf \
+  --schema-json '{"type":"object","properties":{"invoice_number":{"type":"string"},"vendor":{"type":"string"},"total":{"type":"number"},"due_date":{"type":"string"}},"required":["invoice_number","vendor","total","due_date"],"additionalProperties":false}' \
+  --model openai/gpt-4o-mini
 ```
 
 Notice that `total` is a number, not a string — Struktur enforced the schema.
 
 What happened? [#what-happened]
 
-Three things: stdin input was loaded as an artifact, the LLM generated output, and Ajv validated it against your schema. The `simple` strategy handled this in a single LLM call.
+For the text example, stdin input was loaded as an artifact, the LLM generated output, and Ajv validated it against your schema. The `simple` strategy handled this in a single LLM call.
+
+For the PDF example, an extra step happened first: the built-in PDF parser extracted text (and optionally images) from the file and converted it into an artifact, then extraction proceeded as normal. Add `--images` to include embedded images, or `--screenshots` to render page screenshots.
 
 To understand what happened inside, read [The Extraction Pipeline](/docs/explanation/pipeline).
 
 Where to go next [#where-to-go-next]
 
-| Goal                  | Link                                                   |
-| --------------------- | ------------------------------------------------------ |
-| Keep learning         | [The Extraction Pipeline](/docs/explanation/pipeline)  |
-| Solve a real problem  | [Extract Invoice Data](/docs/examples/extract-invoice) |
-| Look up all CLI flags | [CLI Reference](/docs/cli/extract)                     |
-| Use it in TypeScript  | [TypeScript SDK](/docs/sdk/installation)               |
+| Goal                    | Link                                                   |
+| ----------------------- | ------------------------------------------------------ |
+| Keep learning           | [The Extraction Pipeline](/docs/explanation/pipeline)  |
+| Solve a real problem    | [Extract Invoice Data](/docs/examples/extract-invoice) |
+| Look up all CLI flags   | [CLI Reference](/docs/cli/extract)                     |
+| Use it in TypeScript    | [TypeScript SDK](/docs/sdk/installation)               |
+| Understand file parsing | [Parsers](/docs/explanation/parsers)                   |
 
 
 # Artifact Helpers
 
 
 
+parseInputToArtifacts(input, options?) [#parseinputtoartifactsinput-options]
+
+The primary way to load files and text into artifacts. Handles MIME detection, parser resolution, and PDF image extraction automatically.
+
+```typescript
+import { parseInputToArtifacts } from "@mateffy/struktur";
+
+const artifacts = await parseInputToArtifacts(
+  { kind: "file", path: "document.pdf" },
+  {
+    parserConfig: parsersConfig,   // ParsersConfig — keyed by MIME type
+    includeImages: true,           // extract embedded PDF images
+    screenshots: false,            // render PDF page screenshots
+    screenshotScale: 1.5,          // scale factor for screenshots
+    screenshotWidth: undefined,    // target width in pixels (overrides screenshotScale)
+  }
+);
+```
+
+Supported input kinds:
+
+| Input kind                             | Description                                                                            |
+| -------------------------------------- | -------------------------------------------------------------------------------------- |
+| `{ kind: "text", text }`               | Text artifact (split on double newlines)                                               |
+| `{ kind: "file", path, mimeType? }`    | File artifact — MIME auto-detected, parser resolved from `parserConfig` then built-ins |
+| `{ kind: "buffer", buffer, mimeType }` | Buffer artifact — parser resolved from `parserConfig` then built-ins                   |
+| `{ kind: "artifact-json", data }`      | Validates and hydrates pre-built artifact JSON                                         |
+
 fileToArtifact(buffer, options) [#filetoartifactbuffer-options]
 
-Creates an artifact from a Buffer. Resolves the MIME type against the provider registry.
+Lower-level helper that creates an artifact from a Buffer using the `providers` registry.
 
-If no provider is registered:
+**Important:** `fileToArtifact` does **not** invoke the parser system. It uses the `providers` registry (a `Record<string, (buffer: Buffer) => Promise<Artifact>>`), which does not include the built-in PDF parser or any parsers configured via `config parsers add`. For PDF and other format support, use `parseInputToArtifacts` instead.
+
+If no provider is registered for the MIME type:
 
 * `text/*` → text artifact (split on double newlines)
-* `image/*` → image artifact (single media slice with raw buffer)
+* `image/*` → image artifact (single media slice)
 * Anything else → throws `Unsupported MIME type`
 
 ```js
 import { fileToArtifact } from "@mateffy/struktur";
 import fs from "node:fs/promises";
 
-const buffer = Buffer.from(await fs.readFile("document.pdf"));
+const buffer = Buffer.from(await fs.readFile("document.txt"));
 const artifact = await fileToArtifact(buffer, {
-  mimeType: "application/pdf",
+  mimeType: "text/plain",
   providers: { /* custom providers */ }
 });
 ```
@@ -3250,26 +3800,6 @@ Fetches a URL and expects it to return pre-serialized artifact JSON. Validates a
 import { urlToArtifact } from "@mateffy/struktur";
 
 const artifacts = await urlToArtifact("https://example.com/artifact.json");
-```
-
-parseInputToArtifacts(input, options?) [#parseinputtoartifactsinput-options]
-
-Low-level dispatcher. Supports:
-
-| Input kind                             | Description                           |
-| -------------------------------------- | ------------------------------------- |
-| `{ kind: "text", text }`               | Text artifact                         |
-| `{ kind: "file", path, mimeType? }`    | File artifact via provider registry   |
-| `{ kind: "buffer", buffer, mimeType }` | Buffer artifact via provider registry |
-| `{ kind: "artifact-json", data }`      | Validates and hydrates                |
-
-```js
-import { parseInputToArtifacts } from "@mateffy/struktur";
-
-const artifacts = await parseInputToArtifacts(
-  { kind: "file", path: "document.pdf" },
-  { providers: { "application/pdf": myProvider } }
-);
 ```
 
 parseSerializedArtifacts(text) [#parseserializedartifactstext]
@@ -3292,7 +3822,8 @@ See also [#see-also]
 
 * [The Artifact Format](/docs/explanation/preprocessing/artifact-format) — JSON spec
 * [Built-in Input Types](/docs/explanation/preprocessing/built-in-inputs) — CLI input methods
-* [Writing a Custom Provider](/docs/explanation/preprocessing/custom-provider) — extending MIME type support
+* [Parsers](/docs/explanation/parsers) — how files are converted to artifacts
+* [Custom Provider](/docs/explanation/preprocessing/custom-provider) — extending the provider registry
 
 
 # Events & Observability
@@ -3682,7 +4213,7 @@ bun add @mateffy/struktur
 
 Peer dependency: `typescript ^5`.
 
-The package exports all types, functions, and strategy factories from the entrypoint. The `@ai-sdk/*` provider packages are bundled as dependencies — you do not need to install them separately.
+The package exports all types, functions, and strategy factories from the entrypoint. The `@ai-sdk/anthropic`, `@ai-sdk/google`, `@ai-sdk/openai`, and `@openrouter/ai-sdk-provider` packages are bundled as dependencies — you do not need to install them separately.
 
 Exports [#exports]
 
@@ -3694,7 +4225,7 @@ import { extract } from "@mateffy/struktur";
 import { simple, parallel, sequential, parallelAutoMerge, sequentialAutoMerge, doublePass, doublePassAutoMerge } from "@mateffy/struktur";
 
 // Artifact helpers
-import { fileToArtifact, urlToArtifact, parseInputToArtifacts } from "@mateffy/struktur";
+import { parseInputToArtifacts, fileToArtifact, urlToArtifact } from "@mateffy/struktur";
 ```
 
 See also [#see-also]

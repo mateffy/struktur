@@ -8,6 +8,22 @@ description: Process files as they arrive in a folder.
 
 ## Linux: inotifywait
 
+For PDFs and other supported formats, use `--input` directly — no pre-processing required:
+
+```bash
+inotifywait -m ./incoming -e create -e moved_to |
+  while read -r path action file; do
+    echo "New file: $file"
+    struktur --input "$path/$file" \
+      --schema schema.json \
+      --model openai/gpt-4o-mini \
+      --output "processed/$file.json"
+    mv "$path/$file" ./processed/
+  done
+```
+
+For formats without a built-in parser, pipe through a conversion tool first:
+
 ```bash
 inotifywait -m ./incoming -e create -e moved_to |
   while read -r path action file; do
@@ -27,7 +43,7 @@ fswatch -o ./incoming | while read f; do
   for file in ./incoming/*; do
     [ -f "$file" ] || continue
     echo "Processing: $file"
-    markitdown "$file" | struktur --stdin \
+    struktur --input "$file" \
       --schema schema.json \
       --model openai/gpt-4o-mini \
       --output "processed/$(basename $file).json"
@@ -43,7 +59,7 @@ For streaming ingestion, append to a JSONL file (one JSON object per line):
 ```bash
 inotifywait -m ./incoming -e create -e moved_to |
   while read -r path action file; do
-    markitdown "$path/$file" | struktur --stdin \
+    struktur --input "$path/$file" \
       --schema schema.json \
       --model openai/gpt-4o-mini \
       >> processed.jsonl
@@ -55,9 +71,8 @@ inotifywait -m ./incoming -e create -e moved_to |
 
 ```js
 import { watch } from "node:fs";
-import { extract, simple } from "@mateffy/struktur";
+import { extract, simple, parseInputToArtifacts } from "@mateffy/struktur";
 import { openai } from "@ai-sdk/openai";
-import { parseInputToArtifacts } from "@mateffy/struktur";
 import fs from "node:fs/promises";
 import path from "node:path";
 
@@ -80,8 +95,8 @@ const watcher = watch(incomingDir, async (event, filename) => {
   console.log(`Processing: ${filename}`);
 
   try {
-    const text = await fs.readFile(filePath, "utf-8");
-    const artifacts = await parseInputToArtifacts({ kind: "text", text });
+    // parseInputToArtifacts handles MIME detection and parsing (PDF, text, images, etc.)
+    const artifacts = await parseInputToArtifacts({ kind: "file", path: filePath });
 
     const result = await extract({
       artifacts,
@@ -108,9 +123,8 @@ For more robust file watching:
 
 ```js
 import chokidar from "chokidar";
-import { extract, simple } from "@mateffy/struktur";
+import { extract, simple, parseInputToArtifacts } from "@mateffy/struktur";
 import { openai } from "@ai-sdk/openai";
-import { parseInputToArtifacts } from "@mateffy/struktur";
 import fs from "node:fs/promises";
 import path from "node:path";
 
@@ -129,8 +143,7 @@ watcher.on("add", async (filePath) => {
   console.log(`Processing: ${path.basename(filePath)}`);
 
   try {
-    const text = await fs.readFile(filePath, "utf-8");
-    const artifacts = await parseInputToArtifacts({ kind: "text", text });
+    const artifacts = await parseInputToArtifacts({ kind: "file", path: filePath });
 
     const result = await extract({
       artifacts,

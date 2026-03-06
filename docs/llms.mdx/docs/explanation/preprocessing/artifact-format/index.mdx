@@ -58,15 +58,18 @@ Images [#images]
 
 Each item in `media` has:
 
-| Field                       | Required | Description                                     |
-| --------------------------- | -------- | ----------------------------------------------- |
-| `type`                      | Yes      | Must be `"image"`                               |
-| `url`                       | No       | URL to image (mutually exclusive with `base64`) |
-| `base64`                    | No       | Base64-encoded image data                       |
-| `text`                      | No       | Alt text or OCR output                          |
-| `x`, `y`, `width`, `height` | No       | Optional spatial metadata                       |
+| Field                       | Required | Description                                                                                                                               |
+| --------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `type`                      | Yes      | Must be `"image"`                                                                                                                         |
+| `url`                       | No       | URL to image (mutually exclusive with `base64`)                                                                                           |
+| `base64`                    | No       | Base64-encoded image data (no data-URL prefix)                                                                                            |
+| `text`                      | No       | Alt text or OCR output                                                                                                                    |
+| `x`, `y`, `width`, `height` | No       | Optional spatial metadata (pixels)                                                                                                        |
+| `imageType`                 | No       | `"embedded"` or `"screenshot"`. Distinguishes images extracted from the document body from page renders. Omit for hand-crafted artifacts. |
 
 Either `url` or `base64` must be present.
+
+The `imageType` field is set automatically by the PDF parser: `"embedded"` for images extracted from the PDF body (requires `--images`), `"screenshot"` for full-page renders (requires `--screenshots`). The artifact viewer uses this field to filter and badge images independently.
 
 Complete example [#complete-example]
 
@@ -83,7 +86,13 @@ Complete example [#complete-example]
           {
             "type": "image",
             "base64": "iVBORw0KGgoAAAANS...",
-            "text": "Company logo"
+            "text": "Company logo",
+            "imageType": "embedded"
+          },
+          {
+            "type": "image",
+            "base64": "iVBORw0KGgoAAAANS...",
+            "imageType": "screenshot"
           }
         ]
       },
@@ -105,7 +114,8 @@ Validation [#validation]
 Struktur validates artifact JSON before processing. Use the CLI:
 
 ```bash
-cat artifacts.json | struktur verify
+# From stdin
+cat artifacts.json | struktur verify --stdin
 # or from a file:
 struktur verify --input artifacts.json
 ```
@@ -114,15 +124,15 @@ Returns `{ "valid": true, "artifacts": 1 }` on success, throws with error detail
 
 Built-in artifact creation [#built-in-artifact-creation]
 
-Three paths:
-
-| Path               | Description                                       |
-| ------------------ | ------------------------------------------------- |
-| `fileToArtifact()` | From a file path + provider for the MIME type     |
-| `urlToArtifact()`  | Fetches a pre-serialized artifact JSON from a URL |
-| Text/stdin         | Automatic for plain text/markdown inputs          |
+| Path                            | Description                                                                       |
+| ------------------------------- | --------------------------------------------------------------------------------- |
+| `--input <file>` (CLI)          | MIME detection + parser resolution; PDF uses built-in `parsePdf`                  |
+| `--stdin` (CLI)                 | MIME detection on buffer; `text/plain` falls back to text artifact                |
+| `parseInputToArtifacts()` (SDK) | Accepts `kind: "text"`, `kind: "file"`, `kind: "buffer"`, `kind: "artifact-json"` |
+| `urlToArtifact()` (SDK)         | Fetches URL, validates as `SerializedArtifact[]`                                  |
 
 See also [#see-also]
 
 * [Built-in Input Types](/docs/explanation/preprocessing/built-in-inputs) — how to get input into Struktur
 * [Artifact Helpers](/docs/sdk/artifact-helpers) — the SDK API
+* [Parsers](/docs/explanation/parsers) — how files are converted to artifacts

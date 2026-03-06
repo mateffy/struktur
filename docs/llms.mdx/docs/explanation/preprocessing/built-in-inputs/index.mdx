@@ -2,11 +2,11 @@
 
 Plain text / markdown (CLI) [#plain-text--markdown-cli]
 
-| Flag              | Description                                                                                     |
-| ----------------- | ----------------------------------------------------------------------------------------------- |
-| `--stdin`         | Reads stdin as UTF-8 text. Auto-detected when piped with no other input flag.                   |
-| `--text <string>` | Inline text as a CLI argument.                                                                  |
-| `--input <path>`  | Reads a `.txt` or `.md` file. If Bun detects MIME type as `text/*`, it becomes a text artifact. |
+| Flag              | Description                                                                                               |
+| ----------------- | --------------------------------------------------------------------------------------------------------- |
+| `--stdin`         | Reads stdin as UTF-8 text. Auto-detected when piped with no other input flag.                             |
+| `--text <string>` | Inline text as a CLI argument.                                                                            |
+| `--input <path>`  | Reads a file. MIME type auto-detected; text files become text artifacts, PDFs invoke the PDF parser, etc. |
 
 Text is split on double newlines into content slices automatically.
 
@@ -28,23 +28,49 @@ Schema loading [#schema-loading]
 
 Schema loading from URLs sends `Accept: application/schema+json, application/json` headers.
 
-SDK: fileToArtifact(buffer, { mimeType, providers }) [#sdk-filetoartifactbuffer--mimetype-providers-]
+SDK: parseInputToArtifacts(input, options?) [#sdk-parseinputtoartifactsinput-options]
 
-Creates an artifact from a Buffer. The provider registry maps MIME types to artifact factories.
+The primary SDK function for loading input into artifacts. Handles MIME detection and parser resolution automatically.
 
-If no provider is registered for the MIME type:
+```typescript
+import { parseInputToArtifacts } from "@mateffy/struktur";
 
-* `text/*` → text artifact (split on double newlines)
-* `image/*` → image artifact (single media slice with raw buffer)
-* Anything else → throws `Unsupported MIME type`
+const artifacts = await parseInputToArtifacts(
+  { kind: "file", path: "document.pdf" },
+  {
+    parserConfig: parsersConfig,   // ParsersConfig — keyed by MIME type (optional)
+    includeImages: true,           // extract embedded PDF images
+    screenshots: false,            // render PDF page screenshots
+    screenshotScale: 1.5,          // scale factor for screenshots
+    screenshotWidth: undefined,    // target width in pixels (overrides screenshotScale)
+  }
+);
+```
+
+Supported input kinds:
+
+| Input kind                             | Description                                             |
+| -------------------------------------- | ------------------------------------------------------- |
+| `{ kind: "text", text }`               | Text artifact (split on double newlines)                |
+| `{ kind: "file", path, mimeType? }`    | File artifact with MIME detection and parser resolution |
+| `{ kind: "buffer", buffer, mimeType }` | Buffer artifact with parser resolution                  |
+| `{ kind: "artifact-json", data }`      | Validates and hydrates pre-built artifact JSON          |
+
+When `kind: "file"` is used, MIME detection and parser resolution happen automatically based on `parserConfig`. See [Parsers](/docs/explanation/parsers) for resolution order.
+
+SDK: fileToArtifact(buffer, options) [#sdk-filetoartifactbuffer-options]
+
+Lower-level helper that creates an artifact from a Buffer using the `providers` registry (a `Record<string, (buffer: Buffer) => Promise<Artifact>>`).
+
+**Important:** `fileToArtifact` does **not** invoke the parser system — it uses the providers registry directly, which does not include the built-in PDF parser or any parsers configured via `config parsers add`. For PDF and other format support, use `parseInputToArtifacts` instead.
 
 ```js
 import { fileToArtifact } from "@mateffy/struktur";
 import fs from "node:fs/promises";
 
-const buffer = Buffer.from(await fs.readFile("document.pdf"));
+const buffer = Buffer.from(await fs.readFile("document.txt"));
 const artifact = await fileToArtifact(buffer, {
-  mimeType: "application/pdf",
+  mimeType: "text/plain",
   providers: { /* custom providers */ }
 });
 ```
@@ -59,21 +85,9 @@ import { urlToArtifact } from "@mateffy/struktur";
 const artifacts = await urlToArtifact("https://example.com/artifact.json");
 ```
 
-SDK: parseInputToArtifacts(input, options?) [#sdk-parseinputtoartifactsinput-options]
-
-Low-level function that dispatches to the correct parser. Supports:
-
-| Input kind                             | Description                           |
-| -------------------------------------- | ------------------------------------- |
-| `{ kind: "text", text }`               | Text artifact                         |
-| `{ kind: "file", path, mimeType? }`    | File artifact via provider registry   |
-| `{ kind: "buffer", buffer, mimeType }` | Buffer artifact via provider registry |
-| `{ kind: "artifact-json", data }`      | Validates and hydrates                |
-
-Custom parsers can be registered via `registerArtifactInputParser()`.
-
 See also [#see-also]
 
 * [The Artifact Format](/docs/explanation/preprocessing/artifact-format) — the JSON spec
 * [Artifact Helpers](/docs/sdk/artifact-helpers) — SDK API
-* [Writing a Custom Provider](/docs/explanation/preprocessing/custom-provider) — extending MIME type support
+* [Parsers](/docs/explanation/parsers) — the parser system for file conversion
+* [Custom Provider](/docs/explanation/preprocessing/custom-provider) — extending the provider registry

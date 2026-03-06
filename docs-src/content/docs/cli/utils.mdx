@@ -1,0 +1,61 @@
+---
+title: utils
+description: Utility commands for working with artifacts.
+---
+
+## utils artifact-viewer
+
+Generates a self-contained HTML file for exploring artifact JSON in a browser.
+
+```bash
+struktur utils artifact-viewer --input artifacts.json --output viewer.html
+struktur parse --input doc.pdf --images | struktur utils artifact-viewer --stdin > viewer.html
+```
+
+### Options
+
+| Flag | Short | Type | Default | Description |
+|------|-------|------|---------|-------------|
+| `--input <path>` | `-i` | string | — | Artifact JSON file |
+| `--stdin` | `-s` | boolean | false | Read artifact JSON from stdin |
+| `--output <path\|->` | `-o` | string | `-` (stdout) | Write HTML to file or stdout |
+
+### What the viewer shows
+
+**Default view** (artifact-by-artifact):
+
+- Each artifact as a card with header showing type, page count, and image count
+- Text content with expand/collapse per-slice (truncated at 500 chars, full text on click)
+- Image thumbnails with click-to-enlarge modal
+- Screenshot images marked with an orange "screenshot" badge
+- Image dimensions overlaid on each thumbnail
+- Metadata section (collapsible)
+
+**Batching Mode** (chunking visualization):
+
+- Sidebar listing batches and chunks with token and image counts
+- Main area shows each chunk with a dashed amber border at chunk boundaries
+- Configurable chunking parameters: Max Tokens, Max Images, Text Ratio, Image Tokens
+- Image type filter: show/hide embedded images and screenshots independently
+- Token and image counts update live as parameters change
+
+The viewer embeds a JavaScript implementation of Struktur's chunking algorithm so batching mode accurately reflects what `parallel`, `sequential`, and other chunked strategies will do with your documents.
+
+### Workflow example
+
+```bash
+# Parse a PDF, inspect it in the browser before extracting
+struktur parse --input contract.pdf --images --screenshots --output contract-artifacts.json
+struktur utils artifact-viewer --input contract-artifacts.json --output viewer.html
+open viewer.html
+
+# Decide on chunking parameters, then extract
+struktur extract --input contract.pdf --images --schema schema.json \
+  --strategy parallelAutoMerge --chunk-size 8000 --model openai/gpt-4o
+```
+
+## See also
+
+- [parse](/docs/cli/parse) — Generate artifact JSON from files
+- [Artifact Format](/docs/explanation/preprocessing/artifact-format) — Understanding artifacts
+- [Chunking & Token Budgets](/docs/explanation/chunking) — How chunking works

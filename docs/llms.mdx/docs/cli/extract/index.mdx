@@ -6,15 +6,17 @@ Synopsis [#synopsis]
 struktur [extract] [options]
 ```
 
+`extract` is the default command — `struktur --input file.pdf ...` and `struktur extract --input file.pdf ...` are equivalent.
+
 Input options (exactly one required) [#input-options-exactly-one-required]
 
-| Flag                     | Type    | Description                                            |
-| ------------------------ | ------- | ------------------------------------------------------ |
-| `--input <path>`         | string  | Read from a file path. MIME type auto-detected.        |
-| `--stdin`                | boolean | Read raw text from stdin. Auto-detected when piped.    |
-| `--text <string>`        | string  | Use inline text as input.                              |
-| `--artifact <path\|->`   | string  | Read pre-built artifact JSON from file or stdin (`-`). |
-| `--artifact-json <json>` | string  | Inline artifact JSON string.                           |
+| Flag                     | Type    | Description                                                                         |
+| ------------------------ | ------- | ----------------------------------------------------------------------------------- |
+| `--input <path>`         | string  | Read from a file path. MIME type auto-detected from magic bytes and file extension. |
+| `--stdin`                | boolean | Read raw text from stdin. Auto-detected when piped with no other input flag.        |
+| `--text <string>`        | string  | Use inline text as input.                                                           |
+| `--artifact <path\|->`   | string  | Read pre-built artifact JSON from file or stdin (`-`).                              |
+| `--artifact-json <json>` | string  | Inline artifact JSON string.                                                        |
 
 Schema options (exactly one required) [#schema-options-exactly-one-required]
 
@@ -28,18 +30,44 @@ Schema options (exactly one required) [#schema-options-exactly-one-required]
 
 Model [#model]
 
-| Flag             | Type   | Default                        | Description                            |
-| ---------------- | ------ | ------------------------------ | -------------------------------------- |
-| `--model <spec>` | string | configured default or cheapest | Model spec in `provider/model` format. |
+| Flag             | Type   | Default            | Description                                               |
+| ---------------- | ------ | ------------------ | --------------------------------------------------------- |
+| `--model <spec>` | string | configured default | Model spec in `provider/model` format, or a stored alias. |
 
-Supported providers: `openai`, `anthropic`, `google`.
+Supported providers: `openai`, `anthropic`, `google`, `opencode`, `openrouter`.
+
+For OpenRouter, you can specify a preferred inference provider using `#` syntax:
+
+```bash
+--model "openrouter/anthropic/claude-3.5-sonnet#cerebras"
+```
+
+Parsing options [#parsing-options]
+
+These flags control how `--input` files are parsed before extraction.
+
+| Flag             | Type    | Default | Description                                                                                                                         |
+| ---------------- | ------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `--no-parse`     | boolean | false   | Skip custom parsers; use only built-in text/image/artifact-JSON detection. Ignores any parsers configured via `config parsers add`. |
+| `--mime <type>`  | string  | —       | Override MIME type detection. Useful when extension is missing or wrong.                                                            |
+| `--parser <pkg>` | string  | —       | Use this npm package as parser for the detected MIME type, overriding any configured parser.                                        |
+
+Image options (PDF inputs) [#image-options-pdf-inputs]
+
+| Flag                       | Type    | Default | Description                                                                                                                         |
+| -------------------------- | ------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `--images`                 | boolean | false   | Extract embedded images from PDFs and include them in the artifact.                                                                 |
+| `--screenshots`            | boolean | false   | Render each PDF page as a screenshot image.                                                                                         |
+| `--screenshot-scale <num>` | number  | 1.5     | Scale factor for page screenshots. Higher = larger/sharper images.                                                                  |
+| `--screenshot-width <px>`  | number  | —       | Target width for screenshots in pixels. When set, overrides `--screenshot-scale` and height is calculated to maintain aspect ratio. |
 
 Strategy [#strategy]
 
-| Flag                    | Type   | Default  | Description             |
-| ----------------------- | ------ | -------- | ----------------------- |
-| `--strategy <name>`     | string | `simple` | Strategy name.          |
-| `--chunk-size <number>` | number | `10000`  | Token budget per batch. |
+| Flag                    | Type    | Default  | Description                                                                                                                                   |
+| ----------------------- | ------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--strategy <name>`     | string  | `simple` | Strategy name.                                                                                                                                |
+| `--chunk-size <number>` | number  | `10000`  | Token budget per batch.                                                                                                                       |
+| `--strict`              | boolean | false    | Enforce required-field validation on every step, not just the final one. Useful for single-chunk inputs where partial data is never expected. |
 
 Strategy names: `simple`, `parallel`, `sequential`, `parallelAutoMerge`, `sequentialAutoMerge`, `doublePass`, `doublePassAutoMerge`.
 
@@ -49,9 +77,10 @@ When using `--strategy` other than `simple`, both `model` and `mergeModel`/`dedu
 
 Output [#output]
 
-| Flag                 | Type   | Default | Description                         |
-| -------------------- | ------ | ------- | ----------------------------------- |
-| `--output <path\|->` | string | `-`     | Write JSON to file or stdout (`-`). |
+| Flag                 | Type    | Default | Description                                                                                                                     |
+| -------------------- | ------- | ------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `--output <path\|->` | string  | `-`     | Write JSON to file or stdout (`-`).                                                                                             |
+| `--debug`            | boolean | false   | Enable verbose JSON debug logging to stderr. Shows model resolution, artifact loading, schema details, and per-step LLM events. |
 
 Progress [#progress]
 
@@ -73,6 +102,30 @@ echo "Invoice #1042 from Acme Corp. Total: $2,400.00." | \
   --model openai/gpt-4o-mini
 ```
 
+**PDF input (direct):**
+
+```bash
+struktur --input invoice.pdf \
+  --fields "invoice_number, vendor, total:number" \
+  --model openai/gpt-4o-mini
+```
+
+**PDF with embedded images (for visually rich documents):**
+
+```bash
+struktur --input invoice.pdf --images \
+  --schema invoice-schema.json \
+  --model openai/gpt-4o
+```
+
+**PDF with page screenshots (for slide decks, visual PDFs):**
+
+```bash
+struktur --input slides.pdf --screenshots --screenshot-scale 2 \
+  --fields "title, slide_count:integer" \
+  --model openai/gpt-4o
+```
+
 **File input with inline schema:**
 
 ```bash
@@ -90,7 +143,22 @@ cat document.md | struktur --stdin --schema schema.json --model anthropic/claude
 **Parallel strategy with output to file:**
 
 ```bash
-struktur --input large.md --schema schema.json --model openai/gpt-4o --strategy parallel --output result.json
+struktur --input large.md --schema schema.json --model openai/gpt-4o \
+  --strategy parallel --output result.json
+```
+
+**MIME type override:**
+
+```bash
+struktur --input data.bin --mime application/pdf \
+  --fields "title, author" --model openai/gpt-4o-mini
+```
+
+**Custom parser for a single run:**
+
+```bash
+struktur --input report.docx --parser @myorg/docx-parser \
+  --fields "title, summary" --model openai/gpt-4o-mini
 ```
 
 **Schema from URL:**
@@ -99,9 +167,16 @@ struktur --input large.md --schema schema.json --model openai/gpt-4o --strategy 
 struktur --input data.txt --schema https://myserver.com/schemas/invoice.json --model openai/gpt-4o-mini
 ```
 
+**Debug mode (verbose logging to stderr):**
+
+```bash
+struktur --input doc.pdf --fields "title" --model openai/gpt-4o-mini --debug
+```
+
 See also [#see-also]
 
 * [--fields reference](/docs/cli/fields) — fields shorthand syntax and examples
-* [Installation & Setup](/docs/cli/installation) — getting started
-* [auth](/docs/cli/auth) — token management
+* [parse](/docs/cli/parse) — convert files to artifact JSON for inspection
+* [config](/docs/cli/config) — provider and model management
+* [Parsers](/docs/explanation/parsers) — how file parsing works
 * [Strategies](/docs/explanation/strategies) — strategy reference

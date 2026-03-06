@@ -1,12 +1,13 @@
 # Documentation
 
-- [auth](/docs/cli/auth): Manage API tokens for providers.
+- [config](/docs/cli/config): Manage providers, models, and parsers.
 - [Environment Variables](/docs/cli/environment): Configure Struktur via environment variables.
 - [extract](/docs/cli/extract): Main extraction command for Struktur CLI.
 - [--fields](/docs/cli/fields): Build schemas on the fly from the CLI using a concise field definition string.
 - [CLI](/docs/cli): undefined
 - [Installation & Setup](/docs/cli/installation): Install and configure Struktur.
-- [models](/docs/cli/models): List available models for providers.
+- [parse](/docs/cli/parse): Convert files to Artifact JSON for inspection or pre-processing.
+- [utils](/docs/cli/utils): Utility commands for working with artifacts.
 - [verify](/docs/cli/verify): Validate artifact JSON format.
 - [Enrich Records from URLs](/docs/examples/enrich-records): Fetch URLs and extract structured data to enrich existing records.
 - [Extract Invoice Data](/docs/examples/extract-invoice): Extract structured invoice data from PDF or text files.
@@ -17,12 +18,12 @@
 - [Watch a Folder for New Files](/docs/examples/watch-folder): Process files as they arrive in a folder.
 - [Chunking & Token Budgets](/docs/explanation/chunking): How large documents are split and merged to fit within context windows.
 - [Explanation](/docs/explanation): undefined
+- [Parsers](/docs/explanation/parsers): How Struktur converts files into Artifacts before extraction.
 - [Extraction Lifecycle](/docs/explanation/pipeline): How data flows through Struktur from input to output.
 - [Artifact Format](/docs/explanation/preprocessing/artifact-format): The artifact abstraction and complete specification.
 - [Built-in Input Types](/docs/explanation/preprocessing/built-in-inputs): All the ways to get input into Struktur without building a custom provider.
-- [Writing a Custom Provider](/docs/explanation/preprocessing/custom-provider): How to add support for a new file format.
+- [Custom Provider](/docs/explanation/preprocessing/custom-provider): How to add support for a new file format at the SDK level.
 - [Document Processing](/docs/explanation/preprocessing): undefined
-- [Why Struktur Does Not Parse Files](/docs/explanation/preprocessing/why-no-parsing): The design decision behind Struktur's focus on extraction, not parsing.
 - [Choosing a Strategy](/docs/explanation/strategies/choosing): Decision guide for selecting the right extraction strategy.
 - [Writing a Custom Strategy](/docs/explanation/strategies/custom-strategy): How to implement your own extraction strategy.
 - [doublePassAutoMerge](/docs/explanation/strategies/double-pass-auto-merge): Double-pass extraction with schema-aware merge and deduplication.

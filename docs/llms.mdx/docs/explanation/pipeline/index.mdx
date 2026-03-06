@@ -2,25 +2,27 @@
 
 ```mermaid
 flowchart LR
-    A[Input] --> B[Artifacts]
-    B --> C[Strategy]
-    C --> D[Output]
+    A[Input] --> B[Parse]
+    B --> C[Artifacts]
+    C --> D[Strategy]
+    D --> E[Output]
     
     subgraph StrategyInternals [Strategy]
         direction TB
-        C1[Chunking] --> C2[LLM Calls]
-        C2 --> C3[Validation + Retry]
-        C3 --> C4[Merge/Dedupe]
+        D1[Chunking] --> D2[LLM Calls]
+        D2 --> D3[Validation + Retry]
+        D3 --> D4[Merge/Dedupe]
     end
     
-    C --> StrategyInternals --> D
+    D --> StrategyInternals --> E
 ```
 
 Inputs and Artifacts [#inputs-and-artifacts]
 
-Struktur operates on **Artifacts**, not raw files. The boundary is intentional — you handle parsing (PDF → text, HTML → markdown), Struktur handles extraction. This keeps the tool focused and lets you use best-of-breed parsers per format.
+Struktur converts input files into **Artifacts** before extraction. For plain text or stdin, this is trivial. For structured files (PDFs, Office documents), Struktur runs a parser — built-in or custom — that extracts text and images per-page.
 
-See [Artifacts](/docs/explanation/preprocessing/artifact-format) for the artifact concept.
+See [Parsers](/docs/explanation/parsers) for how files are converted to artifacts.
+See [Artifact Format](/docs/explanation/preprocessing/artifact-format) for the data structure.
 
 The Strategy layer [#the-strategy-layer]
 
@@ -54,6 +56,7 @@ The extraction result has three fields:
 
 See also [#see-also]
 
+* [Parsers](/docs/explanation/parsers) — how files are converted to artifacts
 * [Artifacts](/docs/explanation/preprocessing/artifact-format) — the input format
 * [Strategies](/docs/explanation/strategies) — orchestration patterns
 * [Chunking & Token Budgets](/docs/explanation/chunking) — how large documents are split

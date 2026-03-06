@@ -1,0 +1,98 @@
+---
+title: parse
+description: Convert files to Artifact JSON for inspection or pre-processing.
+---
+
+## Synopsis
+
+```bash
+struktur parse --input <file> [options]
+struktur parse --stdin [options]
+```
+
+## Description
+
+Converts a file or stdin to Artifact JSON. Use this to:
+
+- Inspect how Struktur will represent your document before running extraction
+- Pre-process files and cache the artifact JSON for repeated extraction
+- Debug parser output when configuring a custom parser
+- Pipe artifacts into `struktur extract --artifact -` for decoupled workflows
+
+## Options
+
+### Input (exactly one required)
+
+| Flag | Short | Type | Description |
+|------|-------|------|-------------|
+| `--input <path>` | `-i` | string | File to parse |
+| `--stdin` | `-s` | boolean | Read from stdin |
+
+### Output
+
+| Flag | Short | Type | Default | Description |
+|------|-------|------|---------|-------------|
+| `--output <path\|->` | `-o` | string | `-` (stdout) | Write artifact JSON to file or stdout |
+
+### Parser control
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--mime <type>` | string | Override MIME type detection |
+| `--parser <pkg>` | string | Use this npm package as parser, overriding any configured parser |
+
+### Image extraction (PDF inputs)
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--images` | boolean | false | Extract embedded images from PDFs |
+| `--screenshots` | boolean | false | Render page screenshots |
+| `--screenshot-scale <num>` | number | 1.5 | Scale factor for screenshots |
+| `--screenshot-width <px>` | number | — | Target screenshot width in pixels (overrides `--screenshot-scale`) |
+
+## Parser resolution order
+
+1. `--parser <pkg>` flag — bypasses all config
+2. Parser configured for the detected MIME type (`struktur config parsers add ...`)
+3. Built-in parser for the MIME type
+4. Error: no parser found — suggests `struktur config parsers add`
+
+## Built-in parsers
+
+| MIME type | Behavior |
+|-----------|----------|
+| `application/pdf` | Per-page text via `pdf-parse`. Add `--images` for embedded images, `--screenshots` for page renders. |
+| `text/*` | Split on double newlines into content slices. |
+| `image/*` | Single-content artifact with the image as a media item. |
+| `application/json` | If it validates as `SerializedArtifact[]`, passed through unchanged. |
+
+## Examples
+
+```bash
+# Inspect a PDF
+struktur parse --input document.pdf
+
+# Extract PDF with embedded images and page screenshots
+struktur parse --input slides.pdf --images --screenshots --output artifact.json
+
+# Use a configured custom parser
+struktur parse --input report.docx --output artifact.json
+
+# Override the parser on the fly
+struktur parse --input data.xlsx --parser @myorg/xlsx-parser
+
+# Pipe into extract
+struktur parse --input doc.pdf --images | \
+  struktur extract --artifact - --fields "title, author" --model openai/gpt-4o-mini
+
+# Inspect in the browser
+struktur parse --input doc.pdf | struktur utils artifact-viewer --stdin > viewer.html
+open viewer.html
+```
+
+## See also
+
+- [config parsers](/docs/cli/config#config-parsers) — Configure custom parsers
+- [Parsers](/docs/explanation/parsers) — Parser system overview
+- [Artifact Format](/docs/explanation/preprocessing/artifact-format) — Output format
+- [utils artifact-viewer](/docs/cli/utils) — Visualize parsed artifacts

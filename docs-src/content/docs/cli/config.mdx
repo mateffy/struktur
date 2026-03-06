@@ -1,0 +1,228 @@
+---
+title: config
+description: Manage providers, models, and parsers.
+---
+
+## Synopsis
+
+```bash
+struktur config providers <subcommand> [options]
+struktur config models <subcommand> [options]
+struktur config parsers <subcommand> [options]
+```
+
+Configuration is stored at `~/.config/struktur/config.json`. Override the directory with `STRUKTUR_CONFIG_DIR`.
+
+---
+
+## config providers
+
+Manage API tokens for LLM providers.
+
+### config providers list
+
+List all supported providers with their configuration status.
+
+```bash
+struktur config providers list
+```
+
+Output:
+
+```json
+[
+  { "provider": "openai", "configured": true, "storage": "keychain" },
+  { "provider": "anthropic", "configured": false, "storage": null },
+  { "provider": "google", "configured": false, "storage": null },
+  { "provider": "opencode", "configured": false, "storage": null },
+  { "provider": "openrouter", "configured": false, "storage": null }
+]
+```
+
+### config providers add
+
+Store an API token for a provider.
+
+```bash
+struktur config providers add <provider> [options]
+```
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--token <t>` | string | API token value (avoid — token may appear in shell history) |
+| `--token-stdin` | boolean | Read token from stdin (recommended) |
+| `--storage <mode>` | string | `auto` (default), `keychain`, or `file` |
+| `--default` | boolean | After storing, query the API for cheapest model and set as default |
+
+**Examples:**
+
+```bash
+# Store via stdin (recommended)
+echo "$OPENAI_API_KEY" | struktur config providers add openai --token-stdin
+
+# Store and set cheapest model as default in one command
+echo "$OPENAI_API_KEY" | struktur config providers add openai --token-stdin --default
+
+# OpenCode Zen (access to multiple model families via one API)
+echo "$OPENCODE_API_KEY" | struktur config providers add opencode --token-stdin --default
+
+# OpenRouter (route to any provider)
+echo "$OPENROUTER_API_KEY" | struktur config providers add openrouter --token-stdin
+```
+
+Output (without `--default`): `{ "provider": "openai", "stored": "keychain" }`
+
+Output (with `--default`): `{ "provider": "openai", "stored": "keychain", "defaultModel": "openai/gpt-4.1-nano" }`
+
+**Storage:** On macOS, tokens go into Keychain by default. On other platforms, `~/.config/struktur/tokens.json` (chmod 600). Set `STRUKTUR_DISABLE_KEYCHAIN` to force file storage on macOS.
+
+### config providers remove
+
+Delete a stored token.
+
+```bash
+struktur config providers remove <provider>
+```
+
+Output: `{ "provider": "openai", "deleted": true }`
+
+---
+
+## config models
+
+Manage the default model and model aliases.
+
+### config models list
+
+List available models for a provider (queries the provider API).
+
+```bash
+struktur config models list [--provider <name>]
+```
+
+### config models use
+
+Set the default model. Accepts a `provider/model` spec or a stored alias.
+
+```bash
+struktur config models use openai/gpt-4o-mini
+struktur config models use fast   # if alias "fast" is defined
+```
+
+The alias is resolved before storing, so config always holds a real model string.
+
+### config models alias
+
+Manage short aliases for model specs. Aliases resolve transparently everywhere a model is accepted — `--model fast` works identically to `--model openai/gpt-4.1-mini`.
+
+```bash
+# List all aliases
+struktur config models alias list
+
+# Get a specific alias
+struktur config models alias get fast
+
+# Set an alias
+struktur config models alias set fast openai/gpt-4.1-mini
+struktur config models alias set smart anthropic/claude-3-5-haiku-20241022
+
+# Remove an alias
+struktur config models alias remove fast
+```
+
+`alias list` output:
+
+```json
+{ "aliases": { "fast": "openai/gpt-4.1-mini", "smart": "anthropic/claude-3-5-haiku-20241022" } }
+```
+
+---
+
+## config parsers
+
+Register custom parsers for file formats not supported natively. Parsers are keyed by MIME type.
+
+### config parsers list
+
+```bash
+struktur config parsers list
+```
+
+### config parsers get
+
+```bash
+struktur config parsers get --mime application/vnd.ms-excel
+```
+
+### config parsers add
+
+```bash
+struktur config parsers add --mime <type> (--npm <pkg> | --file-command "<cmd>" | --stdin-command "<cmd>")
+```
+
+Exactly one of `--npm`, `--file-command`, or `--stdin-command` must be specified.
+
+| Flag | Description |
+|------|-------------|
+| `--mime <type>` | MIME type to handle (e.g. `application/vnd.ms-excel`) |
+| `--npm <pkg>` | npm package name implementing the parser contract |
+| `--file-command "<cmd>"` | Shell command with `FILE_PATH` placeholder (replaced with the actual file path at runtime) |
+| `--stdin-command "<cmd>"` | Shell command that reads file from stdin and writes `SerializedArtifact[]` JSON to stdout |
+
+**npm parser** — install a package that implements the [npm parser contract](/docs/explanation/parsers#npm-parser-contract):
+
+```bash
+struktur config parsers add \
+  --mime application/vnd.openxmlformats-officedocument.wordprocessingml.document \
+  --npm @myorg/docx-parser
+```
+
+**file-command** — shell command, `FILE_PATH` is replaced with the actual path:
+
+```bash
+struktur config parsers add \
+  --mime application/vnd.openxmlformats-officedocument.wordprocessingml.document \
+  --file-command "markitdown FILE_PATH"
+```
+
+`FILE_PATH` must appear in the command string — an error is thrown if it is missing.
+
+The command must write `SerializedArtifact[]` JSON to stdout.
+
+**stdin-command** — file contents are piped to stdin:
+
+```bash
+struktur config parsers add \
+  --mime text/html \
+  --stdin-command "my-html-to-artifact-converter"
+```
+
+The command must write `SerializedArtifact[]` JSON to stdout. Plain text output will fail validation.
+
+### config parsers remove
+
+```bash
+struktur config parsers remove --mime application/vnd.ms-excel
+```
+
+---
+
+## OpenRouter provider routing
+
+When using OpenRouter, you can specify a preferred inference provider using the `#` syntax in the model spec:
+
+```bash
+# Use Claude 3.5 Sonnet via Cerebras for faster inference
+struktur --input doc.pdf --model "openrouter/anthropic/claude-3.5-sonnet#cerebras" --fields "..."
+
+# Use Claude via Together AI
+struktur --input doc.pdf --model "openrouter/anthropic/claude-3.5-sonnet#together" --fields "..."
+```
+
+This is passed through to OpenRouter's provider routing feature.
+
+## See also
+
+- [Installation & Setup](/docs/cli/installation) — initial setup
+- [Environment Variables](/docs/cli/environment) — env var alternatives to stored tokens
+- [Parsers](/docs/explanation/parsers) — how the parser system works

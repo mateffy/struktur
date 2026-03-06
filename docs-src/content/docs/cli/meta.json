@@ -1,12 +1,13 @@
 {
-"title": "CLI",
-"pages": [
-"installation",
+  "title": "CLI",
+  "pages": [
+    "installation",
     "extract",
+    "parse",
+    "config",
+    "utils",
     "fields",
-"auth",
-"environment",
-"models",
-"verify"
-]
+    "environment",
+    "verify"
+  ]
 }

@@ -1,12 +1,16 @@
 
 
+Synopsis [#synopsis]
+
 ```bash
-struktur verify [--input <path|->]
+struktur verify --input <path>
+struktur verify --stdin
 ```
 
-| Flag                | Type   | Default | Description                          |
-| ------------------- | ------ | ------- | ------------------------------------ |
-| `--input <path\|->` | string | stdin   | Artifact JSON file or `-` for stdin. |
+| Flag             | Short | Type    | Description                     |
+| ---------------- | ----- | ------- | ------------------------------- |
+| `--input <path>` | `-i`  | string  | Artifact JSON file to validate. |
+| `--stdin`        | `-s`  | boolean | Read artifact JSON from stdin.  |
 
 Output on success:
 
@@ -21,12 +25,17 @@ Usage [#usage]
 Use this to verify your preprocessing pipeline produces valid artifact format before running extraction.
 
 ```bash
-cat artifacts.json | struktur verify
-# or from a file:
+# From stdin
+cat artifacts.json | struktur verify --stdin
+
+# From a file
 struktur verify --input artifacts.json
+
+# Verify parse output
+struktur parse --input document.pdf | struktur verify --stdin
 ```
 
 See also [#see-also]
 
-* [The Artifact Format](/docs/explanation/preprocessing/artifact-format) — the JSON spec
-* [Built-in Input Types](/docs/explanation/preprocessing/built-in-inputs) — creating artifacts
+* [Artifact Format](/docs/explanation/preprocessing/artifact-format) — the JSON spec
+* [parse](/docs/cli/parse) — convert files to artifact JSON
