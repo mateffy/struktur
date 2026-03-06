@@ -5,7 +5,7 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import * as React from "react";
-import appCss from "@/styles/app.css?url";
+import "@/styles/app.css";
 import { RootProvider } from "fumadocs-ui/provider/tanstack";
 import SearchDialog from "@/components/search";
 import { Agentation } from "agentation";
@@ -25,7 +25,6 @@ export const Route = createRootRoute({
       },
     ],
     links: [
-      { rel: "stylesheet", href: appCss },
       { rel: "icon", type: "image/png", href: "/struktur-icon.png" },
     ],
   }),

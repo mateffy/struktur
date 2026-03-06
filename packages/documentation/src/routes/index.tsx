@@ -472,7 +472,7 @@ function Home() {
         {[
           { label: "Documentation", href: "/docs" },
           { label: "GitHub", href: "https://github.com/mateffy/struktur" },
-          { label: "Author", href: "https://mateffy.me" },
+          { label: "Author", href: "https://mateffy.org" },
         ].map((link) => (
           <a
             key={link.label}
@@ -553,7 +553,7 @@ function Home() {
               }}
             >
               <strong style={{ fontWeight: 600 }}>
-                Struktur is an all-in-one tool for structured data extraction.
+                All-in-one tool for structured data extraction.
               </strong>
               <br />
               Feed it any document — PDF, text, or custom format.
