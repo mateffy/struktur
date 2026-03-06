@@ -2,7 +2,7 @@
 
 Struktur provides an Agent Skill that teaches AI coding assistants (like Claude Code, OpenCode, Codex, etc.) how to use Struktur effectively.
 
-**Raw skill file:** [SKILL.md on GitHub](https://github.com/mateffy/struktur/blob/main/packages/skill/skills/struktur/SKILL.md)
+**Raw skill file:** [SKILL.md (raw)](https://raw.githubusercontent.com/mateffy/struktur/refs/heads/main/packages/skill/skills/struktur/SKILL.md)
 
 What is an Agent Skill? [#what-is-an-agent-skill]
 
