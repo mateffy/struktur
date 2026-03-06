@@ -14,10 +14,10 @@ Extract structured data from any file in 3 commands. About 5 minutes.
 
 ```bash
 # Using npm
-npm install -g @mateffy/struktur
+npm install -g @struktur/cli
 
 # Or using Bun (recommended)
-bun install -g @mateffy/struktur
+bun install -g @struktur/cli
 ```
 
 Verify:
@@ -81,7 +81,7 @@ Notice that `total` is a number, not a string — Struktur enforced the schema.
 
 ## What happened?
 
-For the text example, stdin input was loaded as an artifact, the LLM generated output, and Ajv validated it against your schema. The `simple` strategy handled this in a single LLM call.
+For the text example, stdin input was loaded as an artifact, the LLM generated output, and it was validated against your schema. The `simple` strategy handled this in a single LLM call.
 
 For the PDF example, an extra step happened first: the built-in PDF parser extracted text (and optionally images) from the file and converted it into an artifact, then extraction proceeded as normal. Add `--images` to include embedded images, or `--screenshots` to render page screenshots.
 

@@ -12,9 +12,9 @@ Struktur does all of this for you.
 ## How the retry loop works
 
 1. Send the extraction prompt to the LLM.
-2. Validate the response with Ajv against the schema.
+2. Validate the response against the schema.
 3. If valid: return it.
-4. If invalid: serialize the Ajv error array into an XML block, append it to the message thread as a user message, go to step 1.
+4. If invalid: serialize the validation errors into an XML block, append it to the message thread as a user message, go to step 1.
 5. After `maxAttempts` (default 3): throw.
 
 The model sees its own mistake and a structured description of it. This self-correction loop is why most extractions converge within 2 attempts.

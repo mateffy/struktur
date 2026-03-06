@@ -1,0 +1,108 @@
+
+
+The pattern [#the-pattern]
+
+You have records with URLs (e.g., customer records with contract URLs). You want to fetch each URL and extract additional data.
+
+CLI approach [#cli-approach]
+
+```bash
+cat customers.json | jq -c '.[]' | while read -r row; do
+  url=$(echo "$row" | jq -r '.contract_url')
+  curl -s "$url" | struktur --stdin \
+    --schema-json '{"type":"object","properties":{"start_date":{"type":"string"},"value":{"type":"number"}},"required":["start_date","value"],"additionalProperties":false}' \
+    --model openai/gpt-4o-mini | \
+  jq --argjson orig "$row" '$orig + .'
+done | jq -s '.'
+```
+
+SDK [#sdk]
+
+```js
+import { extract, simple } from "@struktur/sdk";
+import { openai } from "@ai-sdk/openai";
+import { parse } from "@struktur/sdk";
+
+const schema = {
+  type: "object",
+  properties: {
+    start_date: { type: "string" },
+    value: { type: "number" },
+  },
+  required: ["start_date", "value"],
+  additionalProperties: false,
+};
+
+async function enrichRecords(records) {
+  const enriched = [];
+
+  for (const record of records) {
+    try {
+      // Fetch URL content
+      const response = await fetch(record.contract_url);
+      const text = await response.text();
+
+      // Parse as artifact
+      const artifacts = await parse({ kind: "text", text });
+
+      // Extract
+      const result = await extract({
+        artifacts,
+        schema,
+        strategy: simple({ model: openai("gpt-4o-mini") }),
+      });
+
+      // Merge back
+      enriched.push({ ...record, ...result.data });
+    } catch (error) {
+      console.error(`Failed to enrich: ${record.contract_url}`);
+      enriched.push(record);  // Keep original on failure
+    }
+  }
+
+  return enriched;
+}
+
+const customers = [
+  { name: "Acme Corp", contract_url: "https://example.com/contracts/1" },
+  { name: "Globex", contract_url: "https://example.com/contracts/2" },
+];
+
+const result = await enrichRecords(customers);
+console.log(result);
+```
+
+With concurrency [#with-concurrency]
+
+```js
+import { extract, parallel } from "@struktur/sdk";
+
+async function enrichRecordsParallel(records, concurrency = 5) {
+  const results = await Promise.all(
+    records.map(async (record, index) => {
+      // Stagger requests to avoid rate limits
+      await new Promise(r => setTimeout(r, index * 100));
+
+      const response = await fetch(record.contract_url);
+      const text = await response.text();
+      const artifacts = await parse({ kind: "text", text });
+
+      const result = await extract({
+        artifacts,
+        schema,
+        strategy: simple({ model: openai("gpt-4o-mini") }),
+      });
+
+      return { ...record, ...result.data };
+    })
+  );
+
+  return results;
+}
+```
+
+See also [#see-also]
+
+* [parse()](/docs/sdk/parse) — fetching pre-built artifacts
+* [Extraction Strategies](/docs/explanation/strategies) — strategy reference
+* [Shell Pipelines & Patterns](/docs/examples/pipelines) — more shell patterns

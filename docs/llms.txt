@@ -22,13 +22,13 @@
 - [Extraction Lifecycle](/docs/explanation/pipeline): How data flows through Struktur from input to output.
 - [Extraction Strategies](/docs/explanation/strategies): Built-in strategies for different extraction patterns and how to choose the right one.
 - [Validation & Retries](/docs/explanation/validation): How the schema validation loop works and why it matters.
-- [What is Struktur?](/docs): Struktur is a structured data extraction engine that turns pre-parsed documents into validated JSON using LLMs.
+- [What is Struktur?](/docs): All-in-one tool for structured data extraction that turns pre-parsed documents into validated JSON using LLMs.
 - [Quickstart](/docs/quickstart): Get started with Struktur in under 5 minutes. Extract structured data from any file.
 - [Events & Observability](/docs/sdk/events): Event handlers for progress tracking and observability.
 - [extract()](/docs/sdk/extract): Main extraction function for the TypeScript SDK.
 - [SDK](/docs/sdk): undefined
 - [Installation](/docs/sdk/installation): Install the Struktur TypeScript SDK.
 - [parse()](/docs/sdk/parse): Load files and text into artifacts for extraction.
-- [Agent Skill](/docs/skill): Install the Struktur agent skill to teach AI coding assistants how to use Struktur.
+- [Struktur Agent Skill](/docs/skill): Install the Struktur agent skill to teach AI coding assistants how to use Struktur.
 - [Installation](/docs/skill/installation): Install the Struktur agent skill for your preferred AI coding tool.
 - [Usage](/docs/skill/usage): How to use the Struktur agent skill with your AI coding assistant.

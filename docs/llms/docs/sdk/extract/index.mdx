@@ -1,0 +1,58 @@
+
+
+Usage [#usage]
+
+```js
+import { extract, simple } from "@struktur/sdk";
+import { openai } from "@ai-sdk/openai";
+
+const result = await extract({
+  artifacts,
+  schema,
+  strategy: simple({ model: openai("gpt-4o-mini") }),
+});
+
+console.log(result.data);
+console.log(result.usage.totalTokens);
+```
+
+Options [#options]
+
+| Field       | Required                    | Description                                                              |
+| ----------- | --------------------------- | ------------------------------------------------------------------------ |
+| `artifacts` | Yes                         | Array of artifacts to extract from                                       |
+| `schema`    | One of `schema` or `fields` | JSON Schema for output validation                                        |
+| `fields`    | One of `schema` or `fields` | [Fields shorthand](/docs/cli/fields) — comma-separated field definitions |
+| `strategy`  | Yes                         | A strategy instance                                                      |
+| `events`    | No                          | Event handlers for progress tracking                                     |
+
+Exactly one of `schema` or `fields` must be provided. Passing both, or neither, throws immediately.
+
+Result [#result]
+
+| Field   | Description                                                |
+| ------- | ---------------------------------------------------------- |
+| `data`  | Validated output matching your schema                      |
+| `usage` | Token counts: `inputTokens`, `outputTokens`, `totalTokens` |
+| `error` | Set if extraction encountered a non-fatal error            |
+
+Using fields instead of schema [#using-fields-instead-of-schema]
+
+For quick extractions where you don't need full JSON Schema control, pass a `fields` string:
+
+```ts
+const result = await extract({
+  artifacts,
+  fields: "title, author, year:integer, genre:enum{fiction|nonfiction|reference}",
+  strategy: simple({ model: openai("gpt-4o-mini") }),
+});
+```
+
+`fields` supports scalar types (`string`, `number`/`float`, `boolean`/`bool`, `integer`, `int`), enum sets (`status:enum{draft|live}`), and arrays (`tags:array{string}`). See the [Fields Shorthand](/docs/cli/fields) reference for the full syntax.
+
+See also [#see-also]
+
+* [Fields Shorthand](/docs/cli/fields) — quick schema syntax reference
+* [Installation & Setup](/docs/cli/installation) — getting started
+* [Extraction Strategies](/docs/explanation/strategies) — creating strategies
+* [Events & Observability](/docs/sdk/events) — progress tracking

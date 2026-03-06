@@ -70,9 +70,9 @@ struktur --input expose.pdf \
 ## SDK
 
 ```js
-import { extract, sequentialAutoMerge } from "@mateffy/struktur";
+import { extract, sequentialAutoMerge } from "@struktur/sdk";
 import { openai } from "@ai-sdk/openai";
-import { fileToArtifact } from "@mateffy/struktur";
+import { fileToArtifact } from "@struktur/sdk";
 import fs from "node:fs/promises";
 
 const buffer = Buffer.from(await fs.readFile("expose.pdf"));

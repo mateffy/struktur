@@ -44,14 +44,14 @@ Single-shot extraction for small inputs.
 
 1. Build extraction prompt from artifacts + schema
 2. Send to LLM
-3. Validate output with Ajv
+3. Validate output against the schema
 4. Retry on validation failure (up to 3 attempts)
 5. Return validated output
 
 ### Example
 
 ```js
-import { extract, simple } from "@mateffy/struktur";
+import { extract, simple } from "@struktur/sdk";
 import { openai } from "@ai-sdk/openai";
 
 const result = await extract({
@@ -116,7 +116,7 @@ Concurrent batch processing with LLM merge.
 ### Example
 
 ```js
-import { extract, parallel } from "@mateffy/struktur";
+import { extract, parallel } from "@struktur/sdk";
 import { openai } from "@ai-sdk/openai";
 
 const result = await extract({
@@ -182,7 +182,7 @@ Process chunks in order with context preservation.
 ### Example
 
 ```js
-import { extract, sequential } from "@mateffy/struktur";
+import { extract, sequential } from "@struktur/sdk";
 import { openai } from "@ai-sdk/openai";
 
 const result = await extract({
@@ -265,7 +265,7 @@ Two-stage:
 ### Example
 
 ```js
-import { extract, parallelAutoMerge } from "@mateffy/struktur";
+import { extract, parallelAutoMerge } from "@struktur/sdk";
 import { openai } from "@ai-sdk/openai";
 
 const result = await extract({
@@ -335,7 +335,7 @@ Sequential extraction with schema-aware merge and deduplication.
 ### Example
 
 ```js
-import { extract, sequentialAutoMerge } from "@mateffy/struktur";
+import { extract, sequentialAutoMerge } from "@struktur/sdk";
 import { openai } from "@ai-sdk/openai";
 
 const result = await extract({
@@ -412,7 +412,7 @@ Parallel pass for speed, sequential pass for refinement.
 ### Example
 
 ```js
-import { extract, doublePass } from "@mateffy/struktur";
+import { extract, doublePass } from "@struktur/sdk";
 import { openai } from "@ai-sdk/openai";
 
 const result = await extract({
@@ -489,7 +489,7 @@ Double-pass extraction with schema-aware merge and deduplication.
 ### Example
 
 ```js
-import { extract, doublePassAutoMerge } from "@mateffy/struktur";
+import { extract, doublePassAutoMerge } from "@struktur/sdk";
 import { openai } from "@ai-sdk/openai";
 
 const result = await extract({
@@ -519,6 +519,30 @@ struktur --input catalog.pdf --schema schema.json --strategy doublePassAutoMerge
 ---
 
 ## Choosing a Strategy
+
+Pick based on input size and whether you're extracting arrays:
+
+| Strategy | When to use |
+|---|---|
+| `simple` | Small input, fits in one context window |
+| `parallel` | Large input, order doesn't matter, scalar fields |
+| `sequential` | Large input, context carries across chunks |
+| `parallelAutoMerge` | Large input with arrays — parallel + dedup |
+| `sequentialAutoMerge` | Large input with arrays — sequential + dedup |
+| `doublePass` | Quality matters, two-pass refinement |
+| `doublePassAutoMerge` | Quality + arrays + dedup |
+
+### When speed matters
+
+Use `parallel` or `parallelAutoMerge`. Accept that cross-chunk context is limited.
+
+### When quality matters
+
+Use `doublePass` or `doublePassAutoMerge`. Accept higher token cost.
+
+### When arrays matter
+
+Use auto-merge variants (`parallelAutoMerge`, `sequentialAutoMerge`, `doublePassAutoMerge`). They handle deduplication automatically.
 
 ### Quick decision flowchart
 
@@ -577,18 +601,6 @@ for f in datasheets/*.pdf; do
 done | jq -s '.'
 ```
 
-### When speed matters
-
-Use `parallel` or `parallelAutoMerge`. Accept that cross-chunk context is limited.
-
-### When quality matters
-
-Use `doublePass` or `doublePassAutoMerge`. Accept higher token cost.
-
-### When arrays matter
-
-Use auto-merge variants (`parallelAutoMerge`, `sequentialAutoMerge`, `doublePassAutoMerge`). They handle deduplication automatically.
-
 ---
 
 ## Writing a Custom Strategy
@@ -627,8 +639,8 @@ Key internal helpers from `strategies/utils.ts`:
 ### A complete example
 
 ```js
-import { extractWithPrompt, getBatches, mergeUsage, serializeSchema } from "@mateffy/struktur/strategies/utils";
-import { buildExtractorPrompt } from "@mateffy/struktur/prompts/ExtractorPrompt";
+import { extractWithPrompt, getBatches, mergeUsage, serializeSchema } from "@struktur/sdk/strategies/utils";
+import { buildExtractorPrompt } from "@struktur/sdk/prompts/ExtractorPrompt";
 
 const myStrategy = (config) => ({
   name: "my-strategy",

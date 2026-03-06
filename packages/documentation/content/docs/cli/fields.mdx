@@ -191,7 +191,7 @@ All fields are required. For optional fields, nested objects, or `$ref`, use `--
 The `fields` parameter is also available in the SDK:
 
 ```ts
-import { extract, simple } from "@mateffy/struktur";
+import { extract, simple } from "@struktur/sdk";
 import { openai } from "@ai-sdk/openai";
 
 const result = await extract({
@@ -215,7 +215,7 @@ import {
   parseFieldsString,
   buildSchemaFromParsedFields,
   buildSchemaFromFields,
-} from "@mateffy/struktur";
+} from "@struktur/sdk";
 
 // Parse to an intermediate representation
 const parsed = parseFieldsString("title, price:number, status:enum{draft|live}");

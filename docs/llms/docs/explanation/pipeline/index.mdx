@@ -1,0 +1,63 @@
+
+
+```mermaid
+flowchart LR
+    A[Input] --> B[Parse]
+    B --> C[Artifacts]
+    C --> D[Strategy]
+    D --> E[Output]
+    
+    subgraph StrategyInternals [Strategy]
+        direction TB
+        D1[Chunking] --> D2[LLM Calls]
+        D2 --> D3[Validation + Retry]
+        D3 --> D4[Merge/Dedupe]
+    end
+    
+    D --> StrategyInternals --> E
+```
+
+Inputs and Artifacts [#inputs-and-artifacts]
+
+Struktur converts input files into **Artifacts** before extraction. For plain text or stdin, this is trivial. For structured files (PDFs, Office documents), Struktur runs a parser — built-in or custom — that extracts text and images per-page.
+
+See [Document Parsing](/docs/explanation/document-parsing) for how files are converted to artifacts.
+See [Artifact Format](/docs/explanation/artifact-format) for the data structure.
+
+The Strategy layer [#the-strategy-layer]
+
+A strategy is the orchestration engine. It decides how to split the input, how many LLM calls to make, whether to run them concurrently or sequentially, and how to combine results.
+
+Built-in strategies cover the common patterns. You can also write your own.
+
+See [Strategies](/docs/explanation/strategies) for the strategy concept.
+
+Validation inside the loop [#validation-inside-the-loop]
+
+The validation loop is a key differentiator. Every LLM response is validated against the schema **before** the strategy considers it done. If validation fails, the errors are serialized and sent back to the model as a follow-up message.
+
+**Smart validation**: For multi-step strategies (parallel, sequential, double-pass), Struktur uses lenient validation during intermediate steps—required field violations are allowed until the final step. This prevents false failures when data is split across chunks. Use the `strict` option to disable this behavior.
+
+Most extractions converge within two attempts. This happens **inside** the strategy, not as a post-processing step.
+
+Default: `maxAttempts` = 3.
+
+See [Validation & Retries](/docs/explanation/validation) for the validation concept.
+
+The result [#the-result]
+
+The extraction result has three fields:
+
+| Field   | Description                                                                       |
+| ------- | --------------------------------------------------------------------------------- |
+| `data`  | Validated output matching your schema. If `error` is set, may not be trustworthy. |
+| `usage` | Aggregated token counts across all LLM calls.                                     |
+| `error` | Set if extraction encountered a non-fatal error.                                  |
+
+See also [#see-also]
+
+* [Document Parsing](/docs/explanation/document-parsing) — how files are converted to artifacts
+* [Artifacts](/docs/explanation/artifact-format) — the input format
+* [Strategies](/docs/explanation/strategies) — orchestration patterns
+* [Chunking & Token Budgets](/docs/explanation/chunking) — how large documents are split
+* [Validation & Retries](/docs/explanation/validation) — the retry loop

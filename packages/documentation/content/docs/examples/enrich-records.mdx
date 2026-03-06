@@ -25,9 +25,9 @@ done | jq -s '.'
 ## SDK
 
 ```js
-import { extract, simple } from "@mateffy/struktur";
+import { extract, simple } from "@struktur/sdk";
 import { openai } from "@ai-sdk/openai";
-import { parse } from "@mateffy/struktur";
+import { parse } from "@struktur/sdk";
 
 const schema = {
   type: "object",
@@ -81,7 +81,7 @@ console.log(result);
 ## With concurrency
 
 ```js
-import { extract, parallel } from "@mateffy/struktur";
+import { extract, parallel } from "@struktur/sdk";
 
 async function enrichRecordsParallel(records, concurrency = 5) {
   const results = await Promise.all(

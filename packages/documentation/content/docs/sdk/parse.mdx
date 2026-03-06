@@ -6,7 +6,7 @@ description: Load files and text into artifacts for extraction.
 The `parse()` function is the primary way to load files and text into artifacts. It handles MIME detection, parser resolution, and PDF image extraction automatically.
 
 ```typescript
-import { parse } from "@mateffy/struktur";
+import { parse } from "@struktur/sdk";
 
 const artifacts = await parse(
   { kind: "file", path: "document.pdf" },
@@ -50,8 +50,8 @@ const artifacts = await parse(
 Pass a `parserConfig` to use custom parsers without CLI config:
 
 ```typescript
-import { parse } from "@mateffy/struktur";
-import type { ParsersConfig, InlineParserDef } from "@mateffy/struktur";
+import { parse } from "@struktur/sdk";
+import type { ParsersConfig, InlineParserDef } from "@struktur/sdk";
 import * as XLSX from "xlsx";
 
 // npm package parser
@@ -124,14 +124,14 @@ const myParser: InlineParserHandler = async (buffer) => {
 Fetches a URL and expects it to return pre-serialized artifact JSON. Validates and hydrates.
 
 ```js
-import { urlToArtifact } from "@mateffy/struktur";
+import { urlToArtifact } from "@struktur/sdk";
 
 const artifacts = await urlToArtifact("https://example.com/artifact.json");
 ```
 
 ### `parseSerializedArtifacts(text)`
 
-Parses a JSON string into artifacts with Ajv validation.
+Parses a JSON string into artifacts with schema validation.
 
 ### `validateSerializedArtifacts(data)`
 
@@ -155,7 +155,7 @@ Splits a text string on double newlines into content slices.
 
 ```js
 // Deprecated — use parse() instead
-import { fileToArtifact } from "@mateffy/struktur";
+import { fileToArtifact } from "@struktur/sdk";
 import fs from "node:fs/promises";
 
 const buffer = Buffer.from(await fs.readFile("document.txt"));

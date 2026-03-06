@@ -84,7 +84,7 @@ See [config parsers](/docs/cli/config#config-parsers) for the full reference.
 For the SDK, pass a `parserConfig` to `parse`:
 
 ```typescript
-import { parse } from "@mateffy/struktur";
+import { parse } from "@struktur/sdk";
 
 const artifacts = await parse(
   { kind: "file", path: "report.xlsx" },
@@ -101,7 +101,7 @@ const artifacts = await parse(
 Add an `InlineParserDef` to your `parserConfig`. This is the modern way to register code-only parsers that work with `parse()`.
 
 ```typescript
-import { parse } from "@mateffy/struktur";
+import { parse } from "@struktur/sdk";
 import * as XLSX from "xlsx";
 
 const artifacts = await parse(
@@ -162,7 +162,7 @@ const myParser: InlineParserHandler = async (buffer) => {
 
 ```typescript
 import * as XLSX from "xlsx";
-import type { InlineParserDef } from "@mateffy/struktur";
+import type { InlineParserDef } from "@struktur/sdk";
 
 const excelParser: InlineParserDef = {
   type: "inline",
@@ -187,7 +187,7 @@ const excelParser: InlineParserDef = {
 
 ```typescript
 import { simpleParser } from "mailparser";
-import type { InlineParserDef } from "@mateffy/struktur";
+import type { InlineParserDef } from "@struktur/sdk";
 
 const emailParser: InlineParserDef = {
   type: "inline",
@@ -217,7 +217,7 @@ The old `providers` registry is deprecated. Use `InlineParserDef` in `parserConf
 If you need backward compatibility, you can still use `fileToArtifact` with the providers registry:
 
 ```js
-import { fileToArtifact } from "@mateffy/struktur";
+import { fileToArtifact } from "@struktur/sdk";
 import { readFile } from "node:fs/promises";
 
 const buffer = Buffer.from(await readFile("document.xlsx"));
@@ -237,7 +237,7 @@ const artifact = await fileToArtifact(buffer, {
 Install a package that implements the `NpmParserModule` interface:
 
 ```typescript
-import type { Artifact } from "@mateffy/struktur";
+import type { Artifact } from "@struktur/sdk";
 
 // At least one of these is required:
 export async function parseStream(
@@ -317,7 +317,7 @@ struktur --input data.xlsx --parser @myorg/xlsx-parser --fields "..." --model op
 The primary SDK function for loading input into artifacts. Handles MIME detection and parser resolution automatically.
 
 ```typescript
-import { parse } from "@mateffy/struktur";
+import { parse } from "@struktur/sdk";
 
 const artifacts = await parse(
   { kind: "file", path: "document.pdf" },
@@ -349,7 +349,7 @@ Lower-level helper that creates an artifact from a Buffer. **Deprecated:** use `
 **Important:** `fileToArtifact` uses the legacy `providers` registry, which does not include the built-in PDF parser or any parsers configured via `config parsers add`. For PDF and other format support, use `parse` instead.
 
 ```js
-import { fileToArtifact } from "@mateffy/struktur";
+import { fileToArtifact } from "@struktur/sdk";
 import fs from "node:fs/promises";
 
 const buffer = Buffer.from(await fs.readFile("document.txt"));
@@ -364,7 +364,7 @@ const artifact = await fileToArtifact(buffer, {
 Fetches a URL and expects it to return pre-serialized artifact JSON. Validates and hydrates.
 
 ```js
-import { urlToArtifact } from "@mateffy/struktur";
+import { urlToArtifact } from "@struktur/sdk";
 
 const artifacts = await urlToArtifact("https://example.com/artifact.json");
 ```

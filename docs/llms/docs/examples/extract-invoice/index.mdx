@@ -1,0 +1,135 @@
+
+
+Schema [#schema]
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "invoice_number": { "type": "string" },
+    "vendor": { "type": "string" },
+    "invoice_date": { "type": "string" },
+    "due_date": { "type": "string" },
+    "currency": { "type": "string" },
+    "line_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "description": { "type": "string" },
+          "quantity": { "type": "number" },
+          "unit_price": { "type": "number" },
+          "total": { "type": "number" }
+        },
+        "required": ["description", "total"],
+        "additionalProperties": false
+      }
+    },
+    "subtotal": { "type": "number" },
+    "tax": { "type": "number" },
+    "total": { "type": "number" }
+  },
+  "required": ["invoice_number", "vendor", "total"],
+  "additionalProperties": false
+}
+```
+
+CLI approach [#cli-approach]
+
+Single invoice:
+
+```bash
+struktur --input invoice.pdf \
+  --schema invoice-schema.json \
+  --model openai/gpt-4o-mini
+```
+
+With embedded images (for invoices with stamps, logos, or handwritten amounts):
+
+```bash
+struktur --input invoice.pdf --images \
+  --schema invoice-schema.json \
+  --model openai/gpt-4o
+```
+
+Multiple invoices:
+
+```bash
+for file in invoices/*.pdf; do
+  struktur --input "$file" \
+    --schema invoice-schema.json \
+    --model openai/gpt-4o-mini \
+    --output "outputs/$(basename $file .pdf).json"
+done
+```
+
+SDK [#sdk]
+
+Small invoices (1-3 pages):
+
+```js
+import { extract, simple, parse } from "@struktur/sdk";
+import { openai } from "@ai-sdk/openai";
+
+const artifacts = await parse(
+  { kind: "file", path: "invoice.pdf" },
+  { includeImages: true }
+);
+
+const result = await extract({
+  artifacts,
+  schema: invoiceSchema,
+  strategy: simple({ model: openai("gpt-4o-mini") }),
+});
+```
+
+Multi-page invoices with many line items:
+
+```js
+import { extract, sequentialAutoMerge, parse } from "@struktur/sdk";
+import { openai } from "@ai-sdk/openai";
+
+const artifacts = await parse({ kind: "file", path: "invoice.pdf" });
+
+const result = await extract({
+  artifacts,
+  schema: invoiceSchema,
+  strategy: sequentialAutoMerge({
+    model: openai("gpt-4o-mini"),
+    dedupeModel: openai("gpt-4o-mini"),
+    chunkSize: 8000,
+  }),
+});
+```
+
+Strategy choice [#strategy-choice]
+
+| Invoice type                         | Strategy              |
+| ------------------------------------ | --------------------- |
+| 1-3 pages                            | `simple`              |
+| Multi-page, line items may duplicate | `sequentialAutoMerge` |
+| Many invoices in parallel            | `parallelAutoMerge`   |
+
+Expected output [#expected-output]
+
+```json
+{
+  "invoice_number": "1042",
+  "vendor": "Acme Corp",
+  "invoice_date": "2024-03-01",
+  "due_date": "2024-04-01",
+  "currency": "USD",
+  "line_items": [
+    { "description": "Widget A", "quantity": 10, "unit_price": 50, "total": 500 },
+    { "description": "Widget B", "quantity": 5, "unit_price": 200, "total": 1000 }
+  ],
+  "subtotal": 1500,
+  "tax": 150,
+  "total": 1650
+}
+```
+
+See also [#see-also]
+
+* [Extraction Strategies](/docs/explanation/strategies) — strategy reference
+* [Process a Directory of Files](/docs/examples/process-directory) — batch processing

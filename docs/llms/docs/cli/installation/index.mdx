@@ -1,0 +1,86 @@
+
+
+Install [#install]
+
+```bash
+# Using npm
+npm install -g @struktur/cli
+
+# Or using Bun (recommended)
+bun install -g @struktur/cli
+```
+
+Verify:
+
+```bash
+struktur --help
+```
+
+* [npm: @struktur/cli](https://www.npmjs.com/package/@struktur/cli)
+* [GitHub: packages/cli](https://github.com/mateffy/struktur/tree/main/packages/cli)
+
+Configure a provider (required) [#configure-a-provider-required]
+
+Store your API key securely with the CLI:
+
+```bash
+echo "$OPENAI_API_KEY" | struktur config providers add openai --token-stdin
+```
+
+On macOS, tokens are stored in Keychain. On other platforms, `~/.config/struktur/tokens.json` (chmod 600).
+
+Quick setup with --default [#quick-setup-with---default]
+
+```bash
+echo "$OPENAI_API_KEY" | struktur config providers add openai --token-stdin --default
+```
+
+The `--default` flag automatically queries the provider API and sets the cheapest available model as default. One command, fully ready.
+
+Set a default model [#set-a-default-model]
+
+```bash
+# Set explicitly
+struktur config models use openai/gpt-4o-mini
+
+# Or store a shortcut alias first
+struktur config models alias set fast openai/gpt-4.1-mini
+struktur config models use fast
+```
+
+Once set, `--model` is optional in `extract` commands.
+
+Environment variables [#environment-variables]
+
+Provider API keys can also be set via environment variables. This is useful for CI/CD or temporary sessions, but stored tokens are recommended for regular use.
+
+Provider API keys [#provider-api-keys]
+
+| Variable                       | Provider   |
+| ------------------------------ | ---------- |
+| `OPENAI_API_KEY`               | OpenAI     |
+| `ANTHROPIC_API_KEY`            | Anthropic  |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Google     |
+| `OPENCODE_API_KEY`             | OpenCode   |
+| `OPENROUTER_API_KEY`           | OpenRouter |
+
+Environment variables override stored tokens.
+
+Configuration [#configuration]
+
+| Variable                    | Purpose                                                   |
+| --------------------------- | --------------------------------------------------------- |
+| `STRUKTUR_CONFIG_DIR`       | Override config directory (default: `~/.config/struktur`) |
+| `STRUKTUR_DISABLE_KEYCHAIN` | Set to any value to disable macOS Keychain                |
+| `STRUKTUR_KEYCHAIN_SERVICE` | Override Keychain service name                            |
+
+SDK behavior [#sdk-behavior]
+
+| Variable              | Purpose                                         |
+| --------------------- | ----------------------------------------------- |
+| `AI_SDK_LOG_WARNINGS` | Set to `true` to enable AI SDK warning messages |
+
+See also [#see-also]
+
+* [extract](/docs/cli/extract) — main extraction command
+* [config](/docs/cli/config) — provider and model management

@@ -608,7 +608,7 @@ SDK Usage [#sdk-usage]
 The `fields` parameter is also available in the SDK:
 
 ```ts
-import { extract, simple } from "@mateffy/struktur";
+import { extract, simple } from "@struktur/sdk";
 import { openai } from "@ai-sdk/openai";
 
 const result = await extract({
@@ -632,7 +632,7 @@ import {
   parseFieldsString,
   buildSchemaFromParsedFields,
   buildSchemaFromFields,
-} from "@mateffy/struktur";
+} from "@struktur/sdk";
 
 // Parse to an intermediate representation
 const parsed = parseFieldsString("title, price:number, status:enum{draft|live}");
@@ -734,10 +734,10 @@ Install [#install]
 
 ```bash
 # Using npm
-npm install -g @mateffy/struktur
+npm install -g @struktur/cli
 
 # Or using Bun (recommended)
-bun install -g @mateffy/struktur
+bun install -g @struktur/cli
 ```
 
 Verify:
@@ -745,6 +745,9 @@ Verify:
 ```bash
 struktur --help
 ```
+
+* [npm: @struktur/cli](https://www.npmjs.com/package/@struktur/cli)
+* [GitHub: packages/cli](https://github.com/mateffy/struktur/tree/main/packages/cli)
 
 Configure a provider (required) [#configure-a-provider-required]
 
@@ -1042,9 +1045,9 @@ done | jq -s '.'
 SDK [#sdk]
 
 ```js
-import { extract, simple } from "@mateffy/struktur";
+import { extract, simple } from "@struktur/sdk";
 import { openai } from "@ai-sdk/openai";
-import { parse } from "@mateffy/struktur";
+import { parse } from "@struktur/sdk";
 
 const schema = {
   type: "object",
@@ -1098,7 +1101,7 @@ console.log(result);
 With concurrency [#with-concurrency]
 
 ```js
-import { extract, parallel } from "@mateffy/struktur";
+import { extract, parallel } from "@struktur/sdk";
 
 async function enrichRecordsParallel(records, concurrency = 5) {
   const results = await Promise.all(
@@ -1203,7 +1206,7 @@ SDK [#sdk]
 Small invoices (1-3 pages):
 
 ```js
-import { extract, simple, parse } from "@mateffy/struktur";
+import { extract, simple, parse } from "@struktur/sdk";
 import { openai } from "@ai-sdk/openai";
 
 const artifacts = await parse(
@@ -1221,7 +1224,7 @@ const result = await extract({
 Multi-page invoices with many line items:
 
 ```js
-import { extract, sequentialAutoMerge, parse } from "@mateffy/struktur";
+import { extract, sequentialAutoMerge, parse } from "@struktur/sdk";
 import { openai } from "@ai-sdk/openai";
 
 const artifacts = await parse({ kind: "file", path: "invoice.pdf" });
@@ -1340,9 +1343,9 @@ struktur --input expose.pdf \
 SDK [#sdk]
 
 ```js
-import { extract, sequentialAutoMerge } from "@mateffy/struktur";
+import { extract, sequentialAutoMerge } from "@struktur/sdk";
 import { openai } from "@ai-sdk/openai";
-import { fileToArtifact } from "@mateffy/struktur";
+import { fileToArtifact } from "@struktur/sdk";
 import fs from "node:fs/promises";
 
 const buffer = Buffer.from(await fs.readFile("expose.pdf"));
@@ -1559,9 +1562,9 @@ echo "Processed $count files"
 SDK with parallel processing [#sdk-with-parallel-processing]
 
 ```js
-import { extract, parallelAutoMerge } from "@mateffy/struktur";
+import { extract, parallelAutoMerge } from "@struktur/sdk";
 import { openai } from "@ai-sdk/openai";
-import { fileToArtifact } from "@mateffy/struktur";
+import { fileToArtifact } from "@struktur/sdk";
 import fs from "node:fs/promises";
 import path from "node:path";
 
@@ -1696,7 +1699,7 @@ SDK: fs.watch [#sdk-fswatch]
 
 ```js
 import { watch } from "node:fs";
-import { extract, simple, parse } from "@mateffy/struktur";
+import { extract, simple, parse } from "@struktur/sdk";
 import { openai } from "@ai-sdk/openai";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -1748,7 +1751,7 @@ For more robust file watching:
 
 ```js
 import chokidar from "chokidar";
-import { extract, simple, parse } from "@mateffy/struktur";
+import { extract, simple, parse } from "@struktur/sdk";
 import { openai } from "@ai-sdk/openai";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -2098,7 +2101,7 @@ See [config parsers](/docs/cli/config#config-parsers) for the full reference.
 For the SDK, pass a `parserConfig` to `parse`:
 
 ```typescript
-import { parse } from "@mateffy/struktur";
+import { parse } from "@struktur/sdk";
 
 const artifacts = await parse(
   { kind: "file", path: "report.xlsx" },
@@ -2115,7 +2118,7 @@ Option 2: SDK-level inline parser [#option-2-sdk-level-inline-parser]
 Add an `InlineParserDef` to your `parserConfig`. This is the modern way to register code-only parsers that work with `parse()`.
 
 ```typescript
-import { parse } from "@mateffy/struktur";
+import { parse } from "@struktur/sdk";
 import * as XLSX from "xlsx";
 
 const artifacts = await parse(
@@ -2176,7 +2179,7 @@ Excel with xlsx package [#excel-with-xlsx-package]
 
 ```typescript
 import * as XLSX from "xlsx";
-import type { InlineParserDef } from "@mateffy/struktur";
+import type { InlineParserDef } from "@struktur/sdk";
 
 const excelParser: InlineParserDef = {
   type: "inline",
@@ -2201,7 +2204,7 @@ Email with mailparser [#email-with-mailparser]
 
 ```typescript
 import { simpleParser } from "mailparser";
-import type { InlineParserDef } from "@mateffy/struktur";
+import type { InlineParserDef } from "@struktur/sdk";
 
 const emailParser: InlineParserDef = {
   type: "inline",
@@ -2231,7 +2234,7 @@ The old `providers` registry is deprecated. Use `InlineParserDef` in `parserConf
 If you need backward compatibility, you can still use `fileToArtifact` with the providers registry:
 
 ```js
-import { fileToArtifact } from "@mateffy/struktur";
+import { fileToArtifact } from "@struktur/sdk";
 import { readFile } from "node:fs/promises";
 
 const buffer = Buffer.from(await readFile("document.xlsx"));
@@ -2251,7 +2254,7 @@ npm Package Parser [#npm-package-parser]
 Install a package that implements the `NpmParserModule` interface:
 
 ```typescript
-import type { Artifact } from "@mateffy/struktur";
+import type { Artifact } from "@struktur/sdk";
 
 // At least one of these is required:
 export async function parseStream(
@@ -2331,7 +2334,7 @@ parse(input, options?) [#parseinput-options]
 The primary SDK function for loading input into artifacts. Handles MIME detection and parser resolution automatically.
 
 ```typescript
-import { parse } from "@mateffy/struktur";
+import { parse } from "@struktur/sdk";
 
 const artifacts = await parse(
   { kind: "file", path: "document.pdf" },
@@ -2363,7 +2366,7 @@ Lower-level helper that creates an artifact from a Buffer. **Deprecated:** use `
 **Important:** `fileToArtifact` uses the legacy `providers` registry, which does not include the built-in PDF parser or any parsers configured via `config parsers add`. For PDF and other format support, use `parse` instead.
 
 ```js
-import { fileToArtifact } from "@mateffy/struktur";
+import { fileToArtifact } from "@struktur/sdk";
 import fs from "node:fs/promises";
 
 const buffer = Buffer.from(await fs.readFile("document.txt"));
@@ -2378,7 +2381,7 @@ urlToArtifact(url) [#urltoartifacturl]
 Fetches a URL and expects it to return pre-serialized artifact JSON. Validates and hydrates.
 
 ```js
-import { urlToArtifact } from "@mateffy/struktur";
+import { urlToArtifact } from "@struktur/sdk";
 
 const artifacts = await urlToArtifact("https://example.com/artifact.json");
 ```
@@ -2445,7 +2448,7 @@ See [Strategies](/docs/explanation/strategies) for the strategy concept.
 
 Validation inside the loop [#validation-inside-the-loop]
 
-The validation loop is a key differentiator. Every LLM response is validated against the schema using Ajv **before** the strategy considers it done. If validation fails, the errors are serialized and sent back to the model as a follow-up message.
+The validation loop is a key differentiator. Every LLM response is validated against the schema **before** the strategy considers it done. If validation fails, the errors are serialized and sent back to the model as a follow-up message.
 
 **Smart validation**: For multi-step strategies (parallel, sequential, double-pass), Struktur uses lenient validation during intermediate steps—required field violations are allowed until the final step. This prevents false failures when data is split across chunks. Use the `strict` option to disable this behavior.
 
@@ -2519,14 +2522,14 @@ Algorithm [#algorithm]
 
 1. Build extraction prompt from artifacts + schema
 2. Send to LLM
-3. Validate output with Ajv
+3. Validate output against the schema
 4. Retry on validation failure (up to 3 attempts)
 5. Return validated output
 
 Example [#example]
 
 ```js
-import { extract, simple } from "@mateffy/struktur";
+import { extract, simple } from "@struktur/sdk";
 import { openai } from "@ai-sdk/openai";
 
 const result = await extract({
@@ -2591,7 +2594,7 @@ Algorithm [#algorithm-1]
 Example [#example-1]
 
 ```js
-import { extract, parallel } from "@mateffy/struktur";
+import { extract, parallel } from "@struktur/sdk";
 import { openai } from "@ai-sdk/openai";
 
 const result = await extract({
@@ -2657,7 +2660,7 @@ Algorithm [#algorithm-2]
 Example [#example-2]
 
 ```js
-import { extract, sequential } from "@mateffy/struktur";
+import { extract, sequential } from "@struktur/sdk";
 import { openai } from "@ai-sdk/openai";
 
 const result = await extract({
@@ -2740,7 +2743,7 @@ Two-stage:
 Example [#example-3]
 
 ```js
-import { extract, parallelAutoMerge } from "@mateffy/struktur";
+import { extract, parallelAutoMerge } from "@struktur/sdk";
 import { openai } from "@ai-sdk/openai";
 
 const result = await extract({
@@ -2810,7 +2813,7 @@ Algorithm [#algorithm-4]
 Example [#example-4]
 
 ```js
-import { extract, sequentialAutoMerge } from "@mateffy/struktur";
+import { extract, sequentialAutoMerge } from "@struktur/sdk";
 import { openai } from "@ai-sdk/openai";
 
 const result = await extract({
@@ -2887,7 +2890,7 @@ Algorithm [#algorithm-5]
 Example [#example-5]
 
 ```js
-import { extract, doublePass } from "@mateffy/struktur";
+import { extract, doublePass } from "@struktur/sdk";
 import { openai } from "@ai-sdk/openai";
 
 const result = await extract({
@@ -2964,7 +2967,7 @@ Algorithm [#algorithm-6]
 Example [#example-6]
 
 ```js
-import { extract, doublePassAutoMerge } from "@mateffy/struktur";
+import { extract, doublePassAutoMerge } from "@struktur/sdk";
 import { openai } from "@ai-sdk/openai";
 
 const result = await extract({
@@ -2994,6 +2997,30 @@ When to use [#when-to-use-6]
 ***
 
 Choosing a Strategy [#choosing-a-strategy]
+
+Pick based on input size and whether you're extracting arrays:
+
+| Strategy              | When to use                                      |
+| --------------------- | ------------------------------------------------ |
+| `simple`              | Small input, fits in one context window          |
+| `parallel`            | Large input, order doesn't matter, scalar fields |
+| `sequential`          | Large input, context carries across chunks       |
+| `parallelAutoMerge`   | Large input with arrays — parallel + dedup       |
+| `sequentialAutoMerge` | Large input with arrays — sequential + dedup     |
+| `doublePass`          | Quality matters, two-pass refinement             |
+| `doublePassAutoMerge` | Quality + arrays + dedup                         |
+
+When speed matters [#when-speed-matters]
+
+Use `parallel` or `parallelAutoMerge`. Accept that cross-chunk context is limited.
+
+When quality matters [#when-quality-matters]
+
+Use `doublePass` or `doublePassAutoMerge`. Accept higher token cost.
+
+When arrays matter [#when-arrays-matter]
+
+Use auto-merge variants (`parallelAutoMerge`, `sequentialAutoMerge`, `doublePassAutoMerge`). They handle deduplication automatically.
 
 Quick decision flowchart [#quick-decision-flowchart]
 
@@ -3052,18 +3079,6 @@ for f in datasheets/*.pdf; do
 done | jq -s '.'
 ```
 
-When speed matters [#when-speed-matters]
-
-Use `parallel` or `parallelAutoMerge`. Accept that cross-chunk context is limited.
-
-When quality matters [#when-quality-matters]
-
-Use `doublePass` or `doublePassAutoMerge`. Accept higher token cost.
-
-When arrays matter [#when-arrays-matter]
-
-Use auto-merge variants (`parallelAutoMerge`, `sequentialAutoMerge`, `doublePassAutoMerge`). They handle deduplication automatically.
-
 ***
 
 Writing a Custom Strategy [#writing-a-custom-strategy]
@@ -3102,8 +3117,8 @@ Key internal helpers from `strategies/utils.ts`:
 A complete example [#a-complete-example]
 
 ```js
-import { extractWithPrompt, getBatches, mergeUsage, serializeSchema } from "@mateffy/struktur/strategies/utils";
-import { buildExtractorPrompt } from "@mateffy/struktur/prompts/ExtractorPrompt";
+import { extractWithPrompt, getBatches, mergeUsage, serializeSchema } from "@struktur/sdk/strategies/utils";
+import { buildExtractorPrompt } from "@struktur/sdk/prompts/ExtractorPrompt";
 
 const myStrategy = (config) => ({
   name: "my-strategy",
@@ -3183,9 +3198,9 @@ Struktur does all of this for you.
 How the retry loop works [#how-the-retry-loop-works]
 
 1. Send the extraction prompt to the LLM.
-2. Validate the response with Ajv against the schema.
+2. Validate the response against the schema.
 3. If valid: return it.
-4. If invalid: serialize the Ajv error array into an XML block, append it to the message thread as a user message, go to step 1.
+4. If invalid: serialize the validation errors into an XML block, append it to the message thread as a user message, go to step 1.
 5. After `maxAttempts` (default 3): throw.
 
 The model sees its own mistake and a structured description of it. This self-correction loop is why most extractions converge within 2 attempts.
@@ -3261,7 +3276,7 @@ See also [#see-also]
 
 
 
-Struktur is a structured data extraction engine that turns pre-parsed documents into validated, schema-typed JSON. It operates on JSON-based artifact DTOs, chunks them by token budgets, runs extraction strategies, validates results with Ajv, and merges or deduplicates outputs where needed.
+Struktur is an all-in-one tool for structured data extraction that turns pre-parsed documents into validated, schema-typed JSON. It operates on Artifacts, chunks them by token budgets, runs extraction strategies, validates results against your schema, and merges or deduplicates outputs where needed.
 
 Why Struktur? [#why-struktur]
 
@@ -3398,10 +3413,10 @@ Step 1: Install [#step-1-install]
 
 ```bash
 # Using npm
-npm install -g @mateffy/struktur
+npm install -g @struktur/cli
 
 # Or using Bun (recommended)
-bun install -g @mateffy/struktur
+bun install -g @struktur/cli
 ```
 
 Verify:
@@ -3465,7 +3480,7 @@ Notice that `total` is a number, not a string — Struktur enforced the schema.
 
 What happened? [#what-happened]
 
-For the text example, stdin input was loaded as an artifact, the LLM generated output, and Ajv validated it against your schema. The `simple` strategy handled this in a single LLM call.
+For the text example, stdin input was loaded as an artifact, the LLM generated output, and it was validated against your schema. The `simple` strategy handled this in a single LLM call.
 
 For the PDF example, an extra step happened first: the built-in PDF parser extracted text (and optionally images) from the file and converted it into an artifact, then extraction proceeded as normal. Add `--images` to include embedded images, or `--screenshots` to render page screenshots.
 
@@ -3543,7 +3558,7 @@ See also [#see-also]
 Usage [#usage]
 
 ```js
-import { extract, simple } from "@mateffy/struktur";
+import { extract, simple } from "@struktur/sdk";
 import { openai } from "@ai-sdk/openai";
 
 const result = await extract({
@@ -3617,26 +3632,29 @@ Topics [#topics]
 
 
 ```bash
-npm install @mateffy/struktur
+npm install @struktur/sdk
 # or
-bun add @mateffy/struktur
+bun add @struktur/sdk
 ```
 
 Peer dependency: `typescript ^5`.
 
 The package exports all types, functions, and strategy factories from the entrypoint. The `@ai-sdk/anthropic`, `@ai-sdk/google`, `@ai-sdk/openai`, and `@openrouter/ai-sdk-provider` packages are bundled as dependencies — you do not need to install them separately.
 
+* [npm: @struktur/sdk](https://www.npmjs.com/package/@struktur/sdk)
+* [GitHub: packages/sdk](https://github.com/mateffy/struktur/tree/main/packages/sdk)
+
 Exports [#exports]
 
 ```js
 // Main function
-import { extract } from "@mateffy/struktur";
+import { extract } from "@struktur/sdk";
 
 // Strategy factories
-import { simple, parallel, sequential, parallelAutoMerge, sequentialAutoMerge, doublePass, doublePassAutoMerge } from "@mateffy/struktur";
+import { simple, parallel, sequential, parallelAutoMerge, sequentialAutoMerge, doublePass, doublePassAutoMerge } from "@struktur/sdk";
 
 // Artifact helpers
-import { parse, fileToArtifact, urlToArtifact } from "@mateffy/struktur";
+import { parse, fileToArtifact, urlToArtifact } from "@struktur/sdk";
 ```
 
 See also [#see-also]
@@ -3652,7 +3670,7 @@ See also [#see-also]
 The `parse()` function is the primary way to load files and text into artifacts. It handles MIME detection, parser resolution, and PDF image extraction automatically.
 
 ```typescript
-import { parse } from "@mateffy/struktur";
+import { parse } from "@struktur/sdk";
 
 const artifacts = await parse(
   { kind: "file", path: "document.pdf" },
@@ -3696,8 +3714,8 @@ Custom Parsers [#custom-parsers]
 Pass a `parserConfig` to use custom parsers without CLI config:
 
 ```typescript
-import { parse } from "@mateffy/struktur";
-import type { ParsersConfig, InlineParserDef } from "@mateffy/struktur";
+import { parse } from "@struktur/sdk";
+import type { ParsersConfig, InlineParserDef } from "@struktur/sdk";
 import * as XLSX from "xlsx";
 
 // npm package parser
@@ -3770,14 +3788,14 @@ urlToArtifact(url) [#urltoartifacturl]
 Fetches a URL and expects it to return pre-serialized artifact JSON. Validates and hydrates.
 
 ```js
-import { urlToArtifact } from "@mateffy/struktur";
+import { urlToArtifact } from "@struktur/sdk";
 
 const artifacts = await urlToArtifact("https://example.com/artifact.json");
 ```
 
 parseSerializedArtifacts(text) [#parseserializedartifactstext]
 
-Parses a JSON string into artifacts with Ajv validation.
+Parses a JSON string into artifacts with schema validation.
 
 validateSerializedArtifacts(data) [#validateserializedartifactsdata]
 
@@ -3801,7 +3819,7 @@ Deprecated: fileToArtifact [#deprecated-filetoartifact]
 
 ```js
 // Deprecated — use parse() instead
-import { fileToArtifact } from "@mateffy/struktur";
+import { fileToArtifact } from "@struktur/sdk";
 import fs from "node:fs/promises";
 
 const buffer = Buffer.from(await fs.readFile("document.txt"));
@@ -3819,7 +3837,7 @@ See also [#see-also]
 * [Document Parsing](/docs/explanation/document-parsing) — how files are converted to artifacts and extending the parser system
 
 
-# Agent Skill
+# Struktur Agent Skill
 
 
 
@@ -3884,6 +3902,9 @@ Next Steps [#next-steps]
 
 
 Install the Struktur agent skill for your preferred AI coding tool.
+
+* [npm: @struktur/skill](https://www.npmjs.com/package/@struktur/skill)
+* [GitHub: packages/skill](https://github.com/mateffy/struktur/tree/main/packages/skill)
 
 Installation Methods [#installation-methods]
 

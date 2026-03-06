@@ -71,7 +71,7 @@ inotifywait -m ./incoming -e create -e moved_to |
 
 ```js
 import { watch } from "node:fs";
-import { extract, simple, parse } from "@mateffy/struktur";
+import { extract, simple, parse } from "@struktur/sdk";
 import { openai } from "@ai-sdk/openai";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -123,7 +123,7 @@ For more robust file watching:
 
 ```js
 import chokidar from "chokidar";
-import { extract, simple, parse } from "@mateffy/struktur";
+import { extract, simple, parse } from "@struktur/sdk";
 import { openai } from "@ai-sdk/openai";
 import fs from "node:fs/promises";
 import path from "node:path";
