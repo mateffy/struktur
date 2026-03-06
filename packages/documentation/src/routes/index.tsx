@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { LogoAnimation } from "@/components/LogoAnimation";
 import { Copy, FileText, AlignLeft, Image, Braces, Zap, Layers, CheckCircle, Code, FileImage, Settings } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -566,16 +567,9 @@ function Home() {
             paddingBottom: "80px",
           }}
         >
-          <img
-            src="/struktur-icon.png"
-            alt="Struktur"
+          <LogoAnimation
+            size={200}
             className="hero-image"
-            style={{
-              width: "200px",
-              height: "200px",
-              borderRadius: "28px",
-              flexShrink: 0,
-            }}
           />
           <div style={{ paddingTop: "8px" }} className="w-full">
             <div
