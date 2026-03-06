@@ -531,7 +531,7 @@ function Home() {
         {[
           { label: "Documentation", href: "/docs" },
           { label: "GitHub", href: "https://github.com/mateffy/struktur" },
-          { label: "Author", href: "https://mateffy.org" },
+          { label: "Made by Lukas Mateffy", href: "https://mateffy.org" },
         ].map((link) => (
           <a
             key={link.label}
