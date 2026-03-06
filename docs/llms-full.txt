@@ -1833,6 +1833,77 @@ Image limits per chunk are configurable on parallel strategies via `maxImages`.
 
 Complete specification [#complete-specification]
 
+JSON Schema [#json-schema]
+
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SerializedArtifacts",
+  "oneOf": [
+    { "$ref": "#/definitions/SerializedArtifact" },
+    {
+      "type": "array",
+      "items": { "$ref": "#/definitions/SerializedArtifact" },
+      "minItems": 1
+    }
+  ],
+  "definitions": {
+    "SerializedArtifact": {
+      "type": "object",
+      "required": ["id", "type", "contents"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string", "enum": ["text", "image", "pdf", "file"] },
+        "contents": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/SerializedArtifactContent" },
+          "minItems": 1
+        },
+        "metadata": { "type": "object" },
+        "tokens": { "type": "number" }
+      }
+    },
+    "SerializedArtifactContent": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "page": { "type": "number" },
+        "text": { "type": "string" },
+        "media": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/SerializedArtifactImage" }
+        }
+      },
+      "anyOf": [
+        { "required": ["text"] },
+        { "required": ["media"] }
+      ]
+    },
+    "SerializedArtifactImage": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "type": "string", "const": "image" },
+        "url": { "type": "string" },
+        "base64": { "type": "string" },
+        "text": { "type": "string" },
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "width": { "type": "number" },
+        "height": { "type": "number" },
+        "imageType": { "type": "string", "enum": ["embedded", "screenshot"] }
+      },
+      "anyOf": [
+        { "required": ["url"] },
+        { "required": ["base64"] }
+      ]
+    }
+  }
+}
+```
+
 Top-level shape [#top-level-shape]
 
 | Field      | Required | Description                            |

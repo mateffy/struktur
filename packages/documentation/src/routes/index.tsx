@@ -4,6 +4,53 @@ import { useEffect, useRef, useState } from "react";
 
 export const Route = createFileRoute("/")({
   component: Home,
+  head: () => ({
+    meta: [
+      {
+        title: "Struktur - Structured Data Extraction",
+      },
+      {
+        name: "description",
+        content: "All-in-one tool for structured data extraction. Turn documents into validated JSON with AI. CLI and SDK for TypeScript.",
+      },
+      {
+        property: "og:title",
+        content: "Struktur - Structured Data Extraction",
+      },
+      {
+        property: "og:description",
+        content: "All-in-one tool for structured data extraction. Turn documents into validated JSON with AI.",
+      },
+      {
+        property: "og:type",
+        content: "website",
+      },
+      {
+        property: "og:url",
+        content: "https://struktur.sh",
+      },
+      {
+        property: "og:image",
+        content: "https://struktur.sh/og.webp",
+      },
+      {
+        name: "twitter:card",
+        content: "summary_large_image",
+      },
+      {
+        name: "twitter:title",
+        content: "Struktur - Structured Data Extraction",
+      },
+      {
+        name: "twitter:description",
+        content: "All-in-one tool for structured data extraction. Turn documents into validated JSON with AI.",
+      },
+      {
+        name: "twitter:image",
+        content: "https://struktur.sh/og.webp",
+      },
+    ],
+  }),
 });
 
 function CopyButton({ text }: { text: string }) {

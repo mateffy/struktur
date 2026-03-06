@@ -19,6 +19,61 @@ export const Route = createFileRoute('/docs/$')({
     await clientLoader.preload(data.path);
     return data;
   },
+  head: ({ loaderData }) => {
+    const { slugs } = loaderData ?? {};
+    const title = slugs && slugs.length > 0 
+      ? `${slugs.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')} - Struktur`
+      : 'Documentation - Struktur';
+    const description = 'Struktur documentation: structured data extraction with AI. CLI and SDK for TypeScript.';
+    
+    return {
+      meta: [
+        {
+          title,
+        },
+        {
+          name: "description",
+          content: description,
+        },
+        {
+          property: "og:title",
+          content: title,
+        },
+        {
+          property: "og:description",
+          content: description,
+        },
+        {
+          property: "og:type",
+          content: "article",
+        },
+        {
+          property: "og:url",
+          content: `https://struktur.sh/docs/${slugs?.join('/') ?? ''}`,
+        },
+        {
+          property: "og:image",
+          content: "https://struktur.sh/og.webp",
+        },
+        {
+          name: "twitter:card",
+          content: "summary_large_image",
+        },
+        {
+          name: "twitter:title",
+          content: title,
+        },
+        {
+          name: "twitter:description",
+          content: description,
+        },
+        {
+          name: "twitter:image",
+          content: "https://struktur.sh/og.webp",
+        },
+      ],
+    };
+  },
 });
 
 const loader = createServerFn({

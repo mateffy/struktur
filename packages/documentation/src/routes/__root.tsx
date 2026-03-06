@@ -23,6 +23,46 @@ export const Route = createRootRoute({
       {
         title: "Struktur",
       },
+      {
+        name: "description",
+        content: "All-in-one tool for structured data extraction. Turn documents into validated JSON with AI.",
+      },
+      {
+        property: "og:title",
+        content: "Struktur",
+      },
+      {
+        property: "og:description",
+        content: "All-in-one tool for structured data extraction. Turn documents into validated JSON with AI.",
+      },
+      {
+        property: "og:type",
+        content: "website",
+      },
+      {
+        property: "og:url",
+        content: "https://struktur.sh",
+      },
+      {
+        property: "og:image",
+        content: "https://struktur.sh/og.webp",
+      },
+      {
+        name: "twitter:card",
+        content: "summary_large_image",
+      },
+      {
+        name: "twitter:title",
+        content: "Struktur",
+      },
+      {
+        name: "twitter:description",
+        content: "All-in-one tool for structured data extraction. Turn documents into validated JSON with AI.",
+      },
+      {
+        name: "twitter:image",
+        content: "https://struktur.sh/og.webp",
+      },
     ],
     links: [
       { rel: "icon", type: "image/png", href: "/struktur-icon.png" },
@@ -41,7 +81,7 @@ function RootComponent() {
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
