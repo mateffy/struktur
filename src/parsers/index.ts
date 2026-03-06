@@ -1,4 +1,4 @@
-export type { ParserDef, ParsersConfig, NpmParserDef, CommandFileDef, CommandStdinDef, ParserInput } from "./types";
+export type { ParserDef, ParsersConfig, NpmParserDef, CommandFileDef, CommandStdinDef, InlineParserDef, ParserInput } from "./types";
 export { runParser } from "./runner";
 export { detectMimeType } from "./mime";
 export { collectStream } from "./collect";

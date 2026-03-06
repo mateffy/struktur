@@ -39,7 +39,7 @@ export {
   validateSerializedArtifacts,
   parseSerializedArtifacts,
   hydrateSerializedArtifacts,
-  parseInputToArtifacts,
+  parse,
   splitTextIntoContents,
 } from "./artifacts/input";
 
@@ -47,4 +47,4 @@ export * from "./strategies";
 
 // Parsers public API
 export { collectStream } from "./parsers/collect";
-export type { ParserDef, ParsersConfig } from "./parsers/types";
+export type { ParserDef, ParsersConfig, InlineParserDef } from "./parsers/types";

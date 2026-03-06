@@ -11,7 +11,7 @@ test("index re-exports main API", () => {
   expect(typeof api.validateSerializedArtifacts).toBe("function");
   expect(typeof api.parseSerializedArtifacts).toBe("function");
   expect(typeof api.hydrateSerializedArtifacts).toBe("function");
-  expect(typeof api.parseInputToArtifacts).toBe("function");
+  expect(typeof api.parse).toBe("function");
   expect(typeof api.splitTextIntoContents).toBe("function");
 
   expect(typeof api.simple).toBe("function");

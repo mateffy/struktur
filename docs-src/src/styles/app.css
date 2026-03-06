@@ -46,3 +46,36 @@
     border-bottom: 1px solid rgba(122, 92, 58, 0.2);
   }
 }
+
+/* Hero image responsive styles */
+.hero-image {
+  width: 200px;
+  height: 200px;
+  object-fit: cover;
+}
+
+/* Hero section responsive styles */
+.hero-section {
+  display: flex;
+  align-items: center;
+  gap: 60px;
+}
+
+@media (max-width: 768px) {
+  .hero-image {
+    width: 150px;
+    height: 150px;
+  }
+  
+  .hero-section {
+    flex-direction: column;
+    gap: 40px;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-image {
+    width: 120px;
+    height: 120px;
+  }
+}

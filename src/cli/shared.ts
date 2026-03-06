@@ -5,7 +5,7 @@ import {
   resolveProviderToken,
 } from "../auth/tokens";
 import {
-  parseInputToArtifacts,
+  parse,
   parseSerializedArtifacts,
 } from "../artifacts/input";
 import { detectMimeType, type NpmParserEntry } from "../parsers/mime";
@@ -359,17 +359,17 @@ export const loadArtifactsFromOptions = async (
 
   if (typeof artifactJson === "string") {
     const serialized = parseSerializedArtifacts(artifactJson);
-    return parseInputToArtifacts({ kind: "artifact-json", data: serialized });
+    return parse({ kind: "artifact-json", data: serialized });
   }
 
   if (artifact) {
     const source = artifact === "-" ? await readStdinText() : await Bun.file(artifact as string).text();
     const serialized = parseSerializedArtifacts(source);
-    return parseInputToArtifacts({ kind: "artifact-json", data: serialized });
+    return parse({ kind: "artifact-json", data: serialized });
   }
 
   if (typeof text === "string") {
-    return parseInputToArtifacts({ kind: "text", text });
+    return parse({ kind: "text", text });
   }
 
   if (stdinRequested) {
@@ -401,7 +401,7 @@ export const loadArtifactsFromOptions = async (
 
     if (mimeType === "text/plain") {
       // Treat as raw text
-      return parseInputToArtifacts({ kind: "text", text: stdinBuffer.toString() });
+      return parse({ kind: "text", text: stdinBuffer.toString() });
     }
 
     // Build effective parsers config
@@ -421,7 +421,7 @@ export const loadArtifactsFromOptions = async (
       effectiveParsers = Object.keys(parsersConfig).length > 0 ? parsersConfig : undefined;
     }
 
-    return parseInputToArtifacts(
+    return parse(
       { kind: "buffer", buffer: stdinBuffer, mimeType },
       { 
         parserConfig: effectiveParsers, 
@@ -486,7 +486,7 @@ export const loadArtifactsFromOptions = async (
       );
     }
 
-    return parseInputToArtifacts(
+    return parse(
       { kind: "file", path: input, mimeType: detectedMime ?? undefined },
       { 
         parserConfig: effectiveParsers, 

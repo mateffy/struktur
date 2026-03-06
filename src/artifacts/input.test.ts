@@ -1,7 +1,7 @@
 import { test, expect, mock } from "bun:test";
 import {
   clearArtifactInputParsers,
-  parseInputToArtifacts,
+  parse,
   splitTextIntoContents,
   validateSerializedArtifacts,
 } from "./input";
@@ -54,7 +54,7 @@ test("splitTextIntoContents splits paragraphs", () => {
 
 test("parseInputToArtifacts builds text artifacts", async () => {
   clearArtifactInputParsers();
-  const artifacts = await parseInputToArtifacts({
+  const artifacts = await parse({
     kind: "text",
     text: "hello\n\nworld",
     id: "t1",
@@ -65,7 +65,7 @@ test("parseInputToArtifacts builds text artifacts", async () => {
   expect(artifacts[0]?.contents).toHaveLength(2);
 });
 
-test("parseInputToArtifacts uses providers when available", async () => {
+test("parse uses providers when available", async () => {
   const providers = {
     "application/pdf": async () => ({
       id: "pdf-1",
@@ -75,7 +75,7 @@ test("parseInputToArtifacts uses providers when available", async () => {
     }),
   };
 
-  const artifacts = await parseInputToArtifacts({
+  const artifacts = await parse({
     kind: "buffer",
     buffer: Buffer.from("data"),
     mimeType: "application/pdf",
@@ -85,10 +85,10 @@ test("parseInputToArtifacts uses providers when available", async () => {
   expect(artifacts[0]?.contents[0]?.text).toBe("from-provider");
 });
 
-test("parseInputToArtifacts builds image artifacts", async () => {
+test("parse builds image artifacts", async () => {
   clearArtifactInputParsers();
   const buffer = Buffer.from([1, 2, 3]);
-  const artifacts = await parseInputToArtifacts({
+  const artifacts = await parse({
     kind: "buffer",
     buffer,
     mimeType: "image/png",
@@ -101,7 +101,7 @@ test("parseInputToArtifacts builds image artifacts", async () => {
   expect((media?.contents as Buffer).equals(buffer)).toBe(true);
 });
 
-test("parseInputToArtifacts uses parserConfig over providers", async () => {
+test("parse uses parserConfig over providers", async () => {
   const providers = {
     "application/pdf": async () => ({
       id: "from-provider",
@@ -123,7 +123,7 @@ test("parseInputToArtifacts uses parserConfig over providers", async () => {
     },
   };
 
-  const artifacts = await parseInputToArtifacts(
+  const artifacts = await parse(
     {
       kind: "buffer",
       buffer: Buffer.from("data"),
@@ -136,12 +136,12 @@ test("parseInputToArtifacts uses parserConfig over providers", async () => {
   expect(artifacts[0]?.contents[0]?.text).toBe("from-parser");
 });
 
-test("parseInputToArtifacts auto-detects JSON artifacts (buffer)", async () => {
+test("parse auto-detects JSON artifacts (buffer)", async () => {
   clearArtifactInputParsers();
   const serialized = [{ id: "j1", type: "text" as const, contents: [{ text: "json artifact" }] }];
   const buffer = Buffer.from(JSON.stringify(serialized));
 
-  const artifacts = await parseInputToArtifacts({
+  const artifacts = await parse({
     kind: "buffer",
     buffer,
     mimeType: "application/json",
@@ -152,12 +152,12 @@ test("parseInputToArtifacts auto-detects JSON artifacts (buffer)", async () => {
   expect(artifacts[0]?.contents[0]?.text).toBe("json artifact");
 });
 
-test("parseInputToArtifacts throws for non-artifact JSON with no custom parser", async () => {
+test("parse throws for non-artifact JSON with no custom parser", async () => {
   clearArtifactInputParsers();
   const buffer = Buffer.from(JSON.stringify({ some: "object" }));
 
   await expect(
-    parseInputToArtifacts({
+    parse({
       kind: "buffer",
       buffer,
       mimeType: "application/json",
@@ -167,11 +167,11 @@ test("parseInputToArtifacts throws for non-artifact JSON with no custom parser",
 
 // ─── built-in PDF path ───────────────────────────────────────────────────────
 
-test("parseInputToArtifacts routes application/pdf to built-in parsePdf", async () => {
+test("parse routes application/pdf to built-in parsePdf", async () => {
   clearArtifactInputParsers();
   const pdfBuffer = Buffer.from("%PDF-1.4 fake");
 
-  const artifacts = await parseInputToArtifacts({
+  const artifacts = await parse({
     kind: "buffer",
     buffer: pdfBuffer,
     mimeType: "application/pdf",
@@ -182,14 +182,14 @@ test("parseInputToArtifacts routes application/pdf to built-in parsePdf", async 
   expect(artifacts[0]?.contents[0]?.text).toBe("pdf text");
 });
 
-test("parseInputToArtifacts passes includeImages: false to parsePdf", async () => {
+test("parse passes includeImages: false to parsePdf", async () => {
   clearArtifactInputParsers();
   const pdfBuffer = Buffer.from("%PDF-1.4 fake");
 
   // With includeImages: false the result should still be a pdf artifact;
   // we can't easily observe the absence of images here (the stub returns none
   // anyway) but we verify the call succeeds and type is correct.
-  const artifacts = await parseInputToArtifacts(
+  const artifacts = await parse(
     {
       kind: "buffer",
       buffer: pdfBuffer,

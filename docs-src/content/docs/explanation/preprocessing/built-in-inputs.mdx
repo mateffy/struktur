@@ -31,14 +31,14 @@ Both accept a single artifact object or an array.
 
 Schema loading from URLs sends `Accept: application/schema+json, application/json` headers.
 
-## SDK: `parseInputToArtifacts(input, options?)`
+## SDK: `parse(input, options?)`
 
 The primary SDK function for loading input into artifacts. Handles MIME detection and parser resolution automatically.
 
 ```typescript
-import { parseInputToArtifacts } from "@mateffy/struktur";
+import { parse } from "@mateffy/struktur";
 
-const artifacts = await parseInputToArtifacts(
+const artifacts = await parse(
   { kind: "file", path: "document.pdf" },
   {
     parserConfig: parsersConfig,   // ParsersConfig — keyed by MIME type (optional)
@@ -63,9 +63,9 @@ When `kind: "file"` is used, MIME detection and parser resolution happen automat
 
 ## SDK: `fileToArtifact(buffer, options)`
 
-Lower-level helper that creates an artifact from a Buffer using the `providers` registry (a `Record<string, (buffer: Buffer) => Promise<Artifact>>`).
+Lower-level helper that creates an artifact from a Buffer. **Deprecated:** use `parse()` with `InlineParserDef` in `parserConfig` instead.
 
-**Important:** `fileToArtifact` does **not** invoke the parser system — it uses the providers registry directly, which does not include the built-in PDF parser or any parsers configured via `config parsers add`. For PDF and other format support, use `parseInputToArtifacts` instead.
+**Important:** `fileToArtifact` uses the legacy `providers` registry, which does not include the built-in PDF parser or any parsers configured via `config parsers add`. For PDF and other format support, use `parse` instead.
 
 ```js
 import { fileToArtifact } from "@mateffy/struktur";
@@ -74,7 +74,7 @@ import fs from "node:fs/promises";
 const buffer = Buffer.from(await fs.readFile("document.txt"));
 const artifact = await fileToArtifact(buffer, {
   mimeType: "text/plain",
-  providers: { /* custom providers */ }
+  providers: { /* deprecated — use parserConfig with InlineParserDef instead */ }
 });
 ```
 
@@ -93,4 +93,4 @@ const artifacts = await urlToArtifact("https://example.com/artifact.json");
 - [The Artifact Format](/docs/explanation/preprocessing/artifact-format) — the JSON spec
 - [Artifact Helpers](/docs/sdk/artifact-helpers) — SDK API
 - [Parsers](/docs/explanation/parsers) — the parser system for file conversion
-- [Custom Provider](/docs/explanation/preprocessing/custom-provider) — extending the provider registry
+- [Custom Parser](/docs/explanation/preprocessing/custom-provider) — extending the parser system

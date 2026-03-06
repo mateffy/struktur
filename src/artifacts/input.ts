@@ -322,7 +322,7 @@ const bufferParser: ArtifactInputParser = {
   },
 };
 
-export const parseInputToArtifacts = async (
+export const parse = async (
   input: ArtifactInput,
   options?: { 
     parsers?: ArtifactInputParser[]; 

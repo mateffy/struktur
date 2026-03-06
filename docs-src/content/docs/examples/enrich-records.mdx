@@ -27,7 +27,7 @@ done | jq -s '.'
 ```js
 import { extract, simple } from "@mateffy/struktur";
 import { openai } from "@ai-sdk/openai";
-import { parseInputToArtifacts } from "@mateffy/struktur";
+import { parse } from "@mateffy/struktur";
 
 const schema = {
   type: "object",
@@ -49,7 +49,7 @@ async function enrichRecords(records) {
       const text = await response.text();
 
       // Parse as artifact
-      const artifacts = await parseInputToArtifacts({ kind: "text", text });
+      const artifacts = await parse({ kind: "text", text });
 
       // Extract
       const result = await extract({
@@ -91,7 +91,7 @@ async function enrichRecordsParallel(records, concurrency = 5) {
 
       const response = await fetch(record.contract_url);
       const text = await response.text();
-      const artifacts = await parseInputToArtifacts({ kind: "text", text });
+      const artifacts = await parse({ kind: "text", text });
 
       const result = await extract({
         artifacts,

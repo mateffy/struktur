@@ -159,6 +159,16 @@ export const runParser = async (
       return runCommandFileParser(def.command, input);
     case "command-stdin":
       return runCommandStdinParser(def.command, input);
+    case "inline": {
+      let buffer: Buffer;
+      if (input.kind === "file") {
+        const file = Bun.file(input.path);
+        buffer = Buffer.from(await file.arrayBuffer());
+      } else {
+        buffer = input.buffer;
+      }
+      return [await def.handler(buffer)];
+    }
     default: {
       const _exhaustive: never = def;
       throw new Error(`Unknown parser type: ${(_exhaustive as { type: string }).type}`);

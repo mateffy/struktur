@@ -3,14 +3,14 @@ title: Artifact Helpers
 description: Functions to create artifacts from various sources.
 ---
 
-## parseInputToArtifacts(input, options?)
+## parse(input, options?)
 
 The primary way to load files and text into artifacts. Handles MIME detection, parser resolution, and PDF image extraction automatically.
 
 ```typescript
-import { parseInputToArtifacts } from "@mateffy/struktur";
+import { parse } from "@mateffy/struktur";
 
-const artifacts = await parseInputToArtifacts(
+const artifacts = await parse(
   { kind: "file", path: "document.pdf" },
   {
     parserConfig: parsersConfig,   // ParsersConfig — keyed by MIME type
@@ -33,9 +33,9 @@ Supported input kinds:
 
 ## fileToArtifact(buffer, options)
 
-Lower-level helper that creates an artifact from a Buffer using the `providers` registry.
+Lower-level helper that creates an artifact from a Buffer. **Deprecated:** use `parse()` with `InlineParserDef` in `parserConfig` instead.
 
-**Important:** `fileToArtifact` does **not** invoke the parser system. It uses the `providers` registry (a `Record<string, (buffer: Buffer) => Promise<Artifact>>`), which does not include the built-in PDF parser or any parsers configured via `config parsers add`. For PDF and other format support, use `parseInputToArtifacts` instead.
+**Important:** `fileToArtifact` uses the legacy `providers` registry, which does not include the built-in PDF parser or any parsers configured via `config parsers add`. For PDF and other format support, use `parse` instead.
 
 If no provider is registered for the MIME type:
 
@@ -50,7 +50,7 @@ import fs from "node:fs/promises";
 const buffer = Buffer.from(await fs.readFile("document.txt"));
 const artifact = await fileToArtifact(buffer, {
   mimeType: "text/plain",
-  providers: { /* custom providers */ }
+  providers: { /* deprecated — use parserConfig with InlineParserDef instead */ }
 });
 ```
 
@@ -85,4 +85,4 @@ Splits a text string on double newlines into content slices.
 - [The Artifact Format](/docs/explanation/preprocessing/artifact-format) — JSON spec
 - [Built-in Input Types](/docs/explanation/preprocessing/built-in-inputs) — CLI input methods
 - [Parsers](/docs/explanation/parsers) — how files are converted to artifacts
-- [Custom Provider](/docs/explanation/preprocessing/custom-provider) — extending the provider registry
+- [Custom Parser](/docs/explanation/preprocessing/custom-provider) — extending the parser system

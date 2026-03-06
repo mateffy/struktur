@@ -131,7 +131,7 @@ Returns `{ "valid": true, "artifacts": 1 }` on success, throws with error detail
 |------|-------------|
 | `--input <file>` (CLI) | MIME detection + parser resolution; PDF uses built-in `parsePdf` |
 | `--stdin` (CLI) | MIME detection on buffer; `text/plain` falls back to text artifact |
-| `parseInputToArtifacts()` (SDK) | Accepts `kind: "text"`, `kind: "file"`, `kind: "buffer"`, `kind: "artifact-json"` |
+| `parse()` (SDK) | Accepts `kind: "text"`, `kind: "file"`, `kind: "buffer"`, `kind: "artifact-json"` |
 | `urlToArtifact()` (SDK) | Fetches URL, validates as `SerializedArtifact[]` |
 
 ## See also

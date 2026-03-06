@@ -26,7 +26,7 @@ Override MIME detection with `--mime <type>` on any command that accepts input.
 
 ## Custom Parsers
 
-Three types are supported, registered with `struktur config parsers add`.
+Four types are supported. Three are registered with `struktur config parsers add`, and one is for SDK-only use.
 
 ### npm package parser
 
@@ -86,6 +86,45 @@ struktur config parsers add \
 
 The command must write `SerializedArtifact[]` JSON to stdout. Plain text output will fail validation.
 
+### Inline parser (SDK only)
+
+For code-only parsers in the SDK, use `InlineParserDef`:
+
+```typescript
+import { parse } from "@mateffy/struktur";
+import type { InlineParserDef } from "@mateffy/struktur";
+import * as XLSX from "xlsx";
+
+const excelParser: InlineParserDef = {
+  type: "inline",
+  handler: async (buffer) => {
+    const workbook = XLSX.read(buffer);
+    const contents = workbook.SheetNames.map((name, i) => ({
+      page: i + 1,
+      text: XLSX.utils.sheet_to_csv(workbook.Sheets[name]),
+    }));
+
+    return {
+      id: `excel-${crypto.randomUUID()}`,
+      type: "file",
+      raw: async () => buffer,
+      contents,
+    };
+  },
+};
+
+const artifacts = await parse(
+  { kind: "file", path: "report.xlsx" },
+  {
+    parserConfig: {
+      "application/vnd.ms-excel": excelParser,
+    },
+  }
+);
+```
+
+Inline parsers are the modern replacement for the deprecated `providers` registry.
+
 ## Parser Resolution Order
 
 For any input, parsers are resolved in this order:
@@ -106,12 +145,13 @@ struktur --input data.xlsx --parser @myorg/xlsx-parser --fields "..." --model op
 
 ## SDK Usage
 
-Pass a `parserConfig` to `parseInputToArtifacts` to use custom parsers without CLI config:
+Pass a `parserConfig` to `parse` to use custom parsers without CLI config:
 
 ```typescript
-import { parseInputToArtifacts } from "@mateffy/struktur";
-import type { ParsersConfig } from "@mateffy/struktur";
+import { parse } from "@mateffy/struktur";
+import type { ParsersConfig, InlineParserDef } from "@mateffy/struktur";
 
+// npm package parser
 const parserConfig: ParsersConfig = {
   "application/vnd.ms-excel": {
     type: "npm",
@@ -119,7 +159,17 @@ const parserConfig: ParsersConfig = {
   },
 };
 
-const artifacts = await parseInputToArtifacts(
+// or inline parser
+const inlineParserConfig: ParsersConfig = {
+  "application/vnd.ms-excel": {
+    type: "inline",
+    handler: async (buffer) => {
+      // parse and return Artifact
+    },
+  },
+};
+
+const artifacts = await parse(
   { kind: "file", path: "report.xlsx" },
   { parserConfig }
 );

@@ -8,7 +8,8 @@
 - `NpmParserDef` — npm package parser definition (`type: "npm"`, `package: string`)
 - `CommandFileDef` — command with `FILE_PATH` placeholder (`type: "command-file"`, `command: string`)
 - `CommandStdinDef` — command that reads from stdin (`type: "command-stdin"`, `command: string`)
-- `ParserDef` — union of the three variants
+- `InlineParserDef` — inline handler function (`type: "inline"`, `handler: (buffer: Buffer) => Promise<Artifact>`)
+- `ParserDef` — union of the four variants
 - `ParsersConfig` — `Record<string, ParserDef>` keyed by MIME type
 - `ParserInput` — `{ kind: "file"; path: string } | { kind: "buffer"; buffer: Buffer }`
 
@@ -38,6 +39,7 @@ Two-layer detection + npm detectFileType callbacks:
 - **npm**: Dynamic import, prefer `parseFile` for file inputs (zero-copy), prefer `parseStream` for buffer inputs. Falls back via temp-file if needed.
 - **command-file**: Interpolates `FILE_PATH` in command, writes temp file for buffer inputs.
 - **command-stdin**: Pipes input buffer to subprocess stdin; captures stdout as `SerializedArtifact[]` JSON.
+- **inline**: Calls the handler function directly with the buffer (reads file into buffer if needed).
 
 ## Built-in PDF Parser (`pdf.ts`)
 

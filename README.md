@@ -268,6 +268,27 @@ struktur config parsers add \
   --stdin-command "my-html-parser"
 ```
 
+**Inline parsers (SDK):**
+
+For code-only parsers in the SDK, use `InlineParserDef`:
+
+```typescript
+import { parse } from "@mateffy/struktur";
+import type { InlineParserDef } from "@mateffy/struktur";
+
+const excelParser: InlineParserDef = {
+  type: "inline",
+  handler: async (buffer) => {
+    // parse and return Artifact
+  },
+};
+
+const artifacts = await parse(
+  { kind: "file", path: "report.xlsx" },
+  { parserConfig: { "application/vnd.ms-excel": excelParser } }
+);
+```
+
 **Per-invocation override** (skips stored config):
 
 ```bash

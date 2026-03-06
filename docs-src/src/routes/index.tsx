@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Copy } from "lucide-react";
+import { Copy, FileText, AlignLeft, Image, Braces, Zap, Layers, CheckCircle, Code, FileImage, Settings } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 export const Route = createFileRoute("/")({
@@ -106,11 +106,13 @@ function Card({
 
 function FeatureCard({
   label,
-  preview,
+  description,
+  icon,
   style,
 }: {
   label: string;
-  preview?: React.ReactNode;
+  description: string;
+  icon?: React.ReactNode;
   style?: React.CSSProperties;
 }) {
   return (
@@ -121,24 +123,53 @@ function FeatureCard({
         padding: "24px",
         display: "flex",
         flexDirection: "column",
-        justifyContent: "space-between",
-        minHeight: "180px",
+        justifyContent: "flex-start",
+        minHeight: "120px",
+        position: "relative",
+        overflow: "hidden",
         ...style,
       }}
     >
-      <div style={{ flex: 1 }}>
-        {preview}
-      </div>
+      {icon && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: "10px",
+            right: "10px",
+            color: "#c4b49a",
+            opacity: 0.09,
+            zIndex: 0,
+            transform: "scale(6) translate(0.4rem, 0.3rem)",
+            transformOrigin: "bottom right",
+          }}
+        >
+          {icon}
+        </div>
+      )}
       <div
         style={{
           fontFamily: "Inter, sans-serif",
           fontSize: "15px",
           fontWeight: 500,
           color: "#2d1b0e",
-          marginTop: "20px",
+          marginBottom: "6px",
+          position: "relative",
+          zIndex: 1,
         }}
       >
         {label}
+      </div>
+      <div
+        style={{
+          fontFamily: "Inter, sans-serif",
+          fontSize: "13px",
+          color: "#a0926f",
+          lineHeight: 1.5,
+          position: "relative",
+          zIndex: 1,
+        }}
+      >
+        {description}
       </div>
     </div>
   );
@@ -245,24 +276,25 @@ const EXAMPLES: Example[] = [
   },
   {
     command:
-      "struktur extract --input receipts/ --schema receipt.json --output results.json",
+      'struktur extract --input contract.pdf --fields "parties:array{string},start_date,value:number"',
     output: (
       <>
-        <div>{"["}</div>
+        <div>{"{"}</div>
         <div style={{ paddingLeft: "20px" }}>
-          <div>{"{"}</div>
-          <div style={{ paddingLeft: "20px" }}>
-            <span style={{ color: "#7a5c3a" }}>"store"</span>:{" "}
-            <span>"Whole Foods"</span>,
+          <div>
+            <span style={{ color: "#7a5c3a" }}>"parties"</span>:{" "}
+            <span>["Acme Corp", "Beta Ltd"]</span>,
           </div>
-          <div style={{ paddingLeft: "20px" }}>
-            <span style={{ color: "#7a5c3a" }}>"total"</span>:{" "}
-            <span>87.43</span>
+          <div>
+            <span style={{ color: "#7a5c3a" }}>"start_date"</span>:{" "}
+            <span>"2026-01-15"</span>,
           </div>
-          <div>{"}"}</div>
+          <div>
+            <span style={{ color: "#7a5c3a" }}>"value"</span>:{" "}
+            <span>48000</span>
+          </div>
         </div>
-        <div style={{ paddingLeft: "20px", color: "#bba88a" }}>...</div>
-        <div>{"]"}</div>
+        <div>{"}"}</div>
       </>
     ),
   },
@@ -379,6 +411,7 @@ function TerminalDemo() {
                 height: "1em",
                 backgroundColor: "#bba88a",
                 marginLeft: "1px",
+                marginBottom: "2px",
                 verticalAlign: "text-bottom",
                 animation: "terminal-cursor-blink 0.7s step-end infinite",
               }}
@@ -392,7 +425,7 @@ function TerminalDemo() {
         <div
           style={{
             color: "#bba88a",
-            marginTop: "4px",
+            marginTop: "12px",
             display: "flex",
             gap: "8px",
             alignItems: "center",
@@ -449,7 +482,7 @@ function Home() {
               color: "#7a5c3a",
               textDecoration: "none",
               fontFamily: "Inter, sans-serif",
-              fontWeight: 600,
+              fontWeight: 500,
             }}
             onMouseOver={(e) =>
               ((e.target as HTMLAnchorElement).style.color = "#2d1b0e")
@@ -468,10 +501,8 @@ function Home() {
       >
         {/* Hero */}
         <section
+          className="hero-section"
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "60px",
             paddingTop: "40px",
             paddingBottom: "80px",
           }}
@@ -479,6 +510,7 @@ function Home() {
           <img
             src="/struktur-icon.png"
             alt="Struktur"
+            className="hero-image"
             style={{
               width: "200px",
               height: "200px",
@@ -520,13 +552,13 @@ function Home() {
                 fontFamily: "Inter, sans-serif",
               }}
             >
-              <strong>
-                Struktur is a tool for structured data extraction.
+              <strong style={{ fontWeight: 600 }}>
+                Struktur is an all-in-one tool for structured data extraction.
               </strong>
               <br />
-              Turn documents of any size into validated JSON.
+              Feed it any document — PDF, text, or custom format.
               <br />
-              Works out of the box and can be customized when needed.
+              Get back validated, schema-typed JSON.
             </p>
           </div>
         </section>
@@ -546,6 +578,49 @@ function Home() {
           </h2>
           <Card style={{ height: "222px" }}>
             <TerminalDemo />
+          </Card>
+        </section>
+
+        {/* Quickstart */}
+        <section style={{ paddingBottom: "80px" }}>
+          <h2
+            style={{
+              fontSize: "22px",
+              fontWeight: 600,
+              color: "#2d1b0e",
+              marginBottom: "20px",
+              fontFamily: "Inter, sans-serif",
+            }}
+          >
+            Installation & Quickstart
+          </h2>
+          <Card>
+            <CommandRow
+              label="Install globally"
+              command="npm install -g @mateffy/struktur"
+            />
+            <CommandRow
+              label="Store your API key and set a default model in one step"
+              command='struktur config providers add openai --token "sk-..." --default'
+            />
+            <CommandRow
+              label="Extract structured data from any file"
+              command='struktur --input invoice.pdf --fields "number, vendor, total:number"'
+            />
+            <div style={{ marginTop: "24px" }}>
+              <a
+                href="/docs/quickstart"
+                style={{
+                  fontSize: "16px",
+                  color: "#3d2b15",
+                  textDecoration: "none",
+                  fontFamily: "Inter, sans-serif",
+                  fontWeight: 500,
+                }}
+              >
+                Read the full quickstart →
+              </a>
+            </div>
           </Card>
         </section>
 
@@ -574,115 +649,13 @@ function Home() {
           >
             <FeatureCard
               label="Extraction strategies for any kind of document"
-              preview={
-                <div style={{ display: "flex", alignItems: "center", gap: "12px", paddingTop: "4px" }}>
-                  {/* Input documents column */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: "16px", alignItems: "center" }}>
-                    {/* Document icon */}
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
-                      <div style={{
-                        width: "40px", height: "48px", backgroundColor: "#e5dccf",
-                        borderRadius: "4px", border: "1.5px solid #c4b49a",
-                        display: "flex", flexDirection: "column", justifyContent: "flex-end",
-                        padding: "5px", gap: "2px", position: "relative", flexShrink: 0,
-                      }}>
-                        <div style={{ position: "absolute", top: 0, right: 0, width: "10px", height: "10px", borderLeft: "1.5px solid #c4b49a", borderBottom: "1.5px solid #c4b49a", backgroundColor: "#ede5d8", borderBottomLeftRadius: "2px" }} />
-                        {[0,1,2,3].map(i => <div key={i} style={{ height: "2px", backgroundColor: "#c4b49a", borderRadius: "1px", width: i === 3 ? "60%" : "100%" }} />)}
-                      </div>
-                      <div style={{ fontSize: "10px", color: "#a0926f", textAlign: "center", fontFamily: "Inter, sans-serif", lineHeight: 1.2 }}>Long<br/>Document</div>
-                    </div>
-                  </div>
-
-                  {/* Arrow */}
-                  <div style={{ color: "#c4b49a", fontSize: "16px", flexShrink: 0 }}>→</div>
-
-                  {/* Web article (smaller doc) */}
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
-                    <div style={{
-                      width: "34px", height: "40px", backgroundColor: "#e5dccf",
-                      borderRadius: "4px", border: "1.5px solid #c4b49a",
-                      display: "flex", flexDirection: "column", justifyContent: "flex-end",
-                      padding: "4px", gap: "2px", position: "relative", flexShrink: 0,
-                    }}>
-                      <div style={{ position: "absolute", top: 0, right: 0, width: "9px", height: "9px", borderLeft: "1.5px solid #c4b49a", borderBottom: "1.5px solid #c4b49a", backgroundColor: "#ede5d8", borderBottomLeftRadius: "2px" }} />
-                      {[0,1,2].map(i => <div key={i} style={{ height: "2px", backgroundColor: "#c4b49a", borderRadius: "1px", width: i === 2 ? "60%" : "100%" }} />)}
-                    </div>
-                    <div style={{ fontSize: "10px", color: "#a0926f", textAlign: "center", fontFamily: "Inter, sans-serif", lineHeight: 1.2 }}>Web<br/>Article</div>
-                  </div>
-
-                  {/* Arrow */}
-                  <div style={{ color: "#c4b49a", fontSize: "16px", flexShrink: 0 }}>→</div>
-
-                  {/* Document type variants */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                    {["Short Article", "Table Data", "Structured Data"].map(t => (
-                      <div key={t} style={{ fontSize: "11px", color: "#7a5c3a", fontFamily: "Inter, sans-serif", fontWeight: 500 }}>{t}</div>
-                    ))}
-                  </div>
-
-                  {/* Arrows from document types */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: "10px", paddingTop: "2px" }}>
-                    {[0,1,2].map(i => (
-                      <div key={i} style={{ color: "#c4b49a", fontSize: "14px", lineHeight: "18px" }}>→</div>
-                    ))}
-                  </div>
-
-                  {/* Strategy icons + labels */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    {[
-                      { label: "Parallel strategy" },
-                      { label: "Simple strategy" },
-                      { label: "Auto-merge strategy" },
-                      { label: "Double-pass strategy" },
-                    ].map(({ label }) => (
-                      <div key={label} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                        {/* Gear placeholder icon */}
-                        <div style={{
-                          width: "18px", height: "18px", borderRadius: "50%",
-                          border: "2px solid #a0926f",
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          flexShrink: 0,
-                        }}>
-                          <div style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#a0926f" }} />
-                        </div>
-                        <span style={{ fontSize: "11px", color: "#7a5c3a", fontFamily: "Inter, sans-serif", fontWeight: 500, whiteSpace: "nowrap" }}>{label}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              }
+              description="Choose how Struktur processes your document: single-shot for simple inputs, parallel chunking for large files, sequential pass for context-dependent extraction, or double-pass refinement for higher accuracy. Auto-merge strategies deduplicate results across chunks automatically."
+              icon={<Layers size={20} />}
             />
             <FeatureCard
               label="Use any LLM"
-              preview={
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", paddingTop: "4px" }}>
-                  {[
-                    { name: "OpenAI", sub: "GPT-5.3 CODEX", initial: "⊕" },
-                    { name: "Gemini", sub: "Gemini 3.1", initial: "◇" },
-                    { name: "Mistral\nCodestral", sub: "Codestral", initial: "⊞" },
-                    { name: "Anthropic", sub: "Sonnet 4.6", initial: "A\\" },
-                  ].map(({ name, sub, initial }) => (
-                    <div key={name} style={{
-                      backgroundColor: "#e5dccf",
-                      borderRadius: "10px",
-                      padding: "10px 10px 8px",
-                      display: "flex", flexDirection: "column", gap: "4px",
-                    }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                        <div style={{
-                          width: "20px", height: "20px", borderRadius: "4px",
-                          backgroundColor: "#c4b49a",
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          fontSize: "10px", color: "#ede5d8", fontWeight: 700, flexShrink: 0,
-                          fontFamily: "ui-monospace, monospace",
-                        }}>{initial.split("\\")[0]}</div>
-                        <span style={{ fontSize: "12px", color: "#2d1b0e", fontFamily: "Inter, sans-serif", fontWeight: 600, lineHeight: 1.2, whiteSpace: "pre-line" }}>{name}</span>
-                      </div>
-                      <div style={{ fontSize: "10px", color: "#a0926f", fontFamily: "Inter, sans-serif" }}>{sub}</div>
-                    </div>
-                  ))}
-                </div>
-              }
+              description="OpenAI, Anthropic, Google, Mistral, OpenRouter, OpenCode Zen, and more. Switch with a single flag or by configuring default models."
+              icon={<Zap size={20} />}
             />
           </div>
 
@@ -696,96 +669,14 @@ function Home() {
             }}
           >
             <FeatureCard
-              label="Autofix validation errors"
-              preview={
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", paddingTop: "4px", flexWrap: "wrap" }}>
-                  {/* Invalid JSON box */}
-                  <div style={{
-                    backgroundColor: "#e5dccf", borderRadius: "8px", padding: "8px 10px",
-                    border: "1.5px solid #c4b49a", fontFamily: "ui-monospace, monospace",
-                    fontSize: "10px", color: "#7a5c3a", lineHeight: 1.6, flexShrink: 0,
-                  }}>
-                    <div style={{ fontSize: "9px", color: "#a0926f", marginBottom: "3px", fontFamily: "Inter, sans-serif", fontWeight: 600 }}>JSON</div>
-                    <div>{"{"}</div>
-                    <div style={{ paddingLeft: "8px" }}><span style={{ color: "#7a5c3a" }}>"key"</span>: "name",</div>
-                    <div style={{ paddingLeft: "8px" }}><span style={{ color: "#c4685a" }}>"missing"</span>: "..."</div>
-                    <div>{"}"}</div>
-                  </div>
-
-                  {/* X arrow */}
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", flexShrink: 0 }}>
-                    <span style={{ color: "#c4685a", fontSize: "16px", lineHeight: 1 }}>✕</span>
-                    <span style={{ color: "#c4b49a", fontSize: "14px" }}>→</span>
-                  </div>
-
-                  {/* Brain/LLM placeholder */}
-                  <div style={{
-                    width: "40px", height: "40px", borderRadius: "50%",
-                    border: "2px solid #a0926f", backgroundColor: "#e5dccf",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    flexShrink: 0, position: "relative",
-                  }}>
-                    <div style={{
-                      fontSize: "8px", color: "#a0926f", fontFamily: "Inter, sans-serif",
-                      fontWeight: 700, textAlign: "center", lineHeight: 1.1,
-                    }}>LLM</div>
-                    {/* gear overlay */}
-                    <div style={{
-                      position: "absolute", bottom: "-2px", right: "-2px",
-                      width: "14px", height: "14px", borderRadius: "50%",
-                      border: "1.5px solid #a0926f", backgroundColor: "#ede5d8",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                    }}>
-                      <div style={{ width: "5px", height: "5px", borderRadius: "50%", backgroundColor: "#a0926f" }} />
-                    </div>
-                  </div>
-
-                  {/* Arrow + label */}
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", flexShrink: 0 }}>
-                    <span style={{ fontSize: "8px", color: "#a0926f", fontFamily: "Inter, sans-serif", whiteSpace: "nowrap" }}>JSON VALIDATION</span>
-                    <span style={{ color: "#c4b49a", fontSize: "14px" }}>→</span>
-                  </div>
-
-                  {/* Valid JSON box */}
-                  <div style={{
-                    backgroundColor: "#e5dccf", borderRadius: "8px", padding: "8px 10px",
-                    border: "1.5px solid #7aab7a", fontFamily: "ui-monospace, monospace",
-                    fontSize: "10px", color: "#7a5c3a", lineHeight: 1.6, flexShrink: 0,
-                  }}>
-                    <div style={{ fontSize: "9px", color: "#a0926f", marginBottom: "3px", fontFamily: "Inter, sans-serif", fontWeight: 600 }}>JSON</div>
-                    <div>{"{"}</div>
-                    <div style={{ paddingLeft: "8px" }}><span style={{ color: "#7a5c3a" }}>"key"</span>: "name",</div>
-                    <div style={{ paddingLeft: "8px" }}><span style={{ color: "#7a5c3a" }}>"key"</span>: "gloat"</div>
-                    <div>{"}"}</div>
-                  </div>
-
-                  {/* Valid checkmark */}
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", flexShrink: 0 }}>
-                    <span style={{ color: "#5a9a5a", fontSize: "16px", lineHeight: 1 }}>✓</span>
-                    <span style={{ fontSize: "9px", color: "#5a9a5a", fontFamily: "Inter, sans-serif", fontWeight: 600 }}>VALID</span>
-                  </div>
-
-                  {/* Retry loop label */}
-                  <div style={{ width: "100%", textAlign: "center", fontSize: "9px", color: "#a0926f", fontFamily: "Inter, sans-serif", marginTop: "2px" }}>
-                    ↺ RETRY / CORRECT
-                  </div>
-                </div>
-              }
+              label="Built-in file parsing"
+              description="Pass a PDF, image, or text file — Struktur makes it LLM-ready before extraction, including embedded images and full-page &quot;screenshots&quot;. Add your own parser easily."
+              icon={<FileText size={20} />}
             />
             <FeatureCard
-              label="Schema Shorthand"
-              preview={
-                <div style={{ paddingTop: "8px" }}>
-                  <div style={{ fontSize: "13px", color: "#7a5c3a" }}>--fields `name:string`</div>
-                  <div style={{ paddingLeft: "24px", fontSize: "13px", color: "#7a5c3a" }}>
-                    size:enum&#123;s,m,l&#125;
-                  </div>
-                  <div style={{ paddingLeft: "48px", fontSize: "13px", color: "#7a5c3a" }}>price:float</div>
-                  <div style={{ paddingLeft: "64px", fontSize: "13px", color: "#7a5c3a" }}>
-                    names:array&#123;string&#125;
-                  </div>
-                </div>
-              }
+              label="Schema validation with auto-retry"
+              description="Every LLM response is thoroughly validated against your schema. Validation errors are fed back to the model automatically, letting it fix its own mistakes."
+              icon={<CheckCircle size={20} />}
             />
           </div>
 
@@ -793,170 +684,29 @@ function Home() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "1fr 2fr",
+              gridTemplateColumns: "1fr 1fr 1fr",
               gap: "12px",
             }}
           >
             <FeatureCard
-              label="TypeScript SDK"
-              preview={
-                <div style={{ paddingTop: "4px" }}>
-                  {/* Fake editor window */}
-                  <div style={{
-                    backgroundColor: "#2d2420", borderRadius: "8px",
-                    overflow: "hidden", fontSize: "10px",
-                    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                  }}>
-                    {/* Title bar */}
-                    <div style={{
-                      backgroundColor: "#3d2e28", padding: "5px 8px",
-                      display: "flex", alignItems: "center", gap: "6px",
-                    }}>
-                      <div style={{ display: "flex", gap: "4px" }}>
-                        {["#c4685a","#c4a45a","#7aab7a"].map(c => (
-                          <div key={c} style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: c }} />
-                        ))}
-                      </div>
-                      <span style={{ color: "#a0926f", fontSize: "9px", marginLeft: "4px" }}>mot.ts</span>
-                      <div style={{
-                        marginLeft: "auto", backgroundColor: "#3178c6",
-                        borderRadius: "3px", padding: "1px 4px",
-                        fontSize: "8px", color: "white", fontWeight: 700,
-                      }}>TS</div>
-                    </div>
-                    {/* Code */}
-                    <div style={{ padding: "8px 10px", lineHeight: 1.7, color: "#c4b49a" }}>
-                      <div><span style={{ color: "#a0926f" }}>import</span> {"{ extract }"} <span style={{ color: "#a0926f" }}>from</span> <span style={{ color: "#7aab7a" }}>"@mateffy/struktur"</span>;</div>
-                      <div style={{ marginTop: "6px" }}>
-                        <span style={{ color: "#a0926f" }}>const</span> result = <span style={{ color: "#a0926f" }}>await</span> extract({"{"})
-                      </div>
-                      <div style={{ paddingLeft: "12px" }}>size: <span style={{ color: "#7aab7a" }}>'s,st'</span>,</div>
-                      <div style={{ paddingLeft: "12px" }}>price: float</div>
-                      <div>{"}"});</div>
-                    </div>
-                  </div>
-                  {/* Terminal row */}
-                  <div style={{
-                    backgroundColor: "#1a1412", borderRadius: "6px", marginTop: "6px",
-                    padding: "6px 10px", fontFamily: "ui-monospace, monospace",
-                    fontSize: "10px", color: "#c4b49a",
-                  }}>
-                    <div style={{ display: "flex", gap: "4px" }}>
-                      {["#c4685a","#c4a45a","#7aab7a"].map(c => (
-                        <div key={c} style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: c }} />
-                      ))}
-                    </div>
-                    <div style={{ marginTop: "4px" }}>
-                      <span style={{ color: "#a0926f" }}>›</span> bun install @mateffy/struktur
-                    </div>
-                    <div style={{ color: "#5a9a5a" }}>› _</div>
-                  </div>
-                </div>
-              }
+              label="Fields shorthand"
+              description={`Extract data on the fly without writing a verbose JSON schema. Use the --fields flag with the shorthand syntax for one-off extractions or experimentation.`}
+              icon={<Code size={20} />}
             />
             <FeatureCard
-              label="Let the LLM reference embedded media"
-              preview={
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "10px", paddingTop: "4px" }}>
-                  {/* Document */}
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", flexShrink: 0 }}>
-                    <div style={{
-                      width: "40px", height: "48px", backgroundColor: "#e5dccf",
-                      borderRadius: "4px", border: "1.5px solid #c4b49a",
-                      padding: "5px", display: "flex", flexDirection: "column", gap: "2px",
-                      position: "relative",
-                    }}>
-                      <div style={{ position: "absolute", top: 0, right: 0, width: "10px", height: "10px", borderLeft: "1.5px solid #c4b49a", borderBottom: "1.5px solid #c4b49a", backgroundColor: "#ede5d8", borderBottomLeftRadius: "2px" }} />
-                      {[0,1,2,3].map(i => <div key={i} style={{ height: "2px", backgroundColor: "#c4b49a", borderRadius: "1px", width: i === 3 ? "60%" : "100%" }} />)}
-                    </div>
-                  </div>
-
-                  <div style={{ color: "#c4b49a", fontSize: "16px", paddingTop: "10px", flexShrink: 0 }}>→</div>
-
-                  {/* Document with embedded images */}
-                  <div style={{ flexShrink: 0 }}>
-                    <div style={{
-                      width: "52px", height: "60px", backgroundColor: "#e5dccf",
-                      borderRadius: "4px", border: "1.5px solid #c4b49a",
-                      padding: "5px", display: "flex", flexDirection: "column", gap: "3px",
-                      position: "relative",
-                    }}>
-                      <div style={{ position: "absolute", top: 0, right: 0, width: "11px", height: "11px", borderLeft: "1.5px solid #c4b49a", borderBottom: "1.5px solid #c4b49a", backgroundColor: "#ede5d8", borderBottomLeftRadius: "2px" }} />
-                      <div style={{ height: "2px", backgroundColor: "#c4b49a", borderRadius: "1px" }} />
-                      {/* Two small image placeholders */}
-                      <div style={{ display: "flex", gap: "2px", marginTop: "2px" }}>
-                        {[0,1].map(i => (
-                          <div key={i} style={{
-                            width: "17px", height: "14px", backgroundColor: "#c4b49a",
-                            borderRadius: "2px", display: "flex", alignItems: "center", justifyContent: "center",
-                          }}>
-                            <div style={{ fontSize: "8px", color: "#ede5d8" }}>⛰</div>
-                          </div>
-                        ))}
-                      </div>
-                      <div style={{ height: "2px", backgroundColor: "#c4b49a", borderRadius: "1px", width: "70%" }} />
-                      {/* Chart placeholder */}
-                      <div style={{
-                        height: "14px", backgroundColor: "#c4b49a", borderRadius: "2px",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                      }}>
-                        <div style={{ fontSize: "8px", color: "#ede5d8" }}>📊</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={{ color: "#c4b49a", fontSize: "16px", paddingTop: "14px", flexShrink: 0 }}>→</div>
-
-                  {/* LLM brain with question bubble */}
-                  <div style={{ flexShrink: 0, position: "relative" }}>
-                    <div style={{
-                      width: "44px", height: "44px", borderRadius: "50%",
-                      border: "2px solid #a0926f", backgroundColor: "#e5dccf",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                    }}>
-                      <span style={{ fontSize: "18px" }}>🧠</span>
-                    </div>
-                    {/* Magnifier */}
-                    <div style={{
-                      position: "absolute", bottom: "-2px", right: "-4px",
-                      width: "18px", height: "18px", borderRadius: "50%",
-                      border: "2px solid #a0926f", backgroundColor: "#ede5d8",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: "9px",
-                    }}>🔍</div>
-                    {/* Speech bubble */}
-                    <div style={{
-                      position: "absolute", top: "-28px", left: "50%", transform: "translateX(-50%)",
-                      backgroundColor: "#fff", borderRadius: "6px", padding: "3px 6px",
-                      fontSize: "8px", color: "#3d2b15", fontFamily: "Inter, sans-serif",
-                      whiteSpace: "nowrap", border: "1px solid #c4b49a",
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-                    }}>What is in this chart?</div>
-                  </div>
-
-                  <div style={{ color: "#c4b49a", fontSize: "16px", paddingTop: "14px", flexShrink: 0 }}>→</div>
-
-                  {/* JSON output */}
-                  <div style={{
-                    backgroundColor: "#e5dccf", borderRadius: "8px", padding: "7px 9px",
-                    fontFamily: "ui-monospace, monospace", fontSize: "9px",
-                    color: "#7a5c3a", lineHeight: 1.6, flexShrink: 0,
-                  }}>
-                    <div><span style={{ color: "#a0926f" }}>"chart_type"</span>: "Sales",</div>
-                    <div><span style={{ color: "#a0926f" }}>"data_points"</span>: {"["}</div>
-                    <div style={{ paddingLeft: "8px" }}>{"{"}
-                      <span style={{ color: "#a0926f" }}>"label"</span>: "Q1",</div>
-                    <div style={{ paddingLeft: "8px" }}><span style={{ color: "#a0926f" }}>"value"</span>: 1500{"}"}</div>
-                    <div style={{ paddingLeft: "8px", color: "#c4b49a" }}>...</div>
-                    <div>{"]"}</div>
-                  </div>
-                </div>
-              }
+              label="TypeScript SDK"
+              description="Integrate Struktur into your applications using the fully typed SDK. Everything is just JavaScript, so it works with any runtime."
+              icon={<Braces size={20} />}
+            />
+            <FeatureCard
+              label="Embedded media support"
+              description="File parsing renders document pages as images so the LLM sees tables, charts, and photos in context. It can even reference visual elements in the output data."
+              icon={<FileImage size={20} />}
             />
           </div>
         </section>
 
-        {/* Get Started */}
+        {/* How it works */}
         <section style={{ paddingBottom: "80px" }}>
           <h2
             style={{
@@ -967,39 +717,112 @@ function Home() {
               fontFamily: "Inter, sans-serif",
             }}
           >
-            Get started in 5 seconds
+            How it works
           </h2>
           <Card>
-            <CommandRow
-              label="Install with NPM"
-              command="npm install -g @struktur/cli"
-            />
-            <CommandRow
-              label="Configure an LLM provider"
-              command="struktur providers add openai --default --token 'sk_abc...'"
-            />
-            <CommandRow
-              label="Aaaaand you're ready to go :)"
-              command="struktur extract --text `my name is lukas` --fields 'name:string'"
-            />
-            <div style={{ marginTop: "24px" }}>
-              <a
-                href="/docs"
-                style={{
-                  fontSize: "16px",
-                  color: "#3d2b15",
-                  textDecoration: "none",
-                  fontFamily: "Inter, sans-serif",
-                  fontWeight: 500,
-                }}
-              >
-                Read the documentation to find out more →
-              </a>
+            {/* Pipeline steps */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(4, 1fr)",
+                gap: "12px",
+                marginBottom: "24px",
+              }}
+            >
+              {[
+                { step: "Raw Input", sub: "Files, Text or Images", arrow: "→" },
+                { step: "Artifact", sub: "Text + Images", arrow: "→" },
+                { step: "Extract", sub: "Your chosen strategy", arrow: "→" },
+                { step: "Structured Data", sub: "JSON in your schema", arrow: null },
+              ].map(({ step, sub, arrow }) => (
+                <div
+                  key={step}
+                  style={{ display: "flex", alignItems: "center", gap: "12px" }}
+                >
+                  <div
+                    style={{
+                      backgroundColor: "#e5dccf",
+                      borderRadius: "10px",
+                      padding: "10px 16px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "2px",
+                      flex: 1,
+                      minHeight: "58px",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: "13px",
+                        fontWeight: 600,
+                        color: "#2d1b0e",
+                        fontFamily: "Inter, sans-serif",
+                      }}
+                    >
+                      {step}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "11px",
+                        color: "#a0926f",
+                        fontFamily: "Inter, sans-serif",
+                      }}
+                    >
+                      {sub}
+                    </div>
+                  </div>
+                  {arrow && (
+                    <div
+                      style={{
+                        color: "#c4b49a",
+                        fontSize: "18px",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {arrow}
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
+            <p
+              style={{
+                fontSize: "14px",
+                color: "#7a5c3a",
+                margin: "0 0 16px",
+                lineHeight: 1.6,
+                fontFamily: "Inter, sans-serif",
+              }}
+            >
+              Before extracting, Struktur normalizes your raw data into the{" "}
+              <a
+                href="/docs/explanation/artifacts"
+                style={{ color: "#3d2b15", fontWeight: 500, textDecoration: "none" }}
+              >
+                Artifact format
+              </a>
+              , which is then given to the extraction strategy
+              you picked. Here the data is chunked and given to the LLM, which
+              extracts data in your schema and automatically retries on
+              validation errors.
+            </p>
+            <a
+              href="/docs/explanation/pipeline"
+              style={{
+                fontSize: "14px",
+                color: "#3d2b15",
+                textDecoration: "none",
+                fontFamily: "Inter, sans-serif",
+                fontWeight: 500,
+              }}
+            >
+              Extraction pipeline explained →
+            </a>
           </Card>
         </section>
 
-        {/* AI Agent */}
+        {/* Parsers */}
         <section style={{ paddingBottom: "80px" }}>
           <h2
             style={{
@@ -1010,68 +833,206 @@ function Home() {
               fontFamily: "Inter, sans-serif",
             }}
           >
-            Give your AI Agent data extraction superpowers
+            Prepare any filetype for LLMs
           </h2>
           <Card>
-            <CommandRow
-              label="Install the skill"
-              command="npm install -g @struktur/skill"
-            />
-            <div>
+            <p
+              style={{
+                fontSize: "14px",
+                color: "#7a5c3a",
+                margin: "0 0 20px",
+                lineHeight: 1.6,
+                fontFamily: "Inter, sans-serif",
+              }}
+            >
+              Struktur's parser layer converts files into Artifacts before
+              extraction. PDF, plain text, and images work out of the box.
+              Register custom parsers for any MIME type using an npm package or
+              a shell command.
+            </p>
+
+            {/* Built-in vs custom split */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "12px",
+                marginBottom: "20px",
+              }}
+            >
               <div
                 style={{
-                  fontSize: "12px",
-                  color: "#a0926f",
-                  marginBottom: "6px",
-                  fontFamily: "Inter, sans-serif",
-                }}
-              >
-                Your AI agent can now extract structured data without bloating
-                its own context window
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: "8px",
+                  backgroundColor: "#e5dccf",
+                  borderRadius: "10px",
+                  padding: "16px",
                 }}
               >
                 <div
                   style={{
-                    fontFamily:
-                      "ui-monospace, SFMono-Regular, Menlo, monospace",
-                    fontSize: "15px",
-                    color: "#3d2b15",
-                    display: "flex",
-                    gap: "6px",
+                    fontSize: "12px",
+                    color: "#a0926f",
+                    fontFamily: "Inter, sans-serif",
+                    fontWeight: 600,
+                    marginBottom: "10px",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
                   }}
                 >
-                  <span style={{ color: "#bba88a", userSelect: "none" }}>
-                    $
-                  </span>
-                  <span>
-                    "Please extract data in the FakturX schema for these
-                    invoices"
-                  </span>
+                  Built-in Parsers
                 </div>
-                <CopyButton text='"Please extract data in the FakturX schema for these invoices"' />
+                {[
+                  { mime: "application/pdf", note: "text + images per page", icon: <FileText size={13} /> },
+                  { mime: "text/*", note: "split into content slices", icon: <AlignLeft size={13} /> },
+                  { mime: "image/*", note: "passed as media artifact", icon: <Image size={13} /> },
+                  { mime: "application/json", note: "treated as text unless it's valid Artifact data", icon: <Braces size={13} /> },
+                ].map(({ mime, note, icon }) => (
+                  <div
+                    key={mime}
+                    style={{
+                      marginBottom: "8px",
+                      display: "flex",
+                      gap: "12px",
+                      alignItems: "center",
+                    }}
+                  >
+                    <div style={{ color: "#a0926f", flexShrink: 0 }}>{icon}</div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
+                      <div
+                        style={{
+                          fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                          fontSize: "12px",
+                          color: "#3d2b15",
+                        }}
+                      >
+                        {mime}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "11px",
+                          color: "#a0926f",
+                          fontFamily: "Inter, sans-serif",
+                        }}
+                      >
+                        {note}
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
-            <div style={{ marginTop: "24px" }}>
-              <a
-                href="/docs"
+
+              <div
                 style={{
-                  fontSize: "16px",
-                  color: "#3d2b15",
-                  textDecoration: "none",
-                  fontFamily: "Inter, sans-serif",
-                  fontWeight: 500,
+                  backgroundColor: "#e5dccf",
+                  borderRadius: "10px",
+                  padding: "16px",
                 }}
               >
-                Read the documentation to find out more →
-              </a>
+                <div
+                  style={{
+                    fontSize: "12px",
+                    color: "#a0926f",
+                    fontFamily: "Inter, sans-serif",
+                    fontWeight: 600,
+                    marginBottom: "10px",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                  }}
+                >
+                  adding custom parsers
+                </div>
+                <div
+                  style={{
+                    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                    fontSize: "11px",
+                    color: "#3d2b15",
+                    marginBottom: "12px",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  <span style={{ color: "#bba88a" }}>$</span> struktur config parsers add ...
+                </div>
+                {[
+                  {
+                    type: "NPM Package",
+                    cmd: "--npm @myorg/docx-parser",
+                  },
+                  {
+                    type: "Shell Command (using path)",
+                    cmd: '--file-command "markitdown FILE_PATH"',
+                  },
+                  {
+                    type: "Shell Command (using stdin)",
+                    cmd: '--stdin-command "my-html-tool"',
+                  },
+                ].map(({ type, cmd }) => (
+                  <div
+                    key={type}
+                    style={{
+                      marginBottom: "10px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "1px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: "11px",
+                        color: "#a0926f",
+                        fontFamily: "Inter, sans-serif",
+                      }}
+                    >
+                      {type}
+                    </div>
+                    <div
+                      style={{
+                        fontFamily:
+                          "ui-monospace, SFMono-Regular, Menlo, monospace",
+                        fontSize: "11px",
+                        color: "#3d2b15",
+                      }}
+                    >
+                      {cmd}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
+
+            <div
+              style={{
+                fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                fontSize: "13px",
+                color: "#3d2b15",
+                backgroundColor: "#e5dccf",
+                borderRadius: "10px",
+                padding: "14px 16px",
+                lineHeight: 1.7,
+                marginBottom: "16px",
+              }}
+            >
+              <div style={{ color: "#a0926f", fontSize: "11px", marginBottom: "6px", fontFamily: "Inter, sans-serif" }}>Register a Word document parser</div>
+              <div>
+                <span style={{ color: "#a0926f" }}>$</span>{" "}
+                struktur config parsers add \
+              </div>
+              <div style={{ paddingLeft: "16px" }}>
+                --mime application/msword \
+              </div>
+              <div style={{ paddingLeft: "16px" }}>--file-command <span style={{ color: "#7a5c3a" }}>"markitdown FILE_PATH"</span></div>
+            </div>
+
+            <a
+              href="/docs/explanation/parsers"
+              style={{
+                fontSize: "14px",
+                color: "#3d2b15",
+                textDecoration: "none",
+                fontFamily: "Inter, sans-serif",
+                fontWeight: 500,
+              }}
+            >
+              Parser system explained →
+            </a>
           </Card>
         </section>
 
@@ -1086,23 +1047,13 @@ function Home() {
               fontFamily: "Inter, sans-serif",
             }}
           >
-            It also has a TypeScript SDK you can use in your own app.
+            Integrate into your application using the TypeScript SDK
           </h2>
           <Card>
             <CommandRow
               label="Install the SDK"
-              command="npm install @struktur/sdk"
+              command="npm install @mateffy/struktur"
             />
-            <div
-              style={{
-                fontSize: "12px",
-                color: "#a0926f",
-                marginBottom: "12px",
-                fontFamily: "Inter, sans-serif",
-              }}
-            >
-              Use the TypeScript SDK in your own application
-            </div>
             <div
               style={{
                 fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
@@ -1112,33 +1063,272 @@ function Home() {
                 backgroundColor: "#e5dccf",
                 borderRadius: "10px",
                 padding: "16px",
+                marginTop: "12px",
               }}
             >
               <div>
-                import {"{"} extract, parallel {"}"} from{" "}
-                <span style={{ color: "#7a5c3a" }}>'@struktur/sdk'</span>;
+                <span style={{ color: "#a0926f" }}>import</span>{" "}
+                {"{ extract, simple, parse }"}{" "}
+                <span style={{ color: "#a0926f" }}>from</span>{" "}
+                <span style={{ color: "#7a5c3a" }}>'@mateffy/struktur'</span>;
               </div>
-              <div style={{ marginTop: "12px" }}>
-                const data = await extract({"{"})
+              <div>
+                <span style={{ color: "#a0926f" }}>import</span>{" "}
+                {"{ openai }"}{" "}
+                <span style={{ color: "#a0926f" }}>from</span>{" "}
+                <span style={{ color: "#7a5c3a" }}>'@ai-sdk/openai'</span>;
+              </div>
+              <div style={{ marginTop: "12px", color: "#a0926f" }}>
+                {"// Parse a raw buffer into Artifacts"}
+              </div>
+              <div>
+                <span style={{ color: "#a0926f" }}>const</span> artifacts ={" "}
+                <span style={{ color: "#a0926f" }}>await</span>{" "}
+                <span style={{ fontWeight: 600 }}>parse(</span>
               </div>
               <div style={{ paddingLeft: "16px" }}>
-                schema: {"{"} type:{" "}
-                <span style={{ color: "#7a5c3a" }}>'object'</span>, ... {"}"},
+                {"{ kind: "}<span style={{ color: "#7a5c3a" }}>'buffer'</span>{", buffer, mimeType: "}<span style={{ color: "#7a5c3a" }}>'application/pdf'</span>{" },"}
               </div>
+              <div style={{ paddingLeft: "16px" }}>{"{ includeImages: true }"}</div>
+              <div>
+                <span style={{ fontWeight: 600 }}>)</span>;
+              </div>
+              <div style={{ marginTop: "8px", color: "#a0926f" }}>
+                {"// Run extraction with your chosen strategy"}
+              </div>
+              <div>
+                <span style={{ color: "#a0926f" }}>const</span> result ={" "}
+                <span style={{ color: "#a0926f" }}>await</span>{" "}
+                <span style={{ fontWeight: 600 }}>extract(</span>
+                {"{"}
+              </div>
+              <div style={{ paddingLeft: "16px" }}>artifacts,</div>
               <div style={{ paddingLeft: "16px" }}>
-                input: await fs.readFile(
-                <span style={{ color: "#7a5c3a" }}>'./large-document.txt'</span>
-                ),
+                schema: {"{"}{" "}
+                <span style={{ color: "#7a5c3a" }}>type</span>:{" "}
+                <span style={{ color: "#7a5c3a" }}>'object'</span>,
               </div>
+              <div style={{ paddingLeft: "32px" }}>
+                properties: {"{"}{" "}
+                invoice_nr: {"{ "} <span style={{ color: "#7a5c3a" }}>type</span>:{" "}
+                <span style={{ color: "#7a5c3a" }}>'string'</span> {" }"},{" "}
+                total: {"{ "} <span style={{ color: "#7a5c3a" }}>type</span>:{" "}
+                <span style={{ color: "#7a5c3a" }}>'number'</span> {" }"}{" "}
+                {"}"}
+              </div>
+              <div style={{ paddingLeft: "16px" }}>{"}"} as const,</div>
               <div style={{ paddingLeft: "16px" }}>
-                strategy: parallel({"{"} chunkSize:{" "}
-                <span style={{ color: "#a0926f" }}>10000</span> {"}"}),
+                strategy:{" "}
+                <span style={{ fontWeight: 600 }}>simple(</span>
+                {"{ model: openai("}
+                <span style={{ color: "#7a5c3a" }}>'gpt-4o-mini'</span>
+                {") }"}
+                <span style={{ fontWeight: 600 }}>)</span>,
               </div>
-              <div>{"}"});</div>
+              <div>
+                {"}"}<span style={{ fontWeight: 600 }}>)</span>;
+              </div>
+              <div style={{ marginTop: "8px", color: "#a0926f" }}>
+                {"// result.data is fully typed from your schema"}
+              </div>
+            </div>
+            <div style={{ marginTop: "16px" }}>
+              <a
+                href="/docs/sdk/installation"
+                style={{
+                  fontSize: "14px",
+                  color: "#3d2b15",
+                  textDecoration: "none",
+                  fontFamily: "Inter, sans-serif",
+                  fontWeight: 500,
+                }}
+              >
+                SDK reference →
+              </a>
+            </div>
+          </Card>
+        </section>
+
+        {/* Call to action */}
+        <section style={{ paddingBottom: "80px" }}>
+          <h2
+            style={{
+              fontSize: "22px",
+              fontWeight: 600,
+              color: "#2d1b0e",
+              marginBottom: "20px",
+              fontFamily: "Inter, sans-serif",
+            }}
+          >
+            Ready to extract structured data?
+          </h2>
+          <Card>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "40px" }}>
+              {/* Left: Quickstart */}
+              <div>
+                <h3
+                  style={{
+                    fontSize: "16px",
+                    fontWeight: 600,
+                    color: "#2d1b0e",
+                    marginBottom: "16px",
+                    fontFamily: "Inter, sans-serif",
+                  }}
+                >
+                  Quickstart
+                </h3>
+                <div style={{ marginBottom: "20px" }}>
+                  <CommandRow
+                    label="Install globally"
+                    command="npm install -g @mateffy/struktur"
+                  />
+                  <CommandRow
+                    label="Extract data from any file"
+                    command='struktur --input invoice.pdf --fields "total:number"'
+                  />
+                </div>
+                <a
+                  href="/docs/quickstart"
+                  style={{
+                    fontSize: "14px",
+                    color: "#3d2b15",
+                    textDecoration: "none",
+                    fontFamily: "Inter, sans-serif",
+                    fontWeight: 500,
+                  }}
+                >
+                  Full quickstart guide →
+                </a>
+              </div>
+
+              {/* Right: Documentation */}
+              <div style={{ borderLeft: "1px solid rgba(122, 92, 58, 0.15)", paddingLeft: "40px" }}>
+                <h3
+                  style={{
+                    fontSize: "16px",
+                    fontWeight: 600,
+                    color: "#2d1b0e",
+                    marginBottom: "12px",
+                    fontFamily: "Inter, sans-serif",
+                  }}
+                >
+                  Documentation
+                </h3>
+                <p
+                  style={{
+                    fontSize: "14px",
+                    color: "#7a5c3a",
+                    marginBottom: "20px",
+                    fontFamily: "Inter, sans-serif",
+                    lineHeight: 1.6,
+                  }}
+                >
+                  Explore extraction strategies, parser configuration, SDK integration, and advanced features.
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <a
+                    href="/docs/explanation/strategies"
+                    style={{
+                      fontSize: "13px",
+                      color: "#3d2b15",
+                      textDecoration: "none",
+                      fontFamily: "Inter, sans-serif",
+                      fontWeight: 500,
+                    }}
+                  >
+                    → Choosing a strategy
+                  </a>
+                  <a
+                    href="/docs/explanation/parsers"
+                    style={{
+                      fontSize: "13px",
+                      color: "#3d2b15",
+                      textDecoration: "none",
+                      fontFamily: "Inter, sans-serif",
+                      fontWeight: 500,
+                    }}
+                  >
+                    → Parser system
+                  </a>
+                  <a
+                    href="/docs/sdk/installation"
+                    style={{
+                      fontSize: "13px",
+                      color: "#3d2b15",
+                      textDecoration: "none",
+                      fontFamily: "Inter, sans-serif",
+                      fontWeight: 500,
+                    }}
+                  >
+                    → TypeScript SDK
+                  </a>
+                </div>
+              </div>
             </div>
           </Card>
         </section>
       </div>
+
+      {/* Footer */}
+      <footer
+        style={{
+          borderTop: "1px solid rgba(102, 102, 102, 0.15)",
+          padding: "32px 40px",
+          maxWidth: "950px",
+          margin: "0 auto",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: "16px",
+        }}
+      >
+        <div
+          style={{
+            fontSize: "13px",
+            color: "#a0926f",
+            fontFamily: "Inter, sans-serif",
+          }}
+        >
+          struktur by{" "}
+          <a
+            href="https://mateffy.org"
+            style={{ color: "#7a5c3a", textDecoration: "none", fontWeight: 500 }}
+          >
+            Lukas Mateffy
+          </a>
+        </div>
+        <nav
+          style={{
+            display: "flex",
+            gap: "24px",
+            flexWrap: "wrap",
+          }}
+        >
+          {[
+            { label: "Documentation", href: "/docs" },
+            { label: "Quickstart", href: "/docs/quickstart" },
+            { label: "Strategies", href: "/docs/explanation/strategies" },
+            { label: "Pipeline", href: "/docs/explanation/pipeline" },
+            { label: "SDK reference", href: "/docs/sdk/installation" },
+            { label: "GitHub", href: "https://github.com/mateffy/struktur" },
+          ].map((link) => (
+            <a
+              key={link.label}
+              href={link.href}
+              style={{
+                fontSize: "13px",
+                color: "#7a5c3a",
+                textDecoration: "none",
+                fontFamily: "Inter, sans-serif",
+                fontWeight: 500,
+              }}
+            >
+              {link.label}
+            </a>
+          ))}
+        </nav>
+      </footer>
     </div>
   );
 }

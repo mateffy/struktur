@@ -1,3 +1,5 @@
+import type { Artifact } from "../types";
+
 export type NpmParserDef = {
   type: "npm";
   package: string; // e.g. "@myorg/pdf-parser"
@@ -13,7 +15,12 @@ export type CommandStdinDef = {
   command: string;
 };
 
-export type ParserDef = NpmParserDef | CommandFileDef | CommandStdinDef;
+export type InlineParserDef = {
+  type: "inline";
+  handler: (buffer: Buffer) => Promise<Artifact>;
+};
+
+export type ParserDef = NpmParserDef | CommandFileDef | CommandStdinDef | InlineParserDef;
 
 export type ParsersConfig = Record<string, ParserDef>; // keyed by MIME type
 
