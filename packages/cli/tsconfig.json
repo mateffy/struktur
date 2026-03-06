@@ -1,9 +1,4 @@
 {
-  "references": [
-    { "path": "./packages/sdk" },
-    { "path": "./packages/cli" },
-    { "path": "./packages/documentation" }
-  ],
   "compilerOptions": {
     "lib": ["ESNext"],
     "target": "ESNext",

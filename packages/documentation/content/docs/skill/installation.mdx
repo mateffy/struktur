@@ -1,0 +1,177 @@
+---
+title: Installation
+description: Install the Struktur agent skill for your preferred AI coding tool.
+---
+
+Install the Struktur agent skill for your preferred AI coding tool.
+
+## Installation Methods
+
+### Method 1: From npm Package
+
+```bash
+# Install the package
+npm install @struktur/skill
+# or
+bun add @struktur/skill
+
+# Copy to your tool's skill directory
+cp -r node_modules/@struktur/skill/skills/struktur ~/.config/claude/skills/
+```
+
+### Method 2: Using Skills CLI
+
+If you have the [skills CLI](https://github.com/vercel/skills) installed:
+
+```bash
+# Install from npm
+npx skills add @struktur/skill
+
+# Or install from GitHub
+npx skills add https://github.com/mateffy/struktur/tree/main/packages/skill/skills/struktur
+```
+
+### Method 3: Direct Copy from GitHub
+
+```bash
+# Clone and copy
+git clone https://github.com/mateffy/struktur.git
+cp -r struktur/packages/skill/skills/struktur ~/.config/claude/skills/
+```
+
+## Tool-Specific Installation
+
+### Claude Code
+
+**Global installation** (available in all projects):
+
+```bash
+mkdir -p ~/.config/claude/skills
+cp -r node_modules/@struktur/skill/skills/struktur ~/.config/claude/skills/
+```
+
+**Project installation** (only in this project):
+
+```bash
+mkdir -p .agents/skills
+cp -r node_modules/@struktur/skill/skills/struktur .agents/skills/
+```
+
+### OpenCode
+
+**Global installation**:
+
+```bash
+mkdir -p ~/.config/opencode/skills
+cp -r node_modules/@struktur/skill/skills/struktur ~/.config/opencode/skills/
+```
+
+**Project installation**:
+
+```bash
+mkdir -p .agents/skills
+cp -r node_modules/@struktur/skill/skills/struktur .agents/skills/
+```
+
+### OpenAI Codex
+
+**Global installation**:
+
+```bash
+mkdir -p ~/.codex/skills
+cp -r node_modules/@struktur/skill/skills/struktur ~/.codex/skills/
+```
+
+**Project installation**:
+
+```bash
+mkdir -p .codex/skills
+cp -r node_modules/@struktur/skill/skills/struktur .codex/skills/
+```
+
+### Amp
+
+**Global installation**:
+
+```bash
+mkdir -p ~/.config/amp/skills
+cp -r node_modules/@struktur/skill/skills/struktur ~/.config/amp/skills/
+```
+
+**Project installation**:
+
+```bash
+mkdir -p .agents/skills
+cp -r node_modules/@struktur/skill/skills/struktur .agents/skills/
+```
+
+### VS Code (GitHub Copilot)
+
+**Workspace installation**:
+
+```bash
+mkdir -p .vscode/skills
+cp -r node_modules/@struktur/skill/skills/struktur .vscode/skills/struktur
+```
+
+### Cursor
+
+**Project installation**:
+
+```bash
+mkdir -p .cursor/skills
+cp -r node_modules/@struktur/skill/skills/struktur .cursor/skills/struktur
+```
+
+### Gemini CLI
+
+**Global installation**:
+
+```bash
+mkdir -p ~/.config/gemini/skills
+cp -r node_modules/@struktur/skill/skills/struktur ~/.config/gemini/skills/
+```
+
+**Project installation**:
+
+```bash
+mkdir -p .agents/skills
+cp -r node_modules/@struktur/skill/skills/struktur .agents/skills/
+```
+
+## Verification
+
+After installation, restart your AI agent and ask:
+
+```
+"Do you have access to the struktur skill?"
+```
+
+The agent should confirm it can see the skill and describe what it knows about Struktur.
+
+## Updating
+
+To update to the latest version:
+
+```bash
+# Update the npm package
+npm update @struktur/skill
+
+# Re-copy to skill directory
+cp -r node_modules/@struktur/skill/skills/struktur ~/.config/claude/skills/
+```
+
+## Uninstalling
+
+Remove the skill directory:
+
+```bash
+# For Claude Code
+rm -rf ~/.config/claude/skills/struktur
+
+# For OpenCode
+rm -rf ~/.config/opencode/skills/struktur
+
+# For project-level installations
+rm -rf .agents/skills/struktur
+```

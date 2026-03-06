@@ -1,0 +1,205 @@
+---
+title: Usage
+description: How to use the Struktur agent skill with your AI coding assistant.
+---
+
+How to use the Struktur agent skill with your AI coding assistant.
+
+## How It Works
+
+The skill uses **progressive disclosure** to minimize token usage:
+
+1. **Metadata Phase** (~100 tokens): Agent loads only the skill name and description
+2. **Activation Phase**: When your request matches the description, the agent asks permission to load the full skill
+3. **Full Load** (up to 5,000 tokens): Complete skill instructions load into context
+4. **On-Demand**: Supporting files (scripts, references) load as needed
+
+This means you can have hundreds of skills installed without bloating the agent's context window.
+
+## Triggering the Skill
+
+The skill automatically activates when you mention Struktur-related tasks:
+
+```
+"Use struktur to extract product data from this PDF"
+"Set up struktur to parse invoices with parallel strategy"
+"Help me configure the struktur CLI for my project"
+"Import extract from @struktur/sdk and set up a schema"
+```
+
+The agent will recognize these requests and load the skill automatically.
+
+## Example Conversations
+
+### Example 1: Basic Extraction
+
+**You:**
+```
+Use struktur to extract the title and author from this document.
+```
+
+**Agent (with skill loaded):**
+```
+I'll use Struktur's simple strategy for this extraction. Let me:
+
+1. Build an artifact from your document
+2. Define a schema with title and author fields
+3. Call extract() with the simple strategy
+
+[proceeds with correct API usage, proper schema definition, and best practices]
+```
+
+### Example 2: Large Document with Parallel Strategy
+
+**You:**
+```
+I have a 500-page PDF with product listings. Extract all products with their names, prices, and categories.
+```
+
+**Agent (with skill loaded):**
+```
+For a 500-page document with multiple products, I'll use the parallel strategy:
+
+- It will chunk the document by token budget
+- Extract products from each chunk in parallel
+- Merge the results automatically
+
+Let me set this up with:
+- strategy: parallel with appropriate chunk size
+- schema: array of products with name, price, category
+- model: your configured default
+
+[proceeds with optimal configuration]
+```
+
+### Example 3: CLI Configuration
+
+**You:**
+```
+Set up the struktur CLI to use OpenAI GPT-4o as the default model.
+```
+
+**Agent (with skill loaded):**
+```
+I'll configure the struktur CLI:
+
+1. Set your OpenAI API token
+2. Set gpt-4o as the default model
+3. Optionally create aliases for quick access
+
+[runs correct CLI commands]
+```
+
+## What the Skill Knows
+
+When loaded, the skill provides the agent with:
+
+### API Knowledge
+
+- How to import and use `extract()`
+- All strategy options and when to use them
+- Schema definition patterns (JSON Schema and fields shorthand)
+- Artifact building from files and URLs
+- Event hooks for monitoring progress
+
+### Strategy Selection
+
+The skill teaches the agent to choose strategies based on:
+
+| Input Size | Output Shape | Recommended Strategy |
+|------------|--------------|---------------------|
+| Small (<10K tokens) | Any | `simple` |
+| Large | Array/list | `parallel` or `parallelAutoMerge` |
+| Large | Object with context | `sequential` |
+| Large | Maximum accuracy | `doublePass` |
+
+### CLI Commands
+
+All struktur CLI commands and options:
+
+- `struktur extract` with all flags
+- `struktur models` for model management
+- `struktur providers` for API key setup
+- Field shorthand syntax
+- Debug and logging options
+
+### Best Practices
+
+- Token budget recommendations
+- Validation retry patterns
+- Merge and deduplication rules
+- Schema strict mode usage
+- Common pitfalls and how to avoid them
+
+## Manual Invocation
+
+Some tools allow manual skill invocation:
+
+**Claude Code:**
+```
+/struktur
+```
+
+**OpenCode:**
+```
+/load-skill struktur
+```
+
+Check your tool's documentation for manual skill loading commands.
+
+## Troubleshooting
+
+### Skill Not Loading
+
+If the skill doesn't load automatically:
+
+1. **Check installation**: Verify the skill is in the correct directory
+2. **Restart the agent**: Some tools require a restart after installation
+3. **Be more specific**: Use explicit keywords like "struktur", "extract", "artifact"
+4. **Check logs**: Some tools show skill discovery in debug mode
+
+### Outdated Information
+
+If the skill seems outdated:
+
+```bash
+# Update to latest version
+npm update @struktur/skill
+cp -r node_modules/@struktur/skill/skills/struktur ~/.config/claude/skills/
+```
+
+### Wrong Strategy Recommended
+
+The skill provides general guidance, but you can override:
+
+```
+Use struktur with the sequential strategy (not parallel) because order matters for this document.
+```
+
+## Advanced Usage
+
+### Custom Instructions
+
+You can add project-specific instructions alongside the skill:
+
+**In `.agents/AGENTS.md` or `CLAUDE.md`:**
+```markdown
+When using struktur for this project:
+- Always use the parallel strategy for invoice extraction
+- Set chunkSize to 8000 for our PDF format
+- Use the "smart" model alias for better accuracy
+```
+
+### Combining with Other Skills
+
+The Struktur skill works alongside other skills:
+
+- Database skills (for saving extracted data)
+- Testing skills (for validating extraction results)
+- Deployment skills (for CI/CD integration)
+
+## Resources
+
+- [Struktur Documentation](/docs)
+- [Agent Skills Specification](https://github.com/anthropics/skills)
+- [Skills CLI](https://github.com/vercel/skills)

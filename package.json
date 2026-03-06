@@ -1,28 +1,16 @@
 {
-  "name": "@mateffy/struktur",
-  "version": "0.1.0",
-  "module": "src/index.ts",
-  "type": "module",
-  "bin": {
-    "struktur": "src/cli.ts"
+  "name": "struktur-monorepo",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "test": "bun test"
   },
   "devDependencies": {
     "@types/bun": "latest"
   },
   "peerDependencies": {
     "typescript": "^5"
-  },
-  "dependencies": {
-    "@ai-sdk/anthropic": "^3.0.0",
-    "@ai-sdk/google": "^3.0.0",
-    "@ai-sdk/openai": "^3.0.0",
-    "@openrouter/ai-sdk-provider": "^2.0.0",
-    "ai": "^6.0.97",
-    "ajv": "^8.17.1",
-    "ajv-formats": "^3.0.1",
-    "citty": "^0.2.1",
-    "crc-32": "^1.2.2",
-    "pdf-parse": "^2.4.5",
-    "yocto-spinner": "^1.1.0"
   }
 }

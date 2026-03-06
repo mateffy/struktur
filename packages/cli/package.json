@@ -1,0 +1,19 @@
+{
+  "name": "@struktur/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "struktur": "src/cli.ts"
+  },
+  "dependencies": {
+    "@struktur/sdk": "workspace:*",
+    "citty": "^0.2.1",
+    "yocto-spinner": "^1.1.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}

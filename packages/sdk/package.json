@@ -1,0 +1,33 @@
+{
+  "name": "@struktur/sdk",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./strategies": "./src/strategies/index.ts",
+    "./artifacts": "./src/artifacts/index.ts",
+    "./parsers": "./src/parsers/index.ts",
+    "./auth": "./src/auth/index.ts",
+    "./llm": "./src/llm/index.ts",
+    "./validation": "./src/validation/index.ts",
+    "./debug": "./src/debug/index.ts"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.0",
+    "@ai-sdk/google": "^3.0.0",
+    "@ai-sdk/openai": "^3.0.0",
+    "@openrouter/ai-sdk-provider": "^2.0.0",
+    "ai": "^6.0.97",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "pdf-parse": "^2.4.5"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "name": "@struktur/skill",
+  "version": "1.0.0",
+  "description": "Agent skill for Struktur - structured data extraction using Vercel AI SDK",
+  "type": "module",
+  "main": "skills/struktur/SKILL.md",
+  "files": [
+    "skills/**/*"
+  ],
+  "keywords": [
+    "ai",
+    "agent",
+    "skill",
+    "struktur",
+    "structured-data",
+    "extraction",
+    "llm",
+    "vercel-ai-sdk"
+  ],
+  "author": "mateffy",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mateffy/struktur.git",
+    "directory": "packages/skill"
+  },
+  "bugs": {
+    "url": "https://github.com/mateffy/struktur/issues"
+  },
+  "homepage": "https://github.com/mateffy/struktur#readme"
+}

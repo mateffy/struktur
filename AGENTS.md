@@ -4,6 +4,14 @@
 
 Struktur is a TypeScript library that reimplements LLM Magic for structured data extraction using the Vercel AI SDK. It operates on JSON-based artifact DTOs, chunks them by token budgets, runs extraction strategies, validates results with Ajv, and merges/dedupes outputs where needed.
 
+## Monorepo Structure
+
+This is a Bun multi-package monorepo with the following packages:
+
+- `packages/sdk` (`@struktur/sdk`): Core SDK with extraction logic, strategies, types, and utilities
+- `packages/cli` (`@struktur/cli`): CLI tool that uses the SDK
+- `packages/documentation` (`@struktur/documentation`): Documentation site (private, not published)
+
 ## How to Use
 
 - Primary API: `extract({ artifacts, schema, strategy, events? })`
@@ -18,18 +26,30 @@ Example (usage shown in `README.md`):
 
 ## Code Organization
 
-- `src/extract.ts`: main entrypoint; delegates to strategy.
-- `src/types.ts`: core DTOs and strategy interfaces.
-- `src/artifacts/`: artifact helpers, provider registry, and input parsing/validation.
-- `src/chunking/`: token-aware splitting and batching.
-- `src/llm/`: Vercel AI SDK wrapper, message building, retry loop.
-- `src/prompts/`: prompt builders and artifact XML formatting.
-- `src/merge/`: schema-aware merge and dedup utilities.
-- `src/strategies/`: extraction strategies and concurrency helpers.
-- `src/validation/`: Ajv validator and error shaping.
-- `src/cli.ts`: CLI entrypoint for extraction and artifact verification; auto-detects piped stdin and supports provider-based default model selection.
-- Each `src/*/AGENTS.md` describes its subtree.
+### `packages/sdk/src/`
 
+- `extract.ts`: main entrypoint; delegates to strategy.
+- `types.ts`: core DTOs and strategy interfaces.
+- `artifacts/`: artifact helpers, provider registry, and input parsing/validation.
+- `chunking/`: token-aware splitting and batching.
+- `llm/`: Vercel AI SDK wrapper, message building, retry loop.
+- `prompts/`: prompt builders and artifact XML formatting.
+- `merge/`: schema-aware merge and dedup utilities.
+- `strategies/`: extraction strategies and concurrency helpers.
+- `validation/`: Ajv validator and error shaping.
+- `auth/`: token and config management for CLI and SDK users.
+- Each `*/AGENTS.md` describes its subtree.
+
+### `packages/cli/src/`
+
+- `cli.ts`: CLI entrypoint for extraction and artifact verification.
+- `cli/shared.ts`: shared CLI utilities for loading artifacts, schemas, and models.
+
+### `packages/documentation/`
+
+- Documentation site built with Vite, TanStack Router, and Fumadocs.
+
+## Development
 
 Default to using Bun instead of Node.js.
 
@@ -58,4 +78,4 @@ test("hello world", () => {
 
 ## Agent Notes
 
-- When you add or significantly change code under `src/`, update the nearest `AGENTS.md` in that subtree to reflect the current structure and responsibilities.
+- When you add or significantly change code under `packages/*/src/`, update the nearest `AGENTS.md` in that subtree to reflect the current structure and responsibilities.

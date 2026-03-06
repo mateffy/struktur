@@ -1,0 +1,12 @@
+{
+  "title": "Struktur",
+  "pages": [
+    "index",
+    "quickstart",
+    "explanation",
+    "cli",
+    "sdk",
+    "skill",
+    "examples"
+  ]
+}
