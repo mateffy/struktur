@@ -234,7 +234,7 @@ interface Example {
 
 const EXAMPLES: Example[] = [
   {
-    command: "struktur extract --input invoice.txt --schema invoice.json",
+    command: "struktur extract --input invoice.pdf --schema invoice.json",
     output: (
       <>
         <div>{"{"}</div>
@@ -279,7 +279,7 @@ const EXAMPLES: Example[] = [
     ),
   },
   {
-    command: "struktur extract --url https://example.com --schema product.json",
+    command: "struktur extract --input https://example.com/product.html --schema product.json",
     output: (
       <>
         <div>{"{"}</div>
@@ -323,7 +323,7 @@ const EXAMPLES: Example[] = [
   },
   {
     command:
-      'struktur extract --input contract.pdf --fields "parties:array{string},start_date,value:number"',
+      'struktur extract --input contract.docx --fields "parties:array{string},start_date,value:number"',
     output: (
       <>
         <div>{"{"}</div>
@@ -348,9 +348,9 @@ const EXAMPLES: Example[] = [
 ];
 
 const TYPING_SPEED_MS = 38; // ms per character
-const SPINNER_DURATION_MS = 1200;
-const OUTPUT_PAUSE_MS = 3000;
-const RESTART_DELAY_MS = 600;
+const SPINNER_DURATION_MS = 2400;
+const OUTPUT_PAUSE_MS = 2500;
+const FADE_OUT_DURATION_MS = 400;
 
 function TerminalDemo() {
   const [phase, setPhase] = useState<AnimPhase>("typing");
@@ -399,12 +399,12 @@ function TerminalDemo() {
               // Phase 3: output
               setPhase("output");
               timeoutRef.current = setTimeout(() => {
-                // Phase 4: pause then restart with next example
+                // Phase 4: fade out then restart with next example
                 setPhase("pause");
                 timeoutRef.current = setTimeout(() => {
                   setExampleIndex((prev) => (prev + 1) % EXAMPLES.length);
                   run();
-                }, RESTART_DELAY_MS);
+                }, FADE_OUT_DURATION_MS);
               }, OUTPUT_PAUSE_MS);
             }, SPINNER_DURATION_MS);
           }, 120);
@@ -436,6 +436,10 @@ function TerminalDemo() {
     animation: "fade-in-up 0.3s ease-out forwards",
   };
 
+  const fadeOutAnimation: React.CSSProperties = {
+    animation: `fade-out ${FADE_OUT_DURATION_MS}ms ease-out forwards`,
+  };
+
   return (
     <div>
       {/* Command line */}
@@ -448,19 +452,21 @@ function TerminalDemo() {
         }}
       >
         <span style={{ color: "#bba88a", userSelect: "none" }}>$</span>
-        <span>
+        <span style={phase === "pause" ? fadeOutAnimation : {}}>
           {currentExample.command.slice(0, typedLen)}
-          {phase === "typing" && (
+          {(phase === "typing" || phase === "output") && (
             <span
               style={{
                 display: "inline-block",
-                width: "2px",
-                height: "1em",
+                width: "8px",
+                height: "1.1em",
                 backgroundColor: "#bba88a",
                 marginLeft: "1px",
-                marginBottom: "2px",
+                marginBottom: "1px",
                 verticalAlign: "text-bottom",
-                animation: "terminal-cursor-blink 0.7s step-end infinite",
+                animation: phase === "typing" 
+                  ? "terminal-cursor-solid 0.05s step-end infinite" 
+                  : "terminal-cursor-blink 1.2s step-end infinite",
               }}
             />
           )}
@@ -494,8 +500,14 @@ function TerminalDemo() {
       )}
 
       {/* JSON output */}
-      {phase === "output" && (
-        <div style={{ marginTop: "12px", ...outputStyle, ...fadeInAnimation }}>
+      {(phase === "output" || phase === "pause") && (
+        <div
+          style={{
+            marginTop: "12px",
+            ...outputStyle,
+            ...(phase === "output" ? fadeInAnimation : fadeOutAnimation),
+          }}
+        >
           {currentExample.output}
         </div>
       )}
