@@ -5,9 +5,14 @@ export const Route = createFileRoute('/llms/docs/$')({
   server: {
     handlers: {
       GET: async ({ params }) => {
-        const slugs = (params._splat ?? '').split('/');
-        // remove the appended "index.mdx" to avoid build issues
-        slugs.pop();
+        let slugs = (params._splat ?? '').split('/').filter(Boolean);
+        const lastSlug = slugs[slugs.length - 1];
+        if (lastSlug?.endsWith('.md')) {
+          slugs[slugs.length - 1] = lastSlug.slice(0, -3);
+        }
+        if (slugs.length === 1 && slugs[0] === 'index') {
+          slugs = [];
+        }
         const page = source.getPage(slugs);
         if (!page) throw notFound();
 

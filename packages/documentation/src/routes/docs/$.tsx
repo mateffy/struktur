@@ -74,7 +74,7 @@ const clientLoader = browserCollections.docs.createClientLoader({
 
 function Page() {
   const { pageTree, slugs, path } = useFumadocsLoader(Route.useLoaderData());
-  const markdownUrl = `/llms/docs/${[...slugs, 'index.mdx'].join('/')}`;
+  const markdownUrl = `/llms/docs/${slugs.length > 0 ? `${slugs.join('/')}.md` : 'index.md'}`;
 
   return (
     <DocsLayout {...baseOptions()} tree={pageTree}>
