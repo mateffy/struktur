@@ -1,0 +1,119 @@
+
+
+Schema [#schema]
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "property_name": { "type": "string" },
+    "address": { "type": "string" },
+    "description": { "type": "string" },
+    "total_units": { "type": "number" },
+    "units": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "unit_number": { "type": "string" },
+          "size_sqm": { "type": "number" },
+          "rent_per_month": { "type": "number" },
+          "rooms": { "type": "number" },
+          "floor": { "type": "string" },
+          "features": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "required": ["unit_number", "size_sqm"],
+        "additionalProperties": false
+      }
+    },
+    "images": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "description": { "type": "string" },
+          "location": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["property_name", "address"],
+  "additionalProperties": false
+}
+```
+
+Why sequentialAutoMerge [#why-sequentialautomerge]
+
+For real estate exposés:
+
+* **Context preservation:** Units on later pages can reference earlier context
+* **Deduplication:** Same unit may appear on multiple pages
+* **Image handling:** Processes embedded images alongside text
+
+CLI [#cli]
+
+```bash
+struktur --input expose.pdf \
+  --schema property-schema.json \
+  --strategy sequentialAutoMerge \
+  --model openai/gpt-4o-mini
+```
+
+SDK [#sdk]
+
+```js
+import { extract, sequentialAutoMerge } from "@mateffy/struktur";
+import { openai } from "@ai-sdk/openai";
+import { fileToArtifact } from "@mateffy/struktur";
+import fs from "node:fs/promises";
+
+const buffer = Buffer.from(await fs.readFile("expose.pdf"));
+const artifact = await fileToArtifact(buffer, { mimeType: "application/pdf" });
+
+const result = await extract({
+  artifacts: [artifact],
+  schema: propertySchema,
+  strategy: sequentialAutoMerge({
+    model: openai("gpt-4o-mini"),
+    dedupeModel: openai("gpt-4o-mini"),
+    chunkSize: 8000,
+  }),
+});
+
+console.log(result.data);
+```
+
+Expected output [#expected-output]
+
+```json
+{
+  "property_name": "Hauptstraße 42",
+  "address": "Hauptstraße 42, 10115 Berlin",
+  "description": "Mixed-use commercial and residential building...",
+  "total_units": 8,
+  "units": [
+    {
+      "unit_number": "1.1",
+      "size_sqm": 85,
+      "rent_per_month": 1200,
+      "rooms": 3,
+      "floor": "1st floor",
+      "features": ["balcony", "parking space"]
+    }
+  ],
+  "images": [
+    { "description": "Building exterior", "location": "front page" },
+    { "description": "Floor plan unit 1.1", "location": "page 3" }
+  ]
+}
+```
+
+See also [#see-also]
+
+* [sequentialAutoMerge](/docs/explanation/strategies/sequential-auto-merge) — strategy reference
+* [Choosing a Strategy](/docs/explanation/strategies/choosing) — decision guide
+* [The Artifact Format](/docs/explanation/preprocessing/artifact-format) — handling images

@@ -1,0 +1,80 @@
+
+
+At a glance [#at-a-glance]
+
+| Property    | Value                      |
+| ----------- | -------------------------- |
+| Name        | `"simple"`                 |
+| LLM calls   | 1                          |
+| Parallelism | None                       |
+| Merge step  | None                       |
+| Dedupe step | None                       |
+| Best for    | Small, single-chunk inputs |
+
+Configuration [#configuration]
+
+| Field                | Required | Default | Description                                                   |
+| -------------------- | -------- | ------- | ------------------------------------------------------------- |
+| `model`              | Yes      | -       | Model instance from `@ai-sdk/*`                               |
+| `outputInstructions` | No       | -       | Extra instructions for the model                              |
+| `strict`             | No       | `false` | Always `true` for simple (single-shot, no intermediate steps) |
+
+Algorithm [#algorithm]
+
+1. Build extraction prompt from artifacts + schema
+2. Send to LLM
+3. Validate output with Ajv
+4. Retry on validation failure (up to 3 attempts)
+5. Return validated output
+
+Validation behavior [#validation-behavior]
+
+Each LLM call is validated with retry. If the LLM fails to produce valid output after 3 attempts, the strategy throws.
+
+Merge behavior [#merge-behavior]
+
+None. Single-shot.
+
+Token cost profile [#token-cost-profile]
+
+**Low** — 1 LLM call per extraction.
+
+Example [#example]
+
+```js
+import { extract, simple } from "@mateffy/struktur";
+import { openai } from "@ai-sdk/openai";
+
+const result = await extract({
+  artifacts,
+  schema,
+  strategy: simple({
+    model: openai("gpt-4o-mini"),
+  }),
+});
+```
+
+CLI [#cli]
+
+```bash
+struktur --input document.txt --schema schema.json --model openai/gpt-4o-mini
+# --strategy simple is the default
+```
+
+When to use [#when-to-use]
+
+* Document fits within the model's context window (\~10k tokens)
+* Simple schema without nested arrays
+* Testing or prototyping
+* Speed is the priority
+
+When to avoid [#when-to-avoid]
+
+* Large documents exceeding context window
+* Complex schemas with many fields
+
+See also [#see-also]
+
+* [parallel](/docs/explanation/strategies/parallel) — for large documents
+* [sequential](/docs/explanation/strategies/sequential) — for context-dependent documents
+* [Choosing a Strategy](/docs/explanation/strategies/choosing) — decision guide

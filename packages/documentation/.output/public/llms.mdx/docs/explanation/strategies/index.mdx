@@ -1,0 +1,87 @@
+
+
+Why Struktur? [#why-struktur]
+
+Large document batches arrive with data locked in semi-structured text. Invoices need to flow into spreadsheets. Product datasheets need to become database rows. The tooling exists, but the orchestration overhead is disproportionate to the extraction task itself.
+
+Managed APIs charge per page, impose schema constraints, and require document uploads to external infrastructure. LLM SDKs provide raw model access but leave you to write chunking, validation, retries, and merging every time.
+
+Struktur fills the gap: a focused extraction engine that handles the orchestration so you can focus on the output.
+
+Why not managed APIs? [#why-not-managed-apis]
+
+| Limitation         | Impact                                  |
+| ------------------ | --------------------------------------- |
+| Per-page pricing   | Does not scale for large batches        |
+| Schema constraints | You work within their data model        |
+| Document upload    | Non-starter for confidential workloads  |
+| Black-box behavior | Debugging extraction failures is opaque |
+
+Why not a plain LLM SDK call? [#why-not-a-plain-llm-sdk-call]
+
+A single `generateText()` call gives you:
+
+* No chunking for large documents
+* No retries on schema validation failure
+* No merging of multi-chunk results
+* No typed output inferred from your schema
+
+You write the same orchestration boilerplate every time. Struktur packages that orchestration into tested, configurable strategies.
+
+Design philosophy [#design-philosophy]
+
+**Narrow scope, intentionally.** Struktur does extraction only. No parsing. No streaming. No general-purpose LLM orchestration. This focus keeps the API small and the behavior predictable.
+
+**Shell-composable by default.** Reads stdin, writes stdout, speaks JSON. Integrates with `jq`, `find`, `curl`, and any tool in your pipeline.
+
+**Strategy-first.** Different documents need different approaches. A single-page invoice needs simple extraction. A 100-page catalog with duplicate products needs parallel extraction with deduplication. Strategies encode these patterns.
+
+**Validation in the loop.** Errors go back to the model, not to you. The retry loop means most extractions converge within two attempts.
+
+Trade-offs [#trade-offs]
+
+| Trade-off                          | Rationale                                                                          |
+| ---------------------------------- | ---------------------------------------------------------------------------------- |
+| Requires upstream preprocessing    | Keeps Struktur focused; use best-of-breed parsers per format                       |
+| Batch-only, no streaming           | Simpler mental model; input in, JSON out                                           |
+| Depends on Vercel AI SDK providers | OpenAI, Anthropic, Google supported; self-hosted models need OpenAI-compatible API |
+| Token costs depend on strategy     | `doublePass` costs more than `simple`; know your rates                             |
+
+***
+
+What are Strategies? [#what-are-strategies]
+
+A strategy implements:
+
+* `name`: string identifier
+* `run()`: the orchestration logic
+* `getEstimatedSteps()`: optional, for progress tracking
+
+Strategies own their config (model, chunk size, concurrency). All strategies guarantee: output validates against the schema or they throw.
+
+Built-in strategies [#built-in-strategies]
+
+| Strategy                                                                   | Description                                 |
+| -------------------------------------------------------------------------- | ------------------------------------------- |
+| [simple](/docs/explanation/strategies/simple)                              | Single-shot extraction for small inputs     |
+| [parallel](/docs/explanation/strategies/parallel)                          | Concurrent batches with LLM merge           |
+| [sequential](/docs/explanation/strategies/sequential)                      | Ordered batches with context carryover      |
+| [parallelAutoMerge](/docs/explanation/strategies/parallel-auto-merge)      | Parallel with schema-aware merge + dedupe   |
+| [sequentialAutoMerge](/docs/explanation/strategies/sequential-auto-merge)  | Sequential with schema-aware merge + dedupe |
+| [doublePass](/docs/explanation/strategies/double-pass)                     | Parallel pass + sequential refinement       |
+| [doublePassAutoMerge](/docs/explanation/strategies/double-pass-auto-merge) | Double-pass with auto-merge                 |
+
+Choosing a strategy [#choosing-a-strategy]
+
+See [Choosing a Strategy](/docs/explanation/strategies/choosing) for a decision guide.
+
+Custom strategies [#custom-strategies]
+
+See [Writing a Custom Strategy](/docs/explanation/strategies/custom-strategy) to implement your own.
+
+***
+
+See also [#see-also]
+
+* [The Extraction Pipeline](/docs/explanation/pipeline) — how data flows through Struktur
+* [Quickstart](/docs/quickstart) — get started in 5 minutes

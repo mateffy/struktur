@@ -5,7 +5,11 @@
     "packages/*"
   ],
   "scripts": {
-    "test": "bun test"
+    "test": "bun test",
+    "build:docs": "bun run --filter @struktur/documentation build",
+    "version:patch": "bun scripts/version.ts patch",
+    "version:minor": "bun scripts/version.ts minor",
+    "version:major": "bun scripts/version.ts major"
   },
   "devDependencies": {
     "@types/bun": "latest"

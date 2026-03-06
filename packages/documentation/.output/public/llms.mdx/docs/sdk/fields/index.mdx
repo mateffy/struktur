@@ -1,0 +1,241 @@
+
+
+The `fields` parameter lets you describe extraction output as a concise comma-separated string instead of writing a full JSON Schema object. It is designed for quick experiments, CLI one-liners, and any situation where you know the fields you want but don't need schema reuse or complex constraints.
+
+```ts
+const result = await extract({
+  artifacts,
+  fields: "title, author, year:integer, price:number",
+  strategy: simple({ model: openai("gpt-4o-mini") }),
+});
+```
+
+`fields` and `schema` are mutually exclusive. Pass exactly one.
+
+***
+
+Syntax [#syntax]
+
+```
+fields = field ("," field)*
+field  = name | name ":" type
+name   = /[^\s,:{}]+/
+type   = scalar | enum | array
+```
+
+Whitespace around commas and colons is ignored. A trailing comma is silently dropped.
+
+***
+
+Scalar types [#scalar-types]
+
+Every field without an explicit type defaults to `string`.
+
+| Type keyword | JSON Schema output                       | Notes                                    |
+| ------------ | ---------------------------------------- | ---------------------------------------- |
+| `string`     | `{ "type": "string" }`                   | Default when type is omitted             |
+| `number`     | `{ "type": "number" }`                   | Any numeric value                        |
+| `float`      | `{ "type": "number" }`                   | Alias for `number`                       |
+| `boolean`    | `{ "type": "boolean" }`                  |                                          |
+| `bool`       | `{ "type": "boolean" }`                  | Alias for `boolean`                      |
+| `integer`    | `{ "type": "integer" }`                  | Whole numbers only (JSON Schema spec)    |
+| `int`        | `{ "type": "integer", "multipleOf": 1 }` | Stricter: explicitly disallows fractions |
+
+```ts
+// All scalar types
+extract({ fields: "title, count:integer, price:float, active:bool", ... })
+```
+
+int vs integer [#int-vs-integer]
+
+Both resolve to `"type": "integer"` in the schema, but `int` adds `"multipleOf": 1`. This makes the no-fractions constraint explicit and validator-enforced rather than implied. Use `int` when you want to be unambiguous; `integer` when you want to stay close to JSON Schema vocabulary.
+
+***
+
+Enum type [#enum-type]
+
+Use `enum{value1|value2|...}` for fields that must be one of a fixed set of strings. Values are separated by `|` and trimmed of surrounding whitespace.
+
+```ts
+extract({ fields: "status:enum{draft|published|archived}", ... })
+// => { "type": "string", "enum": ["draft", "published", "archived"] }
+```
+
+At least two values are required.
+
+```ts
+extract({ fields: "name, role:enum{admin|user|guest}, active:bool", ... })
+```
+
+***
+
+Array type [#array-type]
+
+Use `array{itemType}` for array fields. The item type can be any scalar keyword including aliases.
+
+```ts
+extract({ fields: "tags:array{string}", ... })
+// => { "type": "array", "items": { "type": "string" } }
+
+extract({ fields: "scores:array{float}", ... })
+// => { "type": "array", "items": { "type": "number" } }
+
+extract({ fields: "ids:array{int}", ... })
+// => { "type": "array", "items": { "type": "integer", "multipleOf": 1 } }
+```
+
+***
+
+Generated schema shape [#generated-schema-shape]
+
+Every `fields` string produces an object schema with:
+
+* `"type": "object"`
+* All named fields as properties
+* All fields listed in `"required"`
+* `"additionalProperties": false`
+
+```ts
+buildSchemaFromFields("title, price:number, tags:array{string}")
+// =>
+{
+  "type": "object",
+  "properties": {
+    "title": { "type": "string" },
+    "price": { "type": "number" },
+    "tags":  { "type": "array", "items": { "type": "string" } }
+  },
+  "required": ["title", "price", "tags"],
+  "additionalProperties": false
+}
+```
+
+All fields are required. There is no way to mark a field optional through the `fields` syntax — use a full `schema` object if you need optional properties, nested objects, or `$ref`.
+
+***
+
+Using fields with extract() [#using-fields-with-extract]
+
+```ts
+import { extract, simple } from "@mateffy/struktur";
+import { openai } from "@ai-sdk/openai";
+
+const result = await extract({
+  artifacts,
+  fields: "title, author, year:integer, genre:enum{fiction|nonfiction|reference}",
+  strategy: simple({ model: openai("gpt-4o-mini") }),
+});
+
+// result.data is typed as Record<string, unknown> when using fields
+console.log(result.data.title);
+```
+
+For full TypeScript inference on `result.data`, use `schema` with `JSONSchemaType<T>` instead.
+
+***
+
+Mutual exclusion [#mutual-exclusion]
+
+Only one schema source may be provided per call. Providing more than one throws immediately with a clear error.
+
+| Combination         | Result   |
+| ------------------- | -------- |
+| `fields` only       | ✅ Valid  |
+| `schema` only       | ✅ Valid  |
+| `fields` + `schema` | ❌ Throws |
+| Neither             | ❌ Throws |
+
+```ts
+// ❌ throws: "Provide exactly one of `schema` or `fields`"
+await extract({ artifacts, schema: mySchema, fields: "title", strategy });
+```
+
+***
+
+Utility exports [#utility-exports]
+
+The parser and schema builder are exported for use outside of `extract()`.
+
+```ts
+import {
+  parseFieldsString,
+  buildSchemaFromParsedFields,
+  buildSchemaFromFields,
+} from "@mateffy/struktur";
+
+// Parse to an intermediate representation
+const parsed = parseFieldsString("title, price:number, status:enum{draft|live}");
+// [
+//   { name: "title",  kind: "scalar", type: "string" },
+//   { name: "price",  kind: "scalar", type: "number" },
+//   { name: "status", kind: "enum",   values: ["draft", "live"] }
+// ]
+
+// Build a schema directly
+const schema = buildSchemaFromFields("title, price:number");
+```
+
+parseFieldsString(fields: string): ParsedField[] [#parsefieldsstringfields-string-parsedfield]
+
+Parses the fields string into an array of `ParsedField` discriminated union entries:
+
+```ts
+type ParsedField =
+  | { name: string; kind: "scalar"; type: ScalarFieldType }
+  | { name: string; kind: "enum";   values: string[] }
+  | { name: string; kind: "array";  items: ScalarFieldType };
+
+type ScalarFieldType = "string" | "number" | "boolean" | "integer" | "int";
+```
+
+buildSchemaFromParsedFields(fields: ParsedField[]): AnyJSONSchema [#buildschemafromparsedfieldsfields-parsedfield-anyjsonschema]
+
+Builds the JSON Schema object from a pre-parsed array. Useful if you want to inspect or modify the parsed fields before building.
+
+buildSchemaFromFields(fields: string): AnyJSONSchema [#buildschemafromfieldsfields-string-anyjsonschema]
+
+Convenience one-liner: parses and builds in a single call.
+
+***
+
+Error messages [#error-messages]
+
+Parse errors include the offending field name and a hint toward valid alternatives.
+
+```ts
+parseFieldsString("count:bigint")
+// Error: Unknown type "bigint" for field "count".
+//        Scalar types: bool, boolean, float, int, integer, number, string.
+//        Complex types: enum{a|b|c}, array{string}.
+
+parseFieldsString("role:enum{admin}")
+// Error: enum for field "role" must have at least two values separated by "|", got: "admin".
+
+parseFieldsString("tags:array{}")
+// Error: array for field "tags" requires an item type, e.g. array{string}.
+
+parseFieldsString("name:enum{a|b")
+// Error: Unmatched braces in fields string.
+```
+
+***
+
+When to use fields vs schema [#when-to-use-fields-vs-schema]
+
+| Situation                                                     | Use                               |
+| ------------------------------------------------------------- | --------------------------------- |
+| Quick experiment, ad-hoc query                                | `fields`                          |
+| CLI one-liner                                                 | `fields` / `--fields`             |
+| All fields are required flat scalars, enums, or simple arrays | `fields`                          |
+| Need optional properties                                      | `schema`                          |
+| Need nested objects                                           | `schema`                          |
+| Need TypeScript inference on `result.data`                    | `schema` with `JSONSchemaType<T>` |
+| Schema is reused across calls                                 | `schema`                          |
+| Need `$ref`, `allOf`, `anyOf`, custom formats                 | `schema`                          |
+
+***
+
+See also [#see-also]
+
+* [extract()](/docs/sdk/extract) — full option reference
+* [CLI `--fields`](/docs/cli/fields) — using fields from the command line

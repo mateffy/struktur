@@ -185,21 +185,34 @@ const result = await extract({
 
 ## How it works
 
-Struktur operates on **Artifacts** — normalized JSON DTOs with text and media slices. Pass in a file path, URL, or raw text; Struktur parses it automatically and hands the content to the LLM.
+Struktur converts input files into **Artifacts** — normalized JSON DTOs with text and media slices. A strategy then orchestrates the extraction: chunking, LLM calls, validation, and merging.
 
 ```mermaid
-graph LR
-    A[input] --> B[parse]
-    B --> C[artifacts]
-    C --> D[strategy]
-    D --> E[chunk]
-    E --> F[LLM call/s]
-    F --> G[validate + retry]
-    G --> H[merge/dedupe]
-    H --> I[result]
+flowchart LR
+    A[Input] --> B[Parse]
+    B --> C[Artifacts]
+    C --> D[Strategy]
+    D --> E[Output]
+    
+    subgraph StrategyInternals [Strategy]
+        direction TB
+        D1[Chunking] --> D2[LLM Calls]
+        D2 --> D3[Validation + Retry]
+        D3 --> D4[Merge/Dedupe]
+    end
+    
+    D --> StrategyInternals --> E
 ```
 
-Every LLM response is validated against your schema with Ajv. If it fails, the errors are sent back to the model automatically. Most extractions converge in one or two attempts.
+**Key stages:**
+
+- **Parse**: Convert files (PDF, text, images) into Artifact JSON
+- **Chunk**: Split large inputs by token budget
+- **Extract**: Call LLM with your schema
+- **Validate**: Check against schema with Ajv, retry on errors
+- **Merge**: Combine results from multiple chunks
+
+Every LLM response is validated against your schema. If validation fails, the errors are sent back to the model automatically. Most extractions converge in one or two attempts.
 
 → [Extraction pipeline explained](https://struktur.sh/docs/explanation/pipeline)
 
