@@ -122,8 +122,8 @@ const schema: JSONSchemaType<Output> = {
 ### Shorthand fields string
 ```typescript
 // "name" defaults to string; "name:type" for explicit types
-const fields = "title, price:number, active:boolean, tags:array{string}";
-// Supported: string, number, boolean, integer, int, float, bool, enum{a|b|c}, array{type}
+const fields = "title, price:number, active:boolean, tags:array";
+// Supported: string, number, boolean, integer, int, float, bool, enum{a|b|c}, array (defaults to array{string}), array{type}
 ```
 
 ## Building Artifacts

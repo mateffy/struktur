@@ -369,10 +369,10 @@ const result = await extract({
 Skip the JSON Schema boilerplate for flat extractions:
 
 ```
-"title, price:number, status:enum{draft|live}, tags:array{string}"
+"title, price:number, status:enum{draft|live}, tags:array"
 ```
 
-Supported types: `string` (default), `number`, `integer`, `boolean`, `enum{a|b}`, `array{type}`.
+Supported types: `string` (default), `number`, `integer`, `boolean`, `enum{a|b}`, `array` (defaults to `array{string}`), `array{type}`.
 
 For optional fields, nested objects, or TypeScript inference on `result.data`, use a full `JSONSchemaType<T>` schema instead.
 

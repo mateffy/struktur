@@ -19,6 +19,20 @@ export type ParsedArgs = {
   positionals: string[];
 };
 
+export class UserError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "UserError";
+    // Remove stack trace for user errors
+    Error.captureStackTrace?.(this, UserError);
+    Object.defineProperty(this, "stack", {
+      get: () => `${this.name}: ${this.message}`,
+      enumerable: false,
+      configurable: true,
+    });
+  }
+}
+
 export const usage = () => {
   return [
     "struktur [command] [options]",
@@ -32,10 +46,10 @@ export const usage = () => {
     "extract options (default command):",
     "  --input <path>           Input file to parse",
     "  --text <string>          Raw text input",
-    "  --stdin                  Read raw text from stdin (auto-detected when piped)",
-    "  --artifact <path|->      Artifact JSON file or stdin",
+    "  --stdin                  Read from stdin (auto-detects artifact JSON or raw text)",
+    "  --artifact-file <path|url> Artifact JSON file or URL",
     "  --artifact-json <json>   Artifact JSON string",
-    "  --schema <path>          JSON schema file",
+    "  --schema <path|url>      JSON schema file or URL",
     "  --schema-json <json>     JSON schema string",
     "  --model <provider/model> Model identifier (e.g. openai/gpt-5, default: configured or cheapest)",
     "  --output <path|->        Output path or stdout (default: -)",
@@ -163,6 +177,30 @@ const fetchSchemaFromUrl = async (url: string): Promise<AnyJSONSchema> => {
   return parseSchemaText(url, text);
 };
 
+const parseArtifactText = (source: string, text: string) => {
+  try {
+    return parseSerializedArtifacts(text);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Artifact at ${source} is not valid JSON: ${message}`);
+  }
+};
+
+const fetchArtifactFromUrl = async (url: string) => {
+  const response = await fetch(url, {
+    headers: {
+      accept: "application/json, */*;q=0.1",
+    },
+  });
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch artifact from ${url}: ${response.status} ${response.statusText}`,
+    );
+  }
+  const text = await response.text();
+  return parseArtifactText(url, text);
+};
+
 export const resolveModel = async (model: string) => {
   (globalThis as { AI_SDK_LOG_WARNINGS?: boolean }).AI_SDK_LOG_WARNINGS ??= false;
   process.env.AI_SDK_LOG_WARNINGS ??= "false";
@@ -170,7 +208,7 @@ export const resolveModel = async (model: string) => {
   const modelName = rest.join("/");
 
   if (!provider || !modelName) {
-    throw new Error(`Invalid model format: ${model}`);
+    throw new UserError(`Invalid model format: ${model}. Expected format: provider/model (e.g., openai/gpt-4)`);
   }
 
   const envVar = resolveProviderEnvVar(provider);
@@ -201,7 +239,7 @@ export const resolveModel = async (model: string) => {
         apiKey = await resolveProviderToken("opencode");
       }
       if (!apiKey) {
-        throw new Error("OpenCode API key is required. Set OPENCODE_API_KEY environment variable or run 'struktur auth set --provider opencode --token <token>'");
+        throw new UserError("OpenCode API key is required. Set OPENCODE_API_KEY environment variable or run 'struktur auth set --provider opencode --token <token>'");
       }
       
       // OpenCode Zen uses different AI SDK packages based on model family
@@ -251,7 +289,7 @@ export const resolveModel = async (model: string) => {
       return modelInstance;
     }
     default:
-      throw new Error(`Unsupported model provider: ${provider}`);
+      throw new UserError(`Unsupported model provider: ${provider}. Supported providers: openai, anthropic, google, opencode, openrouter`);
   }
 };
 
@@ -265,7 +303,7 @@ export const resolveDefaultModelSpec = async () => {
   const providers = await listStoredProviders();
   const firstProvider = providers[0]?.provider;
   if (!firstProvider) {
-    throw new Error("Model is required (--model provider/model) and no providers are configured.");
+    throw new UserError("No model specified and no providers are configured.\n\nUse --model <provider/model> to specify a model, or configure a provider with:\n  struktur config providers add <provider> --token <token>");
   }
 
   const cheapest = await resolveCheapestModel(firstProvider);
@@ -284,7 +322,7 @@ export const resolveExplicitModelSpec = async (spec: string): Promise<string> =>
 const ensureSingleInput = (inputs: Array<string | boolean | undefined>) => {
   const count = inputs.filter((value) => value !== undefined && value !== false).length;
   if (count !== 1) {
-    throw new Error("Specify exactly one input source.");
+    throw new UserError("Specify exactly one input source: --input, --text, --stdin, --artifact, or --artifact-json");
   }
 };
 
@@ -305,8 +343,8 @@ export const loadSchema = async (
   );
 
   if (defined.length > 1) {
-    throw new Error(
-      "Specify exactly one schema source: --schema, --schema-json, or --fields.",
+    throw new UserError(
+      "Specify exactly one schema source: --schema, --schema-json, or --fields",
     );
   }
 
@@ -335,35 +373,33 @@ export const loadArtifactsFromOptions = async (
   const input = options.input;
   const text = options.text;
   const stdin = options.stdin;
-  const artifact = options.artifact;
+  const artifactFile = options["artifact-file"];
   const artifactJson = options["artifact-json"];
   const noParse = options["no-parse"] === true;
   const images = options.images === true;
   const screenshots = options.screenshots === true;
-  const screenshotScale = typeof options["screenshot-scale"] === "string" 
-    ? parseFloat(options["screenshot-scale"]) 
-    : undefined;
-  const screenshotWidth = typeof options["screenshot-width"] === "string" 
-    ? parseInt(options["screenshot-width"], 10) 
-    : undefined;
   const mimeOverride = typeof options.mime === "string" ? options.mime : undefined;
   const parserOverride = typeof options.parser === "string" ? options.parser : undefined;
   const readStdin = deps?.readStdinText ?? readStdinText;
   const stdinIsTTY = deps?.stdinIsTTY ?? process.stdin.isTTY;
   const inferredStdin =
-    !stdin && !input && !text && !artifact && !artifactJson && stdinIsTTY === false;
+    !stdin && !input && !text && !artifactFile && !artifactJson && stdinIsTTY === false;
   const stdinRequested = Boolean(stdin) || inferredStdin;
 
-  ensureSingleInput([input, text, stdinRequested, artifact, artifactJson]);
+  ensureSingleInput([input, text, stdinRequested, artifactFile, artifactJson]);
 
   if (typeof artifactJson === "string") {
     const serialized = parseSerializedArtifacts(artifactJson);
     return parse({ kind: "artifact-json", data: serialized });
   }
 
-  if (artifact) {
-    const source = artifact === "-" ? await readStdinText() : await Bun.file(artifact as string).text();
-    const serialized = parseSerializedArtifacts(source);
+  if (artifactFile) {
+    if (isHttpUrl(artifactFile as string)) {
+      const serialized = await fetchArtifactFromUrl(artifactFile as string);
+      return parse({ kind: "artifact-json", data: serialized });
+    }
+    const source = await Bun.file(artifactFile as string).text();
+    const serialized = parseArtifactText(artifactFile as string, source);
     return parse({ kind: "artifact-json", data: serialized });
   }
 
@@ -373,6 +409,14 @@ export const loadArtifactsFromOptions = async (
 
   if (stdinRequested) {
     const stdinBuffer = Buffer.from(await readStdin());
+
+    // Try to parse as artifact JSON first
+    try {
+      const serialized = parseSerializedArtifacts(stdinBuffer.toString());
+      return parse({ kind: "artifact-json", data: serialized });
+    } catch {
+      // Not valid artifact JSON — continue with MIME detection
+    }
 
     // MIME detection for stdin
     let detectedMime: string | null = null;
@@ -426,8 +470,6 @@ export const loadArtifactsFromOptions = async (
         parserConfig: effectiveParsers, 
         includeImages: images,
         screenshots,
-        screenshotScale,
-        screenshotWidth,
       }
     );
   }
@@ -480,7 +522,7 @@ export const loadArtifactsFromOptions = async (
     }
 
     if (!noParse && !mimeOverride && detectedMime === null) {
-      throw new Error(
+      throw new UserError(
         `Cannot detect MIME type for file "${input}". Use --mime to specify the type.`
       );
     }
@@ -491,11 +533,9 @@ export const loadArtifactsFromOptions = async (
         parserConfig: effectiveParsers, 
         includeImages: images,
         screenshots,
-        screenshotScale,
-        screenshotWidth,
       }
     );
   }
 
-  throw new Error("No input provided.");
+  throw new UserError("No input provided. Use --input, --text, --stdin, --artifact, or --artifact-json");
 };

@@ -65,6 +65,7 @@ import {
   resolveExplicitModelSpec,
   resolveModel,
   stdinConsumed,
+  UserError,
 } from "./cli/shared";
 import pkg from "../package.json" with { type: "json" };
 
@@ -1065,7 +1066,7 @@ const createStrategy = (
     case "doublePassAutoMerge":
       return doublePassAutoMerge({ model, dedupeModel: model, chunkSize });
     default:
-      throw new Error(`Unsupported strategy: ${name}`);
+      throw new UserError(`Unsupported strategy: ${name}. Available strategies: simple, parallel, sequential, parallelAutoMerge, sequentialAutoMerge, doublePass, doublePassAutoMerge`);
   }
 };
 
@@ -1084,13 +1085,13 @@ const readTokenInput = async (
   const hasTokenStdin = tokenStdin === true;
 
   if (hasToken && hasTokenStdin) {
-    throw new Error(
-      "Specify exactly one token source (--token or --token-stdin).",
+    throw new UserError(
+      "Specify exactly one token source: --token or --token-stdin",
     );
   }
 
   if (!hasToken && !hasTokenStdin) {
-    throw new Error("Token is required (--token or --token-stdin).");
+    throw new UserError("Token is required. Use --token <value> or --token-stdin");
   }
 
   if (hasToken) {
@@ -1219,7 +1220,7 @@ const modelsAliasGetCommand = defineCommand({
   async run({ args }) {
     const model = await getAlias(args.alias);
     if (!model) {
-      throw new Error(`No alias found: ${args.alias}`);
+      throw new UserError(`No alias found: ${args.alias}`);
     }
     const json = JSON.stringify({ alias: args.alias, model }, null, 2);
     await writeOutput("-", json);
@@ -1389,8 +1390,8 @@ const providersAddCommand = defineCommand({
   },
   async run({ args }) {
     if (!supportedProviders.includes(args.provider)) {
-      throw new Error(
-        `Unknown provider: ${args.provider}. Supported: ${supportedProviders.join(", ")}`,
+      throw new UserError(
+        `Unknown provider: ${args.provider}. Supported providers: ${supportedProviders.join(", ")}`,
       );
     }
     const token = await readTokenInput(args.token, args["token-stdin"]);
@@ -1511,10 +1512,9 @@ const extractCommand = defineCommand({
       type: "boolean",
       description: "Read raw text from stdin (auto-detected when piped)",
     },
-    artifact: {
+    "artifact-file": {
       type: "string",
-      description: "Artifact JSON file or stdin (-)",
-      alias: "a",
+      description: "Artifact JSON file path or URL",
     },
     "artifact-json": {
       type: "string",
@@ -1532,7 +1532,7 @@ const extractCommand = defineCommand({
     fields: {
       type: "string",
       description:
-        'Shorthand field list, e.g. "name, age:number" / "price_history:array{number}" / "sizes:enum{small|medium|large}"',
+        'Shorthand field list, e.g. "name, age:number" / "tags:array" / "price_history:array{number}" / "sizes:enum{small|medium|large}"',
       alias: "f",
     },
     model: {
@@ -1593,14 +1593,6 @@ const extractCommand = defineCommand({
       description: "Render page screenshots and include them as images in the artifact output",
       default: false,
     },
-    "screenshot-scale": {
-      type: "string",
-      description: "Scale factor for screenshots (default: 1.5)",
-    },
-    "screenshot-width": {
-      type: "string",
-      description: "Target width in pixels for screenshots (overrides scale)",
-    },
   },
   async run({ args }) {
     const isDebug = args.debug === true;
@@ -1656,13 +1648,11 @@ const extractCommand = defineCommand({
       input: args.input,
       text: args.text,
       stdin: args.stdin,
-      artifact: args.artifact,
+      "artifact-file": args["artifact-file"],
       "artifact-json": args["artifact-json"],
       "no-parse": args["no-parse"],
       images: args.images,
       screenshots: args.screenshots,
-      "screenshot-scale": args["screenshot-scale"],
-      "screenshot-width": args["screenshot-width"],
       mime: args.mime,
       parser: args.parser,
     });
@@ -1700,7 +1690,7 @@ const extractCommand = defineCommand({
 
     const chunkSize = parseInt(args["chunk-size"], 10);
     if (!Number.isFinite(chunkSize) || chunkSize <= 0) {
-      throw new Error("Chunk size must be a positive number.");
+      throw new UserError("Chunk size must be a positive number");
     }
 
     const model = await resolveModel(modelSpec);
@@ -1780,7 +1770,7 @@ const extractCommand = defineCommand({
             typeof SchemaValidationError
           >;
           const errorDetails = JSON.stringify(schemaError.errors, null, 2);
-          throw new Error(`Schema validation failed:\n${errorDetails}`);
+          throw new UserError(`Schema validation failed:\n${errorDetails}`);
         }
         throw result.error;
       }
@@ -1898,7 +1888,7 @@ const parseCommand = defineCommand({
         // Fallback to text/plain for stdin
         mimeType = "text/plain";
       } else {
-        throw new Error(
+        throw new UserError(
           `Cannot detect MIME type for file "${args.input}". Use --mime to specify the type.`
         );
       }
@@ -1956,7 +1946,7 @@ const parseCommand = defineCommand({
         contents: [{ media: [{ type: "image" as const, contents: buffer }] }],
       }];
     } else {
-      throw new Error(
+      throw new UserError(
         `No parser configured for MIME type "${mimeType}". Use --parser to specify an npm parser package or configure one with: struktur config parsers add --mime ${mimeType} ...`
       );
     }
@@ -2024,7 +2014,7 @@ const configParsersGetCommand = defineCommand({
   async run({ args }) {
     const parser = await getParser(args.mime);
     if (!parser) {
-      throw new Error(`No parser configured for MIME type: ${args.mime}`);
+      throw new UserError(`No parser configured for MIME type: ${args.mime}`);
     }
     const json = JSON.stringify({ mimeType: args.mime, parser }, null, 2);
     await writeOutput("-", json);
@@ -2063,8 +2053,8 @@ const configParsersAddCommand = defineCommand({
       (v) => v !== undefined && v !== ""
     );
     if (sources.length !== 1) {
-      throw new Error(
-        "Specify exactly one of --npm, --file-command, or --stdin-command."
+      throw new UserError(
+        "Specify exactly one of: --npm, --file-command, or --stdin-command"
       );
     }
 
@@ -2073,7 +2063,7 @@ const configParsersAddCommand = defineCommand({
       parserDef = { type: "npm" as const, package: args.npm };
     } else if (args["file-command"]) {
       if (!args["file-command"].includes("FILE_PATH")) {
-        throw new Error(
+        throw new UserError(
           `--file-command must contain FILE_PATH placeholder. Got: "${args["file-command"]}"`
         );
       }
@@ -2231,6 +2221,12 @@ runMain(main).catch(async (error) => {
   }
 
   const message = error instanceof Error ? error.message : String(error);
-  process.stderr.write(`${message}\n`);
+  
+  if (error instanceof UserError) {
+    process.stderr.write(`error: ${message}\n`);
+  } else {
+    process.stderr.write(`${message}\n`);
+  }
+  
   process.exit(1);
 });

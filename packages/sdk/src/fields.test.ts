@@ -255,6 +255,12 @@ describe("parseFieldsString — arrays", () => {
     ]);
   });
 
+  test("array shorthand defaults to string", () => {
+    expect(parseFieldsString("tags:array")).toEqual([
+      { name: "tags", kind: "array", items: "string" },
+    ]);
+  });
+
   test("array of number", () => {
     expect(parseFieldsString("scores:array{number}")).toEqual([
       { name: "scores", kind: "array", items: "number" },
@@ -519,6 +525,18 @@ describe("buildSchemaFromFields", () => {
         addresses: { type: "array", items: { type: "string" } },
       },
       required: ["name", "addresses"],
+      additionalProperties: false,
+    });
+  });
+
+  test("array shorthand (user example: name,authors:array)", () => {
+    expect(buildSchemaFromFields("name,authors:array")).toEqual({
+      type: "object",
+      properties: {
+        name:    { type: "string" },
+        authors: { type: "array", items: { type: "string" } },
+      },
+      required: ["name", "authors"],
       additionalProperties: false,
     });
   });

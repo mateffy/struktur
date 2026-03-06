@@ -190,3 +190,36 @@ test("--no-images is accepted without error for stdin text inputs", async () => 
   expect(artifacts).toHaveLength(1);
   expect(artifacts[0]?.type).toBe("text");
 });
+
+// ─── stdin artifact JSON auto-detection ───────────────────────────────────────
+
+test("stdin with valid artifact JSON is parsed as artifact", async () => {
+  const artifactJson = JSON.stringify([
+    { id: "test-artifact", type: "text", contents: [{ text: "hello from artifact" }] }
+  ]);
+  const artifacts = await loadArtifactsFromOptions(
+    { stdin: true },
+    {
+      readStdinText: () => Promise.resolve(artifactJson),
+      stdinIsTTY: false,
+    }
+  );
+  expect(artifacts).toHaveLength(1);
+  expect(artifacts[0]?.id).toBe("test-artifact");
+  expect(artifacts[0]?.type).toBe("text");
+});
+
+test("stdin with invalid JSON falls back to text parsing", async () => {
+  const stdinText = "this is not json, just plain text";
+  const artifacts = await loadArtifactsFromOptions(
+    { stdin: true },
+    {
+      readStdinText: () => Promise.resolve(stdinText),
+      stdinIsTTY: false,
+    }
+  );
+  expect(artifacts).toHaveLength(1);
+  expect(artifacts[0]?.type).toBe("text");
+  const texts = artifacts[0]?.contents.map((c) => c.text).join(" ");
+  expect(texts).toContain(stdinText);
+});

@@ -71,9 +71,12 @@ extract({ fields: "name, role:enum{admin|user|guest}, active:bool", ... })
 
 Array type [#array-type]
 
-Use `array{itemType}` for array fields. The item type can be any scalar keyword including aliases.
+Use `array{itemType}` for array fields. The item type can be any scalar keyword including aliases. You can also use `array` as a shorthand for `array{string}`.
 
 ```ts
+extract({ fields: "tags:array", ... })
+// => { "type": "array", "items": { "type": "string" } }
+
 extract({ fields: "tags:array{string}", ... })
 // => { "type": "array", "items": { "type": "string" } }
 
@@ -96,7 +99,7 @@ Every `fields` string produces an object schema with:
 * `"additionalProperties": false`
 
 ```ts
-buildSchemaFromFields("title, price:number, tags:array{string}")
+buildSchemaFromFields("title, price:number, tags:array")
 // =>
 {
   "type": "object",
@@ -206,7 +209,7 @@ Parse errors include the offending field name and a hint toward valid alternativ
 parseFieldsString("count:bigint")
 // Error: Unknown type "bigint" for field "count".
 //        Scalar types: bool, boolean, float, int, integer, number, string.
-//        Complex types: enum{a|b|c}, array{string}.
+//        Complex types: enum{a|b|c}, array{string}, or array (shorthand for array{string}).
 
 parseFieldsString("role:enum{admin}")
 // Error: enum for field "role" must have at least two values separated by "|", got: "admin".

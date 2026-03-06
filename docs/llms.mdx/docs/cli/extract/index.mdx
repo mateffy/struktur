@@ -10,13 +10,13 @@ struktur [extract] [options]
 
 Input options (exactly one required) [#input-options-exactly-one-required]
 
-| Flag                     | Type    | Description                                                                         |
-| ------------------------ | ------- | ----------------------------------------------------------------------------------- |
-| `--input <path>`         | string  | Read from a file path. MIME type auto-detected from magic bytes and file extension. |
-| `--stdin`                | boolean | Read raw text from stdin. Auto-detected when piped with no other input flag.        |
-| `--text <string>`        | string  | Use inline text as input.                                                           |
-| `--artifact <path\|->`   | string  | Read pre-built artifact JSON from file or stdin (`-`).                              |
-| `--artifact-json <json>` | string  | Inline artifact JSON string.                                                        |
+| Flag                          | Type    | Description                                                                                                 |
+| ----------------------------- | ------- | ----------------------------------------------------------------------------------------------------------- |
+| `--input <path>`              | string  | Read from a file path. MIME type auto-detected from magic bytes and file extension.                         |
+| `--stdin`                     | boolean | Read from stdin. Auto-detects artifact JSON or raw text. Auto-detected when piped with no other input flag. |
+| `--text <string>`             | string  | Use inline text as input.                                                                                   |
+| `--artifact-file <path\|url>` | string  | Read pre-built artifact JSON from file path or HTTP(S) URL.                                                 |
+| `--artifact-json <json>`      | string  | Inline artifact JSON string.                                                                                |
 
 Schema options (exactly one required) [#schema-options-exactly-one-required]
 
@@ -54,12 +54,14 @@ These flags control how `--input` files are parsed before extraction.
 
 Image options (PDF inputs) [#image-options-pdf-inputs]
 
-| Flag                       | Type    | Default | Description                                                                                                                         |
-| -------------------------- | ------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `--images`                 | boolean | false   | Extract embedded images from PDFs and include them in the artifact.                                                                 |
-| `--screenshots`            | boolean | false   | Render each PDF page as a screenshot image.                                                                                         |
-| `--screenshot-scale <num>` | number  | 1.5     | Scale factor for page screenshots. Higher = larger/sharper images.                                                                  |
-| `--screenshot-width <px>`  | number  | —       | Target width for screenshots in pixels. When set, overrides `--screenshot-scale` and height is calculated to maintain aspect ratio. |
+| Flag            | Type    | Default | Description                                                         |
+| --------------- | ------- | ------- | ------------------------------------------------------------------- |
+| `--images`      | boolean | false   | Extract embedded images from PDFs and include them in the artifact. |
+| `--screenshots` | boolean | false   | Render each PDF page as a screenshot image.                         |
+
+:::note
+For custom screenshot dimensions, use `struktur parse --screenshots --screenshot-scale <num>` and pipe the artifact to `struktur extract --artifact-file -`.
+:::
 
 Strategy [#strategy]
 
@@ -121,7 +123,9 @@ struktur --input invoice.pdf --images \
 **PDF with page screenshots (for slide decks, visual PDFs):**
 
 ```bash
-struktur --input slides.pdf --screenshots --screenshot-scale 2 \
+# Use parse for custom screenshot settings, then pipe to extract
+struktur parse --input slides.pdf --screenshots --screenshot-scale 2 | \
+  struktur --artifact-file - \
   --fields "title, slide_count:integer" \
   --model openai/gpt-4o
 ```

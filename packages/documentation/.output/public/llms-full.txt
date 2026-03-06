@@ -291,13 +291,13 @@ struktur [extract] [options]
 
 Input options (exactly one required) [#input-options-exactly-one-required]
 
-| Flag                     | Type    | Description                                                                         |
-| ------------------------ | ------- | ----------------------------------------------------------------------------------- |
-| `--input <path>`         | string  | Read from a file path. MIME type auto-detected from magic bytes and file extension. |
-| `--stdin`                | boolean | Read raw text from stdin. Auto-detected when piped with no other input flag.        |
-| `--text <string>`        | string  | Use inline text as input.                                                           |
-| `--artifact <path\|->`   | string  | Read pre-built artifact JSON from file or stdin (`-`).                              |
-| `--artifact-json <json>` | string  | Inline artifact JSON string.                                                        |
+| Flag                          | Type    | Description                                                                                                 |
+| ----------------------------- | ------- | ----------------------------------------------------------------------------------------------------------- |
+| `--input <path>`              | string  | Read from a file path. MIME type auto-detected from magic bytes and file extension.                         |
+| `--stdin`                     | boolean | Read from stdin. Auto-detects artifact JSON or raw text. Auto-detected when piped with no other input flag. |
+| `--text <string>`             | string  | Use inline text as input.                                                                                   |
+| `--artifact-file <path\|url>` | string  | Read pre-built artifact JSON from file path or HTTP(S) URL.                                                 |
+| `--artifact-json <json>`      | string  | Inline artifact JSON string.                                                                                |
 
 Schema options (exactly one required) [#schema-options-exactly-one-required]
 
@@ -335,12 +335,14 @@ These flags control how `--input` files are parsed before extraction.
 
 Image options (PDF inputs) [#image-options-pdf-inputs]
 
-| Flag                       | Type    | Default | Description                                                                                                                         |
-| -------------------------- | ------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `--images`                 | boolean | false   | Extract embedded images from PDFs and include them in the artifact.                                                                 |
-| `--screenshots`            | boolean | false   | Render each PDF page as a screenshot image.                                                                                         |
-| `--screenshot-scale <num>` | number  | 1.5     | Scale factor for page screenshots. Higher = larger/sharper images.                                                                  |
-| `--screenshot-width <px>`  | number  | —       | Target width for screenshots in pixels. When set, overrides `--screenshot-scale` and height is calculated to maintain aspect ratio. |
+| Flag            | Type    | Default | Description                                                         |
+| --------------- | ------- | ------- | ------------------------------------------------------------------- |
+| `--images`      | boolean | false   | Extract embedded images from PDFs and include them in the artifact. |
+| `--screenshots` | boolean | false   | Render each PDF page as a screenshot image.                         |
+
+:::note
+For custom screenshot dimensions, use `struktur parse --screenshots --screenshot-scale <num>` and pipe the artifact to `struktur extract --artifact-file -`.
+:::
 
 Strategy [#strategy]
 
@@ -402,7 +404,9 @@ struktur --input invoice.pdf --images \
 **PDF with page screenshots (for slide decks, visual PDFs):**
 
 ```bash
-struktur --input slides.pdf --screenshots --screenshot-scale 2 \
+# Use parse for custom screenshot settings, then pipe to extract
+struktur parse --input slides.pdf --screenshots --screenshot-scale 2 | \
+  struktur --artifact-file - \
   --fields "title, slide_count:integer" \
   --model openai/gpt-4o
 ```
@@ -538,12 +542,13 @@ Values are separated by `|`. At least two values are required.
 Arrays [#arrays]
 
 ```bash
+--fields "tags:array"              # shorthand for array{string}
 --fields "tags:array{string}"
 --fields "scores:array{float}"
 --fields "ids:array{int}"
 ```
 
-The item type can be any scalar keyword (including aliases).
+The item type can be any scalar keyword (including aliases). If omitted, defaults to `string`.
 
 ***
 
@@ -599,7 +604,7 @@ done
 
 Generated schema [#generated-schema]
 
-`--fields "title, price:number, tags:array{string}"` produces this schema internally:
+`--fields "title, price:number, tags:array"` produces this schema internally:
 
 ```json
 {
@@ -626,7 +631,7 @@ Bad field definitions fail immediately with a helpful message:
 --fields "count:bigint"
 # Error: Unknown type "bigint" for field "count".
 #        Scalar types: bool, boolean, float, int, integer, number, string.
-#        Complex types: enum{a|b|c}, array{string}.
+#        Complex types: enum{a|b|c}, array{string}, or array (shorthand for array{string}).
 
 --fields "role:enum{admin}"
 # Error: enum for field "role" must have at least two values separated by "|", got: "admin".
@@ -788,7 +793,7 @@ Converts a file or stdin to Artifact JSON. Use this to:
 * Inspect how Struktur will represent your document before running extraction
 * Pre-process files and cache the artifact JSON for repeated extraction
 * Debug parser output when configuring a custom parser
-* Pipe artifacts into `struktur extract --artifact -` for decoupled workflows
+* Pipe artifacts into `struktur extract --artifact-file -` for decoupled workflows
 
 Options [#options]
 
@@ -854,7 +859,7 @@ struktur parse --input data.xlsx --parser @myorg/xlsx-parser
 
 # Pipe into extract
 struktur parse --input doc.pdf --images | \
-  struktur extract --artifact - --fields "title, author" --model openai/gpt-4o-mini
+  struktur extract --artifact-file - --fields "title, author" --model openai/gpt-4o-mini
 
 # Inspect in the browser
 struktur parse --input doc.pdf | struktur utils artifact-viewer --stdin > viewer.html
@@ -2257,10 +2262,11 @@ Text is split on double newlines into content slices automatically.
 
 Artifact JSON (CLI) [#artifact-json-cli]
 
-| Flag                     | Description                                              |
-| ------------------------ | -------------------------------------------------------- |
-| `--artifact <path\|->`   | Reads a pre-built artifact JSON file. Use `-` for stdin. |
-| `--artifact-json <json>` | Inline artifact JSON string.                             |
+| Flag                          | Description                                                  |
+| ----------------------------- | ------------------------------------------------------------ |
+| `--stdin`                     | Reads stdin. Auto-detects artifact JSON or raw text.         |
+| `--artifact-file <path\|url>` | Reads pre-built artifact JSON from file path or HTTP(S) URL. |
+| `--artifact-json <json>`      | Inline artifact JSON string.                                 |
 
 Both accept a single artifact object or an array.
 
@@ -4114,9 +4120,12 @@ extract({ fields: "name, role:enum{admin|user|guest}, active:bool", ... })
 
 Array type [#array-type]
 
-Use `array{itemType}` for array fields. The item type can be any scalar keyword including aliases.
+Use `array{itemType}` for array fields. The item type can be any scalar keyword including aliases. You can also use `array` as a shorthand for `array{string}`.
 
 ```ts
+extract({ fields: "tags:array", ... })
+// => { "type": "array", "items": { "type": "string" } }
+
 extract({ fields: "tags:array{string}", ... })
 // => { "type": "array", "items": { "type": "string" } }
 
@@ -4139,7 +4148,7 @@ Every `fields` string produces an object schema with:
 * `"additionalProperties": false`
 
 ```ts
-buildSchemaFromFields("title, price:number, tags:array{string}")
+buildSchemaFromFields("title, price:number, tags:array")
 // =>
 {
   "type": "object",
@@ -4249,7 +4258,7 @@ Parse errors include the offending field name and a hint toward valid alternativ
 parseFieldsString("count:bigint")
 // Error: Unknown type "bigint" for field "count".
 //        Scalar types: bool, boolean, float, int, integer, number, string.
-//        Complex types: enum{a|b|c}, array{string}.
+//        Complex types: enum{a|b|c}, array{string}, or array (shorthand for array{string}).
 
 parseFieldsString("role:enum{admin}")
 // Error: enum for field "role" must have at least two values separated by "|", got: "admin".

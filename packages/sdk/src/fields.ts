@@ -11,6 +11,7 @@
  *   int                count:int  (integer + multipleOf:1 to disallow fractions)
  *   enum               status:enum{draft|published|archived}
  *   array of scalar    tags:array{string}
+ *   array (shorthand)  tags:array  (defaults to array{string})
  *
  * Aliases:
  *   bool  → boolean
@@ -23,6 +24,7 @@
  *   parseFieldsString("title , price: number , active:boolean")
  *   parseFieldsString("name, status:enum{draft|published}")
  *   parseFieldsString("name, tags:array{string}")
+ *   parseFieldsString("name, tags:array")
  *   parseFieldsString("count:int, ratio:float, enabled:bool")
  */
 
@@ -88,7 +90,7 @@ const parseScalarType = (raw: string, fieldName: string): ScalarFieldType => {
     throw new Error(
       `Unknown type "${raw}" for field "${fieldName}". ` +
         `Scalar types: ${allNames.join(", ")}. ` +
-        `Complex types: enum{a|b|c}, array{string}.`,
+        `Complex types: enum{a|b|c}, array{string}, or array (shorthand for array{string}).`,
     );
   }
   return resolved as ScalarFieldType;
@@ -142,6 +144,11 @@ const parseField = (token: string): ParsedField => {
       );
     }
     return { name, kind: "array", items: parseScalarType(itemType, name) };
+  }
+
+  // array (shorthand for array{string})
+  if (rawType === "array") {
+    return { name, kind: "array", items: "string" };
   }
 
   // plain scalar

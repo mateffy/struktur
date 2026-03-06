@@ -74,12 +74,13 @@ Values are separated by `|`. At least two values are required.
 ### Arrays
 
 ```bash
+--fields "tags:array"              # shorthand for array{string}
 --fields "tags:array{string}"
 --fields "scores:array{float}"
 --fields "ids:array{int}"
 ```
 
-The item type can be any scalar keyword (including aliases).
+The item type can be any scalar keyword (including aliases). If omitted, defaults to `string`.
 
 ---
 
@@ -135,7 +136,7 @@ done
 
 ## Generated schema
 
-`--fields "title, price:number, tags:array{string}"` produces this schema internally:
+`--fields "title, price:number, tags:array"` produces this schema internally:
 
 ```json
 {
@@ -162,7 +163,7 @@ Bad field definitions fail immediately with a helpful message:
 --fields "count:bigint"
 # Error: Unknown type "bigint" for field "count".
 #        Scalar types: bool, boolean, float, int, integer, number, string.
-#        Complex types: enum{a|b|c}, array{string}.
+#        Complex types: enum{a|b|c}, array{string}, or array (shorthand for array{string}).
 
 --fields "role:enum{admin}"
 # Error: enum for field "role" must have at least two values separated by "|", got: "admin".

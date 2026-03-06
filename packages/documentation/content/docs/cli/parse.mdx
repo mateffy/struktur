@@ -17,7 +17,7 @@ Converts a file or stdin to Artifact JSON. Use this to:
 - Inspect how Struktur will represent your document before running extraction
 - Pre-process files and cache the artifact JSON for repeated extraction
 - Debug parser output when configuring a custom parser
-- Pipe artifacts into `struktur extract --artifact -` for decoupled workflows
+- Pipe artifacts into `struktur extract --artifact-file -` for decoupled workflows
 
 ## Options
 
@@ -83,7 +83,7 @@ struktur parse --input data.xlsx --parser @myorg/xlsx-parser
 
 # Pipe into extract
 struktur parse --input doc.pdf --images | \
-  struktur extract --artifact - --fields "title, author" --model openai/gpt-4o-mini
+  struktur extract --artifact-file - --fields "title, author" --model openai/gpt-4o-mini
 
 # Inspect in the browser
 struktur parse --input doc.pdf | struktur utils artifact-viewer --stdin > viewer.html

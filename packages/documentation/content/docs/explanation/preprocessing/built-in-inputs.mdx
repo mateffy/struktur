@@ -17,7 +17,8 @@ Text is split on double newlines into content slices automatically.
 
 | Flag | Description |
 |------|-------------|
-| `--artifact <path\|->` | Reads a pre-built artifact JSON file. Use `-` for stdin. |
+| `--stdin` | Reads stdin. Auto-detects artifact JSON or raw text. |
+| `--artifact-file <path\|url>` | Reads pre-built artifact JSON from file path or HTTP(S) URL. |
 | `--artifact-json <json>` | Inline artifact JSON string. |
 
 Both accept a single artifact object or an array.
