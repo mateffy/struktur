@@ -9,7 +9,8 @@
     "build:docs": "bun run --filter @struktur/documentation build",
     "version:patch": "bun scripts/version.ts patch",
     "version:minor": "bun scripts/version.ts minor",
-    "version:major": "bun scripts/version.ts major"
+    "version:major": "bun scripts/version.ts major",
+    "publish": "bun scripts/publish.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"
