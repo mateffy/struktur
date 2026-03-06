@@ -644,7 +644,7 @@ function Home() {
           <Card>
             <CommandRow
               label="Install globally"
-              command="npm install -g @mateffy/struktur"
+              command="npm install -g @struktur/cli"
             />
             <CommandRow
               label="Store your API key and set a default model in one step"
@@ -1099,7 +1099,7 @@ function Home() {
           <Card>
             <CommandRow
               label="Install the SDK"
-              command="npm install @mateffy/struktur"
+              command="npm install @struktur/sdk"
             />
             <div
               style={{
@@ -1117,7 +1117,7 @@ function Home() {
                 <span style={{ color: "#a0926f" }}>import</span>{" "}
                 {"{ extract, simple, parse }"}{" "}
                 <span style={{ color: "#a0926f" }}>from</span>{" "}
-                <span style={{ color: "#7a5c3a" }}>'@mateffy/struktur'</span>;
+                <span style={{ color: "#7a5c3a" }}>'@struktur/sdk'</span>;
               </div>
               <div>
                 <span style={{ color: "#a0926f" }}>import</span>{" "}
@@ -1229,7 +1229,7 @@ function Home() {
                 <div style={{ marginBottom: "20px" }}>
                   <CommandRow
                     label="Install globally"
-                    command="npm install -g @mateffy/struktur"
+                    command="npm install -g @struktur/cli"
                   />
                   <CommandRow
                     label="Extract data from any file"
