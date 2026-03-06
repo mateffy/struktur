@@ -5,7 +5,7 @@
   "sideEffects": false,
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build && mv .output/dist/client/ .output/public/ && cp .output/public/CNAME .output/public/docs/CNAME && cp .output/public/_shell.html .output/public/index.html && touch .output/public/.nojekyll && rm -rf ../../docs && cp -r .output/public ../../docs",
+    "build": "vite build && mv .output/dist/client/ .output/public/ && cp .output/public/CNAME .output/public/docs/CNAME && cp .output/public/_shell.html .output/public/index.html && mv .output/public/client/__tsr .output/public/__tsr && rmdir .output/public/client && touch .output/public/.nojekyll && rm -rf ../../docs && cp -r .output/public ../../docs",
     "start": "serve .output/public --config ../../serve.json",
     "preview": "vite preview",
     "types:check": "fumadocs-mdx && tsc --noEmit",
