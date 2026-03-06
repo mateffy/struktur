@@ -2,7 +2,7 @@
 
 ## Overview
 
-Struktur is a TypeScript library that reimplements LLM Magic for structured data extraction using the Vercel AI SDK. It operates on JSON-based artifact DTOs, chunks them by token budgets, runs extraction strategies, validates results with Ajv, and merges/dedupes outputs where needed.
+Struktur is a TypeScript library that reimplements LLM Magic for structured data extraction using the Vercel AI SDK. It operates on Artifacts, chunks them by token budgets, runs extraction strategies, validates results against your schema, and merges/dedupes outputs where needed.
 
 ## Monorepo Structure
 
@@ -15,9 +15,9 @@ This is a Bun multi-package monorepo with the following packages:
 ## How to Use
 
 - Primary API: `extract({ artifacts, schema, strategy, events? })`
-- Artifacts: JSON DTOs with text and media slices (no parsing in this repo).
+- Artifacts: JSON with text and media slices (no parsing in this repo).
 - Strategies: `simple`, `parallel`, `sequential`, `parallelAutoMerge`, `sequentialAutoMerge`, `doublePass`, `doublePassAutoMerge`.
-- Schema: JSON Schema (typed with Ajv `JSONSchemaType<T>` for inferred `result.data`).
+- Schema: JSON Schema (typed with `JSONSchemaType<T>` for inferred `result.data`).
 
 Example (usage shown in `README.md`):
 - Build artifacts (e.g. `urlToArtifact`, `fileToArtifact`)
@@ -29,14 +29,14 @@ Example (usage shown in `README.md`):
 ### `packages/sdk/src/`
 
 - `extract.ts`: main entrypoint; delegates to strategy.
-- `types.ts`: core DTOs and strategy interfaces.
+- `types.ts`: core types and strategy interfaces.
 - `artifacts/`: artifact helpers, provider registry, and input parsing/validation.
 - `chunking/`: token-aware splitting and batching.
 - `llm/`: Vercel AI SDK wrapper, message building, retry loop.
 - `prompts/`: prompt builders and artifact XML formatting.
 - `merge/`: schema-aware merge and dedup utilities.
 - `strategies/`: extraction strategies and concurrency helpers.
-- `validation/`: Ajv validator and error shaping.
+- `validation/`: schema validator and error shaping.
 - `auth/`: token and config management for CLI and SDK users.
 - Each `*/AGENTS.md` describes its subtree.
 

@@ -1,6 +1,6 @@
 Artifacts module
 
-- Purpose: convert external inputs into Artifact DTOs and manage parser configuration.
+- Purpose: convert external inputs into Artifacts and manage parser configuration.
 - Key files: `fileToArtifact.ts`, `urlToArtifact.ts`, `providers.ts`, `input.ts`.
 - Design: `ParsersConfig` is the unified configuration system for all parsers (npm packages, CLI commands, and inline handlers). The `providers` registry is deprecated — use inline parsers in `ParsersConfig` instead.
 - `parse` accepts an optional `parserConfig: ParsersConfig` (from `src/parsers/types`) that takes priority over the deprecated providers registry. Custom parsers are resolved by MIME type.

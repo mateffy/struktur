@@ -12,7 +12,7 @@
         Struktur
     </h1>
     <p>
-      All-in-one tool for structured data extraction using LLMs. Feed it documents, get back validated JSON. Handles parsing files, chunking, retries, merging, and deduplication — you just define the schema and choose a strategy. <br /><br />
+      <strong>All-in-one tool for structured data extraction using LLMs.</strong> Feed it documents, get back validated JSON. Handles parsing files, chunking, retries, merging, and deduplication — you just define the schema and choose a strategy. <br /><br />
         <a href="https://struktur.sh/docs/quickstart" target="_blank">Quickstart</a> |
         <a href="https://struktur.sh/docs" target="_blank">Documentation</a>
     </p>
@@ -63,9 +63,9 @@ curl https://example.com/long-rental-contract.docx \
 ## Install
 
 ```bash
-npm install -g @mateffy/struktur
+npm install -g @struktur/cli
 # or
-bun add -g @mateffy/struktur
+bun add -g @struktur/cli
 ```
 
 <br />
@@ -139,7 +139,7 @@ struktur config parsers add --mime text/calendar --stdin-command "my-ical-parser
 ## SDK quickstart
 
 ```ts
-import { extract, simple, urlToArtifact } from "@mateffy/struktur";
+import { extract, simple, urlToArtifact } from "@struktur/sdk";
 import { openai } from "@ai-sdk/openai";
 import type { JSONSchemaType } from "ajv";
 
@@ -185,7 +185,7 @@ const result = await extract({
 
 ## How it works
 
-Struktur converts input files into **Artifacts** — normalized JSON DTOs with text and media slices. A strategy then orchestrates the extraction: chunking, LLM calls, validation, and merging.
+Struktur converts input files into **Artifacts** — normalized JSON with text and media slices. A strategy then orchestrates the extraction: chunking, LLM calls, validation, and merging.
 
 ```mermaid
 flowchart LR
@@ -209,7 +209,7 @@ flowchart LR
 - **Parse**: Convert files (PDF, text, images) into Artifact JSON
 - **Chunk**: Split large inputs by token budget
 - **Extract**: Call LLM with your schema
-- **Validate**: Check against schema with Ajv, retry on errors
+- **Validate**: Check against schema, retry on errors
 - **Merge**: Combine results from multiple chunks
 
 Every LLM response is validated against your schema. If validation fails, the errors are sent back to the model automatically. Most extractions converge in one or two attempts.
@@ -286,8 +286,8 @@ struktur config parsers add \
 For code-only parsers in the SDK, use `InlineParserDef`:
 
 ```typescript
-import { parse } from "@mateffy/struktur";
-import type { InlineParserDef } from "@mateffy/struktur";
+import { parse } from "@struktur/sdk";
+import type { InlineParserDef } from "@struktur/sdk";
 
 const excelParser: InlineParserDef = {
   type: "inline",
@@ -345,7 +345,7 @@ Pick based on input size and whether you're extracting arrays:
 | `doublePassAutoMerge` | Quality + arrays + dedup |
 
 ```ts
-import { extract, parallelAutoMerge } from "@mateffy/struktur";
+import { extract, parallelAutoMerge } from "@struktur/sdk";
 import { openai } from "@ai-sdk/openai";
 
 const result = await extract({
@@ -359,7 +359,7 @@ const result = await extract({
 });
 ```
 
-→ [Choosing a strategy](https://struktur.sh/docs/explanation/strategies/choosing)
+→ [Extraction Strategies](https://struktur.sh/docs/explanation/strategies)
 
 <br />
 <br />
@@ -376,7 +376,7 @@ Supported types: `string` (default), `number`, `integer`, `boolean`, `enum{a|b}`
 
 For optional fields, nested objects, or TypeScript inference on `result.data`, use a full `JSONSchemaType<T>` schema instead.
 
-→ [Fields reference](https://struktur.sh/docs/sdk/fields)
+→ [Fields Shorthand](https://struktur.sh/docs/cli/fields)
 
 <br />
 <br />

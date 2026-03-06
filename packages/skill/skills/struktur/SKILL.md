@@ -1,6 +1,6 @@
 ---
 name: struktur
-description: Extracts structured JSON from pre-parsed artifacts using the Vercel AI SDK. Use when working with @mateffy/struktur — importing extract(), choosing extraction strategies (simple/parallel/sequential/doublePass), building Artifact DTOs, defining schemas, or using the struktur CLI. Handles multi-document extraction, token-aware chunking, Ajv validation with retries, and merge/dedup workflows.
+description: Extracts structured JSON from pre-parsed artifacts using the Vercel AI SDK. Use when working with @struktur/sdk — importing extract(), choosing extraction strategies (simple/parallel/sequential/doublePass), building Artifacts, defining schemas, or using the struktur CLI. Handles multi-document extraction, token-aware chunking, schema validation with retries, and merge/dedup workflows.
 metadata:
   author: mateffy
   version: "1.0"
@@ -8,15 +8,15 @@ metadata:
 
 # Struktur
 
-Struktur turns pre-parsed artifact DTOs into validated JSON via Vercel AI SDK. It chunks by token budget, runs strategy workflows, validates with Ajv, and merges/dedupes outputs.
+Struktur turns pre-parsed Artifacts into validated JSON via Vercel AI SDK. It chunks by token budget, runs strategy workflows, validates against your schema, and merges/dedupes outputs.
 
-**Package**: `@mateffy/struktur`  
+**Package**: `@struktur/sdk`  
 **Runtime**: Bun (use `bun install`, `bun test`, `bun run`)
 
 ## Core API
 
 ```typescript
-import { extract, simple } from "@mateffy/struktur";
+import { extract, simple } from "@struktur/sdk";
 import type { JSONSchemaType } from "ajv";
 
 const result = await extract({
@@ -26,7 +26,7 @@ const result = await extract({
   strategy,            // ExtractionStrategy<T> — required
   events?,             // ExtractionEvents — optional progress hooks
   debug?,              // DebugLogger — optional JSON logging
-  strict?,             // boolean — strict Ajv validation
+  strict?,             // boolean — strict schema validation
 });
 
 result.data    // T — extracted, validated output
@@ -49,7 +49,7 @@ Pick based on input size and output shape.
 | `doublePassAutoMerge` | Max accuracy + dedup | `model`, `chunkSize`, `dedupeModel?` |
 
 ```typescript
-import { extract, simple, parallel, sequential, parallelAutoMerge, doublePass } from "@mateffy/struktur";
+import { extract, simple, parallel, sequential, parallelAutoMerge, doublePass } from "@struktur/sdk";
 import { google } from "@ai-sdk/google";
 import { anthropic } from "@ai-sdk/anthropic";
 import { openai } from "@ai-sdk/openai";
@@ -128,10 +128,10 @@ const fields = "title, price:number, active:boolean, tags:array";
 
 ## Building Artifacts
 
-Struktur does NOT parse PDFs, HTML, or files — it expects pre-parsed DTOs.
+Struktur does NOT parse PDFs, HTML, or files — it expects pre-parsed Artifacts.
 
 ```typescript
-import type { Artifact, ArtifactContent } from "@mateffy/struktur";
+import type { Artifact, ArtifactContent } from "@struktur/sdk";
 
 // Manual construction
 const artifact: Artifact = {
@@ -145,11 +145,11 @@ const artifact: Artifact = {
 };
 
 // From URL (fetches Artifact JSON)
-import { urlToArtifact } from "@mateffy/struktur";
+import { urlToArtifact } from "@struktur/sdk";
 const artifact = await urlToArtifact("https://example.com/artifact.json");
 
 // From file buffer with custom provider
-import { fileToArtifact } from "@mateffy/struktur";
+import { fileToArtifact } from "@struktur/sdk";
 const providers = {
   "application/pdf": async (buffer: Buffer) => ({
     id: "pdf-1",
@@ -190,7 +190,7 @@ const result = await extract({
 ## Custom Strategy
 
 ```typescript
-import type { ExtractionStrategy, ExtractionOptions, ExtractionResult } from "@mateffy/struktur";
+import type { ExtractionStrategy, ExtractionOptions, ExtractionResult } from "@struktur/sdk";
 
 const myStrategy: ExtractionStrategy<Output> = {
   name: "my-strategy",
@@ -248,7 +248,7 @@ extract()
         → buildExtractorPrompt()             (src/prompts/)
            → runWithRetries()                (src/llm/)
               → generateStructured()         (Vercel AI SDK)
-              → Ajv validation / retry
+               → schema validation / retry
               → merge / dedupe               (src/merge/)
 ```
 
@@ -259,7 +259,7 @@ extract()
 - `src/llm/` — `LLMClient`, `RetryingRunner`, `models`
 - `src/prompts/` — `ExtractorPrompt`, `SequentialExtractorPrompt`, `ParallelMergerPrompt`
 - `src/merge/` — `SmartDataMerger` (arrays concat, objects shallow-merge), `Deduplicator` (CRC32)
-- `src/validation/` — Ajv validator, `SchemaValidationError`
+- `src/validation/` — schema validator, `SchemaValidationError`
 - `src/auth/` — token storage (Keychain / `~/.config/struktur/`), alias/default model config
 - `src/debug/` — structured JSON logger (`--debug` flag)
 
@@ -267,7 +267,7 @@ extract()
 
 **Merge rules** (SmartDataMerger): arrays concatenate, objects shallow-merge, scalars prefer newest value.
 
-**Validation retries**: `runWithRetries` feeds Ajv errors back to the LLM (max 3 attempts). `onRetry` fires with `{ attempt, maxAttempts, reason }`.
+**Validation retries**: `runWithRetries` feeds validation errors back to the LLM (max 3 attempts). `onRetry` fires with `{ attempt, maxAttempts, reason }`.
 
 **Token budget**: `chunkSize` is in tokens. Default `10_000`. Images default to 1000 tokens each. Adjust `maxImages` to control multimodal batch costs.
 
