@@ -25,6 +25,7 @@ type SidebarProps = {
     filterScreenshot: boolean
   }
   status: 'idle' | 'parsing' | 'extracting' | 'success' | 'error'
+  isChunkingLoading?: boolean
   onFilesChange: (files: File[]) => void
   onSchemaModeChange: (mode: SchemaMode) => void
   onSchemaJsonChange: (json: string) => void
@@ -46,6 +47,7 @@ export function Sidebar({
   chunkSize,
   parsingOptions,
   chunkingOptions,
+  isChunkingLoading,
   onFilesChange,
   onSchemaModeChange,
   onSchemaJsonChange,
@@ -57,10 +59,9 @@ export function Sidebar({
   onChunkingOptionsChange,
 }: SidebarProps) {
   return (
-    <aside className="w-96 bg-[#ede5d8] border-l border-[#d4c8b8] flex flex-col h-full overflow-hidden">
+    <aside className="w-96 bg-[#ede5d8] border-r border-[#d4c8b8] flex flex-col h-full overflow-hidden">
       <div className="flex-1 overflow-y-auto sidebar-scroll">
         <div className="p-5 space-y-5">
-          {/* Files Section */}
           <section>
             <h2 className="text-sm font-semibold text-[#2d1b0e] mb-3 uppercase tracking-wider">Files</h2>
             <FileUploadZone files={files} onFilesChange={onFilesChange} />
@@ -68,7 +69,6 @@ export function Sidebar({
 
           <Separator className="bg-[#d4c8b8]" />
 
-          {/* Schema Section */}
           <section>
             <h2 className="text-sm font-semibold text-[#2d1b0e] mb-3 uppercase tracking-wider">Schema</h2>
             <SchemaInput
@@ -83,7 +83,6 @@ export function Sidebar({
 
           <Separator className="bg-[#d4c8b8]" />
 
-          {/* Settings Section */}
           <section>
             <h2 className="text-sm font-semibold text-[#2d1b0e] mb-3 uppercase tracking-wider">Settings</h2>
             <ExtractionSettings
@@ -92,6 +91,7 @@ export function Sidebar({
               chunkSize={chunkSize}
               parsingOptions={parsingOptions}
               chunkingOptions={chunkingOptions}
+              isChunkingLoading={isChunkingLoading}
               onModelChange={onModelChange}
               onStrategyChange={onStrategyChange}
               onChunkSizeChange={onChunkSizeChange}

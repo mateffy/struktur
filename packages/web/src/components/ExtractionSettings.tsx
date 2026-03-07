@@ -1,7 +1,10 @@
+import { useState, useRef, useCallback, useMemo } from 'react'
+import * as SliderPrimitive from "@radix-ui/react-slider"
 import { ModelSelectorComponent } from './model/ModelSelector'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import { Slider } from '@/components/ui/slider'
+import { Loader2, Image, Camera, Check } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import {
   Select,
   SelectContent,
@@ -26,6 +29,7 @@ export type ExtractionSettingsProps = {
     filterEmbedded: boolean
     filterScreenshot: boolean
   }
+  isChunkingLoading?: boolean
   onModelChange: (model: string) => void
   onStrategyChange: (strategy: string) => void
   onChunkSizeChange: (size: number) => void
@@ -43,75 +47,266 @@ const STRATEGIES = [
   { value: 'doublePassAutoMerge', label: 'Double Pass + Auto-merge', description: 'Extract, refine, and dedupe' },
 ]
 
-// Toggle button component for image types
-function ImageTypeToggle({
-  label,
-  active,
-  onClick,
-}: {
+interface ToggleCardProps {
+  icon: React.ReactNode
   label: string
+  description: string
   active: boolean
   onClick: () => void
-}) {
+}
+
+function ToggleCard({
+  icon,
+  label,
+  description,
+  active,
+  onClick,
+}: ToggleCardProps) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+      className={`w-full flex items-center gap-2 p-2 rounded-lg border-2 transition-all text-left cursor-pointer bg-[#f5efe6] ${
         active
-          ? 'bg-[#7a5c3a] text-white'
-          : 'bg-[#f5efe6] text-[#7a5c3a] hover:bg-[#e5dccf]'
+          ? 'border-[#5c8a5c]/40 hover:bg-[#e5dccf]'
+          : 'border-[#d4c8b8] hover:border-[#5c8a5c]/30 hover:bg-[#ede5d8]'
       }`}
     >
-      {label}
+      <div className={`w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 transition-colors ${
+        active ? 'bg-transparent' : 'bg-[#ede5d8] text-[#7a5c3a]'
+      }`}>
+        {active ? <Check className="w-4 h-4 text-[#5c8a5c]" /> : icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className={`font-medium text-sm ${active ? 'text-[#5c8a5c]' : 'text-[#2d1b0e]'}`}>
+            {label}
+          </span>
+        </div>
+        <p className="text-[11px] text-[#7a5c3a]/70 leading-snug">
+          {description}
+        </p>
+      </div>
     </button>
   )
 }
 
-// Combined input + slider component
-function InputSlider({
+function CompactInputSlider({
   value,
   onChange,
   min,
   max,
-  step,
   unit,
-  inputWidth = 'w-20',
+  isLoading,
+  exponential = false,
+  exponentialMin = 100,
+  exponentialMax = 2000000,
+  showInputInHeader = false,
+  headerLabel,
 }: {
   value: number
   onChange: (val: number) => void
   min: number
   max: number
-  step: number
+  step?: number
   unit?: string
-  inputWidth?: string
+  isLoading?: boolean
+  exponential?: boolean
+  exponentialMin?: number
+  exponentialMax?: number
+  showInputInHeader?: boolean
+  headerLabel?: string
 }) {
+  // Memoize the log calculations for exponential scale
+  const { logMin, logMax } = useMemo(() => {
+    if (!exponential) return { logMin: 0, logMax: 0 }
+    return {
+      logMin: Math.log10(exponentialMin),
+      logMax: Math.log10(exponentialMax)
+    }
+  }, [exponential, exponentialMin, exponentialMax])
+
+  // Convert real value to slider position (0-100 scale)
+  const valueToSlider = useCallback((val: number) => {
+    if (!exponential) return val
+    const logVal = Math.log10(val)
+    return ((logVal - logMin) / (logMax - logMin)) * 100
+  }, [exponential, logMin, logMax])
+
+  // Convert slider position (0-100) to real value
+  const sliderToValue = useCallback((pos: number) => {
+    if (!exponential) return pos
+    const logVal = (pos / 100) * (logMax - logMin) + logMin
+    return Math.round(Math.pow(10, logVal))
+  }, [exponential, logMin, logMax])
+
+  const [localValue, setLocalValue] = useState(value)
+  const [inputValue, setInputValue] = useState(value.toString())
+  const [sliderPosition, setSliderPosition] = useState(() => valueToSlider(value))
+  const [isDebouncing, setIsDebouncing] = useState(false)
+  const userInteractingRef = useRef(false)
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const scheduledValueRef = useRef<number | null>(null)
+  const lastPropValueRef = useRef(value)
+
+  // Track prop value changes and sync only when meaningful
+  if (!userInteractingRef.current && 
+      scheduledValueRef.current === null && 
+      value !== lastPropValueRef.current) {
+    lastPropValueRef.current = value
+    if (Math.abs(value - localValue) > 0.01) {
+      setLocalValue(value)
+      setInputValue(value.toString())
+      setSliderPosition(valueToSlider(value))
+    }
+  }
+
+  const commitValue = (rawValue: string) => {
+    const numValue = parseFloat(rawValue)
+    if (!isNaN(numValue)) {
+      const clampedValue = Math.max(min, Math.min(max, numValue))
+      setLocalValue(clampedValue)
+      setInputValue(clampedValue.toString())
+      setSliderPosition(valueToSlider(clampedValue))
+      onChange(clampedValue)
+    } else {
+      // Reset to current value if invalid
+      setInputValue(localValue.toString())
+    }
+  }
+
+  const handleInputChange = (newValue: string) => {
+    setInputValue(newValue)
+  }
+
+  const handleInputBlur = () => {
+    commitValue(inputValue)
+  }
+
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      commitValue(inputValue)
+      e.currentTarget.blur()
+    }
+  }
+
+  const handleSliderChange = (newValue: number[]) => {
+    const sliderPos = newValue[0]
+    const realValue = sliderToValue(sliderPos)
+    setSliderPosition(sliderPos)
+    setLocalValue(realValue)
+    setInputValue(realValue.toString())
+    userInteractingRef.current = true
+    scheduledValueRef.current = realValue
+    setIsDebouncing(true)
+    
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+    }
+    
+    debounceTimerRef.current = setTimeout(() => {
+      scheduledValueRef.current = null
+      userInteractingRef.current = false
+      onChange(realValue)
+      setIsDebouncing(false)
+    }, 300)
+  }
+
+  const showSpinner = isLoading || isDebouncing
+
+  // Generate legend labels for exponential scale
+  const getLegendLabels = () => {
+    if (!exponential) {
+      const stepSize = (max - min) / 4
+      return Array.from({ length: 5 }, (_, i) => min + (i * stepSize))
+    }
+    // For exponential: show 100, 1K, 10K, 100K, 1M, 2M
+    const logMin = Math.log10(exponentialMin)
+    const logMax = Math.log10(exponentialMax)
+    const positions = [0, 25, 50, 75, 100]
+    return positions.map(pos => {
+      const logVal = (pos / 100) * (logMax - logMin) + logMin
+      const val = Math.pow(10, logVal)
+      return Math.round(val)
+    })
+  }
+
+  const steps = getLegendLabels()
+
+  const formatNumber = (num: number) => {
+    if (num >= 1000000) return (num / 1000000).toFixed(num % 1000000 === 0 ? 0 : 1) + 'M'
+    if (num >= 1000) return (num / 1000).toFixed(num % 1000 === 0 ? 0 : 1) + 'K'
+    return num.toString()
+  }
+
   return (
-    <div className="flex items-center gap-3">
-      <Input
-        type="number"
-        value={value}
-        onChange={(e) => {
-          const val = parseFloat(e.target.value)
-          if (!isNaN(val)) {
-            onChange(Math.max(min, Math.min(max, val)))
-          }
-        }}
-        min={min}
-        max={max}
-        step={step}
-        className={`${inputWidth} h-8 bg-[#f5efe6] border-[#d4c8b8] text-[#2d1b0e] text-sm focus-visible:ring-[#7a5c3a]`}
-      />
-      <div className="flex-1">
-        <Slider
-          value={[value]}
-          onValueChange={(val) => onChange(val[0])}
-          min={min}
-          max={max}
-          step={step}
-        />
+    <div className="space-y-2">
+      {showInputInHeader && headerLabel && (
+        <div className="flex items-center justify-between">
+          <Label className="text-[#3d2b15]">{headerLabel}</Label>
+          <div className="flex items-baseline gap-0.5">
+            <Input
+              type="text"
+              value={inputValue}
+              onChange={(e) => handleInputChange(e.target.value)}
+              onBlur={handleInputBlur}
+              onKeyDown={handleInputKeyDown}
+              className="h-7 !bg-transparent border-0 border-b border-[#d4c8b8] text-[#2d1b0e] text-sm font-mono text-center px-1 focus-visible:ring-0 focus-visible:border-[#7a5c3a] rounded-none"
+              style={{ width: `${inputValue.length + 1}ch`, backgroundColor: 'transparent' }}
+            />
+            {unit && <span className="text-[10px] text-[#a0926f] font-mono ml-1">{unit}</span>}
+          </div>
+        </div>
+      )}
+      <div className="flex items-center gap-2">
+        <div className="flex-1">
+          <SliderPrimitive.Root
+            value={[sliderPosition]}
+            onValueChange={handleSliderChange}
+            min={0}
+            max={100}
+            step={1}
+            className="relative flex w-full touch-none select-none items-center"
+          >
+            <SliderPrimitive.Track className="relative h-2 w-full grow overflow-hidden rounded-full bg-[#d4c8b8]">
+              <SliderPrimitive.Range className="absolute h-full bg-[#7a5c3a]" />
+            </SliderPrimitive.Track>
+            <SliderPrimitive.Thumb 
+              className={cn(
+                "block h-5 w-5 rounded-full border-2 border-[#7a5c3a] bg-[#f5efe6] ring-offset-[#f5efe6] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7a5c3a] focus-visible:ring-offset-2 disabled:pointer-events-none",
+                showSpinner && "border-[#a0926f]"
+              )}
+            >
+              {showSpinner && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Loader2 className="h-3 w-3 animate-spin text-[#7a5c3a]" />
+                </div>
+              )}
+            </SliderPrimitive.Thumb>
+          </SliderPrimitive.Root>
+          <div className="flex justify-between text-[10px] text-[#a0926f] font-mono mt-1">
+            {steps.map((stepValue) => (
+              <span key={stepValue} className={stepValue === min || stepValue === max ? 'font-semibold' : ''}>
+                {formatNumber(stepValue)}
+              </span>
+            ))}
+          </div>
+        </div>
+        {!showInputInHeader && (
+          <div className="flex items-baseline gap-0.5 min-w-[60px] justify-end">
+            <Input
+              type="text"
+              value={inputValue}
+              onChange={(e) => handleInputChange(e.target.value)}
+              onBlur={handleInputBlur}
+              onKeyDown={handleInputKeyDown}
+              className="h-7 !bg-transparent border-0 shadow-none text-[#2d1b0e] text-sm font-mono text-right px-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+              style={{ width: `${inputValue.length + 0.5}ch`, backgroundColor: 'transparent' }}
+            />
+            {unit && <span className="text-[10px] text-[#a0926f] font-mono">{unit}</span>}
+          </div>
+        )}
       </div>
-      {unit && <span className="text-xs text-[#a0926f]">{unit}</span>}
     </div>
   )
 }
@@ -122,13 +317,13 @@ export function ExtractionSettings({
   chunkSize,
   parsingOptions,
   chunkingOptions,
+  isChunkingLoading,
   onModelChange,
   onStrategyChange,
   onChunkSizeChange,
   onParsingOptionsChange,
   onChunkingOptionsChange,
 }: ExtractionSettingsProps) {
-  // Toggle handlers for parsing options
   const toggleParsingImages = () => {
     onParsingOptionsChange({
       ...parsingOptions,
@@ -143,36 +338,19 @@ export function ExtractionSettings({
     })
   }
 
-  // Toggle handlers for chunking filters
-  const toggleChunkingEmbedded = () => {
-    onChunkingOptionsChange({
-      ...chunkingOptions,
-      filterEmbedded: !chunkingOptions.filterEmbedded,
-    })
-  }
-
-  const toggleChunkingScreenshot = () => {
-    onChunkingOptionsChange({
-      ...chunkingOptions,
-      filterScreenshot: !chunkingOptions.filterScreenshot,
-    })
-  }
-
   return (
     <div className="space-y-5">
-      {/* Model Selection */}
       <div className="space-y-2">
         <Label htmlFor="model" className="text-[#2d1b0e] font-medium">Model</Label>
         <ModelSelectorComponent value={model} onChange={onModelChange} />
       </div>
 
-      {/* Strategy Selection */}
       <div className="space-y-2">
         <Label htmlFor="strategy" className="text-[#2d1b0e] font-medium">Strategy</Label>
         <Select value={strategy} onValueChange={onStrategyChange}>
           <SelectTrigger 
             id="strategy" 
-            className="w-full [&>span]:text-left bg-[#f5efe6] border-[#d4c8b8] text-[#2d1b0e] focus:ring-[#7a5c3a]"
+            className="w-full h-11 [&>span]:text-left bg-[#f5efe6] border-[#d4c8b8] text-[#2d1b0e] focus:ring-[#7a5c3a]"
           >
             <SelectValue placeholder="Select strategy" />
           </SelectTrigger>
@@ -181,7 +359,7 @@ export function ExtractionSettings({
               <SelectItem 
                 key={s.value} 
                 value={s.value}
-                className="text-[#2d1b0e] focus:bg-[#e5dccf] focus:text-[#2d1b0e]"
+                className="text-[#2d1b0e] focus:bg-[#e5dccf] focus:text-[#2d1b0e] py-2"
               >
                 <div className="flex flex-col">
                   <span className="font-medium">{s.label}</span>
@@ -193,64 +371,14 @@ export function ExtractionSettings({
         </Select>
       </div>
 
-      {/* Parsing Options - Now in main settings */}
       <div className="space-y-3 pt-2">
         <div className="flex items-center justify-between">
           <Label className="text-[#2d1b0e] font-medium">Parsing Output</Label>
-          <span className="text-xs text-[#a0926f] italic">what to extract from files</span>
-        </div>
-        
-        {/* Multi-toggle for parsing image types */}
-        <div className="flex gap-2 p-1 bg-[#f5efe6] rounded-lg border border-[#d4c8b8]">
-          <ImageTypeToggle
-            label="IMAGES"
-            active={parsingOptions.images}
-            onClick={toggleParsingImages}
-          />
-          <ImageTypeToggle
-            label="SCREENSHOTS"
-            active={parsingOptions.screenshots}
-            onClick={toggleParsingScreenshots}
-          />
-        </div>
-      </div>
-
-      {/* Chunking Settings */}
-      <div className="space-y-4 pt-3 border-t border-[#d4c8b8]">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-[#2d1b0e] uppercase tracking-wider">Chunking</h3>
-          <span className="text-xs text-[#a0926f] italic">what goes to the LLM</span>
-        </div>
-        
-        {/* Chunk Size */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="chunkSize" className="text-[#3d2b15]">Chunk Size</Label>
-          </div>
-          <InputSlider
-            value={chunkSize}
-            onChange={onChunkSizeChange}
-            min={1000}
-            max={50000}
-            step={500}
-            unit="tokens"
-          />
-        </div>
-        
-        {/* Max Images */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="maxImages" className="text-[#3d2b15]">Max Images</Label>
-            <span className="text-xs text-[#a0926f]">
-              {chunkingOptions.maxImages === null ? 'Unlimited' : `${chunkingOptions.maxImages} per chunk`}
-            </span>
-          </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1">
             <Input
-              id="maxImages"
-              type="number"
-              placeholder="∞"
-              value={chunkingOptions.maxImages ?? ''}
+              type="text"
+              placeholder="5"
+              value={chunkingOptions.maxImages?.toString() ?? ''}
               onChange={(e) => {
                 const val = e.target.value
                 onChunkingOptionsChange({
@@ -258,80 +386,48 @@ export function ExtractionSettings({
                   maxImages: val === '' ? null : parseInt(val, 10),
                 })
               }}
-              min={1}
-              max={100}
-              className="w-16 h-8 bg-[#f5efe6] border-[#d4c8b8] text-[#2d1b0e] text-sm focus-visible:ring-[#7a5c3a]"
+              className="h-7 w-14 bg-transparent border-0 border-b border-[#d4c8b8] text-[#2d1b0e] text-sm font-mono text-center px-1 focus-visible:ring-0 focus-visible:border-[#7a5c3a] rounded-none"
             />
-            <div className="flex-1">
-              <Slider
-                value={[chunkingOptions.maxImages ?? 10]}
-                onValueChange={(value) => onChunkingOptionsChange({
-                  ...chunkingOptions,
-                  maxImages: value[0],
-                })}
-                min={1}
-                max={50}
-                step={1}
-              />
-            </div>
+            <span className="text-xs text-[#a0926f]">imgs/chunk</span>
           </div>
         </div>
-
-        {/* Text Ratio */}
+        
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="textRatio" className="text-[#3d2b15]">Text Ratio</Label>
-            <span className="text-xs text-[#a0926f]">{chunkingOptions.textRatio}x</span>
-          </div>
-          <InputSlider
-            value={chunkingOptions.textRatio}
-            onChange={(val) => onChunkingOptionsChange({
-              ...chunkingOptions,
-              textRatio: val,
-            })}
-            min={1}
-            max={10}
-            step={0.5}
+          <ToggleCard
+            icon={<Image className="w-4 h-4" />}
+            label="Images"
+            description="Extract embedded images from documents"
+            active={parsingOptions.images}
+            onClick={toggleParsingImages}
           />
-        </div>
-
-        {/* Image Tokens */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="imageTokens" className="text-[#3d2b15]">Image Tokens</Label>
-            <span className="text-xs text-[#a0926f]">{chunkingOptions.imageTokens.toLocaleString()}</span>
-          </div>
-          <InputSlider
-            value={chunkingOptions.imageTokens}
-            onChange={(val) => onChunkingOptionsChange({
-              ...chunkingOptions,
-              imageTokens: val,
-            })}
-            min={100}
-            max={5000}
-            step={100}
+          <ToggleCard
+            icon={<Camera className="w-4 h-4" />}
+            label="Screenshots"
+            description="Extract rendered page screenshots"
+            active={parsingOptions.screenshots}
+            onClick={toggleParsingScreenshots}
           />
-        </div>
-
-        {/* Image Type Filters for Chunking */}
-        <div className="space-y-2 pt-1">
-          <Label className="text-[#3d2b15]">Include in Chunks</Label>
-          <div className="flex gap-2 p-1 bg-[#f5efe6] rounded-lg border border-[#d4c8b8]">
-            <ImageTypeToggle
-              label="EMBEDDED"
-              active={chunkingOptions.filterEmbedded}
-              onClick={toggleChunkingEmbedded}
-            />
-            <ImageTypeToggle
-              label="SCREENSHOTS"
-              active={chunkingOptions.filterScreenshot}
-              onClick={toggleChunkingScreenshot}
-            />
-          </div>
         </div>
       </div>
 
-      {/* Parser Override - Kept at bottom */}
+      <div className="space-y-4 pt-3 border-t border-[#d4c8b8]">
+        <div className="space-y-2">
+          <CompactInputSlider
+            value={chunkSize}
+            onChange={onChunkSizeChange}
+            min={100}
+            max={2000000}
+            unit="tokens"
+            isLoading={isChunkingLoading}
+            exponential
+            exponentialMin={100}
+            exponentialMax={2000000}
+            showInputInHeader
+            headerLabel="Chunk Size"
+          />
+        </div>
+      </div>
+
       <div className="space-y-2 pt-3 border-t border-[#d4c8b8]">
         <Label htmlFor="parser" className="text-[#2d1b0e] font-medium">Parser Override</Label>
         <Input

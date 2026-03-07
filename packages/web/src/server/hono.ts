@@ -105,7 +105,7 @@ app.post('/api/extract', async (c) => {
     return c.json({ error: 'No files provided' }, 400)
   }
   
-  const { schemaMode, schemaJson, fields, model, strategy, chunkSize, parsingOptions } = params
+  const { schemaMode, schemaJson, fields, model, strategy, chunkSize, parsingOptions, apiKey } = params
   
   const artifacts = await parseFiles(files, parsingOptions ?? {})
   
@@ -117,6 +117,7 @@ app.post('/api/extract', async (c) => {
     model,
     strategy,
     chunkSize,
+    apiKey,
   )
   
   const id = generateExtractionId()
@@ -181,7 +182,7 @@ app.post('/api/extract/stream', async (c) => {
     return c.json({ error: 'No files provided' }, 400)
   }
   
-  const { schemaMode, schemaJson, fields, model, strategy, chunkSize, parsingOptions } = params
+  const { schemaMode, schemaJson, fields, model, strategy, chunkSize, parsingOptions, apiKey } = params
   
   const stream = new ReadableStream({
     async start(controller) {
@@ -205,6 +206,7 @@ app.post('/api/extract/stream', async (c) => {
           model,
           strategy,
           chunkSize,
+          apiKey,
           sendEvent,
         )
         

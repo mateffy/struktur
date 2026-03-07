@@ -1,13 +1,15 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { Sidebar } from './Sidebar'
 import { ArtifactViewer } from './ArtifactViewer'
 import { OutputViewer } from './OutputViewer'
-import { DebugLog, type LogEntry } from './DebugLog'
-import { ProgressTracker, type Step } from './ProgressTracker'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { UnifiedTimeline, type TimelineEntry } from './UnifiedTimeline'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { AlertCircle, Loader2, FileText, Github, RotateCw } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { AlertCircle, FileText, Github, RotateCw, Square, Play, Lock, KeyRound, Loader2 } from 'lucide-react'
+import { ProviderSettings } from './auth/ProviderSettings'
+import { useApiKeys } from './auth/ApiKeyProvider'
+import type { ProviderId } from '@/lib/secure-storage'
 
 export type ExecutionStatus = 'idle' | 'parsing' | 'extracting' | 'success' | 'error'
 
@@ -47,6 +49,16 @@ async function postFormData(url: string, formData: FormData): Promise<any> {
   return response.json()
 }
 
+// Extract provider from model string (e.g., "openai/gpt-4o" -> "openai")
+function getProviderFromModel(model: string): ProviderId | null {
+  if (!model) return null
+  const provider = model.split('/')[0]
+  if (!provider) return null
+  
+  const validProviders: ProviderId[] = ['openai', 'anthropic', 'google', 'opencode', 'openrouter']
+  return validProviders.includes(provider as ProviderId) ? (provider as ProviderId) : null
+}
+
 export function ExtractPage() {
   const [files, setFiles] = useState<File[]>([])
   const [schemaMode, setSchemaMode] = useState<SchemaMode>('fields')
@@ -54,14 +66,15 @@ export function ExtractPage() {
   const [fields, setFields] = useState('')
   const [model, setModel] = useState('')
   const [strategy, setStrategy] = useState<string>('simple')
-  const [chunkSize, setChunkSize] = useState(10000)
+  const [chunkSize, setChunkSize] = useState(120000)
+  const [activeTab, setActiveTab] = useState<'result' | 'timeline'>('result')
   const [parsingOptions, setParsingOptions] = useState({
     images: false,
-    screenshots: false,
+    screenshots: true,
     parser: '',
   })
   const [chunkingOptions, setChunkingOptions] = useState({
-    maxImages: null as number | null,
+    maxImages: 5 as number | null,
     textRatio: 4,
     imageTokens: 1000,
     filterEmbedded: true,
@@ -73,18 +86,60 @@ export function ExtractPage() {
   const [result, setResult] = useState<ExtractionResult | null>(null)
   const [error, setError] = useState<Error | null>(null)
   const [savedPath, setSavedPath] = useState<string>('')
-  const [steps, setSteps] = useState<Step[]>([])
-  const [logs, setLogs] = useState<LogEntry[]>([])
+  const [timeline, setTimeline] = useState<TimelineEntry[]>([])
+  const [isChunkingLoading, setIsChunkingLoading] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  
+  const abortControllerRef = useRef<AbortController | null>(null)
+  const chunkSizeDebounceRef = useRef<NodeJS.Timeout | null>(null)
 
-  const addLog = useCallback((type: LogEntry['type'], message: string, data?: unknown) => {
-    const entry: LogEntry = {
+  const {
+    isUnlocked,
+    storedProviders,
+    saveApiKey,
+    getApiKey,
+    removeApiKey,
+    lock,
+    requestUnlock,
+  } = useApiKeys()
+
+  const addTimelineEntry = useCallback((
+    type: TimelineEntry['type'], 
+    message: string, 
+    data?: unknown,
+    status?: TimelineEntry['status']
+  ) => {
+    const entry: TimelineEntry = {
       id: crypto.randomUUID(),
       timestamp: new Date(),
       type,
+      status,
       message,
       data,
     }
-    setLogs((prev) => [...prev, entry])
+    setTimeline((prev) => [...prev, entry])
+    return entry.id
+  }, [])
+
+  const updateTimelineEntry = useCallback((id: string, updates: Partial<TimelineEntry>) => {
+    setTimeline((prev) => 
+      prev.map((entry) => entry.id === id ? { ...entry, ...updates } : entry)
+    )
+  }, [])
+
+  const handleChunkSizeChange = useCallback((newSize: number) => {
+    setIsChunkingLoading(true)
+    
+    if (chunkSizeDebounceRef.current) {
+      clearTimeout(chunkSizeDebounceRef.current)
+    }
+    
+    chunkSizeDebounceRef.current = setTimeout(async () => {
+      await new Promise(resolve => setTimeout(resolve, 0))
+      setChunkSize(newSize)
+      await new Promise(resolve => setTimeout(resolve, 0))
+      setIsChunkingLoading(false)
+    }, 300)
   }, [])
 
   const canExtract = files.length > 0 && (
@@ -93,8 +148,6 @@ export function ExtractPage() {
     (schemaMode === 'fields' && fields.trim().length > 0)
   )
 
-  const isLoading = status === 'parsing' || status === 'extracting'
-
   const handleParse = useCallback(async () => {
     if (files.length === 0) return
 
@@ -102,12 +155,8 @@ export function ExtractPage() {
     setError(null)
     setArtifacts([])
     setResult(null)
-    setSteps([
-      { id: 'parse', label: 'Parsing files', status: 'running' },
-    ])
-    setLogs([])
-
-    addLog('info', 'Starting file parsing', { fileCount: files.length })
+    
+    const stepId = addTimelineEntry('step', 'Parsing files', { fileCount: files.length }, 'running')
 
     try {
       const formData = buildFormDataWithFiles(files)
@@ -115,47 +164,45 @@ export function ExtractPage() {
       const response = await postFormData('/api/parse', formData)
 
       setArtifacts(response.artifacts as Artifact[])
-      setSteps((prev) =>
-        prev.map((s) =>
-          s.id === 'parse' ? { ...s, status: 'completed' } : s
-        )
-      )
+      updateTimelineEntry(stepId, { status: 'completed' })
+      addTimelineEntry('success', 'Parsing completed', { artifactCount: response.artifacts.length })
       setStatus('success')
-      addLog('success', 'Parsing completed', { artifactCount: response.artifacts.length })
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Unknown error')
       setError(error)
-      setSteps((prev) =>
-        prev.map((s) =>
-          s.id === 'parse' ? { ...s, status: 'error', message: error.message } : s
-        )
-      )
+      updateTimelineEntry(stepId, { status: 'error', message: error.message })
+      addTimelineEntry('error', 'Parsing failed', { error: error.message })
       setStatus('error')
-      addLog('error', 'Parsing failed', { error: error.message })
     }
-  }, [files, parsingOptions, addLog])
+  }, [files, parsingOptions, addTimelineEntry, updateTimelineEntry])
 
   const handleExtract = async () => {
     if (files.length === 0) return
     if (schemaMode === 'json' && !schemaJson.trim()) return
     if (schemaMode === 'fields' && !fields.trim()) return
 
+    abortControllerRef.current = new AbortController()
+    
     setStatus('extracting')
     setError(null)
     setResult(null)
-    setSteps([
-      { id: 'parse', label: 'Parsing files', status: 'pending' },
-      { id: 'extract', label: 'Extracting data', status: 'pending' },
-    ])
-    setLogs([])
-
-    addLog('info', 'Starting extraction', {
-      fileCount: files.length,
-      schemaMode,
-      strategy,
-    })
+    
+    const parseStepId = addTimelineEntry('step', 'Parsing files', { fileCount: files.length }, 'pending')
+    const extractStepId = addTimelineEntry('step', 'Extracting data', { schemaMode, strategy }, 'pending')
 
     try {
+      // Get the provider from the selected model and retrieve API key if available
+      const provider = getProviderFromModel(model)
+      let apiKey: string | undefined
+      
+      if (provider && isUnlocked) {
+        const key = await getApiKey(provider)
+        if (key) {
+          apiKey = key
+          addTimelineEntry('info', `Using stored API key for ${provider}`)
+        }
+      }
+
       const formData = buildFormDataWithFiles(files)
       formData.append(
         'params',
@@ -168,12 +215,14 @@ export function ExtractPage() {
           chunkSize,
           parsingOptions,
           chunkingOptions,
+          apiKey,
         })
       )
 
       const response = await fetch('/api/extract/stream', {
         method: 'POST',
         body: formData,
+        signal: abortControllerRef.current.signal,
       })
 
       if (!response.ok) {
@@ -201,43 +250,32 @@ export function ExtractPage() {
             const data = JSON.parse(line.slice(6))
 
             switch (data.type) {
-              case 'step':
-                setSteps((prev) => {
-                  const stepData = data.data as any
-                  const existing = prev.find((s) => s.id === stepData.label)
-                  if (existing) {
-                    return prev.map((s) =>
-                      s.id === stepData.label
-                        ? { ...s, status: 'completed' }
-                        : s
-                    )
-                  }
-                  return [
-                    ...prev.slice(0, -1),
-                    {
-                      id: stepData.label,
-                      label: stepData.label,
-                      status: 'running',
-                    },
-                  ]
-                })
-                addLog('info', `Step: ${data.data.label}`, data.data)
+              case 'step': {
+                const stepData = data.data as any
+                if (stepData.label === 'Parsing files') {
+                  updateTimelineEntry(parseStepId, { status: 'running' })
+                } else if (stepData.label === 'Extracting data') {
+                  updateTimelineEntry(extractStepId, { status: 'running' })
+                } else {
+                  addTimelineEntry('step', stepData.label, data.data, 'running')
+                }
                 break
+              }
 
               case 'message':
-                addLog('info', 'LLM message', data.data)
+                addTimelineEntry('info', 'LLM message', data.data)
                 break
 
               case 'progress':
-                addLog('info', 'Progress update', data.data)
+                addTimelineEntry('info', 'Progress update', data.data)
                 break
 
               case 'tokenUsage':
-                addLog('info', 'Token usage', data.data)
+                addTimelineEntry('info', 'Token usage', data.data)
                 break
 
               case 'retry':
-                addLog('warning', 'Retry attempt', data.data)
+                addTimelineEntry('warning', 'Retry attempt', data.data)
                 break
 
               case 'complete': {
@@ -245,11 +283,10 @@ export function ExtractPage() {
                 setArtifacts(completeData.artifacts)
                 setResult(completeData.result)
                 setSavedPath(completeData.savedPath)
-                setSteps((prev) =>
-                  prev.map((s) => ({ ...s, status: 'completed' }))
-                )
+                updateTimelineEntry(parseStepId, { status: 'completed' })
+                updateTimelineEntry(extractStepId, { status: 'completed' })
+                addTimelineEntry('success', 'Extraction completed', completeData)
                 setStatus('success')
-                addLog('success', 'Extraction completed', completeData)
                 break
               }
 
@@ -263,36 +300,39 @@ export function ExtractPage() {
       }
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Unknown error')
-      setError(error)
-      setSteps((prev) =>
-        prev.map((s) =>
-          s.status === 'running'
-            ? { ...s, status: 'error', message: error.message }
-            : s
-        )
-      )
-      setStatus('error')
-      addLog('error', 'Extraction failed', { error: error.message })
+      if (error.name === 'AbortError') {
+        addTimelineEntry('warning', 'Operation cancelled')
+        setStatus('idle')
+      } else {
+        setError(error)
+        updateTimelineEntry(parseStepId, { status: 'error' })
+        updateTimelineEntry(extractStepId, { status: 'error' })
+        addTimelineEntry('error', 'Extraction failed', { error: error.message })
+        setStatus('error')
+      }
     }
   }
 
-  const clearLogs = useCallback(() => {
-    setLogs([])
+  const handleCancel = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
   }, [])
 
-  // Auto-parse when files change
+  const clearTimeline = useCallback(() => {
+    setTimeline([])
+  }, [])
+
   useEffect(() => {
     if (files.length > 0 && status === 'idle') {
       handleParse()
     }
   }, [files, status, handleParse])
 
-  // Track if we've parsed at least once
   const hasParsed = artifacts.length > 0
 
   return (
     <div className="h-screen bg-[#f5efe6] flex flex-col">
-      {/* Header - Full width, above sidebar */}
       <header className="border-b border-[#d4c8b8] px-6 py-3 bg-[#ede5d8] flex items-center justify-between flex-shrink-0 z-10">
         <div className="flex items-center gap-4">
           <img
@@ -307,7 +347,6 @@ export function ExtractPage() {
             </h1>
           </div>
           
-          {/* Documentation Links */}
           <div className="hidden md:flex items-center gap-1 ml-6 pl-6 border-l border-[#d4c8b8]">
             <a 
               href="https://struktur.sh/docs" 
@@ -331,147 +370,106 @@ export function ExtractPage() {
         </div>
 
         <div className="flex items-center gap-4">
-          {status !== 'idle' && (
-            <div className="flex items-center gap-2 mr-4">
-              {status === 'parsing' && (
-                <span className="text-sm text-[#7a5c3a]">Parsing...</span>
-              )}
-              {status === 'extracting' && (
-                <span className="text-sm text-[#7a5c3a]">Extracting...</span>
-              )}
-              {status === 'success' && (
-                <span className="text-sm text-[#5c8a5c] font-medium">Complete</span>
-              )}
-              {status === 'error' && (
-                <span className="text-sm text-[#a05c5c] font-medium">Failed</span>
-              )}
-            </div>
+          {/* Lock/Settings Button */}
+          {isUnlocked ? (
+            <>
+              <button
+                type="button"
+                onClick={() => setSettingsOpen(true)}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm text-[#7a5c3a] hover:text-[#2d1b0e] hover:bg-[#f5efe6] rounded-md transition-colors border border-[#d4c8b8]"
+                title="API Key Settings"
+              >
+                <KeyRound className="w-4 h-4" />
+                <span className="hidden sm:inline">API Keys</span>
+              </button>
+              <ProviderSettings
+                isOpen={settingsOpen}
+                onOpenChange={setSettingsOpen}
+                storedProviders={storedProviders}
+                onSaveKey={saveApiKey}
+                onDeleteKey={removeApiKey}
+                onGetKey={getApiKey}
+                onLock={lock}
+              />
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => requestUnlock()}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm text-[#a05c5c] hover:text-[#8a4a4a] hover:bg-[#f5e6e6] bg-[#f5e6e6]/50 rounded-md transition-colors border border-[#d4c8b8]"
+              title="Storage is locked - Click to unlock"
+            >
+              <Lock className="w-4 h-4" />
+              <span className="hidden sm:inline">Token Vault locked</span>
+            </button>
           )}
-          
+
           <div className="flex gap-2">
             <Button
               variant="outline"
-              onClick={handleParse}
-              disabled={files.length === 0 || isLoading}
-              className="h-9 px-4 bg-[#f5efe6] border-[#d4c8b8] text-[#2d1b0e] hover:bg-[#ede5d8] hover:text-[#3d2b15] disabled:opacity-50"
+              onClick={status === 'parsing' ? handleCancel : handleParse}
+              disabled={files.length === 0 || status === 'extracting' || status === 'parsing'}
+              className={`h-9 px-4 bg-[#f5efe6] border-[#d4c8b8] text-[#2d1b0e] disabled:opacity-50 group ${
+                status === 'parsing' 
+                  ? 'hover:bg-[#f5e6e6] hover:text-[#a05c5c] hover:border-[#a05c5c]' 
+                  : 'hover:bg-[#ede5d8] hover:text-[#3d2b15]'
+              }`}
             >
               {status === 'parsing' ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <>
+                  <span className="flex items-center group-hover:hidden">
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Parsing...
+                  </span>
+                  <span className="hidden group-hover:flex items-center">
+                    <Square className="h-4 w-4 mr-2" />
+                    Cancel
+                  </span>
+                </>
               ) : hasParsed ? (
-                <RotateCw className="h-4 w-4 mr-2" />
-              ) : null}
-              {hasParsed ? 'Reparse' : 'Parse'}
+                <>
+                  <RotateCw className="h-4 w-4 mr-2" />
+                  Reparse
+                </>
+              ) : (
+                <>
+                  <Play className="h-4 w-4 mr-2" />
+                  Parse
+                </>
+              )}
             </Button>
             <Button
-              onClick={handleExtract}
-              disabled={!canExtract || isLoading}
-              className="h-9 px-4 bg-[#7a5c3a] text-white hover:bg-[#5c452a] disabled:opacity-50"
+              onClick={status === 'extracting' ? handleCancel : handleExtract}
+              disabled={!canExtract || status === 'parsing' || status === 'extracting'}
+              className={`h-9 px-4 bg-[#7a5c3a] text-white disabled:opacity-50 group ${
+                status === 'extracting' 
+                  ? 'hover:bg-[#a05c5c]' 
+                  : 'hover:bg-[#5c452a]'
+              }`}
             >
-              {status === 'extracting' && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Extract
+              {status === 'extracting' ? (
+                <>
+                  <span className="flex items-center group-hover:hidden">
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Extracting...
+                  </span>
+                  <span className="hidden group-hover:flex items-center">
+                    <Square className="h-4 w-4 mr-2" />
+                    Cancel
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Play className="h-4 w-4 mr-2" />
+                  Extract
+                </>
+              )}
             </Button>
           </div>
         </div>
       </header>
 
       <div className="flex-1 flex overflow-hidden">
-        {/* Main Content - Left side */}
-        <main className="flex-1 overflow-hidden flex flex-col">
-          <div className="flex-1 overflow-y-auto p-6">
-            {error && (
-              <Card className="mb-6 border-[#c4a8a8] bg-[#f5e6e6]">
-                <CardContent className="py-4">
-                  <div className="flex items-start gap-3">
-                    <AlertCircle className="h-5 w-5 text-[#a05c5c] flex-shrink-0 mt-0.5" />
-                    <div>
-                      <div className="font-medium text-[#8a4a4a]">Error</div>
-                      <div className="text-sm text-[#7a5c5c] mt-1">
-                        {error.message}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            <Tabs defaultValue="artifacts" className="space-y-4">
-              <TabsList>
-                <TabsTrigger value="artifacts">
-                  Artifacts
-                </TabsTrigger>
-                <TabsTrigger value="output">
-                  Output
-                </TabsTrigger>
-                <TabsTrigger value="progress">
-                  Progress
-                </TabsTrigger>
-                <TabsTrigger value="debug">
-                  Debug Log
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="artifacts" className="mt-0">
-                <ArtifactViewer 
-                  artifacts={artifacts} 
-                  chunkingSettings={{
-                    maxTokens: chunkSize,
-                    maxImages: chunkingOptions.maxImages,
-                    textRatio: chunkingOptions.textRatio,
-                    imageTokens: chunkingOptions.imageTokens,
-                    filterEmbedded: chunkingOptions.filterEmbedded,
-                    filterScreenshot: chunkingOptions.filterScreenshot,
-                  }}
-                  isParsing={status === 'parsing'}
-                />
-              </TabsContent>
-
-              <TabsContent value="output" className="mt-0">
-                <Card className="bg-[#ede5d8] border-[#d4c8b8]">
-                  <CardHeader>
-                    <CardTitle className="text-[#2d1b0e]">Extraction Result</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <OutputViewer
-                      data={result?.data}
-                      usage={result?.usage}
-                      savedPath={savedPath}
-                    />
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="progress" className="mt-0">
-                <Card className="bg-[#ede5d8] border-[#d4c8b8]">
-                  <CardHeader>
-                    <CardTitle className="text-[#2d1b0e]">Progress</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {steps.length > 0 ? (
-                      <ProgressTracker steps={steps} />
-                    ) : (
-                      <div className="text-center text-[#a0926f] py-8">
-                        No progress to display
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="debug" className="mt-0">
-                <Card className="bg-[#ede5d8] border-[#d4c8b8]">
-                  <CardHeader>
-                    <CardTitle className="text-[#2d1b0e]">Debug Log</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <DebugLog entries={logs} onClear={clearLogs} />
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          </div>
-        </main>
-
-        {/* Sidebar - Right side */}
         <Sidebar
           files={files}
           schemaMode={schemaMode}
@@ -483,16 +481,82 @@ export function ExtractPage() {
           parsingOptions={parsingOptions}
           chunkingOptions={chunkingOptions}
           status={status}
+          isChunkingLoading={isChunkingLoading}
           onFilesChange={setFiles}
           onSchemaModeChange={setSchemaMode}
           onSchemaJsonChange={setSchemaJson}
           onFieldsChange={setFields}
           onModelChange={setModel}
           onStrategyChange={setStrategy}
-          onChunkSizeChange={setChunkSize}
+          onChunkSizeChange={handleChunkSizeChange}
           onParsingOptionsChange={setParsingOptions}
           onChunkingOptionsChange={setChunkingOptions}
         />
+
+        <main className="flex-1 flex overflow-hidden">
+          <div className="flex-1 flex">
+            <div className="flex-1 overflow-y-auto p-6">
+              {error && (
+                <Card className="mb-6 border-[#c4a8a8] bg-[#f5e6e6]">
+                  <CardContent className="py-4">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="h-5 w-5 text-[#a05c5c] flex-shrink-0 mt-0.5" />
+                      <div>
+                        <div className="font-medium text-[#8a4a4a]">Error</div>
+                        <div className="text-sm text-[#7a5c5c] mt-1">
+                          {error.message}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              <ArtifactViewer 
+                artifacts={artifacts} 
+                chunkingSettings={{
+                  maxTokens: chunkSize,
+                  maxImages: chunkingOptions.maxImages,
+                  textRatio: chunkingOptions.textRatio,
+                  imageTokens: chunkingOptions.imageTokens,
+                  filterEmbedded: chunkingOptions.filterEmbedded,
+                  filterScreenshot: chunkingOptions.filterScreenshot,
+                }}
+                isParsing={status === 'parsing'}
+              />
+            </div>
+
+            <div className="w-[500px] border-l border-[#d4c8b8] bg-[#ede5d8] flex flex-col overflow-hidden">
+              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'result' | 'timeline')} className="flex flex-col h-full">
+                <div className="flex items-center justify-between p-4 border-b border-[#d4c8b8] flex-shrink-0">
+                  <h2 className="text-sm font-semibold text-[#2d1b0e] uppercase tracking-wider">Output</h2>
+                  <TabsList>
+                    <TabsTrigger value="result">Result</TabsTrigger>
+                    <TabsTrigger value="timeline">Timeline</TabsTrigger>
+                  </TabsList>
+                </div>
+                
+                <div className="flex-1 overflow-hidden">
+                  <TabsContent value="result" className="h-full m-0" forceMount>
+                    <div className="h-full p-4 data-[state=inactive]:hidden">
+                      <OutputViewer
+                        data={result?.data}
+                        usage={result?.usage}
+                        savedPath={savedPath}
+                      />
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="timeline" className="h-full m-0" forceMount>
+                    <div className="h-full p-4 data-[state=inactive]:hidden">
+                      <UnifiedTimeline entries={timeline} onClear={clearTimeline} />
+                    </div>
+                  </TabsContent>
+                </div>
+              </Tabs>
+            </div>
+          </div>
+        </main>
       </div>
     </div>
   )

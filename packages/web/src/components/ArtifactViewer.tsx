@@ -2,7 +2,8 @@ import { useMemo, useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Expand, Shrink, Image as ImageIcon, FileText, Layers, Loader2 } from 'lucide-react'
+import { Expand, Shrink, Image as ImageIcon, FileText, Loader2, List, BarChart3 } from 'lucide-react'
+import { ArtifactCharts } from './ArtifactCharts'
 
 type Media = {
   type: string
@@ -57,8 +58,8 @@ function calculateImageTokens(media: Media[], imageTokens: number, filterEmbedde
 }
 
 // Alternating chunk colors - striped pattern
-const CHUNK_COLOR_1 = '#7a5c3a' // dark brown
-const CHUNK_COLOR_2 = '#d4c8b8' // light tan
+const CHUNK_COLOR_1 = '#d4c8b8'
+const CHUNK_COLOR_2 = '#e5dccf'
 
 function getChunkColor(chunkId: number): string {
   return chunkId % 2 === 0 ? CHUNK_COLOR_1 : CHUNK_COLOR_2
@@ -144,16 +145,12 @@ function PageMinimap({
   chunks,
   onPageClick,
   selectedPage,
-  hoveredPage,
-  onPageHover,
   scrollContainerRef,
 }: { 
   artifacts: Artifact[]
   chunks: Chunk[]
   onPageClick: (pageNum: number) => void
   selectedPage: number | null
-  hoveredPage: number | null
-  onPageHover: (pageNum: number | null) => void
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>
 }) {
   // Build list of all pages with their info
@@ -239,10 +236,9 @@ function PageMinimap({
     return grouped
   }, [pages])
 
-  const handlePageClick = (pageNum: number, artifactIdx: number, contentIdx: number) => {
+  const handlePageClick = (pageNum: number, _artifactIdx: number, _contentIdx: number) => {
     onPageClick(pageNum)
     
-    // Scroll to the page element
     if (scrollContainerRef?.current) {
       const pageElement = scrollContainerRef.current.querySelector(`[data-page="${pageNum}"]`)
       if (pageElement) {
@@ -255,11 +251,11 @@ function PageMinimap({
 
   return (
     <div className="w-20 flex-shrink-0 bg-[#ede5d8] border border-[#d4c8b8] rounded-lg p-2 flex flex-col gap-3 max-h-[calc(100vh-120px)] overflow-y-auto sticky top-4 self-start">
-      <div className="text-[10px] text-[#7a5c3a] text-center font-bold uppercase tracking-wider mb-1">Pages</div>
+      <div className="flex justify-center mb-1">
+        <List className="h-4 w-4 text-[#7a5c3a]" />
+      </div>
       
       {pagesByChunk.map((chunkGroup) => {
-        const chunkColor = getChunkColor(chunkGroup.chunkId)
-        const isEvenChunk = chunkGroup.chunkId % 2 === 0
         const hasValidChunk = chunkGroup.chunkId >= 0
         
         return (
@@ -267,71 +263,42 @@ function PageMinimap({
             key={`chunk-group-${chunkGroup.chunkId}`}
             className="flex flex-col gap-1"
           >
-            {/* Chunk Header - Only show if valid chunk */}
             {hasValidChunk && (
-              <div 
-                className="flex items-center gap-1 px-1 py-0.5 rounded shadow-sm"
-                style={{ backgroundColor: chunkColor }}
-              >
-                <div className="w-2 h-2 rounded-full bg-white/70" />
-                <span className="text-[9px] font-bold text-white">
-                  Chunk {chunkGroup.displayChunkNum}
+              <div className="flex items-center justify-center">
+                <span className="text-[9px] font-bold text-[#2d1b0e]">
+                  {chunkGroup.displayChunkNum}
                 </span>
               </div>
             )}
             
-            {/* Pages in this chunk */}
-            <div 
-              className="flex flex-col gap-1 pl-1.5 py-1 border-l-3 bg-[#f5efe6]/50 rounded-r" 
-              style={{ borderColor: hasValidChunk ? chunkColor : '#d4c8b8' }}
-            >
+            <div className="flex flex-col gap-1 p-1 rounded" style={{ backgroundColor: hasValidChunk ? getChunkColor(chunkGroup.chunkId) : 'transparent' }}>
               {chunkGroup.pages.map((page) => {
                 const isSelected = selectedPage === page.pageNum
-                const isHovered = hoveredPage === page.pageNum
                 
                 return (
                   <button
                     key={`page-${page.artifactIdx}-${page.contentIdx}`}
                     type="button"
                     onClick={() => handlePageClick(page.pageNum, page.artifactIdx, page.contentIdx)}
-                    onMouseEnter={() => onPageHover(page.pageNum)}
-                    onMouseLeave={() => onPageHover(null)}
                     className={`
-                      relative w-full h-10 rounded overflow-hidden transition-all
+                      relative w-full h-10 rounded overflow-hidden
                       ${isSelected ? 'ring-2 ring-[#2d1b0e] ring-offset-1' : ''}
-                      ${isHovered ? 'scale-105 shadow-lg' : ''}
                     `}
                     title={`Page ${page.pageNum}${hasValidChunk ? ` (Chunk ${chunkGroup.displayChunkNum})` : ''}`}
                   >
-                    {/* Background - solid chunk color with varying opacity */}
-                    <div 
-                      className="absolute inset-0"
-                      style={{ 
-                        backgroundColor: hasValidChunk ? chunkColor : '#d4c8b8',
-                        opacity: isEvenChunk ? 0.85 : 0.55,
-                      }}
-                    />
-                    
-                    {/* Screenshot overlay if available */}
                     {page.screenshotUrl && (
                       <img
                         src={page.screenshotUrl}
                         alt=""
-                        className="absolute inset-0 w-full h-full object-cover opacity-50 mix-blend-multiply"
+                        className="absolute inset-0 w-full h-full object-cover object-top opacity-60"
                       />
                     )}
                     
-                    {/* Page Number */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-xs font-bold text-white drop-shadow-md">
+                    <div className="absolute inset-0 flex items-start justify-center pt-1">
+                      <span className="text-[10px] font-bold text-[#2d1b0e] drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">
                         {page.pageNum}
                       </span>
                     </div>
-                    
-                    {/* Hover overlay */}
-                    {isHovered && (
-                      <div className="absolute inset-0 bg-white/30" />
-                    )}
                   </button>
                 )
               })}
@@ -347,7 +314,7 @@ export function ArtifactViewer({
   artifacts,
   chunkingSettings = {
     maxTokens: 10000,
-    maxImages: null,
+    maxImages: 5,
     textRatio: 4,
     imageTokens: 1000,
     filterEmbedded: true,
@@ -355,11 +322,10 @@ export function ArtifactViewer({
   },
   isParsing = false,
 }: ArtifactViewerProps) {
-  const [viewMode, setViewMode] = useState<'visual' | 'json'>('visual')
+  const [viewMode, setViewMode] = useState<'visual' | 'json' | 'graphs'>('visual')
   const [expandedText, setExpandedText] = useState<Set<number>>(new Set())
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [selectedPage, setSelectedPage] = useState<number | null>(null)
-  const [hoveredPage, setHoveredPage] = useState<number | null>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   // Calculate chunks based on settings
@@ -424,58 +390,17 @@ export function ArtifactViewer({
           chunks={chunks}
           onPageClick={setSelectedPage}
           selectedPage={selectedPage}
-          hoveredPage={hoveredPage}
-          onPageHover={setHoveredPage}
           scrollContainerRef={scrollContainerRef}
         />
 
         {/* Main Content */}
-        <div ref={scrollContainerRef} className="flex-1 space-y-4 overflow-y-auto max-h-[calc(100vh-200px)]">
+        <div ref={scrollContainerRef} className="flex-1 space-y-4">
           {/* Info Bar - Shows Chunk/Page Info */}
           <div className="flex items-center gap-3 p-3 bg-[#ede5d8] border border-[#d4c8b8] rounded-lg">
-            <Layers className="w-4 h-4 text-[#7a5c3a]" />
             <span className="text-sm text-[#2d1b0e]">
-              {hoveredPage ? (
-                <>
-                  Page <span className="font-semibold">{hoveredPage}</span>
-                  {(() => {
-                    const pageContent = artifacts.flatMap((a, ai) => 
-                      a.contents.map((c, ci) => ({ ...c, artifactIdx: ai, contentIdx: ci }))
-                    ).find(c => c.page === hoveredPage)
-                    const chunk = pageContent ? chunks.find(c => 
-                      c.artifactIdx === pageContent.artifactIdx && c.contentIdx <= pageContent.contentIdx
-                    ) || chunks[chunks.length - 1] : null
-                    return chunk ? (
-                      <>
-                        {' '}→ Chunk <span className="font-semibold" style={{ color: getChunkColor(chunk.id) }}>
-                          {chunk.id + 1}
-                        </span>
-                      </>
-                    ) : null
-                  })()}
-                </>
-              ) : (
-                <>
-                  <span className="font-semibold">{chunks.length}</span> chunks from {' '}
-                  <span className="font-semibold">{totalTokens.toLocaleString()}</span> tokens
-                </>
-              )}
+              <span className="font-semibold">{chunks.length}</span> chunks from {' '}
+              <span className="font-semibold">{totalTokens.toLocaleString()}</span> tokens
             </span>
-            {!hoveredPage && (
-              <div className="ml-auto flex gap-1">
-                {chunks.slice(0, 5).map(chunk => (
-                  <div 
-                    key={chunk.id}
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: getChunkColor(chunk.id) }}
-                    title={`Chunk ${chunk.id + 1}`}
-                  />
-                ))}
-                {chunks.length > 5 && (
-                  <span className="text-xs text-[#a0926f]">+{chunks.length - 5}</span>
-                )}
-              </div>
-            )}
           </div>
 
           {/* Content with Chunk Boundaries */}
@@ -505,21 +430,20 @@ export function ArtifactViewer({
             </div>
 
             {artifacts.map((artifact, aIdx) => {
-              const chunk = getChunkForContent(aIdx, 0)
+              const artifactTokens = artifact.contents.reduce((sum, content) => {
+                const textTokens = content.text ? estimateTokens(content.text) * chunkingSettings.textRatio : 0
+                const imgTokens = content.media 
+                  ? calculateImageTokens(content.media, chunkingSettings.imageTokens, chunkingSettings.filterEmbedded, chunkingSettings.filterScreenshot)
+                  : 0
+                return sum + textTokens + imgTokens
+              }, 0)
               
               return (
                 <Card key={artifact.id} className="bg-[#ede5d8] border-[#d4c8b8]">
-                  <CardHeader className="pb-3">
+                  <CardHeader className="pb-1 pt-2">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        {chunk && (
-                          <div 
-                            className="w-3 h-3 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: getChunkColor(chunk.id) }}
-                            title={`Chunk ${chunk.id + 1}`}
-                          />
-                        )}
-                        <CardTitle className="text-base flex items-center gap-2 text-[#2d1b0e]">
+                      <div>
+                        <CardTitle className="text-sm flex items-center gap-2 text-[#2d1b0e]">
                           {artifact.type === 'image' ? (
                             <ImageIcon className="h-4 w-4 text-[#7a5c3a]" />
                           ) : (
@@ -528,18 +452,26 @@ export function ArtifactViewer({
                           {artifact.type.toUpperCase()}
                         </CardTitle>
                       </div>
-                      <span className="text-xs text-[#a0926f] font-mono">
-                        {artifact.id.slice(0, 8)}...
-                      </span>
+                      <div className="text-right">
+                        <div className="text-xs text-[#a0926f]">Total tokens</div>
+                        <div className="text-sm font-semibold text-[#2d1b0e]">{artifactTokens.toLocaleString()}</div>
+                      </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-3">
+                  <CardContent className="space-y-2 pt-0 pb-2">
                     {artifact.contents.map((content, cIdx) => {
                       const index = aIdx * 1000 + cIdx
                       const isExpanded = expandedText.has(index)
                       const contentChunk = getChunkForContent(aIdx, cIdx)
                       const isChunkBoundary = contentChunk && cIdx > 0 && 
                         getChunkForContent(aIdx, cIdx - 1)?.id !== contentChunk.id
+
+                      // Calculate individual content tokens (for this page only)
+                      const contentTextTokens = content.text ? estimateTokens(content.text) * chunkingSettings.textRatio : 0
+                      const contentImgTokens = content.media 
+                        ? calculateImageTokens(content.media, chunkingSettings.imageTokens, chunkingSettings.filterEmbedded, chunkingSettings.filterScreenshot)
+                        : 0
+                      const contentTotalTokens = Math.round(contentTextTokens + contentImgTokens)
 
                       // Create unique key for content
                       const contentKey = `${artifact.id}-${content.page || 'no-page'}-${content.text?.slice(0, 50) || 'no-text'}-${cIdx}`
@@ -548,7 +480,7 @@ export function ArtifactViewer({
                         <div key={contentKey} className="relative">
                           {/* Chunk Boundary - Large Margin with Divider */}
                           {isChunkBoundary && contentChunk && (
-                            <div className="relative py-6 my-2">
+                            <div className="relative py-3 my-1">
                               <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 border-t-2 border-dashed border-[#d4c8b8]" />
                               <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-2 bg-[#ede5d8] px-3 py-1">
                                 <div 
@@ -567,37 +499,28 @@ export function ArtifactViewer({
                           )}
                            
                              <div 
-                               data-page={content.page}
-                               className={`border rounded-lg p-3 bg-[#f5efe6] ${
-                                 selectedPage !== null && content.page === selectedPage
-                                   ? 'ring-2 ring-[#7a5c3a] ring-offset-1'
-                                   : ''
-                               }`}
-                             >
-                              {/* Content Layout: Header+Text Left, Screenshot Right */}
-                              <div className="flex items-start gap-4">
-                                {/* Left Column - Header + Text */}
-                                <div className="flex-1 min-w-0">
-                                  {/* Header Row */}
-                                  <div className="flex items-center gap-2 mb-2">
-                                    {contentChunk && (
-                                      <div 
-                                        className="w-2 h-2 rounded-full"
-                                        style={{ backgroundColor: getChunkColor(contentChunk.id) }}
-                                        title={`Chunk ${contentChunk.id + 1}`}
-                                      />
-                                    )}
-                                    {content.page !== undefined && (
-                                      <div className="text-xs font-semibold text-[#7a5c3a]">
-                                        Page {content.page}
-                                      </div>
-                                    )}
-                                    {contentChunk && (
+                                data-page={content.page}
+                                className={`border border-[#d4c8b8] rounded-lg p-2 bg-[#f5efe6] ${
+                                  selectedPage !== null && content.page === selectedPage
+                                    ? 'ring-2 ring-[#7a5c3a] ring-offset-1'
+                                    : ''
+                                }`}
+                              >
+                               {/* Content Layout: Header+Text Left, Screenshot Right */}
+                               <div className="flex items-start gap-3">
+                                 {/* Left Column - Header + Text */}
+                                 <div className="flex-1 min-w-0">
+                                   {/* Header Row */}
+                                   <div className="flex items-center gap-2 mb-1">
+                                      {content.page !== undefined && (
+                                        <div className="text-xs font-semibold text-[#7a5c3a]">
+                                          Page {content.page}
+                                        </div>
+                                      )}
                                       <div className="ml-auto text-xs text-[#a0926f]">
-                                        ~{contentChunk.tokens.toLocaleString()} tokens
+                                        ~{contentTotalTokens.toLocaleString()} tokens
                                       </div>
-                                    )}
-                                  </div>
+                                   </div>
                                   
                                   {/* Text */}
                                   {content.text && (
@@ -656,9 +579,9 @@ export function ArtifactViewer({
 
                               {/* Embedded Images (if any) - shown below text, small and 4:3 */}
                               {content.media && content.media.some(m => m.imageType === 'embedded') && (
-                                <div className="mt-3 pt-3 border-t border-[#d4c8b8]">
-                                  <div className="text-xs text-[#a0926f] mb-2">Embedded Images</div>
-                                  <div className="flex flex-wrap gap-2">
+                                <div className="mt-2 pt-2 border-t border-[#d4c8b8]">
+                                  <div className="text-xs text-[#a0926f] mb-1">Embedded Images</div>
+                                  <div className="flex flex-wrap gap-1">
                                     {content.media
                                       .filter(m => m.imageType === 'embedded')
                                       .map((media, mIdx) => {
@@ -719,12 +642,27 @@ export function ArtifactViewer({
     )
   }
 
+  const renderGraphsView = () => {
+    return (
+      <div className="flex gap-4">
+        <div className="flex-1">
+          <ArtifactCharts artifacts={artifacts} chunkingSettings={chunkingSettings} />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <>
-      <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'visual' | 'json')}>
+      <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'visual' | 'json' | 'graphs')}>
         <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold text-[#2d1b0e] uppercase tracking-wider">Artifacts</h2>
           <TabsList>
             <TabsTrigger value="visual">Visual</TabsTrigger>
+            <TabsTrigger value="graphs" className="flex items-center gap-1.5">
+              <BarChart3 className="h-3.5 w-3.5" />
+              Graphs
+            </TabsTrigger>
             <TabsTrigger value="json">JSON</TabsTrigger>
           </TabsList>
         </div>
@@ -742,6 +680,9 @@ export function ArtifactViewer({
               </div>
             </div>
           )}
+        </TabsContent>
+        <TabsContent value="graphs" className="mt-0">
+          {renderGraphsView()}
         </TabsContent>
         <TabsContent value="json" className="mt-0">
           {renderJsonView()}

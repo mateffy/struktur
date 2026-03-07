@@ -47,6 +47,15 @@ async function saveExtraction(id: string, data: {
   return filepath
 }
 
+// Map providers to their environment variable names
+const PROVIDER_ENV_VARS: Record<string, string> = {
+  openai: 'OPENAI_API_KEY',
+  anthropic: 'ANTHROPIC_API_KEY',
+  google: 'GOOGLE_GENERATIVE_AI_API_KEY',
+  opencode: 'OPENCODE_API_KEY',
+  openrouter: 'OPENROUTER_API_KEY',
+}
+
 export async function parseFiles(files: File[], options: {
   images?: boolean
   screenshots?: boolean
@@ -168,51 +177,75 @@ export async function extractData(
   modelSpec: string,
   strategyName: string,
   chunkSize: number,
+  apiKey: string | undefined,
   onEvent?: (event: ExtractionEvent) => void,
 ): Promise<{ data: unknown; usage: { inputTokens: number; outputTokens: number } }> {
-  // Resolve model
-  const resolvedModel = modelSpec || await getDefaultModel() || 'openai/gpt-4o-mini'
-  const modelString = await resolveAlias(resolvedModel)
-  const model = await resolveModel(modelString)
+  // Determine provider from model spec
+  const provider = modelSpec.split('/')[0]
   
-  // Create strategy
-  const strategy = createStrategy(strategyName, model, chunkSize)
-  
-  // Build schema
-  let schema: any
-  if (schemaMode === 'json' && schemaJson) {
-    schema = JSON.parse(schemaJson)
-  } else if (schemaMode === 'fields' && fields) {
-    schema = parseFieldsShorthand(fields)
-  } else {
-    throw new Error('Schema is required')
+  // If an API key is provided, set it as environment variable temporarily
+  let originalEnvValue: string | undefined
+  if (apiKey && provider && PROVIDER_ENV_VARS[provider]) {
+    const envVar = PROVIDER_ENV_VARS[provider]
+    originalEnvValue = process.env[envVar]
+    process.env[envVar] = apiKey
   }
   
-  // Run extraction with events
-  const hydratedArtifacts = await hydrateSerializedArtifacts(artifacts)
-  const result = await extract({
-    artifacts: hydratedArtifacts,
-    schema,
-    strategy,
-    events: {
-      onStep: (info) => onEvent?.({ type: 'step', data: info }),
-      onMessage: (info) => onEvent?.({ type: 'message', data: info }),
-      onProgress: (info) => onEvent?.({ type: 'progress', data: info }),
-      onTokenUsage: (info) => onEvent?.({ type: 'tokenUsage', data: info }),
-      onRetry: (info) => onEvent?.({ type: 'retry', data: info }),
-    },
-  })
-  
-  if (result.error) {
-    onEvent?.({ type: 'error', data: { message: result.error.message } })
-    throw result.error
-  }
-  
-  onEvent?.({ type: 'complete', data: { usage: result.usage } })
-  
-  return {
-    data: result.data,
-    usage: result.usage,
+  try {
+    // Resolve model
+    const resolvedModel = modelSpec || await getDefaultModel() || 'openai/gpt-4o-mini'
+    const modelString = await resolveAlias(resolvedModel)
+    const model = await resolveModel(modelString)
+    
+    // Create strategy
+    const strategy = createStrategy(strategyName, model, chunkSize)
+    
+    // Build schema
+    let schema: any
+    if (schemaMode === 'json' && schemaJson) {
+      schema = JSON.parse(schemaJson)
+    } else if (schemaMode === 'fields' && fields) {
+      schema = parseFieldsShorthand(fields)
+    } else {
+      throw new Error('Schema is required')
+    }
+    
+    // Run extraction with events
+    const hydratedArtifacts = await hydrateSerializedArtifacts(artifacts)
+    const result = await extract({
+      artifacts: hydratedArtifacts,
+      schema,
+      strategy,
+      events: {
+        onStep: (info) => onEvent?.({ type: 'step', data: info }),
+        onMessage: (info) => onEvent?.({ type: 'message', data: info }),
+        onProgress: (info) => onEvent?.({ type: 'progress', data: info }),
+        onTokenUsage: (info) => onEvent?.({ type: 'tokenUsage', data: info }),
+        onRetry: (info) => onEvent?.({ type: 'retry', data: info }),
+      },
+    })
+    
+    if (result.error) {
+      onEvent?.({ type: 'error', data: { message: result.error.message } })
+      throw result.error
+    }
+    
+    onEvent?.({ type: 'complete', data: { usage: result.usage } })
+    
+    return {
+      data: result.data,
+      usage: result.usage,
+    }
+  } finally {
+    // Always restore original environment variable value
+    if (apiKey && provider && PROVIDER_ENV_VARS[provider]) {
+      const envVar = PROVIDER_ENV_VARS[provider]
+      if (originalEnvValue === undefined) {
+        delete process.env[envVar]
+      } else {
+        process.env[envVar] = originalEnvValue
+      }
+    }
   }
 }
 
