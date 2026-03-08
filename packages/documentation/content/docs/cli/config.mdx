@@ -3,6 +3,11 @@ title: config
 description: Manage providers, models, and parsers.
 ---
 
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+
 ## Synopsis
 
 ```bash
@@ -43,38 +48,68 @@ Output:
 
 Store an API token for a provider.
 
+<TypeTable
+  type={{
+    token: {
+      description: 'API token value (avoid — token may appear in shell history)',
+      type: 'string',
+      required: false,
+    },
+    'token-stdin': {
+      description: 'Read token from stdin (recommended)',
+      type: 'boolean',
+      required: false,
+    },
+    storage: {
+      description: 'Storage mode for the token',
+      type: '"auto" | "keychain" | "file"',
+      default: 'auto',
+      required: false,
+    },
+    default: {
+      description: 'After storing, query the API for cheapest model and set as default',
+      type: 'boolean',
+      required: false,
+    },
+  }}
+/>
+
+<Accordions type="single">
+<Accordion title="Examples">
+
+<Tabs items={['Store via stdin', 'Store with default model', 'OpenCode', 'OpenRouter']}>
+  <Tab value="Store via stdin">
 ```bash
-struktur config providers add <provider> [options]
-```
-
-| Flag | Type | Description |
-|------|------|-------------|
-| `--token <t>` | string | API token value (avoid — token may appear in shell history) |
-| `--token-stdin` | boolean | Read token from stdin (recommended) |
-| `--storage <mode>` | string | `auto` (default), `keychain`, or `file` |
-| `--default` | boolean | After storing, query the API for cheapest model and set as default |
-
-**Examples:**
-
-```bash
-# Store via stdin (recommended)
 echo "$OPENAI_API_KEY" | struktur config providers add openai --token-stdin
-
-# Store and set cheapest model as default in one command
+```
+  </Tab>
+  <Tab value="Store with default model">
+```bash
 echo "$OPENAI_API_KEY" | struktur config providers add openai --token-stdin --default
-
-# OpenCode Zen (access to multiple model families via one API)
+```
+  </Tab>
+  <Tab value="OpenCode">
+```bash
 echo "$OPENCODE_API_KEY" | struktur config providers add opencode --token-stdin --default
-
-# OpenRouter (route to any provider)
+```
+  </Tab>
+  <Tab value="OpenRouter">
+```bash
 echo "$OPENROUTER_API_KEY" | struktur config providers add openrouter --token-stdin
 ```
+  </Tab>
+</Tabs>
+
+</Accordion>
+</Accordions>
 
 Output (without `--default`): `{ "provider": "openai", "stored": "keychain" }`
 
 Output (with `--default`): `{ "provider": "openai", "stored": "keychain", "defaultModel": "openai/gpt-4.1-nano" }`
 
-**Storage:** On macOS, tokens go into Keychain by default. On other platforms, `~/.config/struktur/tokens.json` (chmod 600). Set `STRUKTUR_DISABLE_KEYCHAIN` to force file storage on macOS.
+<Callout type="info">
+  **Storage:** On macOS, tokens go into Keychain by default. On other platforms, `~/.config/struktur/tokens.json` (chmod 600). Set `STRUKTUR_DISABLE_KEYCHAIN` to force file storage on macOS.
+</Callout>
 
 ### config providers remove
 
@@ -156,18 +191,37 @@ struktur config parsers get --mime application/vnd.ms-excel
 
 ### config parsers add
 
-```bash
-struktur config parsers add --mime <type> (--npm <pkg> | --file-command "<cmd>" | --stdin-command "<cmd>")
-```
+<TypeTable
+  type={{
+    mime: {
+      description: 'MIME type to handle (e.g. application/vnd.ms-excel)',
+      type: 'string',
+      required: true,
+    },
+    npm: {
+      description: 'npm package name implementing the parser contract',
+      type: 'string',
+      required: false,
+    },
+    'file-command': {
+      description: 'Shell command with FILE_PATH placeholder (replaced with the actual file path at runtime)',
+      type: 'string',
+      required: false,
+    },
+    'stdin-command': {
+      description: 'Shell command that reads file from stdin and writes SerializedArtifact[] JSON to stdout',
+      type: 'string',
+      required: false,
+    },
+  }}
+/>
 
-Exactly one of `--npm`, `--file-command`, or `--stdin-command` must be specified.
+<Callout type="warn">
+  Exactly one of `--npm`, `--file-command`, or `--stdin-command` must be specified.
+</Callout>
 
-| Flag | Description |
-|------|-------------|
-| `--mime <type>` | MIME type to handle (e.g. `application/vnd.ms-excel`) |
-| `--npm <pkg>` | npm package name implementing the parser contract |
-| `--file-command "<cmd>"` | Shell command with `FILE_PATH` placeholder (replaced with the actual file path at runtime) |
-| `--stdin-command "<cmd>"` | Shell command that reads file from stdin and writes `SerializedArtifact[]` JSON to stdout |
+<Accordions type="single">
+<Accordion title="Parser Examples">
 
 **npm parser** — install a package that implements the [npm parser contract](/docs/explanation/document-parsing#npm-package-parser):
 
@@ -198,6 +252,9 @@ struktur config parsers add \
 ```
 
 The command must write `SerializedArtifact[]` JSON to stdout. Plain text output will fail validation.
+
+</Accordion>
+</Accordions>
 
 ### config parsers remove
 

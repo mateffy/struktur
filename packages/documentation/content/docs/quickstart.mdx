@@ -3,24 +3,39 @@ title: Quickstart
 description: Get started with Struktur in under 5 minutes. Extract structured data from any file.
 ---
 
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+
 Extract structured data from any file in 3 commands. About 5 minutes.
 
-> **Using an AI assistant?** Point it at `https://struktur.sh/llms.txt` for LLM-optimized docs, or install the [Agent Skill](/docs/skill) for built-in Struktur knowledge.
+<Callout type="info">
+  **Using an AI assistant?** Point it at `https://struktur.sh/llms.txt` for LLM-optimized docs, or install the [Agent Skill](/docs/skill) for built-in Struktur knowledge.
+</Callout>
 
 ## Prerequisites
 
 - Node.js 18+ or Bun installed
 - An API key from OpenAI, Anthropic, Google, OpenCode, or OpenRouter
 
-## Step 1: Install
+<Steps>
 
+<Step>
+
+### Install
+
+<Tabs items={['npm', 'Bun']} groupId="package-manager">
+  <Tab value="npm">
 ```bash
-# Using npm
 npm install -g @struktur/cli
-
-# Or using Bun (recommended)
+```
+  </Tab>
+  <Tab value="Bun">
+```bash
 bun install -g @struktur/cli
 ```
+  </Tab>
+</Tabs>
 
 Verify:
 
@@ -30,7 +45,11 @@ struktur --help
 
 You should see the usage output.
 
-## Step 2: Configure your API key
+</Step>
+
+<Step>
+
+### Configure your API key
 
 Store your API key securely with the CLI:
 
@@ -42,7 +61,7 @@ The `--default` flag automatically queries the provider API and sets the cheapes
 
 Output: `{ "provider": "openai", "stored": "keychain" }` (or `"file"` on Linux).
 
-### Set a default model (if not using --default)
+#### Set a default model (if not using --default)
 
 ```bash
 struktur config models use openai/gpt-4o-mini
@@ -50,24 +69,29 @@ struktur config models use openai/gpt-4o-mini
 
 Once set, `--model` is optional in all `extract` commands.
 
-## Step 3: Extract your first data
+</Step>
 
-**From text:**
+<Step>
 
+### Extract your first data
+
+<Tabs items={['From text', 'From PDF']} groupId="input-type">
+  <Tab value="From text">
 ```bash
 echo "Invoice #1042 from Acme Corp. Total: $2,400.00. Due: April 1, 2026." | \
   struktur --stdin \
   --fields "invoice_number, vendor, total:number, due_date" \
   --model openai/gpt-4o-mini
 ```
-
-**From a PDF directly:**
-
+  </Tab>
+  <Tab value="From PDF">
 ```bash
 struktur --input invoice.pdf \
   --fields "invoice_number, vendor, total:number, due_date" \
   --model openai/gpt-4o-mini
 ```
+  </Tab>
+</Tabs>
 
 The `--fields` flag builds a JSON Schema on the fly. Each field defaults to `string`; append `:number`, `:integer`, `:bool`, etc. to set the type. See [Fields Shorthand](/docs/cli/fields) for the full syntax.
 
@@ -80,6 +104,10 @@ struktur --input invoice.pdf \
 ```
 
 Notice that `total` is a number, not a string — Struktur enforced the schema.
+
+</Step>
+
+</Steps>
 
 ## What happened?
 

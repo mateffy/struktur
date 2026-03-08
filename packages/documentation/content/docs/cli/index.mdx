@@ -2,14 +2,16 @@
 title: CLI
 ---
 
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
 The Struktur CLI provides commands for data extraction, file parsing, and configuration management.
 
-## Commands
-
-- [extract](/docs/cli/extract) — Extract structured data from files, stdin, or text (default command)
-- [parse](/docs/cli/parse) — Convert a file to Artifact JSON for inspection or pre-processing
-- [config](/docs/cli/config) — Manage providers, models, and parsers
-- [utils](/docs/cli/utils) — Utility commands (artifact viewer)
-- [verify](/docs/cli/verify) — Validate artifact JSON format
+<Cards>
+  <Card title="extract" description="Extract structured data from files, stdin, or text (default command)" href="/docs/cli/extract" />
+  <Card title="parse" description="Convert a file to Artifact JSON for inspection or pre-processing" href="/docs/cli/parse" />
+  <Card title="config" description="Manage providers, models, and parsers" href="/docs/cli/config" />
+  <Card title="utils" description="Utility commands (artifact viewer)" href="/docs/cli/utils" />
+  <Card title="verify" description="Validate artifact JSON format" href="/docs/cli/verify" />
+</Cards>
 
 `extract` is the default command — `struktur --input file.pdf ...` and `struktur extract --input file.pdf ...` are equivalent.

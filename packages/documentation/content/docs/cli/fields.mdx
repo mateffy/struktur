@@ -3,6 +3,11 @@ title: Fields Shorthand
 description: Build schemas on the fly from the CLI using a concise field definition string.
 ---
 
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
 The `--fields` flag (short: `-f`) lets you describe extraction output as a comma-separated string directly on the command line, without writing or maintaining a JSON Schema file.
 
 ```bash
@@ -32,11 +37,25 @@ struktur [extract] --fields "<field-definitions>" [other options]
 
 `--fields` is one of three mutually exclusive schema options. Pass exactly one of:
 
-| Flag | Description |
-|------|-------------|
-| `--fields` / `-f` | Fields shorthand string |
-| `--schema <path\|url>` | JSON Schema file or URL |
-| `--schema-json <json>` | Inline JSON Schema string |
+<TypeTable
+  type={{
+    fields: {
+      description: 'Fields shorthand string (short: -f)',
+      type: 'string',
+      required: false,
+    },
+    schema: {
+      description: 'JSON Schema file or URL',
+      type: 'string',
+      required: false,
+    },
+    'schema-json': {
+      description: 'Inline JSON Schema string',
+      type: 'string',
+      required: false,
+    },
+  }}
+/>
 
 ---
 
@@ -54,41 +73,40 @@ Whitespace around commas and colons is ignored.
 
 ## Scalar types
 
-### string
-
+<Tabs items={['string', 'number / float', 'integer / int', 'boolean / bool']}>
+  <Tab value="string">
 ```bash
 --fields "title"
 --fields "title:string"
 ```
 
 Default when no type is specified. Produces `{ "type": "string" }`.
-
-### number / float
-
+  </Tab>
+  <Tab value="number / float">
 ```bash
 --fields "price:number"
 --fields "price:float"
 ```
 
 Any numeric value. Both produce `{ "type": "number" }`. `float` is an alias for `number`.
-
-### integer / int
-
+  </Tab>
+  <Tab value="integer / int">
 ```bash
 --fields "count:integer"
 --fields "count:int"
 ```
 
 Whole numbers only. `integer` produces `{ "type": "integer" }`. `int` produces `{ "type": "integer", "multipleOf": 1 }` — explicitly disallows fractions.
-
-### boolean / bool
-
+  </Tab>
+  <Tab value="boolean / bool">
 ```bash
 --fields "active:boolean"
 --fields "active:bool"
 ```
 
 Both produce `{ "type": "boolean" }`. `bool` is an alias for `boolean`.
+  </Tab>
+</Tabs>
 
 ---
 
@@ -117,33 +135,38 @@ The item type can be any scalar keyword (including aliases). If omitted, default
 
 ## Examples
 
-**Basic fields with types:**
+<Cards>
+  <Card title="Basic fields with types" description="Extract article metadata" />
+  <Card title="Enum field" description="Status extraction with predefined values" />
+  <Card title="Mixed types" description="Products with arrays and enums" />
+  <Card title="Piped input" description="Processing reviews from stdin" />
+  <Card title="Batch processing" description="Process a directory of documents" />
+</Cards>
 
+<Tabs items={['Basic fields', 'Enum field', 'Mixed types', 'Piped input', 'Batch processing']}>
+  <Tab value="Basic fields">
 ```bash
 struktur --input article.txt \
   --fields "title, author, published_date, word_count:integer" \
   --model openai/gpt-4o-mini
 ```
-
-**Enum field:**
-
+  </Tab>
+  <Tab value="Enum field">
 ```bash
 echo "Order #4421 is currently being packed." | \
   struktur --stdin \
   --fields "order_id, status:enum{pending|processing|shipped|delivered}" \
   --model anthropic/claude-3-5-haiku-20241022
 ```
-
-**Mixed types including arrays:**
-
+  </Tab>
+  <Tab value="Mixed types">
 ```bash
 struktur --input product.html \
   --fields "name, price:float, in_stock:bool, tags:array{string}, category:enum{electronics|clothing|food}" \
   --model openai/gpt-4o-mini
 ```
-
-**Piped from stdin, output to file:**
-
+  </Tab>
+  <Tab value="Piped input">
 ```bash
 cat reviews.txt | \
   struktur --stdin \
@@ -151,9 +174,8 @@ cat reviews.txt | \
   --model openai/gpt-4o-mini \
   --output result.json
 ```
-
-**Batch processing a directory:**
-
+  </Tab>
+  <Tab value="Batch processing">
 ```bash
 for f in docs/*.txt; do
   struktur --input "$f" \
@@ -162,6 +184,8 @@ for f in docs/*.txt; do
     --output "out/$(basename "$f" .txt).json"
 done
 ```
+  </Tab>
+</Tabs>
 
 ---
 

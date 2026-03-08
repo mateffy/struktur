@@ -3,7 +3,17 @@ title: What is Struktur?
 description: All-in-one tool for structured data extraction that turns pre-parsed documents into validated JSON using LLMs.
 ---
 
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Callout } from 'fumadocs-ui/components/callout';
+
 Struktur is an all-in-one tool for structured data extraction that turns pre-parsed documents into validated, schema-typed JSON. It operates on Artifacts, chunks them by token budgets, runs extraction strategies, validates results against your schema, and merges or deduplicates outputs where needed.
+
+<Cards>
+  <Card title="CLI Tool" description="Extract data from the command line with a simple, intuitive interface" href="/docs/cli" />
+  <Card title="TypeScript SDK" description="Programmatic API for embedding extraction in your applications" href="/docs/sdk" />
+  <Card title="Agent Skill" description="Built-in knowledge for AI assistants and agents" href="/docs/skill" />
+  <Card title="Examples" description="Real-world extraction patterns and use cases" href="/docs/examples" />
+</Cards>
 
 ## Why Struktur?
 
@@ -35,17 +45,15 @@ You write the same orchestration boilerplate every time. Struktur packages that 
 
 ## Design philosophy
 
-**Narrow scope, intentionally.** Struktur does extraction only. No parsing. No streaming. No general-purpose LLM orchestration. This focus keeps the API small and the behavior predictable.
+<Callout type="info">
+  **Narrow scope, intentionally.** Struktur does extraction only. No parsing. No streaming. No general-purpose LLM orchestration. This focus keeps the API small and the behavior predictable.
+</Callout>
 
-**Shell-composable by default.** Reads stdin, writes stdout, speaks JSON. Integrates with `jq`, `find`, `curl`, and any tool in your pipeline.
-
-**Strategy-first.** Different documents need different approaches. A single-page invoice needs simple extraction. A 100-page catalog with duplicate products needs parallel extraction with deduplication. Strategies encode these patterns.
-
-**Validation in the loop.** Errors go back to the model, not to you. The retry loop means most extractions converge within two attempts.
-
-**Schema-first.** You define the shape, Struktur guarantees it.
-
-**Fields shorthand.** Skip the JSON Schema boilerplate with `--fields "title, price:number, status:enum{draft|live}"`.
+- **Shell-composable by default.** Reads stdin, writes stdout, speaks JSON. Integrates with `jq`, `find`, `curl`, and any tool in your pipeline.
+- **Strategy-first.** Different documents need different approaches. A single-page invoice needs simple extraction. A 100-page catalog with duplicate products needs parallel extraction with deduplication. Strategies encode these patterns.
+- **Validation in the loop.** Errors go back to the model, not to you. The retry loop means most extractions converge within two attempts.
+- **Schema-first.** You define the shape, Struktur guarantees it.
+- **Fields shorthand.** Skip the JSON Schema boilerplate with `--fields "title, price:number, status:enum{draft|live}"`.
 
 ## Trade-offs
 
@@ -76,7 +84,10 @@ Expected output:
 
 ## What Struktur is NOT
 
-- **It is not a general document conversion tool.** It parses files for extraction purposes, not for format conversion. It does not produce formatted output from documents.
+<Callout type="warn">
+  **It is not a general document conversion tool.** It parses files for extraction purposes, not for format conversion. It does not produce formatted output from documents.
+</Callout>
+
 - **It is not a managed API.** It runs locally and calls your provider directly.
 - **It does not stream.** Input in, JSON out.
 - **It is not a general LLM orchestration framework.**
@@ -85,9 +96,10 @@ For the full mental model, see [The Extraction Pipeline](/docs/explanation/pipel
 
 ## Who is it for?
 
-**CLI users** — data engineers, analysts, shell pipeline builders — use Struktur for one-off extractions, batch processing, and CI/CD automation without writing code.
-
-**SDK users** — TypeScript developers embedding extraction in applications — use Struktur for typed results, custom strategies, and fine-grained control over the extraction pipeline.
+<Cards>
+  <Card title="CLI Users" description="Data engineers, analysts, shell pipeline builders — use Struktur for one-off extractions, batch processing, and CI/CD automation without writing code." />
+  <Card title="SDK Users" description="TypeScript developers embedding extraction in applications — use Struktur for typed results, custom strategies, and fine-grained control over the extraction pipeline." />
+</Cards>
 
 ## What are Strategies?
 

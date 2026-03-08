@@ -3,16 +3,23 @@ title: Usage
 description: How to use the Struktur agent skill with your AI coding assistant.
 ---
 
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+
 How to use the Struktur agent skill with your AI coding assistant.
 
 ## How It Works
 
 The skill uses **progressive disclosure** to minimize token usage:
 
-1. **Metadata Phase** (~100 tokens): Agent loads only the skill name and description
-2. **Activation Phase**: When your request matches the description, the agent asks permission to load the full skill
-3. **Full Load** (up to 5,000 tokens): Complete skill instructions load into context
-4. **On-Demand**: Supporting files (scripts, references) load as needed
+<Callout type="info">
+  1. **Metadata Phase** (~100 tokens): Agent loads only the skill name and description
+  2. **Activation Phase**: When your request matches the description, the agent asks permission to load the full skill
+  3. **Full Load** (up to 5,000 tokens): Complete skill instructions load into context
+  4. **On-Demand**: Supporting files (scripts, references) load as needed
+</Callout>
 
 This means you can have hundreds of skills installed without bloating the agent's context window.
 
@@ -31,7 +38,8 @@ The agent will recognize these requests and load the skill automatically.
 
 ## Example Conversations
 
-### Example 1: Basic Extraction
+<Accordions type="single">
+<Accordion title="Example 1: Basic Extraction">
 
 **You:**
 ```
@@ -49,7 +57,8 @@ I'll use Struktur's simple strategy for this extraction. Let me:
 [proceeds with correct API usage, proper schema definition, and best practices]
 ```
 
-### Example 2: Large Document with Parallel Strategy
+</Accordion>
+<Accordion title="Example 2: Large Document with Parallel Strategy">
 
 **You:**
 ```
@@ -72,7 +81,8 @@ Let me set this up with:
 [proceeds with optimal configuration]
 ```
 
-### Example 3: CLI Configuration
+</Accordion>
+<Accordion title="Example 3: CLI Configuration">
 
 **You:**
 ```
@@ -89,6 +99,9 @@ I'll configure the struktur CLI:
 
 [runs correct CLI commands]
 ```
+
+</Accordion>
+</Accordions>
 
 ## What the Skill Knows
 
@@ -108,7 +121,7 @@ The skill teaches the agent to choose strategies based on:
 
 | Input Size | Output Shape | Recommended Strategy |
 |------------|--------------|---------------------|
-| Small (&lt;10K tokens) | Any | `simple` |
+| Small (`<10K` tokens) | Any | `simple` |
 | Large | Array/list | `parallel` or `parallelAutoMerge` |
 | Large | Object with context | `sequential` |
 | Large | Maximum accuracy | `doublePass` |
@@ -149,7 +162,8 @@ Check your tool's documentation for manual skill loading commands.
 
 ## Troubleshooting
 
-### Skill Not Loading
+<Accordions type="single">
+<Accordion title="Skill Not Loading">
 
 If the skill doesn't load automatically:
 
@@ -158,7 +172,8 @@ If the skill doesn't load automatically:
 3. **Be more specific**: Use explicit keywords like "struktur", "extract", "artifact"
 4. **Check logs**: Some tools show skill discovery in debug mode
 
-### Outdated Information
+</Accordion>
+<Accordion title="Outdated Information">
 
 If the skill seems outdated:
 
@@ -168,13 +183,17 @@ npm update @struktur/skill
 cp -r node_modules/@struktur/skill/skills/struktur ~/.config/claude/skills/
 ```
 
-### Wrong Strategy Recommended
+</Accordion>
+<Accordion title="Wrong Strategy Recommended">
 
 The skill provides general guidance, but you can override:
 
 ```
 Use struktur with the sequential strategy (not parallel) because order matters for this document.
 ```
+
+</Accordion>
+</Accordions>
 
 ## Advanced Usage
 
@@ -194,9 +213,11 @@ When using struktur for this project:
 
 The Struktur skill works alongside other skills:
 
-- Database skills (for saving extracted data)
-- Testing skills (for validating extraction results)
-- Deployment skills (for CI/CD integration)
+<Cards>
+  <Card title="Database Skills" description="For saving extracted data" />
+  <Card title="Testing Skills" description="For validating extraction results" />
+  <Card title="Deployment Skills" description="For CI/CD integration" />
+</Cards>
 
 ## Resources
 

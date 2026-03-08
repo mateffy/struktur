@@ -2,37 +2,83 @@
 
 Schema [#schema]
 
-```json
-{
-  "type": "object",
-  "properties": {
-    "invoice_number": { "type": "string" },
-    "vendor": { "type": "string" },
-    "invoice_date": { "type": "string" },
-    "due_date": { "type": "string" },
-    "currency": { "type": "string" },
-    "line_items": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "description": { "type": "string" },
-          "quantity": { "type": "number" },
-          "unit_price": { "type": "number" },
-          "total": { "type": "number" }
-        },
-        "required": ["description", "total"],
-        "additionalProperties": false
-      }
-    },
-    "subtotal": { "type": "number" },
-    "tax": { "type": "number" },
-    "total": { "type": "number" }
+<SchemaViewer
+  schema={{
+"type": "object",
+"title": "Invoice Schema",
+"description": "Schema for extracting structured data from invoice documents",
+"properties": {
+  "invoice_number": { 
+    "type": "string",
+    "description": "Unique identifier for the invoice"
   },
-  "required": ["invoice_number", "vendor", "total"],
-  "additionalProperties": false
-}
-```
+  "vendor": { 
+    "type": "string",
+    "description": "Company or individual issuing the invoice"
+  },
+  "invoice_date": { 
+    "type": "string",
+    "format": "date",
+    "description": "Date the invoice was issued"
+  },
+  "due_date": { 
+    "type": "string",
+    "format": "date",
+    "description": "Payment due date"
+  },
+  "currency": { 
+    "type": "string",
+    "enum": ["USD", "EUR", "GBP", "JPY"],
+    "description": "Currency code for all monetary values"
+  },
+  "line_items": {
+    "type": "array",
+    "description": "List of items or services billed",
+    "items": {
+      "type": "object",
+      "properties": {
+        "description": { 
+          "type": "string",
+          "description": "Description of the line item"
+        },
+        "quantity": { 
+          "type": "number",
+          "minimum": 0,
+          "description": "Quantity of items"
+        },
+        "unit_price": { 
+          "type": "number",
+          "minimum": 0,
+          "description": "Price per unit"
+        },
+        "total": { 
+          "type": "number",
+          "minimum": 0,
+          "description": "Total amount for this line item"
+        }
+      },
+      "required": ["description", "total"]
+    }
+  },
+  "subtotal": { 
+    "type": "number",
+    "minimum": 0,
+    "description": "Sum of all line item totals before tax"
+  },
+  "tax": { 
+    "type": "number",
+    "minimum": 0,
+    "description": "Tax amount applied to the subtotal"
+  },
+  "total": { 
+    "type": "number",
+    "minimum": 0,
+    "description": "Final amount due (subtotal + tax)"
+  }
+},
+"required": ["invoice_number", "vendor", "total"]
+}}
+/>
 
 CLI approach [#cli-approach]
 

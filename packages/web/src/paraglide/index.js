@@ -1,2 +1,2 @@
-export { messages } from './messages.js'
-export { getLocale, setLocale, locales } from './runtime'
+export { messages } from "./messages.js";
+export { getLocale, locales, setLocale } from "./runtime";

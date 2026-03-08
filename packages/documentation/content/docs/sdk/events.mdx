@@ -3,14 +3,35 @@ title: Events & Observability
 description: Event handlers for progress tracking and observability.
 ---
 
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+import { Callout } from 'fumadocs-ui/components/callout';
+
 ## Available events
 
-| Event | Description |
-|-------|-------------|
-| `onStep` | Fired at each named phase within a strategy |
-| `onMessage` | Fired for every message in the LLM conversation |
-| `onProgress` | Fired when a strategy can report percentage progress |
-| `onTokenUsage` | Fired after each LLM call with token usage |
+<TypeTable
+  type={{
+    onStep: {
+      description: 'Fired at each named phase within a strategy',
+      type: '(info: { step: number; total?: number; label?: string }) => void',
+      required: false,
+    },
+    onMessage: {
+      description: 'Fired for every message in the LLM conversation',
+      type: '(msg: { role: string; content: unknown }) => void',
+      required: false,
+    },
+    onProgress: {
+      description: 'Fired when a strategy can report percentage progress',
+      type: '(progress: number) => void',
+      required: false,
+    },
+    onTokenUsage: {
+      description: 'Fired after each LLM call with token usage',
+      type: '(usage: { inputTokens: number; outputTokens: number; totalTokens: number }) => void',
+      required: false,
+    },
+  }}
+/>
 
 ## Example: progress bar
 
