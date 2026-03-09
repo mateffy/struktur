@@ -41,7 +41,7 @@ Extract structured data from documents or artifact JSON.
 {
   "artifacts": [...],
   "schema": {...},
-  "model": "openai/gpt-4",
+  "model": "openai/gpt-4.1-mini",
   "strategy": "simple",
   "chunkSize": 10000,
   "strict": false
@@ -53,7 +53,7 @@ Extract structured data from documents or artifact JSON.
 - `file` (optional): File to parse (alternative to artifacts)
 - `schema` (optional): JSON schema string
 - `fields` (optional): Shorthand field list (alternative to schema)
-- `model` (required): Model identifier (e.g., `openai/gpt-4`)
+- `model` (required): Model identifier (e.g., `openai/gpt-4.1-mini`, `anthropic/claude-sonnet-4-6`)
 - `strategy` (optional): Extraction strategy (default: `simple`)
 - `chunkSize` (optional): Token budget per batch (default: 10000)
 - `maxSteps` (optional): Maximum agent steps for agent strategy

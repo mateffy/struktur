@@ -376,7 +376,7 @@ const result = await extract({
   schema,
   strategy: agent({
     provider: "openai",
-    modelId: "gpt-4o-mini",
+    modelId: "gpt-4.1-mini",
     maxSteps: 50,
   }),
 });

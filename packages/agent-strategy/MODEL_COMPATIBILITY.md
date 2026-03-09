@@ -15,10 +15,13 @@ The agent strategy requires models with **function calling / tool use** support.
 
 These models are known to work well with the agent strategy:
 
-- **Anthropic Claude 3.5 Sonnet** (`anthropic/claude-sonnet-4`)
-- **Anthropic Claude 3 Opus** (`anthropic/claude-opus-4`)
-- **OpenAI GPT-4o** (`openai/gpt-4o`)
-- **OpenAI GPT-4o-mini** (`openai/gpt-4o-mini`)
+- **Anthropic Claude Sonnet 4.6** (`anthropic/claude-sonnet-4-6`) - Best overall, new default
+- **Anthropic Claude Opus 4.6** (`anthropic/claude-opus-4-6`) - Most capable for complex tasks
+- **OpenAI GPT-5.2** (`openai/gpt-5.2`) - Latest flagship model
+- **OpenAI GPT-4.1** (`openai/gpt-4.1`) - Strong coding and instruction following
+- **OpenAI GPT-4.1-mini** (`openai/gpt-4.1-mini`) - Cost-effective, beats GPT-4o
+- **Google Gemini 3.1 Pro** (`google/gemini-3.1-pro`) - Complex problem-solving
+- **Google Gemini 3.1 Flash-Lite** (`google/gemini-3.1-flash-lite`) - Fast and cost-efficient
 
 ### ⚠️ Partial Support
 
@@ -68,10 +71,11 @@ Tool  not found
 
 ## Recommendations
 
-1. **Use Claude 3.5 Sonnet or GPT-4o** for best results
-2. **Avoid models without explicit tool calling support**
-3. **Test with simple extractions first** before complex documents
-4. **Check model documentation** for function calling capabilities
+1. **Use Claude Sonnet 4.6 or GPT-5.2** for best results
+2. **Use GPT-4.1-mini or Gemini 3.1 Flash-Lite** for cost-effective extraction
+3. **Avoid models without explicit tool calling support**
+4. **Test with simple extractions first** before complex documents
+5. **Check model documentation** for function calling capabilities
 
 ## Workarounds
 

@@ -80,9 +80,12 @@ struktur --text "Some text to analyze" \
 **Important**: The agent strategy requires models with **function calling / tool use** support. Not all models support this feature.
 
 **✅ Recommended Models:**
-- `anthropic/claude-sonnet-4` (Claude 3.5 Sonnet) - Best overall
-- `openai/gpt-4o` - Excellent tool support
-- `openai/gpt-4o-mini` - Good balance of capability and cost
+- `anthropic/claude-sonnet-4-6` - Best overall, new default
+- `anthropic/claude-opus-4-6` - Most capable for complex tasks
+- `openai/gpt-5.2` - Latest flagship model
+- `openai/gpt-4.1-mini` - Cost-effective, excellent tool support
+- `google/gemini-3.1-pro` - Complex problem-solving
+- `google/gemini-3.1-flash-lite` - Fast and cost-efficient
 
 **❌ Not Compatible:**
 - Some models on OpenRouter (like `opencode/glm-5`) don't support tool calling
@@ -97,11 +100,12 @@ See [MODEL_COMPATIBILITY.md](./MODEL_COMPATIBILITY.md) for detailed compatibilit
 
 The `--model` parameter for the agent strategy must be in the format `provider/model-id`:
 
-- `anthropic/claude-sonnet-4` - Anthropic Claude Sonnet 4
-- `anthropic/claude-opus-4-5` - Anthropic Claude Opus 4.5
-- `openai/gpt-4o` - OpenAI GPT-4o
-- `openai/gpt-4o-mini` - OpenAI GPT-4o Mini
-- `openrouter/anthropic/claude-sonnet-4` - OpenRouter routing to Anthropic
+- `anthropic/claude-sonnet-4-6` - Anthropic Claude Sonnet 4.6
+- `anthropic/claude-opus-4-6` - Anthropic Claude Opus 4.6
+- `openai/gpt-5.2` - OpenAI GPT-5.2
+- `openai/gpt-4.1-mini` - OpenAI GPT-4.1 Mini
+- `google/gemini-3.1-pro` - Google Gemini 3.1 Pro
+- `openrouter/anthropic/claude-sonnet-4-6` - OpenRouter routing to Anthropic
 
 The CLI will automatically resolve the model and pass the provider/model configuration to the pi.dev agent framework.
 
@@ -110,7 +114,7 @@ The CLI will automatically resolve the model and pass the provider/model configu
 When using the agent strategy via CLI, you'll see real-time progress in the spinner:
 
 ```bash
-struktur --input document.pdf --schema schema.json --strategy agent --model anthropic/claude-sonnet-4
+struktur --input document.pdf --schema schema.json --strategy agent --model anthropic/claude-sonnet-4-6
 # Shows: "Agent: I'll start by examining the manifest..."
 # Then:  "Agent: Now I'll look at the available images..."
 # Finally: "Extracting data..." → JSON result
