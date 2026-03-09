@@ -21,6 +21,8 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@radix-ui/react-separator": "^1.1.8"
+    "@mariozechner/pi-coding-agent": "^0.57.1",
+    "@radix-ui/react-separator": "^1.1.8",
+    "@sinclair/typebox": "^0.34.48"
   }
 }

@@ -45,6 +45,9 @@ export {
 
 export * from "./strategies";
 
+// Agent strategy (re-exported from @struktur/agent-strategy)
+export { AgentStrategy, agent, type AgentStrategyConfig } from "@struktur/agent-strategy";
+
 // Parsers public API
 export { collectStream } from "./parsers/collect";
 export type { ParserDef, ParsersConfig, InlineParserDef, NpmParserDef } from "./parsers/types";

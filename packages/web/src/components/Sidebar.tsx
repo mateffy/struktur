@@ -26,6 +26,8 @@ type SidebarProps = {
 	};
 	status: "idle" | "parsing" | "extracting" | "success" | "error";
 	isChunkingLoading?: boolean;
+	/** Optional: Check if API key exists for the selected model */
+	hasKeyForModel?: (model: string) => boolean;
 	onFilesChange: (files: File[]) => void;
 	onSchemaModeChange: (mode: SchemaMode) => void;
 	onSchemaJsonChange: (json: string) => void;
@@ -48,6 +50,7 @@ export function Sidebar({
 	parsingOptions,
 	chunkingOptions,
 	isChunkingLoading,
+	hasKeyForModel,
 	onFilesChange,
 	onSchemaModeChange,
 	onSchemaJsonChange,
@@ -91,19 +94,20 @@ export function Sidebar({
 						<h2 className="text-sm font-semibold text-[#2d1b0e] mb-3 uppercase tracking-wider">
 							Settings
 						</h2>
-						<ExtractionSettings
-							model={model}
-							strategy={strategy}
-							chunkSize={chunkSize}
-							parsingOptions={parsingOptions}
-							chunkingOptions={chunkingOptions}
-							isChunkingLoading={isChunkingLoading}
-							onModelChange={onModelChange}
-							onStrategyChange={onStrategyChange}
-							onChunkSizeChange={onChunkSizeChange}
-							onParsingOptionsChange={onParsingOptionsChange}
-							onChunkingOptionsChange={onChunkingOptionsChange}
-						/>
+					<ExtractionSettings
+						model={model}
+						strategy={strategy}
+						chunkSize={chunkSize}
+						parsingOptions={parsingOptions}
+						chunkingOptions={chunkingOptions}
+						isChunkingLoading={isChunkingLoading}
+						hasKeyForModel={hasKeyForModel}
+						onModelChange={onModelChange}
+						onStrategyChange={onStrategyChange}
+						onChunkSizeChange={onChunkSizeChange}
+						onParsingOptionsChange={onParsingOptionsChange}
+						onChunkingOptionsChange={onChunkingOptionsChange}
+					/>
 					</section>
 				</div>
 			</div>

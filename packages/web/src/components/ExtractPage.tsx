@@ -93,6 +93,10 @@ function getProviderFromModel(model: string): ProviderId | null {
 }
 
 export function ExtractPage() {
+	// Detect if running in desktop mode via query param
+	const isDesktop = typeof window !== "undefined" && 
+		new URLSearchParams(window.location.search).get("desktop") === "true";
+
 	const [files, setFiles] = useState<File[]>([]);
 	const [schemaMode, setSchemaMode] = useState<SchemaMode>("fields");
 	const [schemaJson, setSchemaJson] = useState("");
@@ -184,11 +188,76 @@ export function ExtractPage() {
 		}, 300);
 	}, []);
 
+	const [globalProviders, setGlobalProviders] = useState<string[]>([]);
+	const [useGlobalProviders, setUseGlobalProviders] = useState(false);
+	const [apiSource, setApiSource] = useState<"local" | "server">("local");
+
+	// Load API source preference and fetch config
+	useEffect(() => {
+		// Load saved preference
+		const savedSource = localStorage.getItem("struktur-api-source") as "local" | "server" | null;
+		
+		fetch("/api/config")
+			.then((res) => res.json())
+			.then((config) => {
+				setGlobalProviders(config.availableProviders || []);
+				setUseGlobalProviders(config.useGlobalProviders || false);
+				
+				// Determine initial source
+				const hasServerKeys = config.useGlobalProviders && (config.availableProviders || []).length > 0;
+				const hasLocalKeys = storedProviders.length > 0;
+				
+				if (savedSource) {
+					// Validate saved preference is still valid
+					if (savedSource === "server" && hasServerKeys) {
+						setApiSource("server");
+					} else if (savedSource === "local" && hasLocalKeys) {
+						setApiSource("local");
+					} else if (hasServerKeys) {
+						setApiSource("server");
+					} else {
+						setApiSource("local");
+					}
+				} else {
+					// Default: prefer server if available, otherwise local
+					if (hasServerKeys) {
+						setApiSource("server");
+					} else {
+						setApiSource("local");
+					}
+				}
+			})
+			.catch((err) => {
+				console.error("Failed to fetch config:", err);
+			});
+	}, [storedProviders]);
+
+	const handleApiSourceChange = useCallback((source: "local" | "server") => {
+		setApiSource(source);
+		localStorage.setItem("struktur-api-source", source);
+	}, []);
+
 	const canExtract =
 		files.length > 0 &&
 		(schemaMode === "file" ||
 			(schemaMode === "json" && schemaJson.trim().length > 0) ||
 			(schemaMode === "fields" && fields.trim().length > 0));
+
+	// Check if we have an API key for a given model
+	const hasKeyForModel = useCallback((modelString: string): boolean => {
+		if (!modelString) return false;
+		
+		const provider = getProviderFromModel(modelString);
+		if (!provider) return false;
+		
+		// If using server-side keys, check if server has the key
+		if (apiSource === "server" && useGlobalProviders && globalProviders.includes(provider)) {
+			return true;
+		}
+		
+		// If using local keys, check if we have a key stored in the secure storage
+		return storedProviders.includes(provider);
+	}, [storedProviders, globalProviders, useGlobalProviders, apiSource]);
 
 	const handleParse = useCallback(async () => {
 		if (files.length === 0) return;
@@ -397,11 +466,13 @@ export function ExtractPage() {
 
 	return (
 		<div className="h-screen bg-[#f5efe6] flex flex-col">
-			<header className="border-b border-[#d4c8b8] pl-0 pr-6 py-0 bg-[#ede5d8] flex items-center justify-between flex-shrink-0 z-10">
-				<div className="flex items-center">
-					<Logo />
+			<header className={`border-b border-[#d4c8b8] pl-4 pr-6 bg-[#ede5d8] flex items-center justify-between h-16 flex-shrink-0 z-10 electrobun-webkit-app-region-drag`}>
+				<div className="flex items-center h-full">
+					<div className={`flex items-center h-full ${isDesktop ? 'pt-3' : ''}`}>
+						<Logo />
+					</div>
 
-					<div className="hidden md:flex items-center gap-1 ml-6 pl-6 border-l border-[#d4c8b8]">
+					<div className="hidden md:flex items-center gap-1 ml-4 electrobun-webkit-app-region-no-drag h-full">
 						<a
 							href="https://struktur.sh/docs"
 							target="_blank"
@@ -423,7 +494,37 @@ export function ExtractPage() {
 					</div>
 				</div>
 
-				<div className="flex items-center gap-4">
+				<div className="flex items-center gap-4 electrobun-webkit-app-region-no-drag">
+					{/* API Source Toggle - Only show when server keys are available */}
+					{useGlobalProviders && globalProviders.length > 0 && (
+						<div className="flex items-center gap-1 bg-[#ede5d8] rounded-md p-1 border border-[#d4c8b8]">
+							<button
+								type="button"
+								onClick={() => handleApiSourceChange("local")}
+								className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+									apiSource === "local"
+										? "bg-[#7a5c3a] text-white"
+										: "text-[#7a5c3a] hover:text-[#2d1b0e] hover:bg-[#f5efe6]"
+								}`}
+								title="Use API keys stored locally in your browser"
+							>
+								Local
+							</button>
+							<button
+								type="button"
+								onClick={() => handleApiSourceChange("server")}
+								className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+									apiSource === "server"
+										? "bg-[#7a5c3a] text-white"
+										: "text-[#7a5c3a] hover:text-[#2d1b0e] hover:bg-[#f5efe6]"
+								}`}
+								title="Use API keys configured on the server (CLI)"
+							>
+								Server
+							</button>
+						</div>
+					)}
+
 					{/* Lock/Settings Button */}
 					{isUnlocked ? (
 						<>
@@ -444,6 +545,10 @@ export function ExtractPage() {
 								onDeleteKey={removeApiKey}
 								onGetKey={getApiKey}
 								onLock={lock}
+								apiSource={apiSource}
+								useGlobalProviders={useGlobalProviders}
+								globalProviders={globalProviders}
+								onApiSourceChange={handleApiSourceChange}
 							/>
 						</>
 					) : (
@@ -542,6 +647,7 @@ export function ExtractPage() {
 					chunkingOptions={chunkingOptions}
 					status={status}
 					isChunkingLoading={isChunkingLoading}
+					hasKeyForModel={hasKeyForModel}
 					onFilesChange={setFiles}
 					onSchemaModeChange={setSchemaMode}
 					onSchemaJsonChange={setSchemaJson}

@@ -24,6 +24,7 @@ import {
   sequential,
   sequentialAutoMerge,
   simple,
+  agent,
   validateSerializedArtifacts,
   hydrateSerializedArtifacts,
   detectMimeType,
@@ -1040,6 +1041,7 @@ const generateArtifactViewerHtml = (artifacts: SerializedArtifact[], version: st
 
 type StrategyOptions = {
   chunkSize?: number;
+  maxSteps?: number;
 };
 
 const DEFAULT_CHUNK_SIZE = 10_000;
@@ -1047,6 +1049,7 @@ const DEFAULT_CHUNK_SIZE = 10_000;
 const createStrategy = (
   name: string,
   model: unknown,
+  modelSpec: string,
   options?: StrategyOptions,
 ): ExtractionStrategy<unknown> => {
   const chunkSize = options?.chunkSize ?? DEFAULT_CHUNK_SIZE;
@@ -1065,8 +1068,23 @@ const createStrategy = (
       return doublePass({ model, mergeModel: model, chunkSize });
     case "doublePassAutoMerge":
       return doublePassAutoMerge({ model, dedupeModel: model, chunkSize });
+    case "agent": {
+      // Parse provider/model from modelSpec (format: "provider/model")
+      const [provider, ...modelParts] = modelSpec.split("/");
+      const modelId = modelParts.join("/");
+      if (!provider || !modelId) {
+        throw new UserError(
+          `Agent strategy requires --model in format 'provider/model'. Got: ${modelSpec}`
+        );
+      }
+      return agent({
+        provider,
+        modelId,
+        maxSteps: options?.maxSteps ?? 50,
+      });
+    }
     default:
-      throw new UserError(`Unsupported strategy: ${name}. Available strategies: simple, parallel, sequential, parallelAutoMerge, sequentialAutoMerge, doublePass, doublePassAutoMerge`);
+      throw new UserError(`Unsupported strategy: ${name}. Available strategies: simple, parallel, sequential, parallelAutoMerge, sequentialAutoMerge, doublePass, doublePassAutoMerge, agent`);
   }
 };
 
@@ -1130,6 +1148,41 @@ const formatStepMessage = (
   if (label === "dedupe") {
     return "Removing duplicates...";
   }
+  
+  // Agent strategy lifecycle labels
+  if (label === "agent_explore") {
+    return "Agent exploring...";
+  }
+  if (label === "agent_init") {
+    return "Initializing agent...";
+  }
+  if (label === "agent_session_ready") {
+    return "Agent ready...";
+  }
+  if (label === "agent_thinking") {
+    return "Agent thinking...";
+  }
+  if (label === "agent_complete") {
+    return "Agent completing...";
+  }
+  
+  // Agent strategy tool labels (already formatted nicely by AgentStrategy)
+  if (label.startsWith("Read ")) {
+    return label;
+  }
+  if (label.startsWith("Bash: ")) {
+    return label;
+  }
+  if (label.startsWith("Grep ")) {
+    return label;
+  }
+  if (label.startsWith("Find ")) {
+    return label;
+  }
+  if (label.startsWith("List ")) {
+    return label;
+  }
+  
   if (label.startsWith("batch ")) {
     const match = label.match(/batch (\d+)\/(\d+)/);
     if (match) {
@@ -1156,6 +1209,24 @@ const formatStepMessage = (
     }
     return label;
   }
+  
+  // Agent message streaming - shows what the agent is currently doing/thinking
+  if (label.startsWith("Agent: ")) {
+    const message = label.slice(7); // Remove "Agent: " prefix
+    return `Agent: ${message}`;
+  }
+  
+  // Agent output data updates
+  if (label.startsWith("Output: ")) {
+    const data = label.slice(8); // Remove "Output: " prefix
+    return `Output: ${data.slice(0, 60)}${data.length > 60 ? '...' : ''}`;
+  }
+  
+  if (label.startsWith("Updated: ")) {
+    const changes = label.slice(9); // Remove "Updated: " prefix
+    return `Updated: ${changes.slice(0, 60)}${changes.length > 60 ? '...' : ''}`;
+  }
+  
   return `${label.charAt(0).toUpperCase()}${label.slice(1)}...`;
 };
 
@@ -1550,15 +1621,20 @@ const extractCommand = defineCommand({
     strategy: {
       type: "string",
       description:
-        "Extraction strategy (simple|parallel|sequential|parallelAutoMerge|sequentialAutoMerge|doublePass|doublePassAutoMerge)",
+        "Extraction strategy (simple|parallel|sequential|parallelAutoMerge|sequentialAutoMerge|doublePass|doublePassAutoMerge|agent)",
       alias: "S",
       default: "simple",
-      valueHint: "simple|parallel|...",
+      valueHint: "simple|parallel|...|agent",
     },
     "chunk-size": {
       type: "string",
       description: "Token budget per batch for chunked strategies",
       default: "10000",
+    },
+    "max-steps": {
+      type: "string",
+      description: "Maximum agent steps for agent strategy",
+      default: "50",
     },
     debug: {
       type: "boolean",
@@ -1696,10 +1772,11 @@ const extractCommand = defineCommand({
     const model = await resolveModel(modelSpec);
     debug.modelResolved({ modelSpec, resolvedModel: JSON.stringify(model) });
 
-    const strategy = createStrategy(args.strategy, model, { chunkSize });
+    const maxSteps = parseInt(args["max-steps"] as string, 10) || 50;
+    const strategy = createStrategy(args.strategy, model, modelSpec as string, { chunkSize, maxSteps });
     debug.strategyCreated({
       strategy: args.strategy,
-      config: { chunkSize, model: JSON.stringify(model) },
+      config: { chunkSize, maxSteps, model: JSON.stringify(model) },
     });
 
     const spinner = isDebug ? null : createSpinner();

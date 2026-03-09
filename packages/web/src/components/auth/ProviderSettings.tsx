@@ -42,6 +42,11 @@ interface ProviderSettingsProps {
 	onDeleteKey: (provider: ProviderId) => void;
 	onGetKey: (provider: ProviderId) => Promise<string | null>;
 	onLock: () => void;
+	// API Source props
+	apiSource?: "local" | "server";
+	useGlobalProviders?: boolean;
+	globalProviders?: string[];
+	onApiSourceChange?: (source: "local" | "server") => void;
 }
 
 interface ProviderCardProps {
@@ -216,6 +221,10 @@ export function ProviderSettings({
 	onDeleteKey,
 	onGetKey,
 	onLock,
+	apiSource = "local",
+	useGlobalProviders = false,
+	globalProviders = [],
+	onApiSourceChange,
 }: ProviderSettingsProps) {
 	const [apiKeys, setApiKeys] = useState<Record<ProviderId, string>>({
 		openai: "",
@@ -343,45 +352,137 @@ export function ProviderSettings({
 					</DialogTitle>
 				</DialogHeader>
 
+				{/* API Source Toggle - Only show when server keys are available */}
+				{useGlobalProviders && globalProviders.length > 0 && onApiSourceChange && (
+					<div className="px-6 pt-4">
+						<div className="flex items-center gap-4 bg-[#ede5d8] rounded-lg p-3 border border-[#d4c8b8]">
+							<div className="flex items-center gap-2">
+								<Shield className="w-4 h-4 text-[#7a5c3a]" />
+								<span className="text-sm font-medium text-[#2d1b0e]">
+									API Key Source
+								</span>
+							</div>
+							<div className="flex items-center gap-1 bg-[#f5efe6] rounded-md p-1">
+								<button
+									type="button"
+									onClick={() => onApiSourceChange("local")}
+									className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
+										apiSource === "local"
+											? "bg-[#7a5c3a] text-white"
+											: "text-[#7a5c3a] hover:text-[#2d1b0e] hover:bg-[#f5efe6]"
+									}`}
+								>
+									<span className="flex items-center gap-1.5">
+										<Lock className="w-3 h-3" />
+										Local (Browser)
+									</span>
+								</button>
+								<button
+									type="button"
+									onClick={() => onApiSourceChange("server")}
+									className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
+										apiSource === "server"
+											? "bg-[#7a5c3a] text-white"
+											: "text-[#7a5c3a] hover:text-[#2d1b0e] hover:bg-[#f5efe6]"
+									}`}
+								>
+									<span className="flex items-center gap-1.5">
+										<KeyRound className="w-3 h-3" />
+										Server (CLI)
+									</span>
+								</button>
+							</div>
+						</div>
+					</div>
+				)}
+
 				{/* Security notice */}
-				<div className="px-6">
+				<div className="px-6 pt-4">
 					<div className="bg-[#ede5d8] rounded-lg p-4 border border-[#d4c8b8]">
 						<div className="flex items-start gap-3">
 							<Shield className="w-5 h-5 text-[#7a5c3a] flex-shrink-0 mt-0.5" />
 							<div className="text-sm">
-								<p className="font-medium text-[#2d1b0e] mb-1">
-									Your API keys are encrypted and stored locally
-								</p>
-								<p className="text-[#7a5c3a] leading-relaxed">
-									API keys are encrypted in your browser's LocalStorage and only
-									decrypted when needed. They are sent directly to the model
-									provider when you run extractions and are never stored on our
-									servers. We recommend setting billing limits and using
-									restricted API keys.
-								</p>
+								{apiSource === "server" ? (
+									<>
+										<p className="font-medium text-[#2d1b0e] mb-1">
+											Using server-side API keys
+										</p>
+										<p className="text-[#7a5c3a] leading-relaxed">
+											API keys are managed by the server operator via CLI configuration. 
+											These keys are stored securely on the server and are not accessible 
+											to other users. Contact your server administrator for key management.
+										</p>
+									</>
+								) : (
+									<>
+										<p className="font-medium text-[#2d1b0e] mb-1">
+											Your API keys are encrypted and stored locally
+										</p>
+										<p className="text-[#7a5c3a] leading-relaxed">
+											API keys are encrypted in your browser's LocalStorage and only
+											decrypted when needed. They are sent directly to the model
+											provider when you run extractions and are never stored on our
+											servers. We recommend setting billing limits and using
+											restricted API keys.
+										</p>
+									</>
+								)}
 							</div>
 						</div>
 					</div>
 				</div>
 
-				{/* Provider cards */}
-				<div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-					{providers.map((config) => (
-						<ProviderCard
-							key={config.id}
-							config={config}
-							apiKey={apiKeys[config.id]}
-							isStored={localStoredProviders.has(config.id)}
-							isSaving={savingProviders.has(config.id)}
-							isRevealed={revealedKeys.has(config.id)}
-							error={errors[config.id]}
-							onApiKeyChange={(value) => handleApiKeyChange(config.id, value)}
-							onSave={() => handleSave(config.id)}
-							onDelete={() => handleDelete(config.id)}
-							onRevealToggle={() => toggleReveal(config.id)}
-						/>
-					))}
-				</div>
+				{/* Provider cards - Only show when using local keys */}
+				{apiSource === "local" ? (
+					<div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+						{providers.map((config) => (
+							<ProviderCard
+								key={config.id}
+								config={config}
+								apiKey={apiKeys[config.id]}
+								isStored={localStoredProviders.has(config.id)}
+								isSaving={savingProviders.has(config.id)}
+								isRevealed={revealedKeys.has(config.id)}
+								error={errors[config.id]}
+								onApiKeyChange={(value) => handleApiKeyChange(config.id, value)}
+								onSave={() => handleSave(config.id)}
+								onDelete={() => handleDelete(config.id)}
+								onRevealToggle={() => toggleReveal(config.id)}
+							/>
+						))}
+					</div>
+				) : (
+					<div className="p-6">
+						<div className="bg-[#f5efe6] rounded-lg p-6 border border-[#d4c8b8] text-center">
+							<KeyRound className="w-8 h-8 text-[#7a5c3a] mx-auto mb-3" />
+							<h3 className="font-medium text-[#2d1b0e] mb-2">
+								Server API Keys Active
+							</h3>
+							<p className="text-sm text-[#7a5c3a] mb-4 max-w-md mx-auto">
+								API keys are being provided by the server. 
+								The following providers are configured:
+							</p>
+							<div className="flex flex-wrap justify-center gap-2">
+								{globalProviders.map((providerId) => {
+									const config = providers.find((p) => p.id === providerId);
+									if (!config) return null;
+									return (
+											<div
+												key={providerId}
+												className="flex items-center gap-2 px-3 py-2 bg-[#ede5d8] rounded-lg border border-[#d4c8b8]"
+											>
+												<ProviderLogo provider={providerId as ProviderId} className="w-5 h-5" />
+												<span className="text-sm font-medium text-[#2d1b0e]">
+													{config.name}
+												</span>
+												<Check className="w-4 h-4 text-[#5c8a5c]" />
+											</div>
+										);
+									})}
+							</div>
+						</div>
+					</div>
+				)}
 
 				{/* Footer */}
 				<DialogFooter className="p-6 pt-0 flex-col sm:flex-row gap-3">

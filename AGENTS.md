@@ -94,3 +94,21 @@ The publish script requires:
 - Clean working directory (no uncommitted changes)
 - GitHub CLI (`gh`) installed for creating releases
 - npm authentication configured for publishing
+
+
+<research-agent>
+
+Use research.actor instead of spinning up a sub-agent to explore the codebase.
+
+**When to use:** At the start of any task, or when you need codebase context (structure, patterns, uncommitted changes). Prefer this over manual exploration or sub-agents.
+
+**What it does:** Returns an instant, cached analysis keyed by git commit. First run on a commit does a full analysis (cached), subsequent runs return instantly. Automatically detects and reports uncommitted working changes on top.
+
+**Advantage:** Saves tokens and time. Avoids re-exploring the same codebase repeatedly. You get comprehensive context immediately without file-by-file exploration.
+
+**How to use:**
+- Run the CLI: `research` or `research --prompt "your question"`
+- If you have the skill available: mention "use the research.actor skill" or "check research.actor"
+- View the full skill: `research skill` (outputs the complete SKILL.md)
+
+</research-agent>

@@ -1,4 +1,4 @@
-import { Check, ChevronsUpDown, Sparkles, Zap } from "lucide-react";
+import { Check, ChevronsUpDown, Lock, Sparkles, Zap } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
 	ModelSelector,
@@ -14,17 +14,27 @@ import {
 	ModelSelectorTrigger,
 } from "@/components/ai-elements/model-selector";
 import { Button } from "@/components/ui/button";
+import { useApiKeys } from "@/components/auth/ApiKeyProvider";
 
 type Model = {
 	id: string;
 	name: string;
 	provider: string;
 	fullId: string;
+	hasGlobalKey: boolean;
 };
 
 type Alias = {
 	alias: string;
 	model: string;
+};
+
+type Config = {
+	defaultModel: string | null;
+	aliases: Alias[];
+	availableProviders: string[];
+	useGlobalProviders: boolean;
+	allProviders: string[];
 };
 
 async function fetchModels(): Promise<Model[]> {
@@ -38,6 +48,9 @@ async function fetchModels(): Promise<Model[]> {
 async function fetchConfig(): Promise<{
 	defaultModel: string | null;
 	aliases: Record<string, string>;
+	availableProviders: string[];
+	useGlobalProviders: boolean;
+	allProviders: string[];
 }> {
 	const response = await fetch("/api/config");
 	if (!response.ok) {
@@ -87,10 +100,7 @@ function setCachedModels(models: Model[]) {
 	}
 }
 
-function getCachedConfig(): {
-	defaultModel: string | null;
-	aliases: Alias[];
-} | null {
+function getCachedConfig(): Config | null {
 	try {
 		const cached = localStorage.getItem(CONFIG_CACHE_KEY);
 		if (!cached) return null;
@@ -108,10 +118,7 @@ function getCachedConfig(): {
 	}
 }
 
-function setCachedConfig(config: {
-	defaultModel: string | null;
-	aliases: Alias[];
-}) {
+function setCachedConfig(config: Config) {
 	try {
 		localStorage.setItem(
 			CONFIG_CACHE_KEY,
@@ -141,6 +148,8 @@ const PROVIDER_COLORS: Record<string, string> = {
 	azure: "#0078d4",
 	nebius: "#8b5cf6",
 	lmstudio: "#f59e0b",
+	opencode: "#7a5c3a",
+	openrouter: "#7a5c3a",
 };
 
 function getProviderColor(provider: string): string {
@@ -151,6 +160,7 @@ export function ModelSelectorComponent({
 	value,
 	onChange,
 }: ModelSelectorProps) {
+	const { storedProviders } = useApiKeys();
 	const [models, setModels] = useState<Model[]>(() => getCachedModels() || []);
 	const [aliases, setAliases] = useState<Alias[]>(() => {
 		const cached = getCachedConfig();
@@ -159,6 +169,14 @@ export function ModelSelectorComponent({
 	const [defaultModel, setDefaultModel] = useState<string | null>(() => {
 		const cached = getCachedConfig();
 		return cached?.defaultModel || null;
+	});
+	const [globalProviders, setGlobalProviders] = useState<string[]>(() => {
+		const cached = getCachedConfig();
+		return cached?.availableProviders || [];
+	});
+	const [useGlobal, setUseGlobal] = useState<boolean>(() => {
+		const cached = getCachedConfig();
+		return cached?.useGlobalProviders || false;
 	});
 	const [loading, setLoading] = useState(
 		() => !getCachedModels() || !getCachedConfig(),
@@ -180,9 +198,14 @@ export function ModelSelectorComponent({
 				);
 				setAliases(aliasList);
 				setDefaultModel(config.defaultModel);
+				setGlobalProviders(config.availableProviders || []);
+				setUseGlobal(config.useGlobalProviders || false);
 				setCachedConfig({
 					defaultModel: config.defaultModel,
 					aliases: aliasList,
+					availableProviders: config.availableProviders || [],
+					useGlobalProviders: config.useGlobalProviders || false,
+					allProviders: config.allProviders || [],
 				});
 				setLoading(false);
 			})
@@ -204,18 +227,38 @@ export function ModelSelectorComponent({
 		}
 	}, [initialized, loading, value, defaultModel, onChange]);
 
-	const groupedModels = useMemo(() => {
-		return models.reduce(
-			(acc, model) => {
-				if (!acc[model.provider]) {
-					acc[model.provider] = [];
+	// Determine which providers have available keys (global or local)
+	const enabledProviders = useMemo(() => {
+		if (useGlobal) {
+			// When using global providers, only those with global keys are enabled
+			return new Set(globalProviders);
+		}
+		// When using local providers, use the stored providers from secure storage
+		return new Set(storedProviders);
+	}, [useGlobal, globalProviders, storedProviders]);
+
+	// Group models by provider, separating enabled and disabled
+	const { enabledModels, disabledModels } = useMemo(() => {
+		const enabled: Record<string, Model[]> = {};
+		const disabled: Record<string, Model[]> = {};
+
+		for (const model of models) {
+			const isEnabled = enabledProviders.has(model.provider);
+			if (isEnabled) {
+				if (!enabled[model.provider]) {
+					enabled[model.provider] = [];
 				}
-				acc[model.provider].push(model);
-				return acc;
-			},
-			{} as Record<string, Model[]>,
-		);
-	}, [models]);
+				enabled[model.provider].push(model);
+			} else {
+				if (!disabled[model.provider]) {
+					disabled[model.provider] = [];
+				}
+				disabled[model.provider].push(model);
+			}
+		}
+
+		return { enabledModels: enabled, disabledModels: disabled };
+	}, [models, enabledProviders]);
 
 	const selectedModel = models.find((m) => m.fullId === value);
 	const selectedAlias = aliases.find(
@@ -223,15 +266,35 @@ export function ModelSelectorComponent({
 	);
 
 	// Get display info
-	const displayName =
-		selectedAlias?.alias ||
-		selectedModel?.name ||
-		(loading ? "Loading..." : "Select model");
+	const hasEnabledProviders = enabledProviders.size > 0;
+
+	// Build display name - show alias name with resolved model in parentheses
+	let displayName: string;
+	if (selectedAlias) {
+		displayName = `${selectedAlias.alias} (${selectedAlias.model})`;
+	} else if (selectedModel) {
+		displayName = selectedModel.name;
+	} else if (loading) {
+		displayName = "Loading...";
+	} else if (!hasEnabledProviders) {
+		displayName = "Add API keys to use models";
+	} else {
+		displayName = "Select model";
+	}
+
 	const displayProvider =
 		selectedModel?.provider || selectedAlias?.model?.split("/")[0];
 	const providerColor = displayProvider
 		? getProviderColor(displayProvider)
 		: "#7a5c3a";
+
+	const handleModelSelect = (modelFullId: string) => {
+		const model = models.find((m) => m.fullId === modelFullId);
+		if (model && enabledProviders.has(model.provider)) {
+			onChange(modelFullId);
+			setOpen(false);
+		}
+	};
 
 	return (
 		<ModelSelector open={open} onOpenChange={setOpen}>
@@ -244,7 +307,7 @@ export function ModelSelectorComponent({
 					disabled={loading && models.length === 0}
 				>
 					<div className="flex items-center gap-2 overflow-hidden">
-						{selectedAlias && (
+					{selectedAlias && (
 							<span className="flex items-center justify-center w-5 h-5 rounded bg-[#7a5c3a] text-white">
 								<Zap className="w-3 h-3" />
 							</span>
@@ -272,43 +335,66 @@ export function ModelSelectorComponent({
 				<ModelSelectorInput placeholder="Search models or aliases..." />
 
 				<ModelSelectorList>
-					<ModelSelectorEmpty>No models found.</ModelSelectorEmpty>
+					{!loading && models.length === 0 ? (
+						<ModelSelectorEmpty>
+							<div className="flex flex-col gap-2 text-center">
+								<p className="font-medium">No models available</p>
+								<p className="text-xs text-[#a0926f]">
+									Unable to fetch models from providers.
+								</p>
+							</div>
+						</ModelSelectorEmpty>
+					) : (
+						<ModelSelectorEmpty>No models found.</ModelSelectorEmpty>
+					)}
 
 					{aliases.length > 0 && (
 						<>
 							<ModelSelectorGroupHeading heading="Quick Picks" />
 							<ModelSelectorGroup>
-								{aliases.map((alias) => (
-									<ModelSelectorItem
-										key={alias.alias}
-										value={alias.alias}
-										onSelect={() => {
-											onChange(alias.alias);
-											setOpen(false);
-										}}
-									>
-										<span className="flex items-center justify-center w-6 h-6 rounded bg-[#7a5c3a] text-white mr-2">
-											<Zap className="w-3 h-3" />
-										</span>
-										<ModelSelectorName>
-											<div className="flex flex-col">
-												<span className="font-semibold">{alias.alias}</span>
-												<span className="text-xs text-[#a0926f]">
-													{alias.model}
-												</span>
-											</div>
-										</ModelSelectorName>
-										{value === alias.alias && (
-											<Check className="w-4 h-4 text-[#7a5c3a] ml-auto" />
-										)}
-									</ModelSelectorItem>
-								))}
+								{aliases.map((alias) => {
+									const aliasProvider = alias.model.split("/")[0];
+									const isEnabled = enabledProviders.has(aliasProvider);
+									return (
+										<ModelSelectorItem
+											key={alias.alias}
+											value={alias.alias}
+											onSelect={() => {
+												if (isEnabled) {
+													onChange(alias.alias);
+													setOpen(false);
+												}
+											}}
+											disabled={!isEnabled}
+											className={!isEnabled ? "opacity-50 cursor-not-allowed" : ""}
+										>
+											<span className="flex items-center justify-center w-6 h-6 rounded bg-[#7a5c3a] text-white mr-2">
+												<Zap className="w-3 h-3" />
+											</span>
+											<ModelSelectorName>
+												<div className="flex flex-col">
+													<span className="font-semibold">{alias.alias}</span>
+													<span className="text-xs text-[#a0926f]">
+														{alias.model}
+													</span>
+												</div>
+											</ModelSelectorName>
+											{!isEnabled && (
+												<Lock className="w-4 h-4 text-[#a0926f] ml-auto" />
+											)}
+											{value === alias.alias && (
+												<Check className="w-4 h-4 text-[#7a5c3a] ml-auto" />
+											)}
+										</ModelSelectorItem>
+									);
+									})}
 							</ModelSelectorGroup>
 							<ModelSelectorSeparator />
 						</>
 					)}
 
-					{Object.entries(groupedModels).map(
+					{/* Enabled Providers */}
+					{Object.entries(enabledModels).map(
 						([provider, providerModels], groupIndex) => (
 							<div key={provider}>
 								{groupIndex > 0 && <ModelSelectorSeparator />}
@@ -324,10 +410,7 @@ export function ModelSelectorComponent({
 											<ModelSelectorItem
 												key={model.fullId}
 												value={model.fullId}
-												onSelect={() => {
-													onChange(model.fullId);
-													setOpen(false);
-												}}
+												onSelect={() => handleModelSelect(model.fullId)}
 											>
 												<span
 													className="w-2 h-2 rounded-full shrink-0 mr-2"
@@ -350,6 +433,57 @@ export function ModelSelectorComponent({
 								</ModelSelectorGroup>
 							</div>
 						),
+					)}
+
+					{/* Disabled Providers */}
+					{Object.keys(disabledModels).length > 0 && (
+						<>
+							<ModelSelectorSeparator />
+							<ModelSelectorGroupHeading heading="Add API Key to Enable" />
+							{Object.entries(disabledModels).map(
+								([provider, providerModels]) => (
+									<ModelSelectorGroup key={provider}>
+										<div className="px-2 py-1.5 text-xs font-medium text-[#a0926f]">
+											{provider.charAt(0).toUpperCase() + provider.slice(1)}
+										</div>
+										{providerModels.slice(0, 3).map((model) => {
+											const color = getProviderColor(provider);
+
+											return (
+												<ModelSelectorItem
+													key={model.fullId}
+													value={model.fullId}
+													disabled={true}
+													className="opacity-50 cursor-not-allowed"
+												>
+													<span
+														className="w-2 h-2 rounded-full shrink-0 mr-2"
+														style={{
+															backgroundColor: color,
+															opacity: 0.5,
+														}}
+													/>
+													<ModelSelectorName>
+														<div className="flex flex-col">
+															<span className="font-medium">{model.name}</span>
+															<span className="text-xs text-[#a0926f] font-mono">
+																{model.id}
+															</span>
+														</div>
+													</ModelSelectorName>
+													<Lock className="w-4 h-4 text-[#a0926f] ml-auto" />
+												</ModelSelectorItem>
+											);
+										})}
+										{providerModels.length > 3 && (
+											<div className="px-2 py-1 text-xs text-[#a0926f] italic">
+												...and {providerModels.length - 3} more models
+											</div>
+										)}
+									</ModelSelectorGroup>
+								),
+							)}
+						</>
 					)}
 				</ModelSelectorList>
 			</ModelSelectorContent>

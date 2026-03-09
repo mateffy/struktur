@@ -25,6 +25,7 @@ import {
 	simple,
 	splitTextIntoContents,
 } from "@struktur/sdk";
+import { getProviderEnvVar, useGlobalProviders } from "./config";
 
 const CONFIG_DIR =
 	process.env.STRUKTUR_CONFIG_DIR ??
@@ -217,11 +218,29 @@ export async function extractData(
 	// Determine provider from model spec
 	const provider = modelSpec.split("/")[0];
 
+	// Check if we're using global providers
+	const globalProvidersEnabled = useGlobalProviders();
+
+	// If global providers are not enabled, we MUST have a client-supplied API key
+	if (!globalProvidersEnabled && !apiKey) {
+		throw new Error(
+			`No API key provided for ${provider}. Please add your API key in the provider settings, or ask the operator to enable global providers.`,
+		);
+	}
+
+	// If global providers are enabled and no client key, check if the provider has a global key
+	if (globalProvidersEnabled && !apiKey) {
+		const envVar = getProviderEnvVar(provider);
+		if (!envVar || !process.env[envVar]) {
+			throw new Error(
+				`Provider ${provider} is not configured. Please add your API key in the provider settings.`,
+			);
+		}
+	}
+
 	// If an API key is provided, set it as environment variable temporarily
-	let originalEnvValue: string | undefined;
 	if (apiKey && provider && PROVIDER_ENV_VARS[provider]) {
 		const envVar = PROVIDER_ENV_VARS[provider];
-		originalEnvValue = process.env[envVar];
 		process.env[envVar] = apiKey;
 	}
 
@@ -275,14 +294,10 @@ export async function extractData(
 			usage: result.usage,
 		};
 	} finally {
-		// Always restore original environment variable value
+		// Clear the API key from environment (if we set it)
 		if (apiKey && provider && PROVIDER_ENV_VARS[provider]) {
 			const envVar = PROVIDER_ENV_VARS[provider];
-			if (originalEnvValue === undefined) {
-				delete process.env[envVar];
-			} else {
-				process.env[envVar] = originalEnvValue;
-			}
+			delete process.env[envVar];
 		}
 	}
 }

@@ -34,7 +34,7 @@ export function Logo({ className = "" }: LogoProps) {
 	return (
 		<a
 			href="/"
-			className={`group flex items-center gap-3 pl-6 pr-6 py-3 transition-colors duration-200 hover:bg-[#f5efe6] border-r border-[#d4c8b8] ${className}`}
+			className={`group flex items-center gap-3 pl-3 pr-4 py-3 transition-colors duration-200 hover:bg-[#f5efe6] border-r border-[#d4c8b8] electrobun-webkit-app-region-no-drag ${className}`}
 			onMouseEnter={() => setIsHovered(true)}
 			onMouseLeave={() => setIsHovered(false)}
 		>

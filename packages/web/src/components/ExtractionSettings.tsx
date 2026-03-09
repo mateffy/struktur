@@ -30,6 +30,8 @@ export type ExtractionSettingsProps = {
 		filterScreenshot: boolean;
 	};
 	isChunkingLoading?: boolean;
+	/** Optional: Check if API key exists for the selected model - used to show validation errors */
+	hasKeyForModel?: (model: string) => boolean;
 	onModelChange: (model: string) => void;
 	onStrategyChange: (strategy: string) => void;
 	onChunkSizeChange: (size: number) => void;
@@ -381,6 +383,7 @@ export function ExtractionSettings({
 	parsingOptions,
 	chunkingOptions,
 	isChunkingLoading,
+	hasKeyForModel,
 	onModelChange,
 	onStrategyChange,
 	onChunkSizeChange,
@@ -401,6 +404,9 @@ export function ExtractionSettings({
 		});
 	};
 
+	// Check if we have API key for the selected model
+	const hasKey = hasKeyForModel ? hasKeyForModel(model) : true;
+
 	return (
 		<div className="space-y-5">
 			<div className="space-y-2">
@@ -408,6 +414,12 @@ export function ExtractionSettings({
 					Model
 				</Label>
 				<ModelSelectorComponent value={model} onChange={onModelChange} />
+				{model && !hasKey && (
+					<p className="text-xs text-[#a05c5c] flex items-center gap-1">
+						<span className="inline-block w-1.5 h-1.5 rounded-full bg-[#a05c5c]"></span>
+						No API key configured for this provider. Please add your key in the provider settings.
+					</p>
+				)}
 			</div>
 
 			<div className="space-y-2">

@@ -1,0 +1,29 @@
+{
+  "name": "@struktur/app",
+  "version": "1.0.0",
+  "license": "FSL-1.1-MIT",
+  "type": "module",
+  "main": "src/bun/index.ts",
+  "scripts": {
+    "dev": "concurrently --kill-others --names 'WEB,APP' --prefix-colors 'blue,green' 'bun --filter @struktur/web dev' 'sleep 3 && electrobun dev'",
+    "dev:app": "electrobun dev",
+    "dev:web": "bun --filter @struktur/web dev",
+    "build": "electrobun build",
+    "build:release": "electrobun build --release",
+    "package": "electrobun package",
+    "package:release": "electrobun package --release",
+    "start": "electrobun run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "electrobun": "^1.15.1",
+    "@struktur/sdk": "workspace:*",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^22.10.2",
+    "concurrently": "^9.1.2",
+    "typescript": "^5.7.2"
+  }
+}
