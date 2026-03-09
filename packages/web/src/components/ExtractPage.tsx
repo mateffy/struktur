@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { ProviderId } from "@/lib/secure-storage";
+import { loadFilesFromStorage, saveFilesToStorage, clearStoredFiles } from "@/lib/file-storage";
 import { ArtifactViewer } from "./ArtifactViewer";
 import { useApiKeys } from "./auth/ApiKeyProvider";
 import { ProviderSettings } from "./auth/ProviderSettings";
@@ -21,6 +22,7 @@ import { Logo } from "./Logo";
 import { OutputViewer } from "./OutputViewer";
 import { Sidebar } from "./Sidebar";
 import { type TimelineEntry, UnifiedTimeline } from "./UnifiedTimeline";
+import { AgentViewer, useAgentActivities, type AgentActivityPayload } from "./AgentViewer";
 
 export type ExecutionStatus =
 	| "idle"
@@ -102,9 +104,9 @@ export function ExtractPage() {
 	const [schemaJson, setSchemaJson] = useState("");
 	const [fields, setFields] = useState("");
 	const [model, setModel] = useState("");
-	const [strategy, setStrategy] = useState<string>("simple");
+	const [strategy, setStrategy] = useState<string>("agent");
 	const [chunkSize, setChunkSize] = useState(120000);
-	const [activeTab, setActiveTab] = useState<"result" | "timeline">("result");
+	const [activeTab, setActiveTab] = useState<"result" | "timeline" | "agent">("result");
 	const [parsingOptions, setParsingOptions] = useState({
 		images: false,
 		screenshots: true,
@@ -129,6 +131,24 @@ export function ExtractPage() {
 	const abortControllerRef = useRef<AbortController | null>(null);
 	const chunkSizeDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
+	// Load files from storage on mount
+	useEffect(() => {
+		loadFilesFromStorage().then((storedFiles) => {
+			if (storedFiles.length > 0) {
+				setFiles(storedFiles);
+			}
+		});
+	}, []);
+
+	// Save files to storage whenever they change
+	useEffect(() => {
+		if (files.length > 0) {
+			saveFilesToStorage(files);
+		} else {
+			clearStoredFiles();
+		}
+	}, [files]);
+
 	const {
 		isUnlocked,
 		storedProviders,
@@ -138,6 +158,15 @@ export function ExtractPage() {
 		lock,
 		requestUnlock,
 	} = useApiKeys();
+
+	// Agent activities for streaming UI
+	const {
+		activities: agentActivities,
+		isRunning: isAgentRunning,
+		clearActivities: clearAgentActivities,
+		startAgent,
+		addActivity: addAgentActivity,
+	} = useAgentActivities();
 
 	const addTimelineEntry = useCallback(
 		(
@@ -302,6 +331,11 @@ export function ExtractPage() {
 		setError(null);
 		setResult(null);
 
+		// Start agent activities tracking for agent strategy
+		if (strategy === "agent") {
+			startAgent();
+		}
+
 		const parseStepId = addTimelineEntry(
 			"action",
 			"parse",
@@ -383,17 +417,62 @@ export function ExtractPage() {
 								updateTimelineEntry(parseStepId, { status: "running" });
 							} else if (stepData.label === "Extracting data") {
 								updateTimelineEntry(extractStepId, { status: "running" });
-							} else {
-								addTimelineEntry(
-									"action",
-									"other",
-									stepData.label,
-									data.data,
-									"running",
-								);
+							}
+							// Also add to agent activities if using agent strategy
+							if (strategy === "agent") {
+								addAgentActivity({
+									type: "step",
+									label: stepData.label,
+									step: stepData.step || 0,
+									total: stepData.total,
+								});
 							}
 							break;
 						}
+
+						case "agent_tool_start":
+							if (strategy === "agent") {
+								const toolData = data.data as any;
+								addAgentActivity({
+									type: "tool_start",
+									toolName: toolData.toolName,
+									toolCallId: toolData.toolCallId,
+									args: toolData.args,
+								});
+							}
+							break;
+
+						case "agent_tool_end":
+							if (strategy === "agent") {
+								const toolData = data.data as any;
+								addAgentActivity({
+									type: "tool_end",
+									toolCallId: toolData.toolCallId,
+									result: toolData.result,
+									error: toolData.error,
+								});
+							}
+							break;
+
+						case "agent_message":
+							if (strategy === "agent") {
+								const msgData = data.data as any;
+								addAgentActivity({
+									type: "message_delta",
+									content: msgData.content,
+								});
+							}
+							break;
+
+						case "agent_reasoning":
+							if (strategy === "agent") {
+								const reasoningData = data.data as any;
+								addAgentActivity({
+									type: "reasoning",
+									thought: reasoningData.thought,
+								});
+							}
+							break;
 
 						case "message":
 							addTimelineEntry("info", "other", "LLM message", data.data);
@@ -466,10 +545,10 @@ export function ExtractPage() {
 
 	return (
 		<div className="h-screen bg-[#f5efe6] flex flex-col">
-			<header className={`border-b border-[#d4c8b8] pl-4 pr-6 bg-[#ede5d8] flex items-center justify-between h-16 flex-shrink-0 z-10 electrobun-webkit-app-region-drag`}>
+			<header className={`border-b border-[#d4c8b8] pr-6 bg-[#ede5d8] flex items-center justify-between h-16 flex-shrink-0 z-10 relative electrobun-webkit-app-region-drag`}>
 				<div className="flex items-center h-full">
-					<div className={`flex items-center h-full ${isDesktop ? 'pt-3' : ''}`}>
-						<Logo />
+					<div className={`flex items-center h-full`}>
+						<Logo isDesktop={isDesktop} />
 					</div>
 
 					<div className="hidden md:flex items-center gap-1 ml-4 electrobun-webkit-app-region-no-drag h-full">
@@ -692,54 +771,74 @@ export function ExtractPage() {
 							/>
 						</div>
 
-						<div className="w-[500px] border-l border-[#d4c8b8] bg-[#ede5d8] flex flex-col overflow-hidden">
-							<Tabs
-								value={activeTab}
-								onValueChange={(v) => setActiveTab(v as "result" | "timeline")}
-								className="flex flex-col h-full"
-							>
-								<div className="flex items-center justify-between p-4 border-b border-[#d4c8b8] flex-shrink-0">
-									<h2 className="text-sm font-semibold text-[#2d1b0e] uppercase tracking-wider">
-										Output
-									</h2>
-									<TabsList>
-										<TabsTrigger value="result">Result</TabsTrigger>
-										<TabsTrigger value="timeline">Timeline</TabsTrigger>
-									</TabsList>
-								</div>
-
-								<div className="flex-1 overflow-hidden">
-									<TabsContent
-										value="result"
-										className="h-full m-0 data-[state=inactive]:hidden"
+								<div className="w-[500px] border-l border-[#d4c8b8] bg-[#ede5d8] flex flex-col overflow-hidden">
+									<Tabs
+										value={activeTab}
+										onValueChange={(v) => setActiveTab(v as "result" | "timeline" | "agent")}
+										className="flex flex-col h-full"
 									>
-										<div className="h-full p-4">
-											<OutputViewer
-												data={result?.data}
-												usage={result?.usage}
-												model={model}
-												schemaMode={
-													schemaMode === "file" ? undefined : schemaMode
-												}
-												fields={fields}
-											/>
+										<div className="flex items-center justify-between p-4 border-b border-[#d4c8b8] flex-shrink-0">
+											<h2 className="text-sm font-semibold text-[#2d1b0e] uppercase tracking-wider">
+												Output
+											</h2>
+											<TabsList>
+												<TabsTrigger value="result">Result</TabsTrigger>
+												{strategy === "agent" && (
+													<TabsTrigger value="agent">Agent</TabsTrigger>
+												)}
+												<TabsTrigger value="timeline">Timeline</TabsTrigger>
+											</TabsList>
 										</div>
-									</TabsContent>
 
-									<TabsContent
-										value="timeline"
-										className="h-full m-0 data-[state=inactive]:hidden"
-									>
-										<div className="h-full p-4">
-											<UnifiedTimeline
-												entries={timeline}
-												onClear={clearTimeline}
-											/>
+										<div className="flex-1 overflow-hidden">
+											<TabsContent
+												value="result"
+												className="h-full m-0 data-[state=inactive]:hidden"
+											>
+												<div className="h-full p-4">
+													<OutputViewer
+														data={result?.data}
+														usage={result?.usage}
+														model={model}
+														schemaMode={
+															schemaMode === "file" ? undefined : schemaMode
+														}
+														fields={fields}
+													/>
+												</div>
+											</TabsContent>
+
+											<TabsContent
+												value="agent"
+												className="h-full m-0 data-[state=inactive]:hidden"
+											>
+												<div className="h-full p-4">
+													<AgentViewer
+														activities={agentActivities}
+														isRunning={isAgentRunning}
+														onClear={clearAgentActivities}
+														className="h-full"
+													/>
+												</div>
+											</TabsContent>
+
+											<TabsContent
+												value="timeline"
+												className="h-full m-0 data-[state=inactive]:hidden"
+											>
+												<div className="h-full p-4">
+													<UnifiedTimeline
+														entries={timeline}
+														onClear={() => {
+															clearTimeline();
+															clearAgentActivities();
+														}}
+													/>
+												</div>
+											</TabsContent>
 										</div>
-									</TabsContent>
+									</Tabs>
 								</div>
-							</Tabs>
-						</div>
 					</div>
 				</main>
 			</div>

@@ -82,9 +82,9 @@ export type ArtifactsManifest = {
 
 export type VirtualFilesystemResult = {
   // The main artifact JSON with base64 replaced by virtual paths
-  "/artifacts/artifact.json": string;
+  "/artifact.json": string;
   // Manifest with summary
-  "/artifacts/manifest.json": string;
+  "/manifest.json": string;
   // Virtual files mapping: path -> base64 content
   virtualFiles: Map<string, string>;
   // Helper to get image data by virtual path
@@ -122,10 +122,10 @@ export const createVirtualFilesystem = (
               let virtualPath: string;
               if (pageNumber !== undefined) {
                 // If we have a page number, include it in the filename
-                virtualPath = `/artifacts/images/${artifactName}-page-${pageNumber}-image-${mediaIndex}.${extension}`;
+                virtualPath = `/images/${artifactName}-page-${pageNumber}-image-${mediaIndex}.${extension}`;
               } else {
                 // No page number, just use artifact name and image index
-                virtualPath = `/artifacts/images/${artifactName}-image-${mediaIndex}.${extension}`;
+                virtualPath = `/images/${artifactName}-image-${mediaIndex}.${extension}`;
               }
               
               // Store the base64 content in the virtual filesystem
@@ -188,8 +188,8 @@ export const createVirtualFilesystem = (
 
   // Create the filesystem entries
   const filesystem: VirtualFilesystemResult = {
-    "/artifacts/artifact.json": JSON.stringify(transformedArtifacts, null, 2),
-    "/artifacts/manifest.json": JSON.stringify(manifest, null, 2),
+    "/artifact.json": JSON.stringify(transformedArtifacts, null, 2),
+    "/manifest.json": JSON.stringify(manifest, null, 2),
     virtualFiles,
     getImageByPath,
   };
@@ -201,13 +201,13 @@ export const createVirtualFilesystem = (
 export const serializeArtifactsToFilesystem = (
   artifacts: Artifact[]
 ): { 
-  "/artifacts/artifact.json": string; 
-  "/artifacts/manifest.json": string 
+  "/artifact.json": string; 
+  "/manifest.json": string 
 } => {
   const result = createVirtualFilesystem(artifacts);
   return {
-    "/artifacts/artifact.json": result["/artifacts/artifact.json"],
-    "/artifacts/manifest.json": result["/artifacts/manifest.json"],
+    "/artifact.json": result["/artifact.json"],
+    "/manifest.json": result["/manifest.json"],
   };
 };
 

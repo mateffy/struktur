@@ -78,6 +78,12 @@ const UpdateOutputDataParams = Type.Object({
   }),
 });
 
+const ViewImageParams = Type.Object({
+  image_path: Type.String({
+    description: "The absolute path to the image file to view (e.g., '/artifacts/images/artifact-name-page-1-image-0.png')",
+  }),
+});
+
 const FinishParams = Type.Object({});
 
 const FailParams = Type.Object({
@@ -99,6 +105,7 @@ export type VirtualFilesystemTools = {
   grep: ToolDefinition<typeof GrepParams>;
   find: ToolDefinition<typeof FindParams>;
   ls: ToolDefinition<typeof LsParams>;
+  view_image: ToolDefinition<typeof ViewImageParams>;
 };
 
 export const createVirtualFilesystemTools = (
@@ -168,7 +175,7 @@ export const createVirtualFilesystemTools = (
     execute: async (toolCallId, params, signal, onUpdate, ctx) => {
       try {
         // Check if this is a virtual image file
-        if (getImageByPath && params.file_path.startsWith("/artifacts/images/")) {
+        if (getImageByPath && params.file_path.startsWith("/images/")) {
           const imageData = getImageByPath(params.file_path);
           if (imageData) {
             // Return the image as base64 content
@@ -411,8 +418,105 @@ export const createVirtualFilesystemTools = (
     },
   };
 
-  // Output tools - these are implemented in AgentStrategy but defined here for type safety
-  // The actual implementation handles schema validation and data storage
+  // View Image tool - injects an image as a multimodal message for the agent to see
+  const viewImageTool: ToolDefinition<typeof ViewImageParams> = {
+    name: "view_image",
+    label: "View Image",
+    description: "View an image file from the virtual filesystem. This injects the image as a visual message that the AI can see and analyze. Use this to examine images, screenshots, diagrams, or any visual content in the artifacts.",
+    parameters: ViewImageParams,
+    execute: async (toolCallId, params, signal, onUpdate, ctx) => {
+      try {
+        if (!getImageByPath) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: "Error: Image viewing is not available",
+              },
+            ],
+            details: {
+              error: "Image viewing is not available",
+            },
+            isError: true,
+          };
+        }
+
+        const imageData = getImageByPath(params.image_path);
+        if (!imageData) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Error: Image not found at ${params.image_path}`,
+              },
+            ],
+            details: {
+              error: `Image not found at ${params.image_path}`,
+            },
+            isError: true,
+          };
+        }
+
+        // Detect image format from the path or base64 signature
+        const getImageFormat = (path: string, data: string): string => {
+          // Check path extension first
+          if (path.endsWith('.png')) return 'image/png';
+          if (path.endsWith('.jpg') || path.endsWith('.jpeg')) return 'image/jpeg';
+          if (path.endsWith('.gif')) return 'image/gif';
+          if (path.endsWith('.webp')) return 'image/webp';
+          if (path.endsWith('.bmp')) return 'image/bmp';
+          if (path.endsWith('.svg')) return 'image/svg+xml';
+          
+          // Check base64 signature
+          if (data.startsWith('/9j/')) return 'image/jpeg';
+          if (data.startsWith('iVBORw0KGgo')) return 'image/png';
+          if (data.startsWith('R0lGOD')) return 'image/gif';
+          if (data.startsWith('Qk')) return 'image/bmp';
+          if (data.startsWith('PHN2Zy')) return 'image/svg+xml';
+          
+          return 'image/png'; // Default
+        };
+
+        const mimeType = getImageFormat(params.image_path, imageData);
+
+        // Return the image as an image content type that the model can see
+        return {
+          content: [
+            {
+              type: "text",
+              text: `[Viewing image: ${params.image_path}]`,
+            },
+            {
+              type: "image",
+              data: imageData,
+              mimeType: mimeType,
+            },
+          ],
+          details: {
+            path: params.image_path,
+            format: mimeType,
+            size: imageData.length,
+          },
+        };
+      } catch (error) {
+        const errorMsg = (error as Error).message;
+        console.error(`[AgentTools] View image error: ${errorMsg}`);
+        console.error(`[AgentTools] Image path: ${params.image_path}`);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error viewing image: ${errorMsg}`,
+            },
+          ],
+          details: {
+            error: errorMsg,
+          },
+          isError: true,
+        };
+      }
+    },
+  };
 
   return {
     bash: bashTool,
@@ -420,7 +524,7 @@ export const createVirtualFilesystemTools = (
     grep: grepTool,
     find: findTool,
     ls: lsTool,
-    // Output tools will be added by AgentStrategy with actual implementation
+    view_image: viewImageTool,
   };
 };
 

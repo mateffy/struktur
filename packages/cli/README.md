@@ -36,7 +36,7 @@ bun add -g @struktur/cli
 ## Quick Example
 
 ```bash
-# Extract data from a PDF
+# Extract data from a PDF using the Agent (default)
 struktur extract --input ./invoice.pdf --fields "number, vendor, total:number"
 ```
 
@@ -47,6 +47,8 @@ struktur extract --input ./invoice.pdf --fields "number, vendor, total:number"
   "total": 2400 
 }
 ```
+
+The **Agent strategy** is the default. It autonomously explores documents and extracts data incrementally. For specific use cases, other strategies are available via `--strategy`.
 
 ## Documentation
 

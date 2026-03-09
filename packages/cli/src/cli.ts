@@ -1129,6 +1129,149 @@ const createSpinner = () => {
   });
 };
 
+type LocalStepInfo = { label: string; step: number; total?: number; detail?: string; timestamp: number };
+
+// Strict log format: icon  toollabel  detaillog
+// Using unicode characters (not emojis) for icons
+const TOOL_ICONS: Record<string, string> = {
+  "thinking": "▸",    // Model thinking
+  "read": "◈",        // Read file
+  "bash": "◆",        // Bash command
+  "grep": "◉",        // Grep search
+  "find": "◊",        // Find files
+  "ls": "◇",          // List directory
+  "set_output": "◐",  // Set output data
+  "update_output": "◑", // Update output data
+  "finish": "◒",      // Finish extraction
+  "fail": "◓",        // Fail extraction
+  "agent": "◈",       // Agent lifecycle
+  "default": "•",
+};
+
+function getToolIcon(label: string): string {
+  if (label.startsWith("→ ")) return TOOL_ICONS["thinking"]!;
+  if (label.startsWith("Read ")) return TOOL_ICONS["read"]!;
+  if (label.startsWith("Bash: ")) return TOOL_ICONS["bash"]!;
+  if (label.startsWith("Grep ")) return TOOL_ICONS["grep"]!;
+  if (label.startsWith("Find")) return TOOL_ICONS["find"]!;
+  if (label.startsWith("List ")) return TOOL_ICONS["ls"]!;
+  if (label === "Set Output") return TOOL_ICONS["set_output"]!;
+  if (label === "Update Output") return TOOL_ICONS["update_output"]!;
+  if (label === "Finish") return TOOL_ICONS["finish"]!;
+  if (label === "Fail") return TOOL_ICONS["fail"]!;
+  if (label.startsWith("agent_")) return TOOL_ICONS["agent"]!;
+  return TOOL_ICONS["default"]!;
+}
+
+// Agent TUI state for displaying step history with current spinner
+class AgentTUI {
+  private steps: LocalStepInfo[] = [];
+  private currentStep: LocalStepInfo | null = null;
+  private spinner: ReturnType<typeof yoctoSpinner> | null = null;
+  private isActive = false;
+  private linesDrawn = 0;
+  private maxLines = 15;
+  private maxWidth: number;
+
+  constructor() {
+    this.maxWidth = process.stderr.columns || 80;
+    if (process.stderr.isTTY) {
+      this.spinner = yoctoSpinner({ text: "Initializing...", color: "cyan" });
+    }
+    process.stderr.on('resize', () => {
+      this.maxWidth = process.stderr.columns || 80;
+    });
+  }
+
+  start() {
+    if (this.spinner && !this.isActive) {
+      this.isActive = true;
+      this.render();
+    }
+  }
+
+  stop() {
+    if (this.spinner && this.isActive) {
+      this.spinner.stop();
+      this.isActive = false;
+    }
+  }
+
+  updateStep(info: { label: string; step: number; total?: number; detail?: string }) {
+    const stepInfo: LocalStepInfo = { ...info, timestamp: Date.now() };
+    this.steps.push(stepInfo);
+    this.currentStep = stepInfo;
+    this.render();
+  }
+
+  private render() {
+    if (!this.spinner || !this.isActive) return;
+
+    // Clear previous output
+    if (this.linesDrawn > 0) {
+      process.stderr.write(`\x1b[${this.linesDrawn}A\x1b[J`);
+    }
+
+    this.linesDrawn = 0;
+
+    // Show last N steps
+    const visibleSteps = this.steps.slice(-this.maxLines);
+
+    // Print each step in strict format: icon  label  detail
+    for (const step of visibleSteps) {
+      const line = this.formatLogLine(step);
+      process.stderr.write(line + "\n");
+      this.linesDrawn++;
+    }
+
+    // Update spinner text
+    if (this.currentStep) {
+      this.spinner.text = this.formatSpinnerText(this.currentStep);
+    }
+
+    this.spinner.start();
+  }
+
+  private formatLogLine(step: LocalStepInfo): string {
+    const icon = getToolIcon(step.label);
+    const label = this.formatLabel(step.label);
+    const detail = step.detail || "";
+    
+    // Build line: icon  label  detail
+    let line = `  ${icon}  ${label}`;
+    if (detail) {
+      line += `  ${detail}`;
+    }
+    
+    // Truncate to fit terminal
+    if (line.length > this.maxWidth - 2) {
+      line = line.slice(0, this.maxWidth - 5) + "...";
+    }
+    
+    return line;
+  }
+
+  private formatLabel(label: string): string {
+    // Remove prefixes that we handle via icons
+    if (label.startsWith("→ ")) return label.slice(2);
+    return label;
+  }
+
+  private formatSpinnerText(step: LocalStepInfo): string {
+    return formatStepMessage(step.label, step.step, step.total);
+  }
+
+  clear() {
+    if (!this.spinner || !this.isActive) return;
+
+    if (this.linesDrawn > 0) {
+      process.stderr.write(`\x1b[${this.linesDrawn}A\x1b[J`);
+    }
+    this.spinner.stop();
+    this.linesDrawn = 0;
+  }
+}
+
 const formatStepMessage = (
   label: string | undefined,
   step: number,
@@ -1210,10 +1353,10 @@ const formatStepMessage = (
     return label;
   }
   
-  // Agent message streaming - shows what the agent is currently doing/thinking
-  if (label.startsWith("Agent: ")) {
-    const message = label.slice(7); // Remove "Agent: " prefix
-    return `Agent: ${message}`;
+  // Agent thinking/streaming
+  if (label.startsWith("→ ")) {
+    const thought = label.slice(2); // Remove "→ " prefix
+    return thought.length > 60 ? thought.slice(0, 57) + "..." : thought;
   }
   
   // Agent output data updates
@@ -1780,10 +1923,14 @@ const extractCommand = defineCommand({
     });
 
     const spinner = isDebug ? null : createSpinner();
+    const agentTUI = (!isDebug && args.strategy === "agent") ? new AgentTUI() : null;
     let currentStepLabel: string | undefined;
 
-    if (spinner) {
+    if (spinner && !agentTUI) {
       spinner.start();
+    }
+    if (agentTUI) {
+      agentTUI.start();
     }
 
     const events: ExtractionEvents = {
@@ -1791,21 +1938,41 @@ const extractCommand = defineCommand({
         if (info.label) {
           currentStepLabel = info.label;
         }
-        if (spinner && info.label) {
+        if (agentTUI && info.label) {
+          agentTUI.updateStep({ label: info.label, step: info.step, total: info.total });
+        } else if (spinner && info.label) {
           spinner.text = formatStepMessage(info.label, info.step, info.total);
         }
       },
       onProgress: async (info) => {
-        if (spinner && info.total > 0) {
+        if (agentTUI && info.total > 0) {
+          const percent = Math.round((info.current / info.total) * 100);
+          agentTUI.updateStep({
+            label: `Processing ${info.current}/${info.total} (${percent}%)...`,
+            step: info.current,
+            total: info.total,
+          });
+        } else if (spinner && info.total > 0) {
           const percent = Math.round((info.current / info.total) * 100);
           spinner.text = `Processing ${info.current}/${info.total} (${percent}%)...`;
         }
       },
       onRetry: async (info) => {
-        if (spinner) {
+        if (agentTUI) {
           const baseMessage = currentStepLabel
             ? formatStepMessage(currentStepLabel, 0, undefined).replace(
-                /\.\.\.$/,
+                /\.+$/,
+                "",
+              )
+            : "Extracting data";
+          agentTUI.updateStep({
+            label: `${baseMessage} (retry ${info.attempt}/${info.maxAttempts})...`,
+            step: 0,
+          });
+        } else if (spinner) {
+          const baseMessage = currentStepLabel
+            ? formatStepMessage(currentStepLabel, 0, undefined).replace(
+                /\.+$/,
                 "",
               )
             : "Extracting data";
@@ -1832,7 +1999,9 @@ const extractCommand = defineCommand({
         strict: args.strict,
       });
 
-      if (spinner) {
+      if (agentTUI) {
+        agentTUI.clear();
+      } else if (spinner) {
         spinner.stop();
       }
 
@@ -1855,7 +2024,9 @@ const extractCommand = defineCommand({
       const json = JSON.stringify(result.data, null, 2);
       await writeOutput(args.output, json);
     } catch (error) {
-      if (spinner) {
+      if (agentTUI) {
+        agentTUI.clear();
+      } else if (spinner) {
         spinner.stop();
       }
       throw error;

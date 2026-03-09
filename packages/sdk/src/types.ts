@@ -49,6 +49,7 @@ export type StepInfo = {
   step: number;
   total?: number;
   label?: string;
+  detail?: string;
 };
 
 export type ProgressInfo = {

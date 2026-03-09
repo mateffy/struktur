@@ -103,6 +103,7 @@ function CommandRow({
         </div>
       )}
       <div
+        className="command-row"
         style={{
           display: "flex",
           alignItems: "center",
@@ -134,12 +135,15 @@ function CommandRow({
 function Card({
   children,
   style,
+  className,
 }: {
   children: React.ReactNode;
   style?: React.CSSProperties;
+  className?: string;
 }) {
   return (
     <div
+      className={className}
       style={{
         backgroundColor: "#ede5d8",
         borderRadius: "16px",
@@ -556,9 +560,7 @@ function Home() {
         ))}
       </nav>
 
-      <div
-        style={{ maxWidth: "950px", margin: "0 auto", padding: "0 40px 80px" }}
-      >
+      <div className="homepage-container">
         {/* Hero */}
         <section
           className="hero-section"
@@ -584,6 +586,7 @@ function Home() {
               /jtrʊkˈtuːr/
             </div>
             <h1
+              className="hero-title"
               style={{
                 fontSize: "62px",
                 fontWeight: 600,
@@ -597,6 +600,7 @@ function Home() {
               struktur
             </h1>
             <p
+              className="hero-subtitle"
               style={{
                 fontSize: "20px",
                 lineHeight: 1.7,
@@ -619,6 +623,7 @@ function Home() {
         {/* CLI Demo */}
         <section style={{ paddingBottom: "80px" }}>
           <h2
+            className="section-title"
             style={{
               fontSize: "22px",
               fontWeight: 600,
@@ -629,7 +634,7 @@ function Home() {
           >
             Extract data in your command line
           </h2>
-          <Card style={{ height: "222px" }}>
+          <Card style={{}} className="terminal-container">
             <TerminalDemo />
           </Card>
         </section>
@@ -637,6 +642,7 @@ function Home() {
         {/* Quickstart */}
         <section style={{ paddingBottom: "80px" }}>
           <h2
+            className="section-title"
             style={{
               fontSize: "22px",
               fontWeight: 600,
@@ -680,6 +686,7 @@ function Home() {
         {/* Features */}
         <section style={{ paddingBottom: "80px" }}>
           <h2
+            className="section-title"
             style={{
               fontSize: "22px",
               fontWeight: 600,
@@ -692,14 +699,7 @@ function Home() {
           </h2>
 
           {/* Row 1 */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "2fr 1fr",
-              gap: "12px",
-              marginBottom: "12px",
-            }}
-          >
+          <div className="feature-grid-2-1">
             <FeatureCard
               label="Extraction strategies for any kind of document"
               description="Choose how Struktur processes your document: single-shot for simple inputs, parallel chunking for large files, sequential pass for context-dependent extraction, or double-pass refinement for higher accuracy. Auto-merge strategies deduplicate results across chunks automatically."
@@ -713,14 +713,7 @@ function Home() {
           </div>
 
           {/* Row 2 */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "12px",
-              marginBottom: "12px",
-            }}
-          >
+          <div className="feature-grid-1-1">
             <FeatureCard
               label="Built-in file parsing"
               description="Pass a PDF, image, or text file — Struktur makes it LLM-ready before extraction, including embedded images and full-page &quot;screenshots&quot;. Add your own parser easily."
@@ -734,13 +727,7 @@ function Home() {
           </div>
 
           {/* Row 3 */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr 1fr",
-              gap: "12px",
-            }}
-          >
+          <div className="feature-grid-1-1-1">
             <FeatureCard
               label="Fields shorthand"
               description={`Extract data on the fly without writing a verbose JSON schema. Use the --fields flag with the shorthand syntax for one-off extractions or experimentation.`}
@@ -762,6 +749,7 @@ function Home() {
         {/* How it works */}
         <section style={{ paddingBottom: "80px" }}>
           <h2
+            className="section-title"
             style={{
               fontSize: "22px",
               fontWeight: 600,
@@ -774,14 +762,7 @@ function Home() {
           </h2>
           <Card>
             {/* Pipeline steps */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(4, 1fr)",
-                gap: "12px",
-                marginBottom: "24px",
-              }}
-            >
+            <div className="pipeline-grid">
               {[
                 { step: "Raw Input", sub: "Files, Text or Images", arrow: "→" },
                 { step: "Artifact", sub: "Text + Images", arrow: "→" },
@@ -878,6 +859,7 @@ function Home() {
         {/* Parsers */}
         <section style={{ paddingBottom: "80px" }}>
           <h2
+            className="section-title"
             style={{
               fontSize: "22px",
               fontWeight: 600,
@@ -905,14 +887,7 @@ function Home() {
             </p>
 
             {/* Built-in vs custom split */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: "12px",
-                marginBottom: "20px",
-              }}
-            >
+            <div className="parser-grid">
               <div
                 style={{
                   backgroundColor: "#e5dccf",
@@ -1092,6 +1067,7 @@ function Home() {
         {/* TypeScript SDK */}
         <section style={{ paddingBottom: "80px" }}>
           <h2
+            className="section-title"
             style={{
               fontSize: "22px",
               fontWeight: 600,
@@ -1207,6 +1183,7 @@ function Home() {
         {/* Call to action */}
         <section style={{ paddingBottom: "80px" }}>
           <h2
+            className="section-title"
             style={{
               fontSize: "22px",
               fontWeight: 600,
@@ -1218,7 +1195,7 @@ function Home() {
             Ready to extract structured data?
           </h2>
           <Card>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "40px" }}>
+            <div className="cta-grid">
               {/* Left: Quickstart */}
               <div>
                 <h3
@@ -1257,7 +1234,7 @@ function Home() {
               </div>
 
               {/* Right: Documentation */}
-              <div style={{ borderLeft: "1px solid rgba(122, 92, 58, 0.15)", paddingLeft: "40px" }}>
+              <div className="cta-right-column">
                 <h3
                   style={{
                     fontSize: "16px",
@@ -1354,11 +1331,7 @@ function Home() {
           </a>
         </div>
         <nav
-          style={{
-            display: "flex",
-            gap: "24px",
-            flexWrap: "wrap",
-          }}
+          className="footer-nav"
         >
           {[
             { label: "Documentation", href: "/docs" },

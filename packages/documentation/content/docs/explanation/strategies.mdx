@@ -1,6 +1,6 @@
 ---
 title: Extraction Strategies
-description: Built-in strategies for different extraction patterns and how to choose the right one.
+description: The Agent strategy uses autonomous exploration. Other strategies are available for specific use cases.
 ---
 
 import { TypeTable } from 'fumadocs-ui/components/type-table';
@@ -8,25 +8,177 @@ import { Callout } from 'fumadocs-ui/components/callout';
 import { Card, Cards } from 'fumadocs-ui/components/card';
 import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
 
-A strategy is the orchestration engine. It decides how to split the input, how many LLM calls to make, whether to run them concurrently or sequentially, and how to combine results.
+The **Agent** strategy is the default and recommended way to use Struktur. It gives the LLM a virtual filesystem and lets it autonomously decide how to extract your data.
+
+For documents where you need more control, Struktur also provides alternative strategies that use fixed chunking and parallelism patterns.
 
 ## Strategy comparison
 
-| Strategy | Speed | Context | Arrays | Token Cost |
-|----------|-------|---------|--------|-----------|
-| `simple` | Fastest | Full | — | Lowest |
-| `parallel` | Fast | None | LLM merge | Medium |
-| `sequential` | Medium | Full | Context | Medium |
-| `parallelAutoMerge` | Fast | None | Auto + dedupe | Medium |
-| `sequentialAutoMerge` | Medium | Full | Auto + dedupe | Medium |
-| `doublePass` | Slow | Full | LLM merge | High |
-| `doublePassAutoMerge` | Slow | Full | Auto + dedupe | High |
+| Strategy | Speed | Context | Arrays | Token Cost | Best For |
+|----------|-------|---------|--------|-----------|----------|
+| `agent` (default) | Adaptive | Adaptive | Automatic | Varies | **Most documents** |
+| `simple` | Fastest | Full | — | Lowest | Small inputs |
+| `parallel` | Fast | None | LLM merge | Medium | Speed priority |
+| `sequential` | Medium | Full | Context | Medium | Context-dependent |
+| `parallelAutoMerge` | Fast | None | Auto + dedupe | Medium | Large arrays |
+| `sequentialAutoMerge` | Medium | Full | Auto + dedupe | Medium | Ordered arrays |
+| `doublePass` | Slow | Full | LLM merge | High | Maximum quality |
+| `doublePassAutoMerge` | Slow | Full | Auto + dedupe | High | Quality + arrays |
+
+---
+
+## Agent (Default)
+
+<Callout type="info">
+  **The Agent strategy is the default.** You don't need to specify `--strategy agent` — it's used automatically when you run `struktur extract`.
+</Callout>
+
+Autonomous extraction using a virtual filesystem. The agent decides when to read files, search for patterns, and build output incrementally.
+
+<Cards>
+  <Card title="Best For" description="Most documents — adapts automatically" />
+  <Card title="Virtual FS" description="read, grep, find, ls, bash" />
+  <Card title="Output Tools" description="set_output_data, update_output_data" />
+  <Card title="Model Requirement" description="Must support tool calling" />
+</Cards>
+
+### How it works
+
+1. **Document loaded** into virtual filesystem (`/artifacts/artifact.json`, `/artifacts/manifest.json`, `/artifacts/images/`)
+2. **Agent explores** using tools: read files, grep for patterns, list directories, execute commands
+3. **Incremental extraction** — calls `set_output_data` when first data found, `update_output_data` as more discovered
+4. **Validation** — schema validation on every output update, with automatic retry on errors
+5. **Completion** — agent calls `finish` when done, or `fail` if extraction impossible
+
+The agent adapts to your document:
+- **Small documents** — reads everything at once
+- **Large documents** — navigates systematically, searching for relevant sections
+- **Complex schemas** — builds output incrementally, validating as it goes
+
+### Configuration
+
+<TypeTable
+  type={{
+    provider: {
+      description: 'Provider name (e.g., anthropic, openai)',
+      type: 'string',
+      required: true,
+    },
+    modelId: {
+      description: 'Model identifier (e.g., claude-sonnet-4, gpt-4o)',
+      type: 'string',
+      required: true,
+    },
+    maxSteps: {
+      description: 'Maximum agent steps/turns',
+      type: 'number',
+      default: '50',
+      required: false,
+    },
+    apiKey: {
+      description: 'API key (or use env vars)',
+      type: 'string',
+      required: false,
+    },
+    outputInstructions: {
+      description: 'Additional extraction guidance',
+      type: 'string',
+      required: false,
+    },
+    systemPrompt: {
+      description: 'Override default system prompt',
+      type: 'string',
+      required: false,
+    },
+  }}
+/>
+
+### Example
+
+<Tabs items={['CLI', 'SDK']}>
+  <Tab value="CLI">
+```bash
+# Agent is the default — no --strategy needed
+struktur extract --input ./document.pdf \
+  --schema ./schema.json \
+  --model anthropic/claude-sonnet-4
+
+# With max steps limit
+struktur extract --input ./document.pdf \
+  --schema ./schema.json \
+  --model anthropic/claude-sonnet-4 \
+  --max-steps 30
+```
+  </Tab>
+  <Tab value="SDK">
+```ts
+import { extract, agent } from "@struktur/sdk";
+
+const result = await extract({
+  artifacts,
+  schema,
+  strategy: agent({
+    provider: "anthropic",
+    modelId: "claude-sonnet-4",
+    maxSteps: 50,
+  }),
+});
+```
+  </Tab>
+</Tabs>
+
+### When to use
+
+- **Always try agent first** — it's the default for a reason
+- Works well for most document types and sizes
+- Automatically adapts to document structure
+- Best for complex schemas with nested objects
+
+### Model compatibility
+
+The agent requires models that support tool/function calling:
+
+| Provider | Compatible Models |
+|----------|------------------|
+| Anthropic | Claude 3.5 Sonnet, Claude 3 Opus, Claude 3 Haiku |
+| OpenAI | GPT-4o, GPT-4 Turbo, GPT-4, GPT-3.5 Turbo |
+| Google | Gemini 1.5 Pro, Gemini 1.5 Flash |
+
+<Callout type="warn">
+  Some models claim tool support but don't work well with the agent. Avoid: GPT-4o-mini (inconsistent tool calling), older GPT-3.5 models, models without native function calling.
+</Callout>
+
+### Virtual filesystem
+
+The agent has access to a virtual filesystem containing:
+
+- `/artifacts/artifact.json` — All artifacts in JSON format (images replaced by virtual paths)
+- `/artifacts/manifest.json` — Summary and metadata
+- `/artifacts/images/` — Extracted image files (when artifacts have embedded images)
+
+The agent can:
+- **Read** files with pagination (`offset`, `limit`)
+- **Grep** for patterns
+- **Find** files by name
+- **List** directories
+- **Bash** execute commands (on virtual filesystem only)
+
+### Output management
+
+Special tools for building extraction output:
+
+- **`set_output_data(data)`** — Set initial output (first time data is found)
+- **`update_output_data(changes)`** — Merge changes into existing output
+- **`finish()`** — Complete extraction (only works if data validates)
+- **`fail(reason)`** — Mark extraction as impossible
+
+The agent is encouraged to update output continuously as it explores, not wait until the end.
 
 ---
 
 ## Simple
 
-Single-shot extraction for small inputs.
+Single-shot extraction for small inputs. Use when the agent is overkill for tiny documents.
 
 <Cards>
   <Card title="LLM Calls" description="1" />
@@ -67,7 +219,12 @@ Single-shot extraction for small inputs.
 
 ### Example
 
-<Tabs items={['SDK', 'CLI']}>
+<Tabs items={['CLI', 'SDK']}>
+  <Tab value="CLI">
+```bash
+struktur extract --input document.txt --schema schema.json --strategy simple
+```
+  </Tab>
   <Tab value="SDK">
 ```js
 import { extract, simple } from "@struktur/sdk";
@@ -82,12 +239,6 @@ const result = await extract({
 });
 ```
   </Tab>
-  <Tab value="CLI">
-```bash
-struktur --input document.txt --schema schema.json --model openai/gpt-4o-mini
-# --strategy simple is the default
-```
-  </Tab>
 </Tabs>
 
 ### When to use
@@ -96,6 +247,7 @@ struktur --input document.txt --schema schema.json --model openai/gpt-4o-mini
 - Simple schema without nested arrays
 - Testing or prototyping
 - Speed is the priority
+- When you want predictable token costs (agent costs vary by document)
 
 ---
 
@@ -165,7 +317,12 @@ Concurrent batch processing with LLM merge.
 
 ### Example
 
-<Tabs items={['SDK', 'CLI']}>
+<Tabs items={['CLI', 'SDK']}>
+  <Tab value="CLI">
+```bash
+struktur extract --input large.pdf --schema schema.json --strategy parallel --model openai/gpt-4o-mini
+```
+  </Tab>
   <Tab value="SDK">
 ```js
 import { extract, parallel } from "@struktur/sdk";
@@ -183,11 +340,6 @@ const result = await extract({
 });
 ```
   </Tab>
-  <Tab value="CLI">
-```bash
-struktur --input large.pdf --schema schema.json --strategy parallel --model openai/gpt-4o-mini
-```
-  </Tab>
 </Tabs>
 
 ### When to use
@@ -196,6 +348,7 @@ struktur --input large.pdf --schema schema.json --strategy parallel --model open
 - Chunks are relatively independent
 - Many documents to process
 - Can accept potential loss of cross-chunk context
+- When agent costs are too high for your use case
 
 ---
 
@@ -255,7 +408,12 @@ Process chunks in order with context preservation.
 
 ### Example
 
-<Tabs items={['SDK', 'CLI']}>
+<Tabs items={['CLI', 'SDK']}>
+  <Tab value="CLI">
+```bash
+struktur extract --input report.pdf --schema schema.json --strategy sequential --model openai/gpt-4o-mini
+```
+  </Tab>
   <Tab value="SDK">
 ```js
 import { extract, sequential } from "@struktur/sdk";
@@ -271,11 +429,6 @@ const result = await extract({
 });
 ```
   </Tab>
-  <Tab value="CLI">
-```bash
-struktur --input report.pdf --schema schema.json --strategy sequential --model openai/gpt-4o-mini
-```
-  </Tab>
 </Tabs>
 
 ### When to use
@@ -284,6 +437,7 @@ struktur --input report.pdf --schema schema.json --strategy sequential --model o
 - Building data incrementally (e.g., accumulating line items)
 - Later sections reference earlier sections
 - Need better accuracy than parallel
+- Agent is making too many tool calls for your document structure
 
 ---
 
@@ -315,12 +469,13 @@ Double-pass extraction with schema-aware merge and deduplication.
 
 ## Choosing a Strategy
 
-Pick based on input size and whether you're extracting arrays:
+**Start with the Agent.** It's the default because it works best for most documents.
 
 | Strategy | When to use |
 |---|---|
-| `simple` | Small input, fits in one context window |
-| `parallel` | Large input, order doesn't matter, scalar fields |
+| `agent` (default) | **Start here** — autonomous exploration for most documents |
+| `simple` | Small input, fits in one context window, predictable costs |
+| `parallel` | Large input, order doesn't matter, speed priority |
 | `sequential` | Large input, context carries across chunks |
 | `parallelAutoMerge` | Large input with arrays — parallel + dedup |
 | `sequentialAutoMerge` | Large input with arrays — sequential + dedup |
@@ -331,15 +486,17 @@ Pick based on input size and whether you're extracting arrays:
 
 ```mermaid
 flowchart TD
-    A[Start] --> B{Input fits in context?}
-    B -->|Yes| C[Use simple]
-    B -->|No| D{Extracting arrays?}
-    D -->|Yes| E{Cross-chunk context matters?}
-    D -->|No| F{Cross-chunk context matters?}
-    E -->|Yes| G[sequentialAutoMerge or doublePassAutoMerge]
-    E -->|No| H[parallelAutoMerge]
-    F -->|Yes| I[sequential or doublePass]
-    F -->|No| J[parallel]
+    A[Start] --> B{Try Agent first?}
+    B -->|Yes| C[Use agent — default]
+    B -->|Need fixed costs| D{Input fits in context?}
+    D -->|Yes| E[Use simple]
+    D -->|No| F{Extracting arrays?}
+    F -->|Yes| G{Cross-chunk context matters?}
+    F -->|No| H{Cross-chunk context matters?}
+    G -->|Yes| I[sequentialAutoMerge or doublePassAutoMerge]
+    G -->|No| J[parallelAutoMerge]
+    H -->|Yes| K[sequential or doublePass]
+    H -->|No| L[parallel]
 ```
 
 ---

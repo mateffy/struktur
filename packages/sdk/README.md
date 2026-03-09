@@ -36,8 +36,7 @@ bun add @struktur/sdk
 ## Quick Example
 
 ```ts
-import { extract, simple, urlToArtifact } from "@struktur/sdk";
-import { openai } from "@ai-sdk/openai";
+import { extract, agent, urlToArtifact } from "@struktur/sdk";
 import type { JSONSchemaType } from "ajv";
 
 type Invoice = { number: string; vendor: string; total: number };
@@ -58,12 +57,17 @@ const artifact = await urlToArtifact("https://example.com/invoice.pdf");
 const result = await extract({
   artifacts: [artifact],
   schema,
-  strategy: simple({ model: openai("gpt-4o-mini") }),
+  strategy: agent({
+    provider: "anthropic",
+    modelId: "claude-sonnet-4",
+  }),
 });
 
 console.log(result.data.number); // fully typed
 console.log(result.usage.totalTokens);
 ```
+
+The **Agent strategy** is the default. It autonomously explores documents using a virtual filesystem and extracts data incrementally. For specific use cases, other strategies like `simple`, `parallel`, and `sequential` are also available.
 
 ## Documentation
 

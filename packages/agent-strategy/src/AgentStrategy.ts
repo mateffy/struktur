@@ -57,29 +57,39 @@ const defaultSystemPrompt = (schema: string, outputInstructions?: string) => {
 
 ## Your Environment
 
-You have access to a virtual filesystem at "/artifacts/" containing the artifacts to extract from:
-- "/artifacts/artifact.json" - All artifacts in a structured JSON format (with embedded images replaced by virtual file paths)
-- "/artifacts/manifest.json" - Summary and metadata about the artifacts
-- "/artifacts/images/" - Virtual directory containing extracted image files (when artifacts have embedded images)
+You have access to a virtual filesystem containing the artifacts to extract from:
+- "/artifact.json" - All artifacts in a structured JSON format (with embedded images replaced by virtual file paths)
+- "/manifest.json" - Summary and metadata about the artifacts
+- "/images/" - Virtual directory containing extracted image files (when artifacts have embedded images)
 
 ## Virtual Image Files
 
-When artifacts contain embedded images (base64-encoded), they are extracted to separate files in "/artifacts/images/" for easier access:
-- Image files are named: "/artifacts/images/{artifact-name}-page-{n}-image-{i}.{ext}"
+When artifacts contain embedded images (base64-encoded), they are extracted to separate files in "/images/" for easier access:
+- Image files are named: "/images/{artifact-name}-page-{n}-image-{i}.{ext}"
   - {artifact-name}: Sanitized artifact ID (lowercase, special chars become dashes)
   - page-{n}: Page number from the artifact (if available)
   - image-{i}: Image index within that page
   - {ext}: File extension determined from base64 (jpg, png, gif, webp, bmp, svg, or bin)
-- Examples: "/artifacts/images/invoice-page-3-image-0.jpg" or "/artifacts/images/report-image-1.png"
-- Read these files to access the image data
+- Examples: "/images/invoice-page-3-image-0.jpg" or "/images/report-image-1.png"
+- Use the "/images/" directory to access image data
 - The manifest shows which virtual files are available
 - Image format is shown in the file extension for easy identification
+
+## IMPORTANT: Do NOT Install Tools
+
+This is a **sandboxed environment** - you CANNOT install packages or tools:
+- ❌ DO NOT run: apt-get, pip install, npm install, brew install, etc.
+- ❌ DO NOT try to install tesseract, ocrmypdf, poppler, or any OCR tools
+- ❌ DO NOT check if tools exist with "which" or "command -v"
+- ✅ ONLY use the provided tools listed below
+- ✅ If a tool is missing, work with what you have or report it via fail()
 
 ## Available Tools
 
 ### Exploration Tools
-- **read** - Read file contents with pagination support (e.g., read {"file_path": "/artifacts/artifact.json", "limit": 50})
-- **bash** - Run shell commands (e.g., bash {"command": "head -20 /artifacts/artifact.json"})
+- **read** - Read file contents with pagination support (e.g., read {"file_path": "/manifest.json", "limit": 50})
+- **view_image** - View an image to see its contents visually (e.g., view_image {"image_path": "/images/doc-page-1-image-0.png"})
+- **bash** - Run shell commands (e.g., bash {"command": "head -20 /artifact.json"})
 - **grep** - Search for patterns in files
 - **find** - Find files by name or pattern
 - **ls** - List files and directories
@@ -112,12 +122,12 @@ When artifacts contain embedded images (base64-encoded), they are extracted to s
 
 ### Example Workflow
 
-1. Read manifest: read {"file_path": "/artifacts/manifest.json", "limit": 20}
-2. Find first data point: grep "company_name" /artifacts/artifact.json
+1. Read manifest: read {"file_path": "/manifest.json", "limit": 20}
+2. Find first data point: grep "company_name" /artifact.json
 3. **Set initial data**: set_output_data({"data": {"company_name": "Acme Inc"}})
-4. Continue exploring: read {"file_path": "/artifacts/artifact.json", "offset": 50, "limit": 30}
+4. Continue exploring: read {"file_path": "/artifact.json", "offset": 50, "limit": 30}
 5. **Update with more data**: update_output_data({"changes": {"address": "123 Main St", "city": "Berlin"}})
-6. Check images: read {"file_path": "/artifacts/images/doc-page-1-image-0.jpg"}
+6. Check images: view_image {"image_path": "/images/doc-page-1-image-0.png"}
 7. **Update again**: update_output_data({"changes": {"has_logo": true}})
 8. Verify complete: Check all schema fields are present
 9. **Finish**: finish()
@@ -135,13 +145,13 @@ When artifacts contain embedded images (base64-encoded), they are extracted to s
 ### Pagination Examples
 
 Read first 30 lines:
-read {"file_path": "/artifacts/artifact.json", "limit": 30}
+read {"file_path": "/artifact.json", "limit": 30}
 
 Read lines 31-60 (page 2):
-read {"file_path": "/artifacts/artifact.json", "offset": 31, "limit": 30}
+read {"file_path": "/artifact.json", "offset": 31, "limit": 30}
 
 Read from line 100 to end:
-read {"file_path": "/artifacts/artifact.json", "offset": 100}
+read {"file_path": "/artifact.json", "offset": 100}
 
 ## Output Rules
 
@@ -164,10 +174,13 @@ ${schema}
 When calling tools, you MUST provide the correct parameters:
 
 **CORRECT - read with file_path:**
-read {"file_path": "/artifacts/manifest.json"}
+read {"file_path": "/manifest.json"}
 
 **CORRECT - read with pagination:**
-read {"file_path": "/artifacts/artifact.json", "offset": 1, "limit": 50}
+read {"file_path": "/artifact.json", "offset": 1, "limit": 50}
+
+**CORRECT - view image:**
+view_image {"image_path": "/images/doc-page-1-image-0.png"}
 
 **CORRECT - set output data:**
 set_output_data {"data": {"company_name": "Acme Corp"}}
@@ -187,15 +200,17 @@ fail {"reason": "Document is not an invoice"}
 ❌ WRONG: read {file_path: "/path"} (missing quotes around property names)
 ❌ WRONG: read /path (not using JSON format)
 ❌ WRONG: set_output_data {company: "Name"} (missing quotes and data wrapper)
+❌ WRONG: Trying to install tools with apt-get, pip, npm, etc. (not allowed in sandbox)
 
 ## Remember
 
 1. **ALWAYS** use set_output_data or update_output_data when you find information
 2. **ALWAYS** call finish() when done (or fail() if impossible)
 3. **ALWAYS** provide required parameters when calling tools (file_path for read, data for set_output_data, etc.)
-4. The output tools will validate your data and report issues
-5. You can update data multiple times - keep refining as you explore
-6. The CLI shows your progress in real-time as you update the output`;
+4. **NEVER** try to install packages or external tools - work with what you have
+5. The output tools will validate your data and report issues
+6. You can update data multiple times - keep refining as you explore
+7. The CLI shows your progress in real-time as you update the output`;
 };
 
 export class AgentStrategy<T> implements ExtractionStrategy<T> {
@@ -232,8 +247,8 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
 
     // Create just-bash instance with the virtual filesystem including image files
     const files: Record<string, string> = {
-      "/artifacts/artifact.json": filesystem["/artifacts/artifact.json"],
-      "/artifacts/manifest.json": filesystem["/artifacts/manifest.json"],
+      "/artifact.json": filesystem["/artifact.json"],
+      "/manifest.json": filesystem["/manifest.json"],
     };
     
     // Add virtual image files to the filesystem
@@ -243,7 +258,7 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
 
     const bash = new Bash({
       files,
-      cwd: "/artifacts",
+      cwd: "/",
     });
 
     // Create custom tools that use the virtual filesystem
@@ -287,13 +302,17 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
     let model = this.config.model;
     if (!model && this.config.provider && this.config.modelId) {
       // Try to find the model in registry
-      console.error(`[AgentStrategy] Looking up model: ${this.config.provider}/${this.config.modelId}`);
-      model = modelRegistry.find(this.config.provider, this.config.modelId);
-      console.error(`[AgentStrategy] Model resolved: ${model ? 'success' : 'failed'}`);
-      if (model) {
-        console.error(`[AgentStrategy] Model info:`, JSON.stringify(model).slice(0, 200));
+      if (this.config.verbose) {
+        console.error(`[AgentStrategy] Looking up model: ${this.config.provider}/${this.config.modelId}`);
       }
-    } else if (model) {
+      model = modelRegistry.find(this.config.provider, this.config.modelId);
+      if (this.config.verbose) {
+        console.error(`[AgentStrategy] Model resolved: ${model ? 'success' : 'failed'}`);
+        if (model) {
+          console.error(`[AgentStrategy] Model info:`, JSON.stringify(model).slice(0, 200));
+        }
+      }
+    } else if (model && this.config.verbose) {
       console.error(`[AgentStrategy] Using pre-configured model`);
     }
 
@@ -496,20 +515,22 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
       failTool as any,
     ];
     
-    console.error(`[AgentStrategy] Creating session with ${allTools.length} tools`);
-    console.error(`[AgentStrategy] Tool names: ${allTools.map((t: any) => t.name).join(', ')}`);
-    
-    // Log detailed tool info for debugging
-    allTools.forEach((tool: any) => {
-      console.error(`[AgentStrategy] Tool "${tool.name}" details:`);
-      console.error(`  - label: ${tool.label}`);
-      console.error(`  - description: ${tool.description?.slice(0, 100)}...`);
-      console.error(`  - has parameters: ${!!tool.parameters}`);
-      if (tool.parameters) {
-        console.error(`  - parameters type: ${tool.parameters.type}`);
-        console.error(`  - required fields: ${JSON.stringify(tool.parameters.required)}`);
-      }
-    });
+    if (this.config.verbose) {
+      console.error(`[AgentStrategy] Creating session with ${allTools.length} tools`);
+      console.error(`[AgentStrategy] Tool names: ${allTools.map((t: any) => t.name).join(', ')}`);
+      
+      // Log detailed tool info for debugging
+      allTools.forEach((tool: any) => {
+        console.error(`[AgentStrategy] Tool "${tool.name}" details:`);
+        console.error(`  - label: ${tool.label}`);
+        console.error(`  - description: ${tool.description?.slice(0, 100)}...`);
+        console.error(`  - has parameters: ${!!tool.parameters}`);
+        if (tool.parameters) {
+          console.error(`  - parameters type: ${tool.parameters.type}`);
+          console.error(`  - required fields: ${JSON.stringify(tool.parameters.required)}`);
+        }
+      });
+    }
     
     const { session } = await createAgentSession({
       model: model as any,
@@ -521,7 +542,10 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
       tools: [], // No default tools
       customTools: allTools,
     });
-    console.error(`[AgentStrategy] Session created successfully`);
+    
+    if (this.config.verbose) {
+      console.error(`[AgentStrategy] Session created successfully`);
+    }
 
     // Emit session ready event
     await options.events?.onStep?.({
@@ -541,6 +565,9 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
     let stepCount = 0;
     let finalResponse = "";
     const maxToolCalls = maxSteps;
+    
+    // Buffer for streaming text - accumulate until we see a newline
+    let textBuffer = "";
 
     try {
       // Subscribe to events
@@ -552,15 +579,35 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
               const delta = event.assistantMessageEvent.delta;
               finalResponse += delta;
               
-              // Stream content updates through the event system for CLI spinner to display
-              // The CLI will handle showing this in the spinner message
-              const currentLine = delta.trim().split('\n')[0]?.slice(0, 50) || '';
-              if (currentLine && stepCount > 0) {
-                options.events?.onStep?.({
-                  step: stepCount,
-                  total: this.getEstimatedSteps(),
-                  label: `Agent: ${currentLine}...`,
-                });
+              // Buffer the text and only emit when we have complete lines
+              textBuffer += delta;
+              
+              // Check for complete lines in the buffer
+              let newlineIndex;
+              while ((newlineIndex = textBuffer.indexOf('\n')) !== -1) {
+                const line = textBuffer.slice(0, newlineIndex).trim();
+                textBuffer = textBuffer.slice(newlineIndex + 1);
+                
+                if (line.length > 0) {
+                  options.events?.onStep?.({
+                    step: stepCount,
+                    total: this.getEstimatedSteps(),
+                    label: `→ ${line.slice(0, 120)}`,
+                  });
+                }
+              }
+              
+              // If buffer gets too long without a newline, emit it anyway
+              if (textBuffer.length > 100) {
+                const line = textBuffer.trim();
+                if (line.length > 0) {
+                  options.events?.onStep?.({
+                    step: stepCount,
+                    total: this.getEstimatedSteps(),
+                    label: `→ ${line.slice(0, 120)}`,
+                  });
+                }
+                textBuffer = "";
               }
             }
             break;
@@ -569,16 +616,21 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
             case "tool_execution_start": {
               stepCount++;
               // Format a nice label based on the tool and its arguments
-              let label = `tool_${event.toolName}`;
+              let label: string;
+              let detail: string;
               const args = event.args;
+              const toolName = event.toolName;
               
               // Log tool execution for debugging
-              console.error(`[AgentStrategy] Tool start: ${event.toolName} (call ID: ${event.toolCallId})`);
-              if (args) {
-                console.error(`[AgentStrategy] Args:`, JSON.stringify(args).slice(0, 200));
+              if (this.config.verbose) {
+                console.error(`[AgentStrategy] Tool start: ${toolName} (call ID: ${event.toolCallId})`);
+                if (args) {
+                  console.error(`[AgentStrategy] Args:`, JSON.stringify(args).slice(0, 200));
+                }
               }
               
-              if (event.toolName === "read" && args?.file_path) {
+              // Format labels for exploration tools
+              if (toolName === "read" && args?.file_path) {
                 const fileName = args.file_path.split("/").pop() || args.file_path;
                 const pagination: string[] = [];
                 if (args.offset && args.offset > 1) {
@@ -589,25 +641,47 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
                 }
                 const paginationStr = pagination.length > 0 ? ` (${pagination.join(", ")})` : "";
                 label = `Read ${fileName}${paginationStr}`;
-              } else if (event.toolName === "bash" && args?.command) {
+                detail = "";
+              } else if (toolName === "bash" && args?.command) {
                 // Truncate long commands
                 const cmd = args.command.length > 40 
                   ? args.command.slice(0, 37) + "..." 
                   : args.command;
                 label = `Bash: ${cmd}`;
-              } else if (event.toolName === "grep" && args?.pattern) {
-                label = `Grep "${args.pattern}"${args.path ? ` in ${args.path.split("/").pop()}` : ""}`;
-              } else if (event.toolName === "find" && args?.path) {
-                label = `Find${args.name ? ` "${args.name}"` : ""} in ${args.path}`;
-              } else if (event.toolName === "ls" && args?.path) {
-                label = `List ${args.path}${args.recursive ? " (recursive)" : ""}`;
+                detail = "";
+              } else if (toolName === "grep" && args?.pattern) {
+                label = `Grep "${args.pattern}"`;
+                detail = args.path ? `in ${args.path.split("/").pop()}` : "";
+              } else if (toolName === "find" && args?.path) {
+                label = `Find`;
+                detail = args.name ? `"${args.name}" in ${args.path}` : `in ${args.path}`;
+              } else if (toolName === "ls" && args?.path) {
+                label = `List ${args.path}`;
+                detail = args.recursive ? "recursive" : "";
+              } else if (toolName === "set_output_data") {
+                label = "Set Output";
+                detail = args?.data ? JSON.stringify(args.data).slice(0, 80) : "";
+              } else if (toolName === "update_output_data") {
+                label = "Update Output";
+                detail = args?.changes ? JSON.stringify(args.changes).slice(0, 80) : "";
+              } else if (toolName === "finish") {
+                label = "Finish";
+                detail = "";
+              } else if (toolName === "fail") {
+                label = "Fail";
+                detail = args?.reason || "";
+              } else {
+                // Unknown tool - use raw JSON
+                label = toolName;
+                detail = args ? JSON.stringify(args).slice(0, 100) : "";
               }
               
-              // Emit progress event with nice label
+              // Emit progress event with nice label and detail
               options.events?.onStep?.({
                 step: stepCount + 1,
                 total: this.getEstimatedSteps(),
                 label,
+                detail,
               });
               debug?.step({
                 step: stepCount + 1,
@@ -625,10 +699,12 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
                 const errorMsg = toolEndEvent.error || "Unknown tool error";
                 const toolName = toolEndEvent.toolName || "unknown";
                 const toolCallId = toolEndEvent.toolCallId || "unknown";
-                console.error(`[AgentStrategy] Tool execution failed: ${errorMsg}`);
-                console.error(`[AgentStrategy] Tool: ${toolName}, Call ID: ${toolCallId}`);
-                if (toolEndEvent.result) {
-                  console.error(`[AgentStrategy] Result:`, JSON.stringify(toolEndEvent.result));
+                if (this.config.verbose) {
+                  console.error(`[AgentStrategy] Tool execution failed: ${errorMsg}`);
+                  console.error(`[AgentStrategy] Tool: ${toolName}, Call ID: ${toolCallId}`);
+                  if (toolEndEvent.result) {
+                    console.error(`[AgentStrategy] Result:`, JSON.stringify(toolEndEvent.result));
+                  }
                 }
                 // Don't throw here, let the agent handle it
               }
@@ -636,6 +712,16 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
             }
 
             case "agent_end": {
+              // Flush any remaining text in the buffer
+              if (textBuffer.trim().length > 0) {
+                options.events?.onStep?.({
+                  step: stepCount,
+                  total: this.getEstimatedSteps(),
+                  label: `→ ${textBuffer.trim().slice(0, 120)}`,
+                });
+                textBuffer = "";
+              }
+              
               // Update usage from agent state if available
               if (event.messages && event.messages.length > 0) {
                 // Calculate approximate usage from messages
@@ -686,7 +772,9 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
 
             case "agent_start": {
               // Agent has started processing
-              console.error("[AgentStrategy] Agent started processing");
+              if (this.config.verbose) {
+                console.error("[AgentStrategy] Agent started processing");
+              }
               break;
             }
 
@@ -709,15 +797,19 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
               // Common lifecycle events should be handled above
               const unhandledEvent = event as any;
               if (unhandledEvent.type && !unhandledEvent.type.includes("_")) {
-                console.error(`[AgentStrategy] Unexpected event type: ${unhandledEvent.type}`);
+                if (this.config.verbose) {
+                  console.error(`[AgentStrategy] Unexpected event type: ${unhandledEvent.type}`);
+                }
               }
               break;
             }
           }
         } catch (eventHandlerError) {
           // Catch any errors in the event handler itself to prevent them from being swallowed
-          console.error(`[AgentStrategy] Error in event handler: ${(eventHandlerError as Error).message}`);
-          console.error("AgentStrategy event handler error:", eventHandlerError);
+          if (this.config.verbose) {
+            console.error(`[AgentStrategy] Error in event handler: ${(eventHandlerError as Error).message}`);
+            console.error("AgentStrategy event handler error:", eventHandlerError);
+          }
           // Re-throw to ensure the error is not swallowed
           throw eventHandlerError;
         }
@@ -746,9 +838,11 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
       if (!isFinished) {
         // Agent didn't call finish() - check if we have partial data
         if (currentOutput !== null) {
-          console.error("[AgentStrategy] Warning: Agent did not call finish(). Using collected data.");
+          if (this.config.verbose) {
+            console.error("[AgentStrategy] Warning: Agent did not call finish(). Using collected data.");
+          }
           const validation = validateData(currentOutput);
-          if (!validation.valid) {
+          if (!validation.valid && this.config.verbose) {
             console.error(`[AgentStrategy] Data validation issues: ${validation.errors.join(", ")}`);
           }
           extractedData = currentOutput as T;

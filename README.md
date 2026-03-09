@@ -102,7 +102,7 @@ struktur config models use openai/gpt-4o-mini
 - Automatically prepares documents before extraction — no need to manually convert PDFs to text or images.
 
 ```bash
-# From a PDF — parsed automatically
+# From a PDF — parsed and extracted automatically
 struktur extract --input ./contract.pdf \
   --fields "parties:array{string}, effective_date, governing_law"
 ```
@@ -111,14 +111,17 @@ struktur extract --input ./contract.pdf \
 
 ### 3. Configure strategies, models, and more (Optional)
 
-- Struktur can be configured to support even more strategies, document types or LLM providers
+- Struktur uses the **Agent strategy** by default — it autonomously explores documents and extracts data
 - Set aliases for your favorite models (e.g. `fast` or `quality`) or change your default model
 - Add custom parsers for unsupported file types, or use your own command-line tools for parsing
 - For multi provider LLM gateways like OpenRouter, use a hashtag to specify which provider you want to use (e.g. `#groq` or `#cerebras` for faster inference)
 
 ```bash
-# Use a different strategy for large documents
-struktur extract --strategy parallel ...
+# Agent is the default - it decides how to extract
+struktur extract --input ./document.pdf --schema ./schema.json
+
+# Use a different strategy for specific cases
+struktur extract --strategy simple --input ./small-file.txt --fields "title, content"
 
 # Create a model alias
 struktur config models alias set fast openrouter/meta-llama/llama-3.1-8b-instruct#groq
@@ -143,7 +146,7 @@ struktur config parsers add --mime text/calendar --stdin-command "my-ical-parser
 ## SDK quickstart
 
 ```ts
-import { extract, simple, urlToArtifact } from "@struktur/sdk";
+import { extract, agent, urlToArtifact } from "@struktur/sdk";
 import { openai } from "@ai-sdk/openai";
 import type { JSONSchemaType } from "ajv";
 
@@ -165,7 +168,10 @@ const artifact = await urlToArtifact("https://example.com/invoice.pdf");
 const result = await extract({
   artifacts: [artifact],
   schema,
-  strategy: simple({ model: openai("gpt-4o-mini") }),
+  strategy: agent({
+    provider: "openai",
+    modelId: "gpt-4o-mini",
+  }),
 });
 
 console.log(result.data.number); // fully typed
@@ -178,7 +184,7 @@ For quick extractions without writing a full JSON Schema, use the `fields` short
 const result = await extract({
   artifacts,
   fields: "invoice_number, vendor, total:number, due_date",
-  strategy: simple({ model: openai("gpt-4o-mini") }),
+  strategy: agent({ provider: "openai", modelId: "gpt-4o-mini" }),
 });
 ```
 
@@ -189,34 +195,34 @@ const result = await extract({
 
 ## How it works
 
-Struktur converts input files into **Artifacts** — normalized JSON with text and media slices. A strategy then orchestrates the extraction: chunking, LLM calls, validation, and merging.
+Struktur converts input files into **Artifacts** — normalized JSON with text and media slices. The **Agent** then autonomously explores the document, deciding how to extract data: reading files, searching for patterns, and building the output incrementally.
 
 ```mermaid
 flowchart LR
     A[Input] --> B[Parse]
     B --> C[Artifacts]
-    C --> D[Strategy]
-    D --> E[Output]
+    C --> D[Agent Strategy]
+    D --> E[Validated JSON]
     
-    subgraph StrategyInternals [Strategy]
+    subgraph Agent [Agent Strategy]
         direction TB
-        D1[Chunking] --> D2[LLM Calls]
-        D2 --> D3[Validation + Retry]
-        D3 --> D4[Merge/Dedupe]
+        A1[Explore] --> A2[Read/Grep/Find]
+        A2 --> A3[Extract Data]
+        A3 --> A4[Validate]
+        A4 -->|Need more info| A1
     end
     
-    D --> StrategyInternals --> E
+    D --> Agent --> E
 ```
 
 **Key stages:**
 
 - **Parse**: Convert files (PDF, text, images) into Artifact JSON
-- **Chunk**: Split large inputs by token budget
-- **Extract**: Call LLM with your schema
+- **Agent**: Autonomously explore and extract using tools (read, grep, bash, find)
 - **Validate**: Check against schema, retry on errors
-- **Merge**: Combine results from multiple chunks
+- **Output**: Return validated JSON
 
-Every LLM response is validated against your schema. If validation fails, the errors are sent back to the model automatically. Most extractions converge in one or two attempts.
+The agent decides how to approach extraction based on your schema and the document content. It may read the entire document at once for small inputs, or navigate through sections systematically for large documents. Every LLM response is validated against your schema. If validation fails, the errors are sent back to the model automatically. Most extractions converge in one or two attempts.
 
 → [Extraction pipeline explained](https://struktur.sh/docs/explanation/pipeline)
 
@@ -336,10 +342,13 @@ For stdin with no `--mime`, falls back to `text/plain`.
 
 ## Strategies
 
-Pick based on input size and whether you're extracting arrays:
+Struktur uses an **Agent** by default — it autonomously explores documents and extracts data using a virtual filesystem. The agent decides when to read files, search for patterns, or execute commands based on your schema and the document content.
+
+For specific use cases, you can also use other strategies:
 
 | Strategy | When to use |
 |---|---|
+| `agent` (default) | Autonomous exploration — best for most documents |
 | `simple` | Small input, fits in one context window |
 | `parallel` | Large input, order doesn't matter, scalar fields |
 | `sequential` | Large input, context carries across chunks |
@@ -348,17 +357,25 @@ Pick based on input size and whether you're extracting arrays:
 | `doublePass` | Quality matters, two-pass refinement |
 | `doublePassAutoMerge` | Quality + arrays + dedup |
 
+```bash
+# Agent is the default - no --strategy needed
+struktur extract --input ./document.pdf --schema ./schema.json
+
+# Use a specific strategy when needed
+struktur extract --input ./document.pdf --schema ./schema.json --strategy simple
+```
+
 ```ts
-import { extract, parallelAutoMerge } from "@struktur/sdk";
+import { extract, agent } from "@struktur/sdk";
 import { openai } from "@ai-sdk/openai";
 
 const result = await extract({
   artifacts,
   schema,
-  strategy: parallelAutoMerge({
-    model: openai("gpt-4o-mini"),
-    chunkSize: 10_000,
-    concurrency: 4,
+  strategy: agent({
+    provider: "openai",
+    modelId: "gpt-4o-mini",
+    maxSteps: 50,
   }),
 });
 ```

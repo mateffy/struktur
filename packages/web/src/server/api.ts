@@ -7,6 +7,7 @@ import type {
 	SerializedArtifact,
 } from "@struktur/sdk";
 import {
+	agent,
 	detectMimeType,
 	doublePass,
 	doublePassAutoMerge,
@@ -197,7 +198,11 @@ export type ExtractionEvent = {
 		| "tokenUsage"
 		| "retry"
 		| "complete"
-		| "error";
+		| "error"
+		| "agent_tool_start"
+		| "agent_tool_end"
+		| "agent_message"
+		| "agent_reasoning";
 	data: unknown;
 };
 
@@ -252,7 +257,7 @@ export async function extractData(
 		const model = await resolveModel(modelString);
 
 		// Create strategy
-		const strategy = createStrategy(strategyName, model, chunkSize);
+		const strategy = createStrategy(strategyName, model, chunkSize, modelString);
 
 		// Build schema
 		let schema: any;
@@ -302,7 +307,7 @@ export async function extractData(
 	}
 }
 
-function createStrategy(name: string, model: unknown, chunkSize: number) {
+function createStrategy(name: string, model: unknown, chunkSize: number, modelSpec?: string) {
 	switch (name) {
 		case "simple":
 			return simple({ model });
@@ -318,6 +323,16 @@ function createStrategy(name: string, model: unknown, chunkSize: number) {
 			return doublePass({ model, mergeModel: model, chunkSize });
 		case "doublePassAutoMerge":
 			return doublePassAutoMerge({ model, dedupeModel: model, chunkSize });
+		case "agent":
+			// Extract provider and modelId from modelSpec for agent strategy
+			if (modelSpec) {
+				const [provider, modelId] = modelSpec.split("/");
+				if (provider && modelId) {
+					return agent({ provider, modelId });
+				}
+			}
+			// Fallback to using the model object directly
+			return agent({ model });
 		default:
 			throw new Error(`Unknown strategy: ${name}`);
 	}

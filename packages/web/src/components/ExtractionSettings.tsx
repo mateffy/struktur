@@ -44,6 +44,11 @@ export type ExtractionSettingsProps = {
 };
 
 const STRATEGIES = [
+	{
+		value: "agent",
+		label: "Agent",
+		description: "AI agent with tool use and reasoning",
+	},
 	{ value: "simple", label: "Simple", description: "Single extraction pass" },
 	{
 		value: "parallel",
