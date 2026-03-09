@@ -280,10 +280,14 @@ agent({
 
 ## Security
 
-- All filesystem operations are in-memory only (just-bash virtual filesystem)
-- No real disk access - artifacts are stored in memory
-- No network access by default (just-bash doesn't enable network unless configured)
-- Custom tools replace pi.dev's default filesystem tools
+The agent strategy is fully sandboxed and requires no custom VM:
+
+- **In-Memory Filesystem**: All filesystem operations use just-bash, an emulated shell with an in-memory virtual filesystem
+- **No Real Disk Access**: Files are virtual - artifacts are serialized to JSON in memory
+- **No Network Access**: No external HTTP calls or network operations
+- **No Command Execution**: The emulated shell only provides read/grep/glob utilities - no actual shell commands are executed
+- **Sandboxed Tools**: The agent can only use the provided tools (read, grep, find, ls, set_output_data, update_output_data, finish, fail)
+- **Same Process**: Everything runs in the same Node.js/Bun process - no separate VM or container needed
 
 ## Debugging & Error Handling
 

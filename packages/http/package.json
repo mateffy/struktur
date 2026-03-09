@@ -6,18 +6,19 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
-    "start": "wrangler dev"
+    "dev": "bun --hot src/index.ts",
+    "start": "bun src/index.ts"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.0",
+    "@ai-sdk/google": "^3.0.0",
+    "@ai-sdk/openai": "^3.0.0",
+    "@openrouter/ai-sdk-provider": "^2.0.0",
     "@struktur/sdk": "workspace:*",
     "hono": "^4.6.0"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20250109.0",
     "@types/bun": "latest",
-    "typescript": "^5",
-    "wrangler": "^4.0.0"
+    "typescript": "^5"
   }
 }

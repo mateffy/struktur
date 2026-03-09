@@ -344,6 +344,8 @@ For stdin with no `--mime`, falls back to `text/plain`.
 
 Struktur uses an **Agent** by default — it autonomously explores documents and extracts data using a virtual filesystem. The agent decides when to read files, search for patterns, or execute commands based on your schema and the document content.
 
+**Security**: The agent runs fully sandboxed in the same process — no custom VM needed. It uses an emulated shell with only read/grep/glob utilities. No external HTTP calls or command execution.
+
 For specific use cases, you can also use other strategies:
 
 | Strategy | When to use |

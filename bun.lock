@@ -101,6 +101,22 @@
         "vite-tsconfig-paths": "^6.1.1",
       },
     },
+    "packages/http": {
+      "name": "@struktur/http",
+      "version": "1.2.1",
+      "dependencies": {
+        "@ai-sdk/anthropic": "^3.0.0",
+        "@ai-sdk/google": "^3.0.0",
+        "@ai-sdk/openai": "^3.0.0",
+        "@openrouter/ai-sdk-provider": "^2.0.0",
+        "@struktur/sdk": "workspace:*",
+        "hono": "^4.6.0",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5",
+      },
+    },
     "packages/sdk": {
       "name": "@struktur/sdk",
       "version": "1.2.1",
@@ -1079,6 +1095,8 @@
     "@struktur/cli": ["@struktur/cli@workspace:packages/cli"],
 
     "@struktur/documentation": ["@struktur/documentation@workspace:packages/documentation"],
+
+    "@struktur/http": ["@struktur/http@workspace:packages/http"],
 
     "@struktur/sdk": ["@struktur/sdk@workspace:packages/sdk"],
 
