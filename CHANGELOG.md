@@ -5,9 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-## [1.3.0] - 2025-01-XX
+## 2.0.0
 
 ### Added
 
@@ -33,13 +31,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Agent provides better extraction quality for most documents
   - Other strategies (`simple`, `parallel`, `sequential`, etc.) still available via `--strategy` flag
 
-## [1.2.1] - 2025-01-09
+## 1.2.1
 
 ### Added
 
-- Initial public release
-- CLI for structured data extraction (`@struktur/cli`)
-- Core SDK (`@struktur/sdk`)
 - Built-in PDF parser with image extraction and screenshot rendering
 - Multiple extraction strategies: simple, parallel, sequential, parallelAutoMerge, sequentialAutoMerge, doublePass, doublePassAutoMerge
 - Fields shorthand for simple schemas
@@ -47,7 +42,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Model aliases and default model configuration
 - Custom parser support (npm packages, CLI commands)
 - Web application (`@struktur/web`)
-
-[Unreleased]: https://github.com/anomalyco/struktur/compare/v1.3.0...HEAD
-[1.3.0]: https://github.com/anomalyco/struktur/compare/v1.2.1...v1.3.0
-[1.2.1]: https://github.com/anomalyco/struktur/releases/tag/v1.2.1
