@@ -1,6 +1,19 @@
 
 
-Struktur is an all-in-one tool for structured data extraction that turns pre-parsed documents into validated, schema-typed JSON. It operates on Artifacts, chunks them by token budgets, runs extraction strategies, validates results against your schema, and merges or deduplicates outputs where needed.
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Struktur is an all-in-one tool for structured data extraction using an **autonomous agent**. It turns documents into validated, schema-typed JSON by having an LLM agent explore the content, decide what to read, and build the output incrementally.
+
+<Cards>
+  <Card title="CLI Tool" description="Extract data from the command line with a simple, intuitive interface" href="/docs/cli" />
+
+  <Card title="TypeScript SDK" description="Programmatic API for embedding extraction in your applications" href="/docs/sdk" />
+
+  <Card title="Agent Strategy" description="Autonomous exploration with virtual filesystem tools" href="/docs/explanation/strategies#agent" />
+
+  <Card title="Examples" description="Real-world extraction patterns and use cases" href="/docs/examples" />
+</Cards>
 
 Why Struktur? [#why-struktur]
 
@@ -8,7 +21,18 @@ Large document batches arrive with data locked in semi-structured text. Invoices
 
 Managed APIs charge per page, impose schema constraints, and require document uploads to external infrastructure. LLM SDKs provide raw model access but leave you to write chunking, validation, retries, and merging every time.
 
-Struktur fills the gap: a focused extraction engine that handles the orchestration so you can focus on the output.
+Struktur fills the gap: a focused extraction engine with an **autonomous agent** that handles the orchestration so you can focus on the output.
+
+Why an Agent? [#why-an-agent]
+
+Traditional extraction strategies (simple, parallel, sequential) require you to choose the right approach upfront. The agent decides:
+
+* **When to read** — entire document or specific sections
+* **How to search** — grep for patterns, list directories, execute bash commands
+* **What to extract** — build output incrementally as it explores
+* **How to validate** — check against schema and retry automatically
+
+The agent adapts to your document. Small invoices get read in one shot. Large catalogs get navigated systematically. The result is better accuracy without configuration complexity.
 
 Why not managed APIs? [#why-not-managed-apis]
 
@@ -28,37 +52,33 @@ A single `generateText()` call gives you:
 * No merging of multi-chunk results
 * No typed output inferred from your schema
 
-You write the same orchestration boilerplate every time. Struktur packages that orchestration into tested, configurable strategies.
+You write the same orchestration boilerplate every time. Struktur's agent packages that orchestration into a single, adaptive strategy.
 
 Design philosophy [#design-philosophy]
 
-**Narrow scope, intentionally.** Struktur does extraction only. No parsing. No streaming. No general-purpose LLM orchestration. This focus keeps the API small and the behavior predictable.
+<Callout type="info">
+  **Agent-first, zero configuration.** The agent strategy is the default. It explores documents autonomously, deciding when to read, search, or extract. No need to pick chunk sizes or parallelism upfront.
+</Callout>
 
-**Shell-composable by default.** Reads stdin, writes stdout, speaks JSON. Integrates with `jq`, `find`, `curl`, and any tool in your pipeline.
-
-**Strategy-first.** Different documents need different approaches. A single-page invoice needs simple extraction. A 100-page catalog with duplicate products needs parallel extraction with deduplication. Strategies encode these patterns.
-
-**Validation in the loop.** Errors go back to the model, not to you. The retry loop means most extractions converge within two attempts.
-
-**Schema-first.** You define the shape, Struktur guarantees it.
-
-**Fields shorthand.** Skip the JSON Schema boilerplate with `--fields "title, price:number, status:enum{draft|live}"`.
+* **Autonomous exploration.** The agent uses a virtual filesystem to read files, grep for patterns, find files, and execute commands. It builds output incrementally as it discovers data.
+* **Shell-composable by default.** Reads stdin, writes stdout, speaks JSON. Integrates with `jq`, `find`, `curl`, and any tool in your pipeline.
+* **Validation in the loop.** Errors go back to the model, not to you. The retry loop means most extractions converge within two attempts.
+* **Schema-first.** You define the shape, Struktur guarantees it.
+* **Fields shorthand.** Skip the JSON Schema boilerplate with `--fields "title, price:number, status:enum{draft|live}"`.
 
 Trade-offs [#trade-offs]
 
 | Trade-off                          | Rationale                                                                          |
 | ---------------------------------- | ---------------------------------------------------------------------------------- |
-| Requires upstream preprocessing    | Keeps Struktur focused; use best-of-breed parsers per format                       |
-| Batch-only, no streaming           | Simpler mental model; input in, JSON out                                           |
+| Requires tool-calling models       | The agent needs models that support function calling (Claude, GPT-4, etc.)         |
 | Depends on Vercel AI SDK providers | OpenAI, Anthropic, Google supported; self-hosted models need OpenAI-compatible API |
-| Token costs depend on strategy     | `doublePass` costs more than `simple`; know your rates                             |
+| Token costs vary by document       | The agent makes multiple tool calls; large documents cost more than small ones     |
 
 A 10-second demo [#a-10-second-demo]
 
 ```bash
-struktur --input invoice.pdf \
-  --fields "number, vendor, total:number" \
-  --model openai/gpt-4o-mini
+struktur extract --input invoice.pdf \
+  --fields "number, vendor, total:number"
 ```
 
 Expected output:
@@ -71,9 +91,14 @@ Expected output:
 }
 ```
 
+The agent reads the PDF, decides how to extract the fields, and returns validated JSON.
+
 What Struktur is NOT [#what-struktur-is-not]
 
-* **It is not a general document conversion tool.** It parses files for extraction purposes, not for format conversion. It does not produce formatted output from documents.
+<Callout type="warn">
+  **It is not a general document conversion tool.** It parses files for extraction purposes, not for format conversion. It does not produce formatted output from documents.
+</Callout>
+
 * **It is not a managed API.** It runs locally and calls your provider directly.
 * **It does not stream.** Input in, JSON out.
 * **It is not a general LLM orchestration framework.**
@@ -82,33 +107,44 @@ For the full mental model, see [The Extraction Pipeline](/docs/explanation/pipel
 
 Who is it for? [#who-is-it-for]
 
-**CLI users** — data engineers, analysts, shell pipeline builders — use Struktur for one-off extractions, batch processing, and CI/CD automation without writing code.
+<Cards>
+  <Card title="CLI Users" description="Data engineers, analysts, shell pipeline builders — use Struktur for one-off extractions, batch processing, and CI/CD automation without writing code." />
 
-**SDK users** — TypeScript developers embedding extraction in applications — use Struktur for typed results, custom strategies, and fine-grained control over the extraction pipeline.
+  <Card title="SDK Users" description="TypeScript developers embedding extraction in applications — use Struktur for typed results, custom strategies, and fine-grained control over the extraction pipeline." />
+</Cards>
 
-What are Strategies? [#what-are-strategies]
+What is the Agent Strategy? [#what-is-the-agent-strategy]
 
-A strategy implements:
+The agent strategy is the default and recommended way to use Struktur. It implements:
 
-* `name`: string identifier
-* `run()`: the orchestration logic
-* `getEstimatedSteps()`: optional, for progress tracking
+* **Virtual filesystem tools** — read, grep, find, ls, bash
+* **Output management** — set\_output\_data, update\_output\_data, finish, fail
+* **Autonomous exploration** — the agent decides what to do based on your schema
+* **Incremental extraction** — builds output as it discovers data
 
-Strategies own their config (model, chunk size, concurrency). All strategies guarantee: output validates against the schema or they throw.
+How it works [#how-it-works]
 
-Built-in strategies [#built-in-strategies]
+1. The agent receives your schema and access to a virtual filesystem containing the document
+2. It can read files, search for patterns, list directories, and execute commands
+3. As it finds data, it calls `set_output_data` or `update_output_data` to build the result
+4. When complete, it calls `finish` to return validated JSON
 
-| Strategy              | Description                                 |
-| --------------------- | ------------------------------------------- |
-| `simple`              | Single-shot extraction for small inputs     |
-| `parallel`            | Concurrent batches with LLM merge           |
-| `sequential`          | Ordered batches with context carryover      |
-| `parallelAutoMerge`   | Parallel with schema-aware merge + dedupe   |
-| `sequentialAutoMerge` | Sequential with schema-aware merge + dedupe |
-| `doublePass`          | Parallel pass + sequential refinement       |
-| `doublePassAutoMerge` | Double-pass with auto-merge                 |
+When to use other strategies [#when-to-use-other-strategies]
 
-See [Extraction Strategies](/docs/explanation/strategies) for details on each strategy and how to choose.
+The agent is the default and works best for most documents. However, other strategies are available for specific cases:
+
+| Strategy              | When to use                                             |
+| --------------------- | ------------------------------------------------------- |
+| `agent` (default)     | Autonomous exploration — best for most documents        |
+| `simple`              | Small input that fits in one context window             |
+| `parallel`            | Large input where speed matters more than accuracy      |
+| `sequential`          | Large input where order matters                         |
+| `parallelAutoMerge`   | Large arrays with parallel processing + deduplication   |
+| `sequentialAutoMerge` | Large arrays with sequential processing + deduplication |
+| `doublePass`          | Maximum quality with two-pass refinement                |
+| `doublePassAutoMerge` | Maximum quality with arrays + deduplication             |
+
+See [Extraction Strategies](/docs/explanation/strategies) for details on all strategies.
 
 Quick navigation [#quick-navigation]
 

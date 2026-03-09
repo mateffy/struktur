@@ -1,20 +1,27 @@
 
 
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
 Struktur provides an Agent Skill that teaches AI coding assistants (like Claude Code, OpenCode, Codex, etc.) how to use Struktur effectively.
 
-**Raw skill file:** [SKILL.md (raw)](https://raw.githubusercontent.com/mateffy/struktur/refs/heads/main/packages/skill/skills/struktur/SKILL.md)
+<Cards>
+  <Card title="Raw Skill File" description="View the skill source on GitHub" href="https://raw.githubusercontent.com/mateffy/struktur/refs/heads/main/packages/skill/skills/struktur/SKILL.md" external />
+</Cards>
 
 What is an Agent Skill? [#what-is-an-agent-skill]
 
 An Agent Skill is a modular knowledge package that AI coding agents can discover and load automatically. Skills follow an open standard and work across 16+ AI agent tools.
 
-When you ask your AI agent to work with Struktur, the skill automatically loads and provides:
+<Callout type="info">
+  When you ask your AI agent to work with Struktur, the skill automatically loads and provides:
 
-* **API Usage**: How to use `extract()`, build artifacts, define schemas
-* **Strategy Selection**: When to use `simple`, `parallel`, `sequential`, `doublePass`, etc.
-* **Schema Definition**: JSON Schema patterns and shorthand field syntax
-* **CLI Commands**: All struktur CLI commands and options
-* **Best Practices**: Token budgets, validation retries, merge rules
+  * **API Usage**: How to use `extract()`, build artifacts, define schemas
+  * **Strategy Selection**: When to use `simple`, `parallel`, `sequential`, `doublePass`, etc.
+  * **Schema Definition**: JSON Schema patterns and shorthand field syntax
+  * **CLI Commands**: All struktur CLI commands and options
+  * **Best Practices**: Token budgets, validation retries, merge rules
+</Callout>
 
 Why Use the Skill? [#why-use-the-skill]
 
@@ -54,5 +61,8 @@ bun add @struktur/skill
 
 Next Steps [#next-steps]
 
-* [Installation Guide](/docs/skill/installation) — Install for your preferred tool
-* [Usage Examples](/docs/skill/usage) — How to use the skill with your AI agent
+<Cards>
+  <Card title="Installation Guide" description="Install for your preferred tool" href="/docs/skill/installation" />
+
+  <Card title="Usage Examples" description="How to use the skill with your AI agent" href="/docs/skill/usage" />
+</Cards>

@@ -1,5 +1,9 @@
 
 
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+
 ```mermaid
 flowchart LR
     A[Input] --> B[Parse]
@@ -21,8 +25,11 @@ Inputs and Artifacts [#inputs-and-artifacts]
 
 Struktur converts input files into **Artifacts** before extraction. For plain text or stdin, this is trivial. For structured files (PDFs, Office documents), Struktur runs a parser — built-in or custom — that extracts text and images per-page.
 
-See [Document Parsing](/docs/explanation/document-parsing) for how files are converted to artifacts.
-See [Artifact Format](/docs/explanation/artifact-format) for the data structure.
+<Cards>
+  <Card title="Document Parsing" description="Learn how files are converted to artifacts" href="/docs/explanation/document-parsing" />
+
+  <Card title="Artifact Format" description="Understand the artifact data structure" href="/docs/explanation/artifact-format" />
+</Cards>
 
 The Strategy layer [#the-strategy-layer]
 
@@ -30,13 +37,17 @@ A strategy is the orchestration engine. It decides how to split the input, how m
 
 Built-in strategies cover the common patterns. You can also write your own.
 
-See [Strategies](/docs/explanation/strategies) for the strategy concept.
+<Callout type="info">
+  See [Strategies](/docs/explanation/strategies) for the complete strategy reference.
+</Callout>
 
 Validation inside the loop [#validation-inside-the-loop]
 
 The validation loop is a key differentiator. Every LLM response is validated against the schema **before** the strategy considers it done. If validation fails, the errors are serialized and sent back to the model as a follow-up message.
 
-**Smart validation**: For multi-step strategies (parallel, sequential, double-pass), Struktur uses lenient validation during intermediate steps—required field violations are allowed until the final step. This prevents false failures when data is split across chunks. Use the `strict` option to disable this behavior.
+<Callout type="info">
+  **Smart validation**: For multi-step strategies (parallel, sequential, double-pass), Struktur uses lenient validation during intermediate steps—required field violations are allowed until the final step. This prevents false failures when data is split across chunks. Use the `strict` option to disable this behavior.
+</Callout>
 
 Most extractions converge within two attempts. This happens **inside** the strategy, not as a post-processing step.
 
@@ -46,13 +57,25 @@ See [Validation & Retries](/docs/explanation/validation) for the validation conc
 
 The result [#the-result]
 
-The extraction result has three fields:
-
-| Field   | Description                                                                       |
-| ------- | --------------------------------------------------------------------------------- |
-| `data`  | Validated output matching your schema. If `error` is set, may not be trustworthy. |
-| `usage` | Aggregated token counts across all LLM calls.                                     |
-| `error` | Set if extraction encountered a non-fatal error.                                  |
+<TypeTable
+  type={{
+  data: {
+    description: 'Validated output matching your schema. If error is set, may not be trustworthy.',
+    type: 'T',
+    required: true,
+  },
+  usage: {
+    description: 'Aggregated token counts across all LLM calls',
+    type: 'Usage',
+    required: true,
+  },
+  error: {
+    description: 'Set if extraction encountered a non-fatal error',
+    type: 'Error | undefined',
+    required: false,
+  },
+}}
+/>
 
 See also [#see-also]
 

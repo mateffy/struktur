@@ -1,143 +1,154 @@
 
 
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
 Install the Struktur agent skill for your preferred AI coding tool.
 
-* [npm: @struktur/skill](https://www.npmjs.com/package/@struktur/skill)
-* [GitHub: packages/skill](https://github.com/mateffy/struktur/tree/main/packages/skill)
+<Cards>
+  <Card title="npm: @struktur/skill" href="https://www.npmjs.com/package/@struktur/skill" external />
+
+  <Card title="GitHub: packages/skill" href="https://github.com/mateffy/struktur/tree/main/packages/skill" external />
+</Cards>
 
 Installation Methods [#installation-methods]
 
-Method 1: From npm Package [#method-1-from-npm-package]
+<Tabs items={['From npm Package', 'Skills CLI', 'Direct from GitHub']}>
+  <Tab value="From npm Package">
+    ```bash
+    # Install the package
+    npm install @struktur/skill
+    # or
+    bun add @struktur/skill
 
-```bash
-# Install the package
-npm install @struktur/skill
-# or
-bun add @struktur/skill
+    # Copy to your tool's skill directory
+    cp -r node_modules/@struktur/skill/skills/struktur ~/.config/claude/skills/
+    ```
+  </Tab>
 
-# Copy to your tool's skill directory
-cp -r node_modules/@struktur/skill/skills/struktur ~/.config/claude/skills/
-```
+  <Tab value="Skills CLI">
+    If you have the [skills CLI](https://github.com/vercel/skills) installed:
 
-Method 2: Using Skills CLI [#method-2-using-skills-cli]
+    ```bash
+    # Install from npm
+    npx skills add @struktur/skill
 
-If you have the [skills CLI](https://github.com/vercel/skills) installed:
+    # Or install from GitHub
+    npx skills add https://github.com/mateffy/struktur/tree/main/packages/skill/skills/struktur
+    ```
+  </Tab>
 
-```bash
-# Install from npm
-npx skills add @struktur/skill
-
-# Or install from GitHub
-npx skills add https://github.com/mateffy/struktur/tree/main/packages/skill/skills/struktur
-```
-
-Method 3: Direct Copy from GitHub [#method-3-direct-copy-from-github]
-
-```bash
-# Clone and copy
-git clone https://github.com/mateffy/struktur.git
-cp -r struktur/packages/skill/skills/struktur ~/.config/claude/skills/
-```
+  <Tab value="Direct from GitHub">
+    ```bash
+    # Clone and copy
+    git clone https://github.com/mateffy/struktur.git
+    cp -r struktur/packages/skill/skills/struktur ~/.config/claude/skills/
+    ```
+  </Tab>
+</Tabs>
 
 Tool-Specific Installation [#tool-specific-installation]
 
-Claude Code [#claude-code]
+<Tabs items={['Claude Code', 'OpenCode', 'OpenAI Codex', 'Amp', 'VS Code', 'Cursor', 'Gemini CLI']}>
+  <Tab value="Claude Code">
+    **Global installation** (available in all projects):
 
-**Global installation** (available in all projects):
+    ```bash
+    mkdir -p ~/.config/claude/skills
+    cp -r node_modules/@struktur/skill/skills/struktur ~/.config/claude/skills/
+    ```
 
-```bash
-mkdir -p ~/.config/claude/skills
-cp -r node_modules/@struktur/skill/skills/struktur ~/.config/claude/skills/
-```
+    **Project installation** (only in this project):
 
-**Project installation** (only in this project):
+    ```bash
+    mkdir -p .agents/skills
+    cp -r node_modules/@struktur/skill/skills/struktur .agents/skills/
+    ```
+  </Tab>
 
-```bash
-mkdir -p .agents/skills
-cp -r node_modules/@struktur/skill/skills/struktur .agents/skills/
-```
+  <Tab value="OpenCode">
+    **Global installation**:
 
-OpenCode [#opencode]
+    ```bash
+    mkdir -p ~/.config/opencode/skills
+    cp -r node_modules/@struktur/skill/skills/struktur ~/.config/opencode/skills/
+    ```
 
-**Global installation**:
+    **Project installation**:
 
-```bash
-mkdir -p ~/.config/opencode/skills
-cp -r node_modules/@struktur/skill/skills/struktur ~/.config/opencode/skills/
-```
+    ```bash
+    mkdir -p .agents/skills
+    cp -r node_modules/@struktur/skill/skills/struktur .agents/skills/
+    ```
+  </Tab>
 
-**Project installation**:
+  <Tab value="OpenAI Codex">
+    **Global installation**:
 
-```bash
-mkdir -p .agents/skills
-cp -r node_modules/@struktur/skill/skills/struktur .agents/skills/
-```
+    ```bash
+    mkdir -p ~/.codex/skills
+    cp -r node_modules/@struktur/skill/skills/struktur ~/.codex/skills/
+    ```
 
-OpenAI Codex [#openai-codex]
+    **Project installation**:
 
-**Global installation**:
+    ```bash
+    mkdir -p .codex/skills
+    cp -r node_modules/@struktur/skill/skills/struktur .codex/skills/
+    ```
+  </Tab>
 
-```bash
-mkdir -p ~/.codex/skills
-cp -r node_modules/@struktur/skill/skills/struktur ~/.codex/skills/
-```
+  <Tab value="Amp">
+    **Global installation**:
 
-**Project installation**:
+    ```bash
+    mkdir -p ~/.config/amp/skills
+    cp -r node_modules/@struktur/skill/skills/struktur ~/.config/amp/skills/
+    ```
 
-```bash
-mkdir -p .codex/skills
-cp -r node_modules/@struktur/skill/skills/struktur .codex/skills/
-```
+    **Project installation**:
 
-Amp [#amp]
+    ```bash
+    mkdir -p .agents/skills
+    cp -r node_modules/@struktur/skill/skills/struktur .agents/skills/
+    ```
+  </Tab>
 
-**Global installation**:
+  <Tab value="VS Code">
+    **Workspace installation**:
 
-```bash
-mkdir -p ~/.config/amp/skills
-cp -r node_modules/@struktur/skill/skills/struktur ~/.config/amp/skills/
-```
+    ```bash
+    mkdir -p .vscode/skills
+    cp -r node_modules/@struktur/skill/skills/struktur .vscode/skills/struktur
+    ```
+  </Tab>
 
-**Project installation**:
+  <Tab value="Cursor">
+    **Project installation**:
 
-```bash
-mkdir -p .agents/skills
-cp -r node_modules/@struktur/skill/skills/struktur .agents/skills/
-```
+    ```bash
+    mkdir -p .cursor/skills
+    cp -r node_modules/@struktur/skill/skills/struktur .cursor/skills/struktur
+    ```
+  </Tab>
 
-VS Code (GitHub Copilot) [#vs-code-github-copilot]
+  <Tab value="Gemini CLI">
+    **Global installation**:
 
-**Workspace installation**:
+    ```bash
+    mkdir -p ~/.config/gemini/skills
+    cp -r node_modules/@struktur/skill/skills/struktur ~/.config/gemini/skills/
+    ```
 
-```bash
-mkdir -p .vscode/skills
-cp -r node_modules/@struktur/skill/skills/struktur .vscode/skills/struktur
-```
+    **Project installation**:
 
-Cursor [#cursor]
-
-**Project installation**:
-
-```bash
-mkdir -p .cursor/skills
-cp -r node_modules/@struktur/skill/skills/struktur .cursor/skills/struktur
-```
-
-Gemini CLI [#gemini-cli]
-
-**Global installation**:
-
-```bash
-mkdir -p ~/.config/gemini/skills
-cp -r node_modules/@struktur/skill/skills/struktur ~/.config/gemini/skills/
-```
-
-**Project installation**:
-
-```bash
-mkdir -p .agents/skills
-cp -r node_modules/@struktur/skill/skills/struktur .agents/skills/
-```
+    ```bash
+    mkdir -p .agents/skills
+    cp -r node_modules/@struktur/skill/skills/struktur .agents/skills/
+    ```
+  </Tab>
+</Tabs>
 
 Verification [#verification]
 
@@ -151,7 +162,9 @@ The agent should confirm it can see the skill and describe what it knows about S
 
 Updating [#updating]
 
-To update to the latest version:
+<Callout type="info">
+  To update to the latest version:
+</Callout>
 
 ```bash
 # Update the npm package

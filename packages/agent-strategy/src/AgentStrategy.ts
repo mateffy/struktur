@@ -823,6 +823,106 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
         }
       );
 
+      // Retry logic: if no output after first run, prompt again to force output
+      if (currentOutput === null && !extractionFailed && !isFinished) {
+        if (this.config.verbose) {
+          console.error("[AgentStrategy] No output after first run. Sending retry prompt...");
+        }
+        
+        await options.events?.onStep?.({
+          step: stepCount + 1,
+          total: this.getEstimatedSteps(),
+          label: "Retry: forcing output extraction",
+        });
+        
+        // Re-subscribe for the retry
+        const retryUnsubscribe = session.subscribe((event) => {
+          try {
+            switch (event.type) {
+              case "message_update": {
+                if (event.assistantMessageEvent.type === "text_delta") {
+                  const delta = event.assistantMessageEvent.delta;
+                  finalResponse += delta;
+                  
+                  // Buffer the text and only emit when we have complete lines
+                  textBuffer += delta;
+                  
+                  // Check for complete lines in the buffer
+                  let newlineIndex;
+                  while ((newlineIndex = textBuffer.indexOf('\n')) !== -1) {
+                    const line = textBuffer.slice(0, newlineIndex).trim();
+                    textBuffer = textBuffer.slice(newlineIndex + 1);
+                    
+                    if (line.length > 0) {
+                      options.events?.onStep?.({
+                        step: stepCount,
+                        total: this.getEstimatedSteps(),
+                        label: `→ ${line.slice(0, 120)}`,
+                      });
+                    }
+                  }
+                  
+                  // If buffer gets too long without a newline, emit it anyway
+                  if (textBuffer.length > 100) {
+                    const line = textBuffer.trim();
+                    if (line.length > 0) {
+                      options.events?.onStep?.({
+                        step: stepCount,
+                        total: this.getEstimatedSteps(),
+                        label: `→ ${line.slice(0, 120)}`,
+                      });
+                    }
+                    textBuffer = "";
+                  }
+                }
+                break;
+              }
+              
+              case "tool_execution_start": {
+                stepCount++;
+                const toolName = event.toolName;
+                const args = event.args;
+                
+                // Format label for retry run
+                let label = toolName;
+                if (toolName === "set_output_data") {
+                  label = "Set Output (retry)";
+                } else if (toolName === "update_output_data") {
+                  label = "Update Output (retry)";
+                } else if (toolName === "finish") {
+                  label = "Finish (retry)";
+                } else if (toolName === "fail") {
+                  label = "Fail (retry)";
+                }
+                
+                options.events?.onStep?.({
+                  step: stepCount + 1,
+                  total: this.getEstimatedSteps(),
+                  label,
+                });
+                break;
+              }
+            }
+          } catch (eventHandlerError) {
+            if (this.config.verbose) {
+              console.error(`[AgentStrategy] Error in retry event handler: ${(eventHandlerError as Error).message}`);
+            }
+          }
+        });
+        
+        // Send a forceful retry prompt
+        await session.prompt(
+          `You have explored the artifacts but haven't called any output tools yet. You MUST now extract data and call either:\n` +
+          `1. set_output_data with the extracted data, then finish()\n` +
+          `2. fail() if the document doesn't contain the required information\n\n` +
+          `The schema requires: ${JSON.stringify(options.schema).slice(0, 200)}...\n\n` +
+          `Extract what you can from the artifacts and set the output data NOW.`,
+          {}
+        );
+        
+        retryUnsubscribe();
+      }
+
       // Clean up subscription
       unsubscribe();
 
@@ -863,7 +963,20 @@ If you continue to see "Tool execution failed" errors with empty tool names,
 the model is not compatible with the agent strategy. Use --strategy simple instead.`;
             throw new Error(errorMsg);
           } else {
-            throw new Error("Agent did not produce any output data. No data was extracted.");
+            const errorMsg = `Agent did not produce any output data. No data was extracted.
+
+This can happen when:
+- The model doesn't support tool calling properly
+- The agent got confused and didn't use the output tools
+- The document doesn't contain extractable data
+
+Suggestions:
+1. Try a different model with better tool support (anthropic/claude-sonnet-4)
+2. Use --strategy simple for models without tool calling
+3. Check if the document actually contains the data specified in your schema
+
+Retry was attempted but the agent still didn't produce output.`;
+            throw new Error(errorMsg);
           }
         }
       } else {

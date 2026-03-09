@@ -1,5 +1,8 @@
 
 
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+import { Callout } from 'fumadocs-ui/components/callout';
+
 Synopsis [#synopsis]
 
 ```bash
@@ -7,10 +10,22 @@ struktur verify --input <path>
 struktur verify --stdin
 ```
 
-| Flag             | Short | Type    | Description                     |
-| ---------------- | ----- | ------- | ------------------------------- |
-| `--input <path>` | `-i`  | string  | Artifact JSON file to validate. |
-| `--stdin`        | `-s`  | boolean | Read artifact JSON from stdin.  |
+<TypeTable
+  type={{
+  input: {
+    description: 'Artifact JSON file to validate.',
+    type: 'string',
+    short: '-i',
+    required: false,
+  },
+  stdin: {
+    description: 'Read artifact JSON from stdin.',
+    type: 'boolean',
+    short: '-s',
+    required: false,
+  },
+}}
+/>
 
 Output on success:
 
@@ -18,7 +33,9 @@ Output on success:
 { "valid": true, "artifacts": 2 }
 ```
 
-Throws with a descriptive error on invalid artifact JSON (schema path, expected type, etc.).
+<Callout type="warn">
+  Throws with a descriptive error on invalid artifact JSON (schema path, expected type, etc.).
+</Callout>
 
 Usage [#usage]
 

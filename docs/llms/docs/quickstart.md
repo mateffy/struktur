@@ -1,82 +1,104 @@
 
 
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+
 Extract structured data from any file in 3 commands. About 5 minutes.
 
-> **Using an AI assistant?** Point it at `https://struktur.sh/llms.txt` for LLM-optimized docs, or install the [Agent Skill](/docs/skill) for built-in Struktur knowledge.
+<Callout type="info">
+  **Using an AI assistant?** Point it at `https://struktur.sh/llms.txt` for LLM-optimized docs, or install the [Agent Skill](/docs/skill) for built-in Struktur knowledge.
+</Callout>
 
 Prerequisites [#prerequisites]
 
 * Node.js 18+ or Bun installed
 * An API key from OpenAI, Anthropic, Google, OpenCode, or OpenRouter
 
-Step 1: Install [#step-1-install]
+<Steps>
+  <Step>
+    Install [#install]
 
-```bash
-# Using npm
-npm install -g @struktur/cli
+    <Tabs items={['npm', 'Bun']} groupId="package-manager">
+      <Tab value="npm">
+        ```bash
+        npm install -g @struktur/cli
+        ```
+      </Tab>
 
-# Or using Bun (recommended)
-bun install -g @struktur/cli
-```
+      <Tab value="Bun">
+        ```bash
+        bun install -g @struktur/cli
+        ```
+      </Tab>
+    </Tabs>
 
-Verify:
+    Verify:
 
-```bash
-struktur --help
-```
+    ```bash
+    struktur --help
+    ```
 
-You should see the usage output.
+    You should see the usage output.
+  </Step>
 
-Step 2: Configure your API key [#step-2-configure-your-api-key]
+  <Step>
+    Configure your API key [#configure-your-api-key]
 
-Store your API key securely with the CLI:
+    Store your API key securely with the CLI:
 
-```bash
-echo "sk-..." | struktur config providers add openai --token-stdin --default
-```
+    ```bash
+    echo "sk-..." | struktur config providers add openai --token-stdin --default
+    ```
 
-The `--default` flag automatically queries the provider API and sets the cheapest available model as default, so `--model` becomes optional in all future commands.
+    The `--default` flag automatically queries the provider API and sets the cheapest available model as default, so `--model` becomes optional in all future commands.
 
-Output: `{ "provider": "openai", "stored": "keychain" }` (or `"file"` on Linux).
+    Output: `{ "provider": "openai", "stored": "keychain" }` (or `"file"` on Linux).
 
-Set a default model (if not using --default) [#set-a-default-model-if-not-using---default]
+    Set a default model (if not using --default) [#set-a-default-model-if-not-using---default]
 
-```bash
-struktur config models use openai/gpt-4o-mini
-```
+    ```bash
+    struktur config models use openai/gpt-4o-mini
+    ```
 
-Once set, `--model` is optional in all `extract` commands.
+    Once set, `--model` is optional in all `extract` commands.
+  </Step>
 
-Step 3: Extract your first data [#step-3-extract-your-first-data]
+  <Step>
+    Extract your first data [#extract-your-first-data]
 
-**From text:**
+    <Tabs items={['From text', 'From PDF']} groupId="input-type">
+      <Tab value="From text">
+        ```bash
+        echo "Invoice #1042 from Acme Corp. Total: $2,400.00. Due: April 1, 2026." | \
+          struktur --stdin \
+          --fields "invoice_number, vendor, total:number, due_date" \
+          --model openai/gpt-4o-mini
+        ```
+      </Tab>
 
-```bash
-echo "Invoice #1042 from Acme Corp. Total: $2,400.00. Due: April 1, 2026." | \
-  struktur --stdin \
-  --fields "invoice_number, vendor, total:number, due_date" \
-  --model openai/gpt-4o-mini
-```
+      <Tab value="From PDF">
+        ```bash
+        struktur --input invoice.pdf \
+          --fields "invoice_number, vendor, total:number, due_date" \
+          --model openai/gpt-4o-mini
+        ```
+      </Tab>
+    </Tabs>
 
-**From a PDF directly:**
+    The `--fields` flag builds a JSON Schema on the fly. Each field defaults to `string`; append `:number`, `:integer`, `:bool`, etc. to set the type. See [Fields Shorthand](/docs/cli/fields) for the full syntax.
 
-```bash
-struktur --input invoice.pdf \
-  --fields "invoice_number, vendor, total:number, due_date" \
-  --model openai/gpt-4o-mini
-```
+    If you need more control (optional fields, nested objects), pass a full schema instead:
 
-The `--fields` flag builds a JSON Schema on the fly. Each field defaults to `string`; append `:number`, `:integer`, `:bool`, etc. to set the type. See [Fields Shorthand](/docs/cli/fields) for the full syntax.
+    ```bash
+    struktur --input invoice.pdf \
+      --schema-json '{"type":"object","properties":{"invoice_number":{"type":"string"},"vendor":{"type":"string"},"total":{"type":"number"},"due_date":{"type":"string"}},"required":["invoice_number","vendor","total","due_date"],"additionalProperties":false}' \
+      --model openai/gpt-4o-mini
+    ```
 
-If you need more control (optional fields, nested objects), pass a full schema instead:
-
-```bash
-struktur --input invoice.pdf \
-  --schema-json '{"type":"object","properties":{"invoice_number":{"type":"string"},"vendor":{"type":"string"},"total":{"type":"number"},"due_date":{"type":"string"}},"required":["invoice_number","vendor","total","due_date"],"additionalProperties":false}' \
-  --model openai/gpt-4o-mini
-```
-
-Notice that `total` is a number, not a string — Struktur enforced the schema.
+    Notice that `total` is a number, not a string — Struktur enforced the schema.
+  </Step>
+</Steps>
 
 What happened? [#what-happened]
 

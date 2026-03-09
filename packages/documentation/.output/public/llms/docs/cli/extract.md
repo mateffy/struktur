@@ -1,5 +1,9 @@
 
 
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+
 Synopsis [#synopsis]
 
 ```bash
@@ -10,29 +14,74 @@ struktur [extract] [options]
 
 Input options (exactly one required) [#input-options-exactly-one-required]
 
-| Flag                          | Type    | Description                                                                                                 |
-| ----------------------------- | ------- | ----------------------------------------------------------------------------------------------------------- |
-| `--input <path>`              | string  | Read from a file path. MIME type auto-detected from magic bytes and file extension.                         |
-| `--stdin`                     | boolean | Read from stdin. Auto-detects artifact JSON or raw text. Auto-detected when piped with no other input flag. |
-| `--text <string>`             | string  | Use inline text as input.                                                                                   |
-| `--artifact-file <path\|url>` | string  | Read pre-built artifact JSON from file path or HTTP(S) URL.                                                 |
-| `--artifact-json <json>`      | string  | Inline artifact JSON string.                                                                                |
+<TypeTable
+  type={{
+  input: {
+    description: 'Read from a file path. MIME type auto-detected from magic bytes and file extension.',
+    type: 'string',
+    required: false,
+  },
+  stdin: {
+    description: 'Read from stdin. Auto-detects artifact JSON or raw text. Auto-detected when piped with no other input flag.',
+    type: 'boolean',
+    required: false,
+  },
+  text: {
+    description: 'Use inline text as input.',
+    type: 'string',
+    required: false,
+  },
+  'artifact-file': {
+    description: 'Read pre-built artifact JSON from file path or HTTP(S) URL.',
+    type: 'string',
+    required: false,
+  },
+  'artifact-json': {
+    description: 'Inline artifact JSON string.',
+    type: 'string',
+    required: false,
+  },
+}}
+/>
 
 Schema options (exactly one required) [#schema-options-exactly-one-required]
 
-| Flag                   | Short | Type   | Description                                                               |
-| ---------------------- | ----- | ------ | ------------------------------------------------------------------------- |
-| `--schema <path\|url>` |       | string | JSON Schema file path or HTTP(S) URL.                                     |
-| `--schema-json <json>` |       | string | Inline JSON Schema string.                                                |
-| `--fields <string>`    | `-f`  | string | [Fields shorthand](/docs/cli/fields) — comma-separated field definitions. |
+<TypeTable
+  type={{
+  schema: {
+    description: 'JSON Schema file path or HTTP(S) URL.',
+    type: 'string',
+    required: false,
+  },
+  'schema-json': {
+    description: 'Inline JSON Schema string.',
+    type: 'string',
+    required: false,
+  },
+  fields: {
+    description: 'Fields shorthand — comma-separated field definitions. See Fields reference.',
+    type: 'string',
+    required: false,
+  },
+}}
+/>
 
-`--fields` is the quickest way to define a schema without writing JSON. See [--fields reference](/docs/cli/fields) for the full syntax.
+<Callout type="info">
+  `--fields` is the quickest way to define a schema without writing JSON. See [--fields reference](/docs/cli/fields) for the full syntax.
+</Callout>
 
 Model [#model]
 
-| Flag             | Type   | Default            | Description                                               |
-| ---------------- | ------ | ------------------ | --------------------------------------------------------- |
-| `--model <spec>` | string | configured default | Model spec in `provider/model` format, or a stored alias. |
+<TypeTable
+  type={{
+  model: {
+    description: 'Model spec in provider/model format, or a stored alias.',
+    type: 'string',
+    default: 'configured default',
+    required: false,
+  },
+}}
+/>
 
 Supported providers: `openai`, `anthropic`, `google`, `opencode`, `openrouter`.
 
@@ -46,43 +95,99 @@ Parsing options [#parsing-options]
 
 These flags control how `--input` files are parsed before extraction.
 
-| Flag             | Type    | Default | Description                                                                                                                         |
-| ---------------- | ------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `--no-parse`     | boolean | false   | Skip custom parsers; use only built-in text/image/artifact-JSON detection. Ignores any parsers configured via `config parsers add`. |
-| `--mime <type>`  | string  | —       | Override MIME type detection. Useful when extension is missing or wrong.                                                            |
-| `--parser <pkg>` | string  | —       | Use this npm package as parser for the detected MIME type, overriding any configured parser.                                        |
+<TypeTable
+  type={{
+  'no-parse': {
+    description: 'Skip custom parsers; use only built-in text/image/artifact-JSON detection. Ignores any parsers configured via config parsers add.',
+    type: 'boolean',
+    default: 'false',
+    required: false,
+  },
+  mime: {
+    description: 'Override MIME type detection. Useful when extension is missing or wrong.',
+    type: 'string',
+    required: false,
+  },
+  parser: {
+    description: 'Use this npm package as parser for the detected MIME type, overriding any configured parser.',
+    type: 'string',
+    required: false,
+  },
+}}
+/>
 
 Image options (PDF inputs) [#image-options-pdf-inputs]
 
-| Flag            | Type    | Default | Description                                                         |
-| --------------- | ------- | ------- | ------------------------------------------------------------------- |
-| `--images`      | boolean | false   | Extract embedded images from PDFs and include them in the artifact. |
-| `--screenshots` | boolean | false   | Render each PDF page as a screenshot image.                         |
+<TypeTable
+  type={{
+  images: {
+    description: 'Extract embedded images from PDFs and include them in the artifact.',
+    type: 'boolean',
+    default: 'false',
+    required: false,
+  },
+  screenshots: {
+    description: 'Render each PDF page as a screenshot image.',
+    type: 'boolean',
+    default: 'false',
+    required: false,
+  },
+}}
+/>
 
-:::note
-For custom screenshot dimensions, use `struktur parse --screenshots --screenshot-scale <num>` and pipe the artifact to `struktur extract --artifact-file -`.
-:::
+<Callout type="info">
+  For custom screenshot dimensions, use `struktur parse --screenshots --screenshot-scale <num>` and pipe the artifact to `struktur extract --artifact-file -`.
+</Callout>
 
 Strategy [#strategy]
 
-| Flag                    | Type    | Default  | Description                                                                                                                                   |
-| ----------------------- | ------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--strategy <name>`     | string  | `simple` | Strategy name.                                                                                                                                |
-| `--chunk-size <number>` | number  | `10000`  | Token budget per batch.                                                                                                                       |
-| `--strict`              | boolean | false    | Enforce required-field validation on every step, not just the final one. Useful for single-chunk inputs where partial data is never expected. |
+<TypeTable
+  type={{
+  strategy: {
+    description: 'Strategy name.',
+    type: 'string',
+    default: 'simple',
+    required: false,
+  },
+  'chunk-size': {
+    description: 'Token budget per batch.',
+    type: 'number',
+    default: '10000',
+    required: false,
+  },
+  strict: {
+    description: 'Enforce required-field validation on every step, not just the final one. Useful for single-chunk inputs where partial data is never expected.',
+    type: 'boolean',
+    default: 'false',
+    required: false,
+  },
+}}
+/>
 
 Strategy names: `simple`, `parallel`, `sequential`, `parallelAutoMerge`, `sequentialAutoMerge`, `doublePass`, `doublePassAutoMerge`.
 
-:::note
-When using `--strategy` other than `simple`, both `model` and `mergeModel`/`dedupeModel` are set to the same model. For different models per role, use the TypeScript SDK.
-:::
+<Callout type="info">
+  When using `--strategy` other than `simple`, both `model` and `mergeModel`/`dedupeModel` are set to the same model. For different models per role, use the TypeScript SDK.
+</Callout>
 
 Output [#output]
 
-| Flag                 | Type    | Default | Description                                                                                                                     |
-| -------------------- | ------- | ------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `--output <path\|->` | string  | `-`     | Write JSON to file or stdout (`-`).                                                                                             |
-| `--debug`            | boolean | false   | Enable verbose JSON debug logging to stderr. Shows model resolution, artifact loading, schema details, and per-step LLM events. |
+<TypeTable
+  type={{
+  output: {
+    description: 'Write JSON to file or stdout (-).',
+    type: 'string',
+    default: '- (stdout)',
+    required: false,
+  },
+  debug: {
+    description: 'Enable verbose JSON debug logging to stderr. Shows model resolution, artifact loading, schema details, and per-step LLM events.',
+    type: 'boolean',
+    default: 'false',
+    required: false,
+  },
+}}
+/>
 
 Progress [#progress]
 
@@ -96,86 +201,88 @@ The bar is suppressed in non-interactive mode (piped stderr).
 
 Examples [#examples]
 
-**Fields shorthand (quickest):**
+<Tabs items={['Fields shorthand', 'PDF input', 'PDF with images', 'Screenshots', 'Inline schema', 'Stdin', 'Parallel strategy', 'MIME override', 'Custom parser', 'Schema from URL', 'Debug mode']}>
+  <Tab value="Fields shorthand">
+    ```bash
+    echo "Invoice #1042 from Acme Corp. Total: $2,400.00." | \
+      struktur --stdin -f "invoice_number, vendor, total:number" \
+      --model openai/gpt-4o-mini
+    ```
+  </Tab>
 
-```bash
-echo "Invoice #1042 from Acme Corp. Total: $2,400.00." | \
-  struktur --stdin -f "invoice_number, vendor, total:number" \
-  --model openai/gpt-4o-mini
-```
+  <Tab value="PDF input">
+    ```bash
+    struktur --input invoice.pdf \
+      --fields "invoice_number, vendor, total:number" \
+      --model openai/gpt-4o-mini
+    ```
+  </Tab>
 
-**PDF input (direct):**
+  <Tab value="PDF with images">
+    ```bash
+    struktur --input invoice.pdf --images \
+      --schema invoice-schema.json \
+      --model openai/gpt-4o
+    ```
+  </Tab>
 
-```bash
-struktur --input invoice.pdf \
-  --fields "invoice_number, vendor, total:number" \
-  --model openai/gpt-4o-mini
-```
+  <Tab value="Screenshots">
+    ```bash
+    # Use parse for custom screenshot settings, then pipe to extract
+    struktur parse --input slides.pdf --screenshots --screenshot-scale 2 | \
+      struktur --artifact-file - \
+      --fields "title, slide_count:integer" \
+      --model openai/gpt-4o
+    ```
+  </Tab>
 
-**PDF with embedded images (for visually rich documents):**
+  <Tab value="Inline schema">
+    ```bash
+    struktur --input report.txt \
+      --schema-json '{"type":"object","properties":{"summary":{"type":"string"}},"required":["summary"],"additionalProperties":false}' \
+      --model openai/gpt-4o-mini
+    ```
+  </Tab>
 
-```bash
-struktur --input invoice.pdf --images \
-  --schema invoice-schema.json \
-  --model openai/gpt-4o
-```
+  <Tab value="Stdin">
+    ```bash
+    cat document.md | struktur --stdin --schema schema.json --model anthropic/claude-3-5-haiku-20241022
+    ```
+  </Tab>
 
-**PDF with page screenshots (for slide decks, visual PDFs):**
+  <Tab value="Parallel strategy">
+    ```bash
+    struktur --input large.md --schema schema.json --model openai/gpt-4o \
+      --strategy parallel --output result.json
+    ```
+  </Tab>
 
-```bash
-# Use parse for custom screenshot settings, then pipe to extract
-struktur parse --input slides.pdf --screenshots --screenshot-scale 2 | \
-  struktur --artifact-file - \
-  --fields "title, slide_count:integer" \
-  --model openai/gpt-4o
-```
+  <Tab value="MIME override">
+    ```bash
+    struktur --input data.bin --mime application/pdf \
+      --fields "title, author" --model openai/gpt-4o-mini
+    ```
+  </Tab>
 
-**File input with inline schema:**
+  <Tab value="Custom parser">
+    ```bash
+    struktur --input report.docx --parser @myorg/docx-parser \
+      --fields "title, summary" --model openai/gpt-4o-mini
+    ```
+  </Tab>
 
-```bash
-struktur --input report.txt \
-  --schema-json '{"type":"object","properties":{"summary":{"type":"string"}},"required":["summary"],"additionalProperties":false}' \
-  --model openai/gpt-4o-mini
-```
+  <Tab value="Schema from URL">
+    ```bash
+    struktur --input data.txt --schema https://myserver.com/schemas/invoice.json --model openai/gpt-4o-mini
+    ```
+  </Tab>
 
-**Stdin with schema file:**
-
-```bash
-cat document.md | struktur --stdin --schema schema.json --model anthropic/claude-3-5-haiku-20241022
-```
-
-**Parallel strategy with output to file:**
-
-```bash
-struktur --input large.md --schema schema.json --model openai/gpt-4o \
-  --strategy parallel --output result.json
-```
-
-**MIME type override:**
-
-```bash
-struktur --input data.bin --mime application/pdf \
-  --fields "title, author" --model openai/gpt-4o-mini
-```
-
-**Custom parser for a single run:**
-
-```bash
-struktur --input report.docx --parser @myorg/docx-parser \
-  --fields "title, summary" --model openai/gpt-4o-mini
-```
-
-**Schema from URL:**
-
-```bash
-struktur --input data.txt --schema https://myserver.com/schemas/invoice.json --model openai/gpt-4o-mini
-```
-
-**Debug mode (verbose logging to stderr):**
-
-```bash
-struktur --input doc.pdf --fields "title" --model openai/gpt-4o-mini --debug
-```
+  <Tab value="Debug mode">
+    ```bash
+    struktur --input doc.pdf --fields "title" --model openai/gpt-4o-mini --debug
+    ```
+  </Tab>
+</Tabs>
 
 See also [#see-also]
 

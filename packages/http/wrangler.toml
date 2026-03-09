@@ -1,0 +1,9 @@
+name = "struktur-http"
+main = "src/index.ts"
+compatibility_date = "2025-01-09"
+
+[vars]
+API_KEY = ""
+
+[dev]
+port = 3031

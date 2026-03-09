@@ -1,5 +1,9 @@
 
 
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
 utils artifact-viewer [#utils-artifact-viewer]
 
 Generates a self-contained HTML file for exploring artifact JSON in a browser.
@@ -11,15 +15,40 @@ struktur parse --input doc.pdf --images | struktur utils artifact-viewer --stdin
 
 Options [#options]
 
-| Flag                 | Short | Type    | Default      | Description                   |
-| -------------------- | ----- | ------- | ------------ | ----------------------------- |
-| `--input <path>`     | `-i`  | string  | —            | Artifact JSON file            |
-| `--stdin`            | `-s`  | boolean | false        | Read artifact JSON from stdin |
-| `--output <path\|->` | `-o`  | string  | `-` (stdout) | Write HTML to file or stdout  |
+<TypeTable
+  type={{
+  input: {
+    description: 'Artifact JSON file',
+    type: 'string',
+    short: '-i',
+    required: false,
+  },
+  stdin: {
+    description: 'Read artifact JSON from stdin',
+    type: 'boolean',
+    short: '-s',
+    default: 'false',
+    required: false,
+  },
+  output: {
+    description: 'Write HTML to file or stdout (-)',
+    type: 'string',
+    short: '-o',
+    default: '- (stdout)',
+    required: false,
+  },
+}}
+/>
 
 What the viewer shows [#what-the-viewer-shows]
 
-**Default view** (artifact-by-artifact):
+<Cards>
+  <Card title="Default View" description="Artifact-by-artifact view with cards showing type, page count, and image count" />
+
+  <Card title="Batching Mode" description="Chunking visualization with configurable parameters and live token counts" />
+</Cards>
+
+**Default view features:**
 
 * Each artifact as a card with header showing type, page count, and image count
 * Text content with expand/collapse per-slice (truncated at 500 chars, full text on click)
@@ -28,7 +57,7 @@ What the viewer shows [#what-the-viewer-shows]
 * Image dimensions overlaid on each thumbnail
 * Metadata section (collapsible)
 
-**Batching Mode** (chunking visualization):
+**Batching Mode features:**
 
 * Sidebar listing batches and chunks with token and image counts
 * Main area shows each chunk with a dashed amber border at chunk boundaries
@@ -36,7 +65,9 @@ What the viewer shows [#what-the-viewer-shows]
 * Image type filter: show/hide embedded images and screenshots independently
 * Token and image counts update live as parameters change
 
-The viewer embeds a JavaScript implementation of Struktur's chunking algorithm so batching mode accurately reflects what `parallel`, `sequential`, and other chunked strategies will do with your documents.
+<Callout type="info">
+  The viewer embeds a JavaScript implementation of Struktur's chunking algorithm so batching mode accurately reflects what `parallel`, `sequential`, and other chunked strategies will do with your documents.
+</Callout>
 
 Workflow example [#workflow-example]
 

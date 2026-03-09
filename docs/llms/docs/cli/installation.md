@@ -1,14 +1,24 @@
 
 
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Callout } from 'fumadocs-ui/components/callout';
+
 Install [#install]
 
-```bash
-# Using npm
-npm install -g @struktur/cli
+<Tabs items={['npm', 'Bun']} groupId="package-manager">
+  <Tab value="npm">
+    ```bash
+    npm install -g @struktur/cli
+    ```
+  </Tab>
 
-# Or using Bun (recommended)
-bun install -g @struktur/cli
-```
+  <Tab value="Bun">
+    ```bash
+    bun install -g @struktur/cli
+    ```
+  </Tab>
+</Tabs>
 
 Verify:
 
@@ -16,8 +26,11 @@ Verify:
 struktur --help
 ```
 
-* [npm: @struktur/cli](https://www.npmjs.com/package/@struktur/cli)
-* [GitHub: packages/cli](https://github.com/mateffy/struktur/tree/main/packages/cli)
+<Cards>
+  <Card title="npm: @struktur/cli" href="https://www.npmjs.com/package/@struktur/cli" external />
+
+  <Card title="GitHub: packages/cli" href="https://github.com/mateffy/struktur/tree/main/packages/cli" external />
+</Cards>
 
 Configure a provider (required) [#configure-a-provider-required]
 

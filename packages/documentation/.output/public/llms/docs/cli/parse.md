@@ -1,5 +1,10 @@
 
 
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
 Synopsis [#synopsis]
 
 ```bash
@@ -11,41 +16,97 @@ Description [#description]
 
 Converts a file or stdin to Artifact JSON. Use this to:
 
-* Inspect how Struktur will represent your document before running extraction
-* Pre-process files and cache the artifact JSON for repeated extraction
-* Debug parser output when configuring a custom parser
-* Pipe artifacts into `struktur extract --artifact-file -` for decoupled workflows
+<Cards>
+  <Card title="Inspect" description="See how Struktur will represent your document before running extraction" />
+
+  <Card title="Cache" description="Pre-process files and cache the artifact JSON for repeated extraction" />
+
+  <Card title="Debug" description="Debug parser output when configuring a custom parser" />
+
+  <Card title="Pipeline" description="Pipe artifacts into extract for decoupled workflows" />
+</Cards>
 
 Options [#options]
 
 Input (exactly one required) [#input-exactly-one-required]
 
-| Flag             | Short | Type    | Description     |
-| ---------------- | ----- | ------- | --------------- |
-| `--input <path>` | `-i`  | string  | File to parse   |
-| `--stdin`        | `-s`  | boolean | Read from stdin |
+<TypeTable
+  type={{
+  input: {
+    description: 'File to parse',
+    type: 'string',
+    short: '-i',
+    required: false,
+  },
+  stdin: {
+    description: 'Read from stdin',
+    type: 'boolean',
+    short: '-s',
+    required: false,
+  },
+}}
+/>
 
 Output [#output]
 
-| Flag                 | Short | Type   | Default      | Description                           |
-| -------------------- | ----- | ------ | ------------ | ------------------------------------- |
-| `--output <path\|->` | `-o`  | string | `-` (stdout) | Write artifact JSON to file or stdout |
+<TypeTable
+  type={{
+  output: {
+    description: 'Write artifact JSON to file or stdout (-)',
+    type: 'string',
+    short: '-o',
+    default: '- (stdout)',
+    required: false,
+  },
+}}
+/>
 
 Parser control [#parser-control]
 
-| Flag             | Type   | Description                                                      |
-| ---------------- | ------ | ---------------------------------------------------------------- |
-| `--mime <type>`  | string | Override MIME type detection                                     |
-| `--parser <pkg>` | string | Use this npm package as parser, overriding any configured parser |
+<TypeTable
+  type={{
+  mime: {
+    description: 'Override MIME type detection',
+    type: 'string',
+    required: false,
+  },
+  parser: {
+    description: 'Use this npm package as parser, overriding any configured parser',
+    type: 'string',
+    required: false,
+  },
+}}
+/>
 
 Image extraction (PDF inputs) [#image-extraction-pdf-inputs]
 
-| Flag                       | Type    | Default | Description                                                        |
-| -------------------------- | ------- | ------- | ------------------------------------------------------------------ |
-| `--images`                 | boolean | false   | Extract embedded images from PDFs                                  |
-| `--screenshots`            | boolean | false   | Render page screenshots                                            |
-| `--screenshot-scale <num>` | number  | 1.5     | Scale factor for screenshots                                       |
-| `--screenshot-width <px>`  | number  | —       | Target screenshot width in pixels (overrides `--screenshot-scale`) |
+<TypeTable
+  type={{
+  images: {
+    description: 'Extract embedded images from PDFs',
+    type: 'boolean',
+    default: 'false',
+    required: false,
+  },
+  screenshots: {
+    description: 'Render page screenshots',
+    type: 'boolean',
+    default: 'false',
+    required: false,
+  },
+  'screenshot-scale': {
+    description: 'Scale factor for screenshots',
+    type: 'number',
+    default: '1.5',
+    required: false,
+  },
+  'screenshot-width': {
+    description: 'Target screenshot width in pixels (overrides --screenshot-scale)',
+    type: 'number',
+    required: false,
+  },
+}}
+/>
 
 Parser resolution order [#parser-resolution-order]
 
@@ -65,27 +126,39 @@ Built-in parsers [#built-in-parsers]
 
 Examples [#examples]
 
-```bash
-# Inspect a PDF
-struktur parse --input document.pdf
+<Tabs items={['Inspect a PDF', 'Extract with images', 'Custom parser', 'Pipeline', 'Browser viewer']}>
+  <Tab value="Inspect a PDF">
+    ```bash
+    struktur parse --input document.pdf
+    ```
+  </Tab>
 
-# Extract PDF with embedded images and page screenshots
-struktur parse --input slides.pdf --images --screenshots --output artifact.json
+  <Tab value="Extract with images">
+    ```bash
+    struktur parse --input slides.pdf --images --screenshots --output artifact.json
+    ```
+  </Tab>
 
-# Use a configured custom parser
-struktur parse --input report.docx --output artifact.json
+  <Tab value="Custom parser">
+    ```bash
+    struktur parse --input data.xlsx --parser @myorg/xlsx-parser
+    ```
+  </Tab>
 
-# Override the parser on the fly
-struktur parse --input data.xlsx --parser @myorg/xlsx-parser
+  <Tab value="Pipeline">
+    ```bash
+    struktur parse --input doc.pdf --images | \
+      struktur extract --artifact-file - --fields "title, author" --model openai/gpt-4o-mini
+    ```
+  </Tab>
 
-# Pipe into extract
-struktur parse --input doc.pdf --images | \
-  struktur extract --artifact-file - --fields "title, author" --model openai/gpt-4o-mini
-
-# Inspect in the browser
-struktur parse --input doc.pdf | struktur utils artifact-viewer --stdin > viewer.html
-open viewer.html
-```
+  <Tab value="Browser viewer">
+    ```bash
+    struktur parse --input doc.pdf | struktur utils artifact-viewer --stdin > viewer.html
+    open viewer.html
+    ```
+  </Tab>
+</Tabs>
 
 See also [#see-also]
 

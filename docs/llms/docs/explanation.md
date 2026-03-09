@@ -1,12 +1,19 @@
 
 
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
 Deep dives into Struktur's architecture, strategies, and design decisions.
 
-Topics [#topics]
+<Cards>
+  <Card title="The Extraction Pipeline" description="How data flows through Struktur from input to output" href="/docs/explanation/pipeline" />
 
-* [pipeline](/docs/explanation/pipeline) — How data flows through Struktur
-* [artifact-format](/docs/explanation/artifact-format) — The artifact JSON structure
-* [document-parsing](/docs/explanation/document-parsing) — How files are converted to artifacts
-* [strategies](/docs/explanation/strategies) — Extraction strategies overview
-* [chunking](/docs/explanation/chunking) — Token-aware document splitting
-* [validation](/docs/explanation/validation) — Schema validation and retry logic
+  <Card title="Artifact Format" description="The artifact JSON structure" href="/docs/explanation/artifact-format" />
+
+  <Card title="Document Parsing" description="How files are converted to artifacts" href="/docs/explanation/document-parsing" />
+
+  <Card title="Extraction Strategies" description="Built-in strategies overview and how to choose" href="/docs/explanation/strategies" />
+
+  <Card title="Chunking & Token Budgets" description="Token-aware document splitting" href="/docs/explanation/chunking" />
+
+  <Card title="Validation & Retries" description="Schema validation and retry logic" href="/docs/explanation/validation" />
+</Cards>

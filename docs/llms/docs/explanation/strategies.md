@@ -1,41 +1,218 @@
 
 
-A strategy is the orchestration engine. It decides how to split the input, how many LLM calls to make, whether to run them concurrently or sequentially, and how to combine results.
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+
+The **Agent** strategy is the default and recommended way to use Struktur. It gives the LLM a virtual filesystem and lets it autonomously decide how to extract your data.
+
+For documents where you need more control, Struktur also provides alternative strategies that use fixed chunking and parallelism patterns.
 
 Strategy comparison [#strategy-comparison]
 
-| Strategy              | Speed   | Context | Arrays        | Token Cost |
-| --------------------- | ------- | ------- | ------------- | ---------- |
-| `simple`              | Fastest | Full    | —             | Lowest     |
-| `parallel`            | Fast    | None    | LLM merge     | Medium     |
-| `sequential`          | Medium  | Full    | Context       | Medium     |
-| `parallelAutoMerge`   | Fast    | None    | Auto + dedupe | Medium     |
-| `sequentialAutoMerge` | Medium  | Full    | Auto + dedupe | Medium     |
-| `doublePass`          | Slow    | Full    | LLM merge     | High       |
-| `doublePassAutoMerge` | Slow    | Full    | Auto + dedupe | High       |
+| Strategy              | Speed    | Context  | Arrays        | Token Cost | Best For           |
+| --------------------- | -------- | -------- | ------------- | ---------- | ------------------ |
+| `agent` (default)     | Adaptive | Adaptive | Automatic     | Varies     | **Most documents** |
+| `simple`              | Fastest  | Full     | —             | Lowest     | Small inputs       |
+| `parallel`            | Fast     | None     | LLM merge     | Medium     | Speed priority     |
+| `sequential`          | Medium   | Full     | Context       | Medium     | Context-dependent  |
+| `parallelAutoMerge`   | Fast     | None     | Auto + dedupe | Medium     | Large arrays       |
+| `sequentialAutoMerge` | Medium   | Full     | Auto + dedupe | Medium     | Ordered arrays     |
+| `doublePass`          | Slow     | Full     | LLM merge     | High       | Maximum quality    |
+| `doublePassAutoMerge` | Slow     | Full     | Auto + dedupe | High       | Quality + arrays   |
 
 ***
 
-simple [#simple]
+Agent (Default) [#agent-default]
 
-Single-shot extraction for small inputs.
+<Callout type="info">
+  **The Agent strategy is the default.** You don't need to specify `--strategy agent` — it's used automatically when you run `struktur extract`.
+</Callout>
 
-| Property    | Value                      |
-| ----------- | -------------------------- |
-| Name        | `"simple"`                 |
-| LLM calls   | 1                          |
-| Parallelism | None                       |
-| Merge step  | None                       |
-| Dedupe step | None                       |
-| Best for    | Small, single-chunk inputs |
+Autonomous extraction using a virtual filesystem. The agent decides when to read files, search for patterns, and build output incrementally.
+
+<Cards>
+  <Card title="Best For" description="Most documents — adapts automatically" />
+
+  <Card title="Virtual FS" description="read, grep, find, ls, bash" />
+
+  <Card title="Output Tools" description="set_output_data, update_output_data" />
+
+  <Card title="Model Requirement" description="Must support tool calling" />
+</Cards>
+
+How it works [#how-it-works]
+
+1. **Document loaded** into virtual filesystem (`/artifacts/artifact.json`, `/artifacts/manifest.json`, `/artifacts/images/`)
+2. **Agent explores** using tools: read files, grep for patterns, list directories, execute commands
+3. **Incremental extraction** — calls `set_output_data` when first data found, `update_output_data` as more discovered
+4. **Validation** — schema validation on every output update, with automatic retry on errors
+5. **Completion** — agent calls `finish` when done, or `fail` if extraction impossible
+
+The agent adapts to your document:
+
+* **Small documents** — reads everything at once
+* **Large documents** — navigates systematically, searching for relevant sections
+* **Complex schemas** — builds output incrementally, validating as it goes
 
 Configuration [#configuration]
 
-| Field                | Required | Default | Description                                                   |
-| -------------------- | -------- | ------- | ------------------------------------------------------------- |
-| `model`              | Yes      | -       | Model instance from `@ai-sdk/*`                               |
-| `outputInstructions` | No       | -       | Extra instructions for the model                              |
-| `strict`             | No       | `false` | Always `true` for simple (single-shot, no intermediate steps) |
+<TypeTable
+  type={{
+  provider: {
+    description: 'Provider name (e.g., anthropic, openai)',
+    type: 'string',
+    required: true,
+  },
+  modelId: {
+    description: 'Model identifier (e.g., claude-sonnet-4, gpt-4o)',
+    type: 'string',
+    required: true,
+  },
+  maxSteps: {
+    description: 'Maximum agent steps/turns',
+    type: 'number',
+    default: '50',
+    required: false,
+  },
+  apiKey: {
+    description: 'API key (or use env vars)',
+    type: 'string',
+    required: false,
+  },
+  outputInstructions: {
+    description: 'Additional extraction guidance',
+    type: 'string',
+    required: false,
+  },
+  systemPrompt: {
+    description: 'Override default system prompt',
+    type: 'string',
+    required: false,
+  },
+}}
+/>
+
+Example [#example]
+
+<Tabs items={['CLI', 'SDK']}>
+  <Tab value="CLI">
+    ```bash
+    # Agent is the default — no --strategy needed
+    struktur extract --input ./document.pdf \
+      --schema ./schema.json \
+      --model anthropic/claude-sonnet-4
+
+    # With max steps limit
+    struktur extract --input ./document.pdf \
+      --schema ./schema.json \
+      --model anthropic/claude-sonnet-4 \
+      --max-steps 30
+    ```
+  </Tab>
+
+  <Tab value="SDK">
+    ```ts
+    import { extract, agent } from "@struktur/sdk";
+
+    const result = await extract({
+      artifacts,
+      schema,
+      strategy: agent({
+        provider: "anthropic",
+        modelId: "claude-sonnet-4",
+        maxSteps: 50,
+      }),
+    });
+    ```
+  </Tab>
+</Tabs>
+
+When to use [#when-to-use]
+
+* **Always try agent first** — it's the default for a reason
+* Works well for most document types and sizes
+* Automatically adapts to document structure
+* Best for complex schemas with nested objects
+
+Model compatibility [#model-compatibility]
+
+The agent requires models that support tool/function calling:
+
+| Provider  | Compatible Models                                |
+| --------- | ------------------------------------------------ |
+| Anthropic | Claude 3.5 Sonnet, Claude 3 Opus, Claude 3 Haiku |
+| OpenAI    | GPT-4o, GPT-4 Turbo, GPT-4, GPT-3.5 Turbo        |
+| Google    | Gemini 1.5 Pro, Gemini 1.5 Flash                 |
+
+<Callout type="warn">
+  Some models claim tool support but don't work well with the agent. Avoid: GPT-4o-mini (inconsistent tool calling), older GPT-3.5 models, models without native function calling.
+</Callout>
+
+Virtual filesystem [#virtual-filesystem]
+
+The agent has access to a virtual filesystem containing:
+
+* `/artifacts/artifact.json` — All artifacts in JSON format (images replaced by virtual paths)
+* `/artifacts/manifest.json` — Summary and metadata
+* `/artifacts/images/` — Extracted image files (when artifacts have embedded images)
+
+The agent can:
+
+* **Read** files with pagination (`offset`, `limit`)
+* **Grep** for patterns
+* **Find** files by name
+* **List** directories
+* **Bash** execute commands (on virtual filesystem only)
+
+Output management [#output-management]
+
+Special tools for building extraction output:
+
+* **`set_output_data(data)`** — Set initial output (first time data is found)
+* **`update_output_data(changes)`** — Merge changes into existing output
+* **`finish()`** — Complete extraction (only works if data validates)
+* **`fail(reason)`** — Mark extraction as impossible
+
+The agent is encouraged to update output continuously as it explores, not wait until the end.
+
+***
+
+Simple [#simple]
+
+Single-shot extraction for small inputs. Use when the agent is overkill for tiny documents.
+
+<Cards>
+  <Card title="LLM Calls" description="1" />
+
+  <Card title="Parallelism" description="None" />
+
+  <Card title="Best for" description="Small, single-chunk inputs" />
+</Cards>
+
+Configuration [#configuration-1]
+
+<TypeTable
+  type={{
+  model: {
+    description: 'Model instance from @ai-sdk/*',
+    type: 'LanguageModel',
+    required: true,
+  },
+  outputInstructions: {
+    description: 'Extra instructions for the model',
+    type: 'string',
+    required: false,
+  },
+  strict: {
+    description: 'Always true for simple (single-shot, no intermediate steps)',
+    type: 'boolean',
+    default: 'true',
+    required: false,
+  },
+}}
+/>
 
 Algorithm [#algorithm]
 
@@ -45,61 +222,97 @@ Algorithm [#algorithm]
 4. Retry on validation failure (up to 3 attempts)
 5. Return validated output
 
-Example [#example]
+Example [#example-1]
 
-```js
-import { extract, simple } from "@struktur/sdk";
-import { openai } from "@ai-sdk/openai";
+<Tabs items={['CLI', 'SDK']}>
+  <Tab value="CLI">
+    ```bash
+    struktur extract --input document.txt --schema schema.json --strategy simple
+    ```
+  </Tab>
 
-const result = await extract({
-  artifacts,
-  schema,
-  strategy: simple({
-    model: openai("gpt-4o-mini"),
-  }),
-});
-```
+  <Tab value="SDK">
+    ```js
+    import { extract, simple } from "@struktur/sdk";
+    import { openai } from "@ai-sdk/openai";
 
-CLI [#cli]
+    const result = await extract({
+      artifacts,
+      schema,
+      strategy: simple({
+        model: openai("gpt-4o-mini"),
+      }),
+    });
+    ```
+  </Tab>
+</Tabs>
 
-```bash
-struktur --input document.txt --schema schema.json --model openai/gpt-4o-mini
-# --strategy simple is the default
-```
-
-When to use [#when-to-use]
+When to use [#when-to-use-1]
 
 * Document fits within the model's context window (\~10k tokens)
 * Simple schema without nested arrays
 * Testing or prototyping
 * Speed is the priority
+* When you want predictable token costs (agent costs vary by document)
 
 ***
 
-parallel [#parallel]
+Parallel [#parallel]
 
 Concurrent batch processing with LLM merge.
 
-| Property    | Value                        |
-| ----------- | ---------------------------- |
-| Name        | `"parallel"`                 |
-| LLM calls   | N batches + 1 merge          |
-| Parallelism | Full                         |
-| Merge step  | LLM merge                    |
-| Dedupe step | None                         |
-| Best for    | Large inputs, speed priority |
+<Cards>
+  <Card title="LLM Calls" description="N batches + 1 merge" />
 
-Configuration [#configuration-1]
+  <Card title="Parallelism" description="Full" />
 
-| Field                | Required | Default     | Description                            |
-| -------------------- | -------- | ----------- | -------------------------------------- |
-| `model`              | Yes      | -           | Model for extraction                   |
-| `mergeModel`         | Yes      | -           | Model for merging partial results      |
-| `chunkSize`          | Yes      | -           | Token budget per batch                 |
-| `concurrency`        | No       | All batches | Max parallel batches                   |
-| `maxImages`          | No       | Unlimited   | Max images per batch                   |
-| `outputInstructions` | No       | -           | Extra instructions                     |
-| `strict`             | No       | `false`     | Validate required fields on every step |
+  <Card title="Best for" description="Large inputs, speed priority" />
+</Cards>
+
+Configuration [#configuration-2]
+
+<TypeTable
+  type={{
+  model: {
+    description: 'Model for extraction',
+    type: 'LanguageModel',
+    required: true,
+  },
+  mergeModel: {
+    description: 'Model for merging partial results',
+    type: 'LanguageModel',
+    required: true,
+  },
+  chunkSize: {
+    description: 'Token budget per batch',
+    type: 'number',
+    required: true,
+  },
+  concurrency: {
+    description: 'Max parallel batches',
+    type: 'number',
+    default: 'All batches',
+    required: false,
+  },
+  maxImages: {
+    description: 'Max images per batch',
+    type: 'number',
+    default: 'Unlimited',
+    required: false,
+  },
+  outputInstructions: {
+    description: 'Extra instructions',
+    type: 'string',
+    required: false,
+  },
+  strict: {
+    description: 'Validate required fields on every step',
+    type: 'boolean',
+    default: 'false',
+    required: false,
+  },
+}}
+/>
 
 Algorithm [#algorithm-1]
 
@@ -110,61 +323,89 @@ Algorithm [#algorithm-1]
 5. Validate merged output
 6. Return final result
 
-Example [#example-1]
+Example [#example-2]
 
-```js
-import { extract, parallel } from "@struktur/sdk";
-import { openai } from "@ai-sdk/openai";
+<Tabs items={['CLI', 'SDK']}>
+  <Tab value="CLI">
+    ```bash
+    struktur extract --input large.pdf --schema schema.json --strategy parallel --model openai/gpt-4o-mini
+    ```
+  </Tab>
 
-const result = await extract({
-  artifacts,
-  schema,
-  strategy: parallel({
-    model: openai("gpt-4o-mini"),
-    mergeModel: openai("gpt-4o-mini"),
-    chunkSize: 10000,
-    concurrency: 3,
-  }),
-});
-```
+  <Tab value="SDK">
+    ```js
+    import { extract, parallel } from "@struktur/sdk";
+    import { openai } from "@ai-sdk/openai";
 
-CLI [#cli-1]
+    const result = await extract({
+      artifacts,
+      schema,
+      strategy: parallel({
+        model: openai("gpt-4o-mini"),
+        mergeModel: openai("gpt-4o-mini"),
+        chunkSize: 10000,
+        concurrency: 3,
+      }),
+    });
+    ```
+  </Tab>
+</Tabs>
 
-```bash
-struktur --input large.pdf --schema schema.json --strategy parallel --model openai/gpt-4o-mini
-```
-
-When to use [#when-to-use-1]
+When to use [#when-to-use-2]
 
 * Speed is the top priority
 * Chunks are relatively independent
 * Many documents to process
 * Can accept potential loss of cross-chunk context
+* When agent costs are too high for your use case
 
 ***
 
-sequential [#sequential]
+Sequential [#sequential]
 
 Process chunks in order with context preservation.
 
-| Property    | Value                       |
-| ----------- | --------------------------- |
-| Name        | `"sequential"`              |
-| LLM calls   | N batches                   |
-| Parallelism | None                        |
-| Merge step  | Context carryover           |
-| Dedupe step | None                        |
-| Best for    | Context-dependent documents |
+<Cards>
+  <Card title="LLM Calls" description="N batches" />
 
-Configuration [#configuration-2]
+  <Card title="Parallelism" description="None" />
 
-| Field                | Required | Default   | Description                            |
-| -------------------- | -------- | --------- | -------------------------------------- |
-| `model`              | Yes      | -         | Model for extraction                   |
-| `chunkSize`          | Yes      | -         | Token budget per batch                 |
-| `maxImages`          | No       | Unlimited | Max images per batch                   |
-| `outputInstructions` | No       | -         | Extra instructions                     |
-| `strict`             | No       | `false`   | Validate required fields on every step |
+  <Card title="Best for" description="Context-dependent documents" />
+</Cards>
+
+Configuration [#configuration-3]
+
+<TypeTable
+  type={{
+  model: {
+    description: 'Model for extraction',
+    type: 'LanguageModel',
+    required: true,
+  },
+  chunkSize: {
+    description: 'Token budget per batch',
+    type: 'number',
+    required: true,
+  },
+  maxImages: {
+    description: 'Max images per batch',
+    type: 'number',
+    default: 'Unlimited',
+    required: false,
+  },
+  outputInstructions: {
+    description: 'Extra instructions',
+    type: 'string',
+    required: false,
+  },
+  strict: {
+    description: 'Validate required fields on every step',
+    type: 'boolean',
+    default: 'false',
+    required: false,
+  },
+}}
+/>
 
 Algorithm [#algorithm-2]
 
@@ -176,523 +417,98 @@ Algorithm [#algorithm-2]
    * Store result for next iteration
 3. Return final result
 
-Example [#example-2]
+Example [#example-3]
 
-```js
-import { extract, sequential } from "@struktur/sdk";
-import { openai } from "@ai-sdk/openai";
+<Tabs items={['CLI', 'SDK']}>
+  <Tab value="CLI">
+    ```bash
+    struktur extract --input report.pdf --schema schema.json --strategy sequential --model openai/gpt-4o-mini
+    ```
+  </Tab>
 
-const result = await extract({
-  artifacts,
-  schema,
-  strategy: sequential({
-    model: openai("gpt-4o-mini"),
-    chunkSize: 10000,
-  }),
-});
-```
+  <Tab value="SDK">
+    ```js
+    import { extract, sequential } from "@struktur/sdk";
+    import { openai } from "@ai-sdk/openai";
 
-CLI [#cli-2]
+    const result = await extract({
+      artifacts,
+      schema,
+      strategy: sequential({
+        model: openai("gpt-4o-mini"),
+        chunkSize: 10000,
+      }),
+    });
+    ```
+  </Tab>
+</Tabs>
 
-```bash
-struktur --input report.pdf --schema schema.json --strategy sequential --model openai/gpt-4o-mini
-```
-
-When to use [#when-to-use-2]
+When to use [#when-to-use-3]
 
 * Context between chunks matters
 * Building data incrementally (e.g., accumulating line items)
 * Later sections reference earlier sections
 * Need better accuracy than parallel
+* Agent is making too many tool calls for your document structure
 
 ***
+
+Auto-Merge Strategies [#auto-merge-strategies]
+
+<Callout type="info">
+  Strategies with "AutoMerge" in the name use schema-aware merge and deduplication. They're ideal for extracting arrays that may have duplicates across chunks.
+</Callout>
 
 parallelAutoMerge [#parallelautomerge]
 
 Parallel extraction with schema-aware merge and deduplication.
 
-| Property    | Value                                 |
-| ----------- | ------------------------------------- |
-| Name        | `"parallel-auto-merge"`               |
-| LLM calls   | N batches + 1 dedupe                  |
-| Parallelism | Full                                  |
-| Merge step  | Schema-aware auto-merge               |
-| Dedupe step | CRC32 hash + LLM semantic             |
-| Best for    | Array extraction, duplicates possible |
-
-Configuration [#configuration-3]
-
-| Field                | Required | Default         | Description                            |
-| -------------------- | -------- | --------------- | -------------------------------------- |
-| `model`              | Yes      | -               | Model for extraction                   |
-| `chunkSize`          | Yes      | -               | Token budget per batch                 |
-| `concurrency`        | No       | All batches     | Max parallel batches                   |
-| `maxImages`          | No       | Unlimited       | Max images per batch                   |
-| `outputInstructions` | No       | -               | Extra instructions                     |
-| `dedupeModel`        | No       | Same as `model` | Model for semantic dedupe              |
-| `strict`             | No       | `false`         | Validate required fields on every step |
-
-Algorithm [#algorithm-3]
-
-1. Split artifacts into batches
-2. Extract from each batch concurrently
-3. Validate each batch output with retry
-4. **Schema-aware merge:** arrays concatenate, objects shallow-merge, scalars prefer new values
-5. **Hash dedupe:** CRC32 to remove exact duplicates
-6. **Semantic dedupe:** LLM identifies semantically equivalent entries
-7. Return final result
-
-Merge behavior [#merge-behavior]
-
-Schema-aware auto-merge via `SmartDataMerger`:
-
-* **Arrays:** concatenated
-* **Objects:** shallow-merged (later keys overwrite earlier)
-* **Scalars:** prefer newer non-empty values
-
-No LLM merge call — deterministic.
-
-Deduplication [#deduplication]
-
-Two-stage:
-
-1. **CRC32 hash:** Exact duplicates removed without LLM call
-2. **LLM semantic:** Model identifies near-duplicates (e.g., "iPhone 15" vs "Apple iPhone 15 128GB")
-
-Example [#example-3]
-
-```js
-import { extract, parallelAutoMerge } from "@struktur/sdk";
-import { openai } from "@ai-sdk/openai";
-
-const result = await extract({
-  artifacts,
-  schema,
-  strategy: parallelAutoMerge({
-    model: openai("gpt-4o-mini"),
-    dedupeModel: openai("gpt-4o-mini"),
-    chunkSize: 10000,
-    concurrency: 3,
-  }),
-});
-```
-
-CLI [#cli-3]
-
-```bash
-struktur --input catalog.pdf --schema schema.json --strategy parallelAutoMerge --model openai/gpt-4o-mini
-```
-
-When to use [#when-to-use-3]
-
-* Extracting arrays that may have duplicates across chunks
-* Want to consolidate results without LLM merge cost
-* Documents have repeated information across pages
-* Need deterministic merge behavior
-
-Best for: invoices with line items, real estate with multiple units, catalogs with products that appear on multiple pages.
-
-***
+**Best for:** Array extraction from large inputs where speed matters.
 
 sequentialAutoMerge [#sequentialautomerge]
 
 Sequential extraction with schema-aware merge and deduplication.
 
-| Property    | Value                                     |
-| ----------- | ----------------------------------------- |
-| Name        | `"sequential-auto-merge"`                 |
-| LLM calls   | N batches + 1 dedupe                      |
-| Parallelism | None                                      |
-| Merge step  | Schema-aware auto-merge                   |
-| Dedupe step | CRC32 hash + LLM semantic                 |
-| Best for    | Ordered array extraction, context matters |
-
-Configuration [#configuration-4]
-
-| Field                | Required | Default         | Description                            |
-| -------------------- | -------- | --------------- | -------------------------------------- |
-| `model`              | Yes      | -               | Model for extraction                   |
-| `chunkSize`          | Yes      | -               | Token budget per batch                 |
-| `maxImages`          | No       | Unlimited       | Max images per batch                   |
-| `outputInstructions` | No       | -               | Extra instructions                     |
-| `dedupeModel`        | No       | Same as `model` | Model for semantic dedupe              |
-| `strict`             | No       | `false`         | Validate required fields on every step |
-
-Algorithm [#algorithm-4]
-
-1. Split artifacts into batches
-2. For each batch in order:
-   * Extract from batch
-   * Validate with retry
-   * **Schema-aware merge** with previous results
-3. **Hash dedupe:** CRC32 to remove exact duplicates
-4. **Semantic dedupe:** LLM identifies semantically equivalent entries
-5. Return final result
-
-Example [#example-4]
-
-```js
-import { extract, sequentialAutoMerge } from "@struktur/sdk";
-import { openai } from "@ai-sdk/openai";
-
-const result = await extract({
-  artifacts,
-  schema,
-  strategy: sequentialAutoMerge({
-    model: openai("gpt-4o-mini"),
-    dedupeModel: openai("gpt-4o-mini"),
-    chunkSize: 10000,
-  }),
-});
-```
-
-CLI [#cli-4]
-
-```bash
-struktur --input invoice.pdf --schema schema.json --strategy sequentialAutoMerge --model openai/gpt-4o-mini
-```
-
-When to use [#when-to-use-4]
-
-* Ordered list extraction with cross-chunk dependencies
-* Later chunks need context from earlier chunks
-* Arrays may have duplicates across pages
-* Context preservation matters
-
-Best for: multi-page invoices with line items that span pages, real estate exposés with units referenced across pages.
-
-***
-
-doublePass [#doublepass]
-
-Parallel pass for speed, sequential pass for refinement.
-
-| Property    | Value                                          |
-| ----------- | ---------------------------------------------- |
-| Name        | `"double-pass"`                                |
-| LLM calls   | N × 2 batches + 1 merge                        |
-| Parallelism | First pass full, second pass none              |
-| Merge step  | LLM merge (pass 1), context carryover (pass 2) |
-| Dedupe step | None                                           |
-| Best for    | High-stakes extraction, maximum quality        |
-
-Configuration [#configuration-5]
-
-| Field                | Required | Default     | Description                            |
-| -------------------- | -------- | ----------- | -------------------------------------- |
-| `model`              | Yes      | -           | Model for extraction                   |
-| `mergeModel`         | Yes      | -           | Model for merging partial results      |
-| `chunkSize`          | Yes      | -           | Token budget per batch                 |
-| `concurrency`        | No       | All batches | Max parallel batches                   |
-| `maxImages`          | No       | Unlimited   | Max images per batch                   |
-| `outputInstructions` | No       | -           | Extra instructions                     |
-| `strict`             | No       | `false`     | Validate required fields on every step |
-
-Algorithm [#algorithm-5]
-
-**Pass 1 (parallel):**
-
-1. Split artifacts into batches
-2. Extract from each batch concurrently
-3. Validate each batch output with retry
-4. LLM merge all partial results
-
-**Pass 2 (sequential):**
-
-5. For each batch in order:
-   * Build prompt including pass 1 result as context
-   * Extract from batch
-   * Validate with retry
-   * Store result for next iteration
-6. Return final result
-
-Example [#example-5]
-
-```js
-import { extract, doublePass } from "@struktur/sdk";
-import { openai } from "@ai-sdk/openai";
-
-const result = await extract({
-  artifacts,
-  schema,
-  strategy: doublePass({
-    model: openai("gpt-4o-mini"),
-    mergeModel: openai("gpt-4o-mini"),
-    chunkSize: 10000,
-  }),
-});
-```
-
-CLI [#cli-5]
-
-```bash
-struktur --input critical.pdf --schema schema.json --strategy doublePass --model openai/gpt-4o
-```
-
-When to use [#when-to-use-5]
-
-* Accuracy is more important than cost
-* High-stakes extractions
-* Complex schemas
-* Can afford two full passes
-
-***
+**Best for:** Ordered array extraction where context matters.
 
 doublePassAutoMerge [#doublepassautomerge]
 
 Double-pass extraction with schema-aware merge and deduplication.
 
-| Property    | Value                                   |
-| ----------- | --------------------------------------- |
-| Name        | `"double-pass-auto-merge"`              |
-| LLM calls   | N × 2 batches + 1 dedupe                |
-| Parallelism | First pass full, second pass none       |
-| Merge step  | Schema-aware auto-merge                 |
-| Dedupe step | CRC32 hash + LLM semantic               |
-| Best for    | Large array extraction, maximum quality |
-
-Configuration [#configuration-6]
-
-| Field                | Required | Default         | Description                            |
-| -------------------- | -------- | --------------- | -------------------------------------- |
-| `model`              | Yes      | -               | Model for extraction                   |
-| `chunkSize`          | Yes      | -               | Token budget per batch                 |
-| `concurrency`        | No       | All batches     | Max parallel batches                   |
-| `maxImages`          | No       | Unlimited       | Max images per batch                   |
-| `outputInstructions` | No       | -               | Extra instructions                     |
-| `dedupeModel`        | No       | Same as `model` | Model for semantic dedupe              |
-| `strict`             | No       | `false`         | Validate required fields on every step |
-
-Algorithm [#algorithm-6]
-
-**Pass 1 (parallel):**
-
-1. Split artifacts into batches
-2. Extract from each batch concurrently
-3. Validate each batch output with retry
-4. **Schema-aware merge** all partial results
-5. **Hash dedupe:** CRC32
-6. **Semantic dedupe:** LLM
-
-**Pass 2 (sequential):**
-
-7. For each batch in order:
-   * Build prompt including deduped pass 1 result as context
-   * Extract from batch
-   * Validate with retry
-   * Store result for next iteration
-8. Return final result
-
-Example [#example-6]
-
-```js
-import { extract, doublePassAutoMerge } from "@struktur/sdk";
-import { openai } from "@ai-sdk/openai";
-
-const result = await extract({
-  artifacts,
-  schema,
-  strategy: doublePassAutoMerge({
-    model: openai("gpt-4o-mini"),
-    dedupeModel: openai("gpt-4o-mini"),
-    chunkSize: 10000,
-  }),
-});
-```
-
-CLI [#cli-6]
-
-```bash
-struktur --input catalog.pdf --schema schema.json --strategy doublePassAutoMerge --model openai/gpt-4o
-```
-
-When to use [#when-to-use-6]
-
-* Large array extraction with maximum quality requirement
-* Arrays may have duplicates
-* Cross-chunk context matters
-* Quality trumps cost
+**Best for:** Large array extraction with maximum quality requirement.
 
 ***
 
 Choosing a Strategy [#choosing-a-strategy]
 
-Pick based on input size and whether you're extracting arrays:
+**Start with the Agent.** It's the default because it works best for most documents.
 
-| Strategy              | When to use                                      |
-| --------------------- | ------------------------------------------------ |
-| `simple`              | Small input, fits in one context window          |
-| `parallel`            | Large input, order doesn't matter, scalar fields |
-| `sequential`          | Large input, context carries across chunks       |
-| `parallelAutoMerge`   | Large input with arrays — parallel + dedup       |
-| `sequentialAutoMerge` | Large input with arrays — sequential + dedup     |
-| `doublePass`          | Quality matters, two-pass refinement             |
-| `doublePassAutoMerge` | Quality + arrays + dedup                         |
-
-When speed matters [#when-speed-matters]
-
-Use `parallel` or `parallelAutoMerge`. Accept that cross-chunk context is limited.
-
-When quality matters [#when-quality-matters]
-
-Use `doublePass` or `doublePassAutoMerge`. Accept higher token cost.
-
-When arrays matter [#when-arrays-matter]
-
-Use auto-merge variants (`parallelAutoMerge`, `sequentialAutoMerge`, `doublePassAutoMerge`). They handle deduplication automatically.
+| Strategy              | When to use                                                |
+| --------------------- | ---------------------------------------------------------- |
+| `agent` (default)     | **Start here** — autonomous exploration for most documents |
+| `simple`              | Small input, fits in one context window, predictable costs |
+| `parallel`            | Large input, order doesn't matter, speed priority          |
+| `sequential`          | Large input, context carries across chunks                 |
+| `parallelAutoMerge`   | Large input with arrays — parallel + dedup                 |
+| `sequentialAutoMerge` | Large input with arrays — sequential + dedup               |
+| `doublePass`          | Quality matters, two-pass refinement                       |
+| `doublePassAutoMerge` | Quality + arrays + dedup                                   |
 
 Quick decision flowchart [#quick-decision-flowchart]
 
 ```mermaid
 flowchart TD
-    A[Start] --> B{Input fits in context?}
-    B -->|Yes| C[Use simple]
-    B -->|No| D{Extracting arrays?}
-    D -->|Yes| E{Cross-chunk context matters?}
-    D -->|No| F{Cross-chunk context matters?}
-    E -->|Yes| G[sequentialAutoMerge or doublePassAutoMerge]
-    E -->|No| H[parallelAutoMerge]
-    F -->|Yes| I[sequential or doublePass]
-    F -->|No| J[parallel]
-```
-
-Worked examples [#worked-examples]
-
-50-page PDF invoice with 200 line items [#50-page-pdf-invoice-with-200-line-items]
-
-**Use:** `parallelAutoMerge` or `sequentialAutoMerge`
-
-```bash
-struktur --input invoice.pdf --schema invoice.json --strategy parallelAutoMerge --model openai/gpt-4o-mini
-```
-
-Choose `sequentialAutoMerge` if line items span page boundaries and reference earlier context.
-
-3-page real estate exposé with floor plan images [#3-page-real-estate-exposé-with-floor-plan-images]
-
-**Use:** `sequential` or `sequentialAutoMerge`
-
-```bash
-struktur --input expose.pdf --schema property.json --strategy sequentialAutoMerge --model openai/gpt-4o-mini
-```
-
-Images are handled by vision models without OCR.
-
-2-page contract — parties, dates, value [#2-page-contract--parties-dates-value]
-
-**Use:** `simple` or `sequential`
-
-```bash
-struktur --input contract.pdf --schema contract.json --model openai/gpt-4o-mini
-```
-
-`simple` if it fits in context; `sequential` if you need incremental building.
-
-500 product datasheets [#500-product-datasheets]
-
-**Use:** `parallelAutoMerge` with concurrency
-
-```bash
-for f in datasheets/*.pdf; do
-  markitdown "$f" | struktur --stdin --schema product.json --strategy parallelAutoMerge --model openai/gpt-4o-mini
-done | jq -s '.'
-```
-
-***
-
-Writing a Custom Strategy [#writing-a-custom-strategy]
-
-The interface [#the-interface]
-
-A strategy has:
-
-```js
-const myStrategy = {
-  name: "my-strategy",
-
-  // Optional: used by CLI progress bar.
-  getEstimatedSteps(artifacts) {
-    return 3;
-  },
-
-  async run(options) {
-    // Your orchestration logic here.
-    return { data: ..., usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 } };
-  },
-};
-```
-
-Using built-in helpers [#using-built-in-helpers]
-
-Key internal helpers from `strategies/utils.ts`:
-
-| Helper                                                                            | Description                              |
-| --------------------------------------------------------------------------------- | ---------------------------------------- |
-| `getBatches(artifacts, { maxTokens, maxImages? })`                                | Chunk artifacts into batches             |
-| `extractWithPrompt({ model, schema, system, user, artifacts, events, execute? })` | Run one LLM extraction with retries      |
-| `serializeSchema(schema)`                                                         | Convert schema to JSON string for prompt |
-| `mergeUsage([...usages])`                                                         | Accumulate usage across calls            |
-
-A complete example [#a-complete-example]
-
-```js
-import { extractWithPrompt, getBatches, mergeUsage, serializeSchema } from "@struktur/sdk/strategies/utils";
-import { buildExtractorPrompt } from "@struktur/sdk/prompts/ExtractorPrompt";
-
-const myStrategy = (config) => ({
-  name: "my-strategy",
-
-  getEstimatedSteps(artifacts) {
-    const batches = getBatches(artifacts, { maxTokens: config.chunkSize });
-    return batches.length + 1;
-  },
-
-  async run(options) {
-    const batches = getBatches(options.artifacts, {
-      maxTokens: config.chunkSize,
-    });
-
-    const schema = serializeSchema(options.schema);
-    const usages = [];
-    let currentData = {};
-
-    for (const [index, batch] of batches.entries()) {
-      const prompt = buildExtractorPrompt(batch, schema);
-
-      const result = await extractWithPrompt({
-        model: config.model,
-        schema: options.schema,
-        system: prompt.system,
-        user: prompt.user,
-        artifacts: batch,
-        events: options.events,
-      });
-
-      currentData = { ...currentData, ...result.data };
-      usages.push(result.usage);
-
-      await options.events?.onStep?.({
-        step: index + 1,
-        total: batches.length + 1,
-        label: `batch ${index + 1}/${batches.length}`,
-      });
-    }
-
-    return { data: currentData, usage: mergeUsage(usages) };
-  },
-});
-```
-
-Emitting step events [#emitting-step-events]
-
-Strategies should emit `events.onStep` for progress tracking:
-
-```js
-await options.events?.onStep?.({
-  step: 1,
-  total: 3,
-  label: "extract",
-});
+    A[Start] --> B{Try Agent first?}
+    B -->|Yes| C[Use agent — default]
+    B -->|Need fixed costs| D{Input fits in context?}
+    D -->|Yes| E[Use simple]
+    D -->|No| F{Extracting arrays?}
+    F -->|Yes| G{Cross-chunk context matters?}
+    F -->|No| H{Cross-chunk context matters?}
+    G -->|Yes| I[sequentialAutoMerge or doublePassAutoMerge]
+    G -->|No| J[parallelAutoMerge]
+    H -->|Yes| K[sequential or doublePass]
+    H -->|No| L[parallel]
 ```
 
 ***

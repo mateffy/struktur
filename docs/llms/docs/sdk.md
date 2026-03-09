@@ -1,10 +1,15 @@
 
 
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
 The Struktur SDK provides a TypeScript API for programmatic data extraction.
 
-Topics [#topics]
+<Cards>
+  <Card title="Installation" description="Install and configure the SDK" href="/docs/sdk/installation" />
 
-* [installation](/docs/sdk/installation) — Install and configure the SDK
-* [extract](/docs/sdk/extract) — Core extraction function
-* [parse](/docs/sdk/parse) — Building artifacts from URLs and files
-* [events](/docs/sdk/events) — Monitoring extraction progress
+  <Card title="extract()" description="Core extraction function" href="/docs/sdk/extract" />
+
+  <Card title="parse()" description="Building artifacts from URLs and files" href="/docs/sdk/parse" />
+
+  <Card title="Events" description="Monitoring extraction progress" href="/docs/sdk/events" />
+</Cards>

@@ -1,5 +1,10 @@
 
 
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
 The `--fields` flag (short: `-f`) lets you describe extraction output as a comma-separated string directly on the command line, without writing or maintaining a JSON Schema file.
 
 ```bash
@@ -29,11 +34,25 @@ struktur [extract] --fields "<field-definitions>" [other options]
 
 `--fields` is one of three mutually exclusive schema options. Pass exactly one of:
 
-| Flag                   | Description               |
-| ---------------------- | ------------------------- |
-| `--fields` / `-f`      | Fields shorthand string   |
-| `--schema <path\|url>` | JSON Schema file or URL   |
-| `--schema-json <json>` | Inline JSON Schema string |
+<TypeTable
+  type={{
+  fields: {
+    description: 'Fields shorthand string (short: -f)',
+    type: 'string',
+    required: false,
+  },
+  schema: {
+    description: 'JSON Schema file or URL',
+    type: 'string',
+    required: false,
+  },
+  'schema-json': {
+    description: 'Inline JSON Schema string',
+    type: 'string',
+    required: false,
+  },
+}}
+/>
 
 ***
 
@@ -51,41 +70,43 @@ Whitespace around commas and colons is ignored.
 
 Scalar types [#scalar-types]
 
-string [#string]
+<Tabs items={['string', 'number / float', 'integer / int', 'boolean / bool']}>
+  <Tab value="string">
+    ```bash
+    --fields "title"
+    --fields "title:string"
+    ```
 
-```bash
---fields "title"
---fields "title:string"
-```
+    Default when no type is specified. Produces `{ "type": "string" }`.
+  </Tab>
 
-Default when no type is specified. Produces `{ "type": "string" }`.
+  <Tab value="number / float">
+    ```bash
+    --fields "price:number"
+    --fields "price:float"
+    ```
 
-number / float [#number--float]
+    Any numeric value. Both produce `{ "type": "number" }`. `float` is an alias for `number`.
+  </Tab>
 
-```bash
---fields "price:number"
---fields "price:float"
-```
+  <Tab value="integer / int">
+    ```bash
+    --fields "count:integer"
+    --fields "count:int"
+    ```
 
-Any numeric value. Both produce `{ "type": "number" }`. `float` is an alias for `number`.
+    Whole numbers only. `integer` produces `{ "type": "integer" }`. `int` produces `{ "type": "integer", "multipleOf": 1 }` — explicitly disallows fractions.
+  </Tab>
 
-integer / int [#integer--int]
+  <Tab value="boolean / bool">
+    ```bash
+    --fields "active:boolean"
+    --fields "active:bool"
+    ```
 
-```bash
---fields "count:integer"
---fields "count:int"
-```
-
-Whole numbers only. `integer` produces `{ "type": "integer" }`. `int` produces `{ "type": "integer", "multipleOf": 1 }` — explicitly disallows fractions.
-
-boolean / bool [#boolean--bool]
-
-```bash
---fields "active:boolean"
---fields "active:bool"
-```
-
-Both produce `{ "type": "boolean" }`. `bool` is an alias for `boolean`.
+    Both produce `{ "type": "boolean" }`. `bool` is an alias for `boolean`.
+  </Tab>
+</Tabs>
 
 ***
 
@@ -114,51 +135,65 @@ The item type can be any scalar keyword (including aliases). If omitted, default
 
 Examples [#examples]
 
-**Basic fields with types:**
+<Cards>
+  <Card title="Basic fields with types" description="Extract article metadata" />
 
-```bash
-struktur --input article.txt \
-  --fields "title, author, published_date, word_count:integer" \
-  --model openai/gpt-4o-mini
-```
+  <Card title="Enum field" description="Status extraction with predefined values" />
 
-**Enum field:**
+  <Card title="Mixed types" description="Products with arrays and enums" />
 
-```bash
-echo "Order #4421 is currently being packed." | \
-  struktur --stdin \
-  --fields "order_id, status:enum{pending|processing|shipped|delivered}" \
-  --model anthropic/claude-3-5-haiku-20241022
-```
+  <Card title="Piped input" description="Processing reviews from stdin" />
 
-**Mixed types including arrays:**
+  <Card title="Batch processing" description="Process a directory of documents" />
+</Cards>
 
-```bash
-struktur --input product.html \
-  --fields "name, price:float, in_stock:bool, tags:array{string}, category:enum{electronics|clothing|food}" \
-  --model openai/gpt-4o-mini
-```
+<Tabs items={['Basic fields', 'Enum field', 'Mixed types', 'Piped input', 'Batch processing']}>
+  <Tab value="Basic fields">
+    ```bash
+    struktur --input article.txt \
+      --fields "title, author, published_date, word_count:integer" \
+      --model openai/gpt-4o-mini
+    ```
+  </Tab>
 
-**Piped from stdin, output to file:**
+  <Tab value="Enum field">
+    ```bash
+    echo "Order #4421 is currently being packed." | \
+      struktur --stdin \
+      --fields "order_id, status:enum{pending|processing|shipped|delivered}" \
+      --model anthropic/claude-3-5-haiku-20241022
+    ```
+  </Tab>
 
-```bash
-cat reviews.txt | \
-  struktur --stdin \
-  --fields "sentiment:enum{positive|neutral|negative}, score:int, summary" \
-  --model openai/gpt-4o-mini \
-  --output result.json
-```
+  <Tab value="Mixed types">
+    ```bash
+    struktur --input product.html \
+      --fields "name, price:float, in_stock:bool, tags:array{string}, category:enum{electronics|clothing|food}" \
+      --model openai/gpt-4o-mini
+    ```
+  </Tab>
 
-**Batch processing a directory:**
+  <Tab value="Piped input">
+    ```bash
+    cat reviews.txt | \
+      struktur --stdin \
+      --fields "sentiment:enum{positive|neutral|negative}, score:int, summary" \
+      --model openai/gpt-4o-mini \
+      --output result.json
+    ```
+  </Tab>
 
-```bash
-for f in docs/*.txt; do
-  struktur --input "$f" \
-    --fields "title, category:enum{invoice|receipt|contract}, amount:float" \
-    --model openai/gpt-4o-mini \
-    --output "out/$(basename "$f" .txt).json"
-done
-```
+  <Tab value="Batch processing">
+    ```bash
+    for f in docs/*.txt; do
+      struktur --input "$f" \
+        --fields "title, category:enum{invoice|receipt|contract}, amount:float" \
+        --model openai/gpt-4o-mini \
+        --output "out/$(basename "$f" .txt).json"
+    done
+    ```
+  </Tab>
+</Tabs>
 
 ***
 

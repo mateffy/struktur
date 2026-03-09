@@ -1,15 +1,22 @@
 
 
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+
 How to use the Struktur agent skill with your AI coding assistant.
 
 How It Works [#how-it-works]
 
 The skill uses **progressive disclosure** to minimize token usage:
 
-1. **Metadata Phase** (\~100 tokens): Agent loads only the skill name and description
-2. **Activation Phase**: When your request matches the description, the agent asks permission to load the full skill
-3. **Full Load** (up to 5,000 tokens): Complete skill instructions load into context
-4. **On-Demand**: Supporting files (scripts, references) load as needed
+<Callout type="info">
+  1. **Metadata Phase** (\~100 tokens): Agent loads only the skill name and description
+  2. **Activation Phase**: When your request matches the description, the agent asks permission to load the full skill
+  3. **Full Load** (up to 5,000 tokens): Complete skill instructions load into context
+  4. **On-Demand**: Supporting files (scripts, references) load as needed
+</Callout>
 
 This means you can have hundreds of skills installed without bloating the agent's context window.
 
@@ -28,70 +35,72 @@ The agent will recognize these requests and load the skill automatically.
 
 Example Conversations [#example-conversations]
 
-Example 1: Basic Extraction [#example-1-basic-extraction]
+<Accordions type="single">
+  <Accordion title="Example 1: Basic Extraction">
+    **You:**
 
-**You:**
+    ```
+    Use struktur to extract the title and author from this document.
+    ```
 
-```
-Use struktur to extract the title and author from this document.
-```
+    **Agent (with skill loaded):**
 
-**Agent (with skill loaded):**
+    ```
+    I'll use Struktur's simple strategy for this extraction. Let me:
 
-```
-I'll use Struktur's simple strategy for this extraction. Let me:
+    1. Build an artifact from your document
+    2. Define a schema with title and author fields
+    3. Call extract() with the simple strategy
 
-1. Build an artifact from your document
-2. Define a schema with title and author fields
-3. Call extract() with the simple strategy
+    [proceeds with correct API usage, proper schema definition, and best practices]
+    ```
+  </Accordion>
 
-[proceeds with correct API usage, proper schema definition, and best practices]
-```
+  <Accordion title="Example 2: Large Document with Parallel Strategy">
+    **You:**
 
-Example 2: Large Document with Parallel Strategy [#example-2-large-document-with-parallel-strategy]
+    ```
+    I have a 500-page PDF with product listings. Extract all products with their names, prices, and categories.
+    ```
 
-**You:**
+    **Agent (with skill loaded):**
 
-```
-I have a 500-page PDF with product listings. Extract all products with their names, prices, and categories.
-```
+    ```
+    For a 500-page document with multiple products, I'll use the parallel strategy:
 
-**Agent (with skill loaded):**
+    - It will chunk the document by token budget
+    - Extract products from each chunk in parallel
+    - Merge the results automatically
 
-```
-For a 500-page document with multiple products, I'll use the parallel strategy:
+    Let me set this up with:
+    - strategy: parallel with appropriate chunk size
+    - schema: array of products with name, price, category
+    - model: your configured default
 
-- It will chunk the document by token budget
-- Extract products from each chunk in parallel
-- Merge the results automatically
+    [proceeds with optimal configuration]
+    ```
+  </Accordion>
 
-Let me set this up with:
-- strategy: parallel with appropriate chunk size
-- schema: array of products with name, price, category
-- model: your configured default
+  <Accordion title="Example 3: CLI Configuration">
+    **You:**
 
-[proceeds with optimal configuration]
-```
+    ```
+    Set up the struktur CLI to use OpenAI GPT-4o as the default model.
+    ```
 
-Example 3: CLI Configuration [#example-3-cli-configuration]
+    **Agent (with skill loaded):**
 
-**You:**
+    ```
+    I'll configure the struktur CLI:
 
-```
-Set up the struktur CLI to use OpenAI GPT-4o as the default model.
-```
+    1. Set your OpenAI API token
+    2. Set gpt-4o as the default model
+    3. Optionally create aliases for quick access
 
-**Agent (with skill loaded):**
-
-```
-I'll configure the struktur CLI:
-
-1. Set your OpenAI API token
-2. Set gpt-4o as the default model
-3. Optionally create aliases for quick access
-
-[runs correct CLI commands]
-```
+    [runs correct CLI commands]
+    ```
+  </Accordion>
+</Accordions>
 
 What the Skill Knows [#what-the-skill-knows]
 
@@ -109,12 +118,12 @@ Strategy Selection [#strategy-selection]
 
 The skill teaches the agent to choose strategies based on:
 
-| Input Size           | Output Shape        | Recommended Strategy              |
-| -------------------- | ------------------- | --------------------------------- |
-| Small (\<10K tokens) | Any                 | `simple`                          |
-| Large                | Array/list          | `parallel` or `parallelAutoMerge` |
-| Large                | Object with context | `sequential`                      |
-| Large                | Maximum accuracy    | `doublePass`                      |
+| Input Size            | Output Shape        | Recommended Strategy              |
+| --------------------- | ------------------- | --------------------------------- |
+| Small (`<10K` tokens) | Any                 | `simple`                          |
+| Large                 | Array/list          | `parallel` or `parallelAutoMerge` |
+| Large                 | Object with context | `sequential`                      |
+| Large                 | Maximum accuracy    | `doublePass`                      |
 
 CLI Commands [#cli-commands]
 
@@ -154,32 +163,34 @@ Check your tool's documentation for manual skill loading commands.
 
 Troubleshooting [#troubleshooting]
 
-Skill Not Loading [#skill-not-loading]
+<Accordions type="single">
+  <Accordion title="Skill Not Loading">
+    If the skill doesn't load automatically:
 
-If the skill doesn't load automatically:
+    1. **Check installation**: Verify the skill is in the correct directory
+    2. **Restart the agent**: Some tools require a restart after installation
+    3. **Be more specific**: Use explicit keywords like "struktur", "extract", "artifact"
+    4. **Check logs**: Some tools show skill discovery in debug mode
+  </Accordion>
 
-1. **Check installation**: Verify the skill is in the correct directory
-2. **Restart the agent**: Some tools require a restart after installation
-3. **Be more specific**: Use explicit keywords like "struktur", "extract", "artifact"
-4. **Check logs**: Some tools show skill discovery in debug mode
+  <Accordion title="Outdated Information">
+    If the skill seems outdated:
 
-Outdated Information [#outdated-information]
+    ```bash
+    # Update to latest version
+    npm update @struktur/skill
+    cp -r node_modules/@struktur/skill/skills/struktur ~/.config/claude/skills/
+    ```
+  </Accordion>
 
-If the skill seems outdated:
+  <Accordion title="Wrong Strategy Recommended">
+    The skill provides general guidance, but you can override:
 
-```bash
-# Update to latest version
-npm update @struktur/skill
-cp -r node_modules/@struktur/skill/skills/struktur ~/.config/claude/skills/
-```
-
-Wrong Strategy Recommended [#wrong-strategy-recommended]
-
-The skill provides general guidance, but you can override:
-
-```
-Use struktur with the sequential strategy (not parallel) because order matters for this document.
-```
+    ```
+    Use struktur with the sequential strategy (not parallel) because order matters for this document.
+    ```
+  </Accordion>
+</Accordions>
 
 Advanced Usage [#advanced-usage]
 
@@ -200,9 +211,13 @@ Combining with Other Skills [#combining-with-other-skills]
 
 The Struktur skill works alongside other skills:
 
-* Database skills (for saving extracted data)
-* Testing skills (for validating extraction results)
-* Deployment skills (for CI/CD integration)
+<Cards>
+  <Card title="Database Skills" description="For saving extracted data" />
+
+  <Card title="Testing Skills" description="For validating extraction results" />
+
+  <Card title="Deployment Skills" description="For CI/CD integration" />
+</Cards>
 
 Resources [#resources]
 

@@ -2,6 +2,11 @@
 
 
 
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+
 Synopsis [#synopsis]
 
 ```bash
@@ -42,38 +47,69 @@ config providers add [#config-providers-add]
 
 Store an API token for a provider.
 
-```bash
-struktur config providers add <provider> [options]
-```
+<TypeTable
+  type={{
+  token: {
+    description: 'API token value (avoid — token may appear in shell history)',
+    type: 'string',
+    required: false,
+  },
+  'token-stdin': {
+    description: 'Read token from stdin (recommended)',
+    type: 'boolean',
+    required: false,
+  },
+  storage: {
+    description: 'Storage mode for the token',
+    type: '"auto" | "keychain" | "file"',
+    default: 'auto',
+    required: false,
+  },
+  default: {
+    description: 'After storing, query the API for cheapest model and set as default',
+    type: 'boolean',
+    required: false,
+  },
+}}
+/>
 
-| Flag               | Type    | Description                                                        |
-| ------------------ | ------- | ------------------------------------------------------------------ |
-| `--token <t>`      | string  | API token value (avoid — token may appear in shell history)        |
-| `--token-stdin`    | boolean | Read token from stdin (recommended)                                |
-| `--storage <mode>` | string  | `auto` (default), `keychain`, or `file`                            |
-| `--default`        | boolean | After storing, query the API for cheapest model and set as default |
+<Accordions type="single">
+  <Accordion title="Examples">
+    <Tabs items={['Store via stdin', 'Store with default model', 'OpenCode', 'OpenRouter']}>
+      <Tab value="Store via stdin">
+        ```bash
+        echo "$OPENAI_API_KEY" | struktur config providers add openai --token-stdin
+        ```
+      </Tab>
 
-**Examples:**
+      <Tab value="Store with default model">
+        ```bash
+        echo "$OPENAI_API_KEY" | struktur config providers add openai --token-stdin --default
+        ```
+      </Tab>
 
-```bash
-# Store via stdin (recommended)
-echo "$OPENAI_API_KEY" | struktur config providers add openai --token-stdin
+      <Tab value="OpenCode">
+        ```bash
+        echo "$OPENCODE_API_KEY" | struktur config providers add opencode --token-stdin --default
+        ```
+      </Tab>
 
-# Store and set cheapest model as default in one command
-echo "$OPENAI_API_KEY" | struktur config providers add openai --token-stdin --default
-
-# OpenCode Zen (access to multiple model families via one API)
-echo "$OPENCODE_API_KEY" | struktur config providers add opencode --token-stdin --default
-
-# OpenRouter (route to any provider)
-echo "$OPENROUTER_API_KEY" | struktur config providers add openrouter --token-stdin
-```
+      <Tab value="OpenRouter">
+        ```bash
+        echo "$OPENROUTER_API_KEY" | struktur config providers add openrouter --token-stdin
+        ```
+      </Tab>
+    </Tabs>
+  </Accordion>
+</Accordions>
 
 Output (without `--default`): `{ "provider": "openai", "stored": "keychain" }`
 
 Output (with `--default`): `{ "provider": "openai", "stored": "keychain", "defaultModel": "openai/gpt-4.1-nano" }`
 
-**Storage:** On macOS, tokens go into Keychain by default. On other platforms, `~/.config/struktur/tokens.json` (chmod 600). Set `STRUKTUR_DISABLE_KEYCHAIN` to force file storage on macOS.
+<Callout type="info">
+  **Storage:** On macOS, tokens go into Keychain by default. On other platforms, `~/.config/struktur/tokens.json` (chmod 600). Set `STRUKTUR_DISABLE_KEYCHAIN` to force file storage on macOS.
+</Callout>
 
 config providers remove [#config-providers-remove]
 
@@ -155,48 +191,68 @@ struktur config parsers get --mime application/vnd.ms-excel
 
 config parsers add [#config-parsers-add]
 
-```bash
-struktur config parsers add --mime <type> (--npm <pkg> | --file-command "<cmd>" | --stdin-command "<cmd>")
-```
+<TypeTable
+  type={{
+  mime: {
+    description: 'MIME type to handle (e.g. application/vnd.ms-excel)',
+    type: 'string',
+    required: true,
+  },
+  npm: {
+    description: 'npm package name implementing the parser contract',
+    type: 'string',
+    required: false,
+  },
+  'file-command': {
+    description: 'Shell command with FILE_PATH placeholder (replaced with the actual file path at runtime)',
+    type: 'string',
+    required: false,
+  },
+  'stdin-command': {
+    description: 'Shell command that reads file from stdin and writes SerializedArtifact[] JSON to stdout',
+    type: 'string',
+    required: false,
+  },
+}}
+/>
 
-Exactly one of `--npm`, `--file-command`, or `--stdin-command` must be specified.
+<Callout type="warn">
+  Exactly one of `--npm`, `--file-command`, or `--stdin-command` must be specified.
+</Callout>
 
-| Flag                      | Description                                                                                |
-| ------------------------- | ------------------------------------------------------------------------------------------ |
-| `--mime <type>`           | MIME type to handle (e.g. `application/vnd.ms-excel`)                                      |
-| `--npm <pkg>`             | npm package name implementing the parser contract                                          |
-| `--file-command "<cmd>"`  | Shell command with `FILE_PATH` placeholder (replaced with the actual file path at runtime) |
-| `--stdin-command "<cmd>"` | Shell command that reads file from stdin and writes `SerializedArtifact[]` JSON to stdout  |
+<Accordions type="single">
+  <Accordion title="Parser Examples">
+    **npm parser** — install a package that implements the [npm parser contract](/docs/explanation/document-parsing#npm-package-parser):
 
-**npm parser** — install a package that implements the [npm parser contract](/docs/explanation/document-parsing#npm-package-parser):
+    ```bash
+    struktur config parsers add \
+      --mime application/vnd.openxmlformats-officedocument.wordprocessingml.document \
+      --npm @myorg/docx-parser
+    ```
 
-```bash
-struktur config parsers add \
-  --mime application/vnd.openxmlformats-officedocument.wordprocessingml.document \
-  --npm @myorg/docx-parser
-```
+    **file-command** — shell command, `FILE_PATH` is replaced with the actual path:
 
-**file-command** — shell command, `FILE_PATH` is replaced with the actual path:
+    ```bash
+    struktur config parsers add \
+      --mime application/vnd.openxmlformats-officedocument.wordprocessingml.document \
+      --file-command "markitdown FILE_PATH"
+    ```
 
-```bash
-struktur config parsers add \
-  --mime application/vnd.openxmlformats-officedocument.wordprocessingml.document \
-  --file-command "markitdown FILE_PATH"
-```
+    `FILE_PATH` must appear in the command string — an error is thrown if it is missing.
 
-`FILE_PATH` must appear in the command string — an error is thrown if it is missing.
+    The command must write `SerializedArtifact[]` JSON to stdout.
 
-The command must write `SerializedArtifact[]` JSON to stdout.
+    **stdin-command** — file contents are piped to stdin:
 
-**stdin-command** — file contents are piped to stdin:
+    ```bash
+    struktur config parsers add \
+      --mime text/html \
+      --stdin-command "my-html-to-artifact-converter"
+    ```
 
-```bash
-struktur config parsers add \
-  --mime text/html \
-  --stdin-command "my-html-to-artifact-converter"
-```
-
-The command must write `SerializedArtifact[]` JSON to stdout. Plain text output will fail validation.
+    The command must write `SerializedArtifact[]` JSON to stdout. Plain text output will fail validation.
+  </Accordion>
+</Accordions>
 
 config parsers remove [#config-parsers-remove]
 
@@ -230,6 +286,10 @@ See also [#see-also]
 
 
 
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+
 Synopsis [#synopsis]
 
 ```bash
@@ -240,29 +300,74 @@ struktur [extract] [options]
 
 Input options (exactly one required) [#input-options-exactly-one-required]
 
-| Flag                          | Type    | Description                                                                                                 |
-| ----------------------------- | ------- | ----------------------------------------------------------------------------------------------------------- |
-| `--input <path>`              | string  | Read from a file path. MIME type auto-detected from magic bytes and file extension.                         |
-| `--stdin`                     | boolean | Read from stdin. Auto-detects artifact JSON or raw text. Auto-detected when piped with no other input flag. |
-| `--text <string>`             | string  | Use inline text as input.                                                                                   |
-| `--artifact-file <path\|url>` | string  | Read pre-built artifact JSON from file path or HTTP(S) URL.                                                 |
-| `--artifact-json <json>`      | string  | Inline artifact JSON string.                                                                                |
+<TypeTable
+  type={{
+  input: {
+    description: 'Read from a file path. MIME type auto-detected from magic bytes and file extension.',
+    type: 'string',
+    required: false,
+  },
+  stdin: {
+    description: 'Read from stdin. Auto-detects artifact JSON or raw text. Auto-detected when piped with no other input flag.',
+    type: 'boolean',
+    required: false,
+  },
+  text: {
+    description: 'Use inline text as input.',
+    type: 'string',
+    required: false,
+  },
+  'artifact-file': {
+    description: 'Read pre-built artifact JSON from file path or HTTP(S) URL.',
+    type: 'string',
+    required: false,
+  },
+  'artifact-json': {
+    description: 'Inline artifact JSON string.',
+    type: 'string',
+    required: false,
+  },
+}}
+/>
 
 Schema options (exactly one required) [#schema-options-exactly-one-required]
 
-| Flag                   | Short | Type   | Description                                                               |
-| ---------------------- | ----- | ------ | ------------------------------------------------------------------------- |
-| `--schema <path\|url>` |       | string | JSON Schema file path or HTTP(S) URL.                                     |
-| `--schema-json <json>` |       | string | Inline JSON Schema string.                                                |
-| `--fields <string>`    | `-f`  | string | [Fields shorthand](/docs/cli/fields) — comma-separated field definitions. |
+<TypeTable
+  type={{
+  schema: {
+    description: 'JSON Schema file path or HTTP(S) URL.',
+    type: 'string',
+    required: false,
+  },
+  'schema-json': {
+    description: 'Inline JSON Schema string.',
+    type: 'string',
+    required: false,
+  },
+  fields: {
+    description: 'Fields shorthand — comma-separated field definitions. See Fields reference.',
+    type: 'string',
+    required: false,
+  },
+}}
+/>
 
-`--fields` is the quickest way to define a schema without writing JSON. See [--fields reference](/docs/cli/fields) for the full syntax.
+<Callout type="info">
+  `--fields` is the quickest way to define a schema without writing JSON. See [--fields reference](/docs/cli/fields) for the full syntax.
+</Callout>
 
 Model [#model]
 
-| Flag             | Type   | Default            | Description                                               |
-| ---------------- | ------ | ------------------ | --------------------------------------------------------- |
-| `--model <spec>` | string | configured default | Model spec in `provider/model` format, or a stored alias. |
+<TypeTable
+  type={{
+  model: {
+    description: 'Model spec in provider/model format, or a stored alias.',
+    type: 'string',
+    default: 'configured default',
+    required: false,
+  },
+}}
+/>
 
 Supported providers: `openai`, `anthropic`, `google`, `opencode`, `openrouter`.
 
@@ -276,43 +381,99 @@ Parsing options [#parsing-options]
 
 These flags control how `--input` files are parsed before extraction.
 
-| Flag             | Type    | Default | Description                                                                                                                         |
-| ---------------- | ------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `--no-parse`     | boolean | false   | Skip custom parsers; use only built-in text/image/artifact-JSON detection. Ignores any parsers configured via `config parsers add`. |
-| `--mime <type>`  | string  | —       | Override MIME type detection. Useful when extension is missing or wrong.                                                            |
-| `--parser <pkg>` | string  | —       | Use this npm package as parser for the detected MIME type, overriding any configured parser.                                        |
+<TypeTable
+  type={{
+  'no-parse': {
+    description: 'Skip custom parsers; use only built-in text/image/artifact-JSON detection. Ignores any parsers configured via config parsers add.',
+    type: 'boolean',
+    default: 'false',
+    required: false,
+  },
+  mime: {
+    description: 'Override MIME type detection. Useful when extension is missing or wrong.',
+    type: 'string',
+    required: false,
+  },
+  parser: {
+    description: 'Use this npm package as parser for the detected MIME type, overriding any configured parser.',
+    type: 'string',
+    required: false,
+  },
+}}
+/>
 
 Image options (PDF inputs) [#image-options-pdf-inputs]
 
-| Flag            | Type    | Default | Description                                                         |
-| --------------- | ------- | ------- | ------------------------------------------------------------------- |
-| `--images`      | boolean | false   | Extract embedded images from PDFs and include them in the artifact. |
-| `--screenshots` | boolean | false   | Render each PDF page as a screenshot image.                         |
+<TypeTable
+  type={{
+  images: {
+    description: 'Extract embedded images from PDFs and include them in the artifact.',
+    type: 'boolean',
+    default: 'false',
+    required: false,
+  },
+  screenshots: {
+    description: 'Render each PDF page as a screenshot image.',
+    type: 'boolean',
+    default: 'false',
+    required: false,
+  },
+}}
+/>
 
-:::note
-For custom screenshot dimensions, use `struktur parse --screenshots --screenshot-scale <num>` and pipe the artifact to `struktur extract --artifact-file -`.
-:::
+<Callout type="info">
+  For custom screenshot dimensions, use `struktur parse --screenshots --screenshot-scale <num>` and pipe the artifact to `struktur extract --artifact-file -`.
+</Callout>
 
 Strategy [#strategy]
 
-| Flag                    | Type    | Default  | Description                                                                                                                                   |
-| ----------------------- | ------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--strategy <name>`     | string  | `simple` | Strategy name.                                                                                                                                |
-| `--chunk-size <number>` | number  | `10000`  | Token budget per batch.                                                                                                                       |
-| `--strict`              | boolean | false    | Enforce required-field validation on every step, not just the final one. Useful for single-chunk inputs where partial data is never expected. |
+<TypeTable
+  type={{
+  strategy: {
+    description: 'Strategy name.',
+    type: 'string',
+    default: 'simple',
+    required: false,
+  },
+  'chunk-size': {
+    description: 'Token budget per batch.',
+    type: 'number',
+    default: '10000',
+    required: false,
+  },
+  strict: {
+    description: 'Enforce required-field validation on every step, not just the final one. Useful for single-chunk inputs where partial data is never expected.',
+    type: 'boolean',
+    default: 'false',
+    required: false,
+  },
+}}
+/>
 
 Strategy names: `simple`, `parallel`, `sequential`, `parallelAutoMerge`, `sequentialAutoMerge`, `doublePass`, `doublePassAutoMerge`.
 
-:::note
-When using `--strategy` other than `simple`, both `model` and `mergeModel`/`dedupeModel` are set to the same model. For different models per role, use the TypeScript SDK.
-:::
+<Callout type="info">
+  When using `--strategy` other than `simple`, both `model` and `mergeModel`/`dedupeModel` are set to the same model. For different models per role, use the TypeScript SDK.
+</Callout>
 
 Output [#output]
 
-| Flag                 | Type    | Default | Description                                                                                                                     |
-| -------------------- | ------- | ------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `--output <path\|->` | string  | `-`     | Write JSON to file or stdout (`-`).                                                                                             |
-| `--debug`            | boolean | false   | Enable verbose JSON debug logging to stderr. Shows model resolution, artifact loading, schema details, and per-step LLM events. |
+<TypeTable
+  type={{
+  output: {
+    description: 'Write JSON to file or stdout (-).',
+    type: 'string',
+    default: '- (stdout)',
+    required: false,
+  },
+  debug: {
+    description: 'Enable verbose JSON debug logging to stderr. Shows model resolution, artifact loading, schema details, and per-step LLM events.',
+    type: 'boolean',
+    default: 'false',
+    required: false,
+  },
+}}
+/>
 
 Progress [#progress]
 
@@ -326,86 +487,88 @@ The bar is suppressed in non-interactive mode (piped stderr).
 
 Examples [#examples]
 
-**Fields shorthand (quickest):**
+<Tabs items={['Fields shorthand', 'PDF input', 'PDF with images', 'Screenshots', 'Inline schema', 'Stdin', 'Parallel strategy', 'MIME override', 'Custom parser', 'Schema from URL', 'Debug mode']}>
+  <Tab value="Fields shorthand">
+    ```bash
+    echo "Invoice #1042 from Acme Corp. Total: $2,400.00." | \
+      struktur --stdin -f "invoice_number, vendor, total:number" \
+      --model openai/gpt-4o-mini
+    ```
+  </Tab>
 
-```bash
-echo "Invoice #1042 from Acme Corp. Total: $2,400.00." | \
-  struktur --stdin -f "invoice_number, vendor, total:number" \
-  --model openai/gpt-4o-mini
-```
+  <Tab value="PDF input">
+    ```bash
+    struktur --input invoice.pdf \
+      --fields "invoice_number, vendor, total:number" \
+      --model openai/gpt-4o-mini
+    ```
+  </Tab>
 
-**PDF input (direct):**
+  <Tab value="PDF with images">
+    ```bash
+    struktur --input invoice.pdf --images \
+      --schema invoice-schema.json \
+      --model openai/gpt-4o
+    ```
+  </Tab>
 
-```bash
-struktur --input invoice.pdf \
-  --fields "invoice_number, vendor, total:number" \
-  --model openai/gpt-4o-mini
-```
+  <Tab value="Screenshots">
+    ```bash
+    # Use parse for custom screenshot settings, then pipe to extract
+    struktur parse --input slides.pdf --screenshots --screenshot-scale 2 | \
+      struktur --artifact-file - \
+      --fields "title, slide_count:integer" \
+      --model openai/gpt-4o
+    ```
+  </Tab>
 
-**PDF with embedded images (for visually rich documents):**
+  <Tab value="Inline schema">
+    ```bash
+    struktur --input report.txt \
+      --schema-json '{"type":"object","properties":{"summary":{"type":"string"}},"required":["summary"],"additionalProperties":false}' \
+      --model openai/gpt-4o-mini
+    ```
+  </Tab>
 
-```bash
-struktur --input invoice.pdf --images \
-  --schema invoice-schema.json \
-  --model openai/gpt-4o
-```
+  <Tab value="Stdin">
+    ```bash
+    cat document.md | struktur --stdin --schema schema.json --model anthropic/claude-3-5-haiku-20241022
+    ```
+  </Tab>
 
-**PDF with page screenshots (for slide decks, visual PDFs):**
+  <Tab value="Parallel strategy">
+    ```bash
+    struktur --input large.md --schema schema.json --model openai/gpt-4o \
+      --strategy parallel --output result.json
+    ```
+  </Tab>
 
-```bash
-# Use parse for custom screenshot settings, then pipe to extract
-struktur parse --input slides.pdf --screenshots --screenshot-scale 2 | \
-  struktur --artifact-file - \
-  --fields "title, slide_count:integer" \
-  --model openai/gpt-4o
-```
+  <Tab value="MIME override">
+    ```bash
+    struktur --input data.bin --mime application/pdf \
+      --fields "title, author" --model openai/gpt-4o-mini
+    ```
+  </Tab>
 
-**File input with inline schema:**
+  <Tab value="Custom parser">
+    ```bash
+    struktur --input report.docx --parser @myorg/docx-parser \
+      --fields "title, summary" --model openai/gpt-4o-mini
+    ```
+  </Tab>
 
-```bash
-struktur --input report.txt \
-  --schema-json '{"type":"object","properties":{"summary":{"type":"string"}},"required":["summary"],"additionalProperties":false}' \
-  --model openai/gpt-4o-mini
-```
+  <Tab value="Schema from URL">
+    ```bash
+    struktur --input data.txt --schema https://myserver.com/schemas/invoice.json --model openai/gpt-4o-mini
+    ```
+  </Tab>
 
-**Stdin with schema file:**
-
-```bash
-cat document.md | struktur --stdin --schema schema.json --model anthropic/claude-3-5-haiku-20241022
-```
-
-**Parallel strategy with output to file:**
-
-```bash
-struktur --input large.md --schema schema.json --model openai/gpt-4o \
-  --strategy parallel --output result.json
-```
-
-**MIME type override:**
-
-```bash
-struktur --input data.bin --mime application/pdf \
-  --fields "title, author" --model openai/gpt-4o-mini
-```
-
-**Custom parser for a single run:**
-
-```bash
-struktur --input report.docx --parser @myorg/docx-parser \
-  --fields "title, summary" --model openai/gpt-4o-mini
-```
-
-**Schema from URL:**
-
-```bash
-struktur --input data.txt --schema https://myserver.com/schemas/invoice.json --model openai/gpt-4o-mini
-```
-
-**Debug mode (verbose logging to stderr):**
-
-```bash
-struktur --input doc.pdf --fields "title" --model openai/gpt-4o-mini --debug
-```
+  <Tab value="Debug mode">
+    ```bash
+    struktur --input doc.pdf --fields "title" --model openai/gpt-4o-mini --debug
+    ```
+  </Tab>
+</Tabs>
 
 See also [#see-also]
 
@@ -419,6 +582,11 @@ See also [#see-also]
 # Fields Shorthand
 
 
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+import { Card, Cards } from 'fumadocs-ui/components/card';
 
 The `--fields` flag (short: `-f`) lets you describe extraction output as a comma-separated string directly on the command line, without writing or maintaining a JSON Schema file.
 
@@ -449,11 +617,25 @@ struktur [extract] --fields "<field-definitions>" [other options]
 
 `--fields` is one of three mutually exclusive schema options. Pass exactly one of:
 
-| Flag                   | Description               |
-| ---------------------- | ------------------------- |
-| `--fields` / `-f`      | Fields shorthand string   |
-| `--schema <path\|url>` | JSON Schema file or URL   |
-| `--schema-json <json>` | Inline JSON Schema string |
+<TypeTable
+  type={{
+  fields: {
+    description: 'Fields shorthand string (short: -f)',
+    type: 'string',
+    required: false,
+  },
+  schema: {
+    description: 'JSON Schema file or URL',
+    type: 'string',
+    required: false,
+  },
+  'schema-json': {
+    description: 'Inline JSON Schema string',
+    type: 'string',
+    required: false,
+  },
+}}
+/>
 
 ***
 
@@ -471,41 +653,43 @@ Whitespace around commas and colons is ignored.
 
 Scalar types [#scalar-types]
 
-string [#string]
+<Tabs items={['string', 'number / float', 'integer / int', 'boolean / bool']}>
+  <Tab value="string">
+    ```bash
+    --fields "title"
+    --fields "title:string"
+    ```
 
-```bash
---fields "title"
---fields "title:string"
-```
+    Default when no type is specified. Produces `{ "type": "string" }`.
+  </Tab>
 
-Default when no type is specified. Produces `{ "type": "string" }`.
+  <Tab value="number / float">
+    ```bash
+    --fields "price:number"
+    --fields "price:float"
+    ```
 
-number / float [#number--float]
+    Any numeric value. Both produce `{ "type": "number" }`. `float` is an alias for `number`.
+  </Tab>
 
-```bash
---fields "price:number"
---fields "price:float"
-```
+  <Tab value="integer / int">
+    ```bash
+    --fields "count:integer"
+    --fields "count:int"
+    ```
 
-Any numeric value. Both produce `{ "type": "number" }`. `float` is an alias for `number`.
+    Whole numbers only. `integer` produces `{ "type": "integer" }`. `int` produces `{ "type": "integer", "multipleOf": 1 }` — explicitly disallows fractions.
+  </Tab>
 
-integer / int [#integer--int]
+  <Tab value="boolean / bool">
+    ```bash
+    --fields "active:boolean"
+    --fields "active:bool"
+    ```
 
-```bash
---fields "count:integer"
---fields "count:int"
-```
-
-Whole numbers only. `integer` produces `{ "type": "integer" }`. `int` produces `{ "type": "integer", "multipleOf": 1 }` — explicitly disallows fractions.
-
-boolean / bool [#boolean--bool]
-
-```bash
---fields "active:boolean"
---fields "active:bool"
-```
-
-Both produce `{ "type": "boolean" }`. `bool` is an alias for `boolean`.
+    Both produce `{ "type": "boolean" }`. `bool` is an alias for `boolean`.
+  </Tab>
+</Tabs>
 
 ***
 
@@ -534,51 +718,65 @@ The item type can be any scalar keyword (including aliases). If omitted, default
 
 Examples [#examples]
 
-**Basic fields with types:**
+<Cards>
+  <Card title="Basic fields with types" description="Extract article metadata" />
 
-```bash
-struktur --input article.txt \
-  --fields "title, author, published_date, word_count:integer" \
-  --model openai/gpt-4o-mini
-```
+  <Card title="Enum field" description="Status extraction with predefined values" />
 
-**Enum field:**
+  <Card title="Mixed types" description="Products with arrays and enums" />
 
-```bash
-echo "Order #4421 is currently being packed." | \
-  struktur --stdin \
-  --fields "order_id, status:enum{pending|processing|shipped|delivered}" \
-  --model anthropic/claude-3-5-haiku-20241022
-```
+  <Card title="Piped input" description="Processing reviews from stdin" />
 
-**Mixed types including arrays:**
+  <Card title="Batch processing" description="Process a directory of documents" />
+</Cards>
 
-```bash
-struktur --input product.html \
-  --fields "name, price:float, in_stock:bool, tags:array{string}, category:enum{electronics|clothing|food}" \
-  --model openai/gpt-4o-mini
-```
+<Tabs items={['Basic fields', 'Enum field', 'Mixed types', 'Piped input', 'Batch processing']}>
+  <Tab value="Basic fields">
+    ```bash
+    struktur --input article.txt \
+      --fields "title, author, published_date, word_count:integer" \
+      --model openai/gpt-4o-mini
+    ```
+  </Tab>
 
-**Piped from stdin, output to file:**
+  <Tab value="Enum field">
+    ```bash
+    echo "Order #4421 is currently being packed." | \
+      struktur --stdin \
+      --fields "order_id, status:enum{pending|processing|shipped|delivered}" \
+      --model anthropic/claude-3-5-haiku-20241022
+    ```
+  </Tab>
 
-```bash
-cat reviews.txt | \
-  struktur --stdin \
-  --fields "sentiment:enum{positive|neutral|negative}, score:int, summary" \
-  --model openai/gpt-4o-mini \
-  --output result.json
-```
+  <Tab value="Mixed types">
+    ```bash
+    struktur --input product.html \
+      --fields "name, price:float, in_stock:bool, tags:array{string}, category:enum{electronics|clothing|food}" \
+      --model openai/gpt-4o-mini
+    ```
+  </Tab>
 
-**Batch processing a directory:**
+  <Tab value="Piped input">
+    ```bash
+    cat reviews.txt | \
+      struktur --stdin \
+      --fields "sentiment:enum{positive|neutral|negative}, score:int, summary" \
+      --model openai/gpt-4o-mini \
+      --output result.json
+    ```
+  </Tab>
 
-```bash
-for f in docs/*.txt; do
-  struktur --input "$f" \
-    --fields "title, category:enum{invoice|receipt|contract}, amount:float" \
-    --model openai/gpt-4o-mini \
-    --output "out/$(basename "$f" .txt).json"
-done
-```
+  <Tab value="Batch processing">
+    ```bash
+    for f in docs/*.txt; do
+      struktur --input "$f" \
+        --fields "title, category:enum{invoice|receipt|contract}, amount:float" \
+        --model openai/gpt-4o-mini \
+        --output "out/$(basename "$f" .txt).json"
+    done
+    ```
+  </Tab>
+</Tabs>
 
 ***
 
@@ -713,15 +911,21 @@ See also [#see-also]
 
 
 
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
 The Struktur CLI provides commands for data extraction, file parsing, and configuration management.
 
-Commands [#commands]
+<Cards>
+  <Card title="extract" description="Extract structured data from files, stdin, or text (default command)" href="/docs/cli/extract" />
 
-* [extract](/docs/cli/extract) — Extract structured data from files, stdin, or text (default command)
-* [parse](/docs/cli/parse) — Convert a file to Artifact JSON for inspection or pre-processing
-* [config](/docs/cli/config) — Manage providers, models, and parsers
-* [utils](/docs/cli/utils) — Utility commands (artifact viewer)
-* [verify](/docs/cli/verify) — Validate artifact JSON format
+  <Card title="parse" description="Convert a file to Artifact JSON for inspection or pre-processing" href="/docs/cli/parse" />
+
+  <Card title="config" description="Manage providers, models, and parsers" href="/docs/cli/config" />
+
+  <Card title="utils" description="Utility commands (artifact viewer)" href="/docs/cli/utils" />
+
+  <Card title="verify" description="Validate artifact JSON format" href="/docs/cli/verify" />
+</Cards>
 
 `extract` is the default command — `struktur --input file.pdf ...` and `struktur extract --input file.pdf ...` are equivalent.
 
@@ -730,15 +934,25 @@ Commands [#commands]
 
 
 
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Callout } from 'fumadocs-ui/components/callout';
+
 Install [#install]
 
-```bash
-# Using npm
-npm install -g @struktur/cli
+<Tabs items={['npm', 'Bun']} groupId="package-manager">
+  <Tab value="npm">
+    ```bash
+    npm install -g @struktur/cli
+    ```
+  </Tab>
 
-# Or using Bun (recommended)
-bun install -g @struktur/cli
-```
+  <Tab value="Bun">
+    ```bash
+    bun install -g @struktur/cli
+    ```
+  </Tab>
+</Tabs>
 
 Verify:
 
@@ -746,8 +960,11 @@ Verify:
 struktur --help
 ```
 
-* [npm: @struktur/cli](https://www.npmjs.com/package/@struktur/cli)
-* [GitHub: packages/cli](https://github.com/mateffy/struktur/tree/main/packages/cli)
+<Cards>
+  <Card title="npm: @struktur/cli" href="https://www.npmjs.com/package/@struktur/cli" external />
+
+  <Card title="GitHub: packages/cli" href="https://github.com/mateffy/struktur/tree/main/packages/cli" external />
+</Cards>
 
 Configure a provider (required) [#configure-a-provider-required]
 
@@ -820,6 +1037,11 @@ See also [#see-also]
 
 
 
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
 Synopsis [#synopsis]
 
 ```bash
@@ -831,41 +1053,97 @@ Description [#description]
 
 Converts a file or stdin to Artifact JSON. Use this to:
 
-* Inspect how Struktur will represent your document before running extraction
-* Pre-process files and cache the artifact JSON for repeated extraction
-* Debug parser output when configuring a custom parser
-* Pipe artifacts into `struktur extract --artifact-file -` for decoupled workflows
+<Cards>
+  <Card title="Inspect" description="See how Struktur will represent your document before running extraction" />
+
+  <Card title="Cache" description="Pre-process files and cache the artifact JSON for repeated extraction" />
+
+  <Card title="Debug" description="Debug parser output when configuring a custom parser" />
+
+  <Card title="Pipeline" description="Pipe artifacts into extract for decoupled workflows" />
+</Cards>
 
 Options [#options]
 
 Input (exactly one required) [#input-exactly-one-required]
 
-| Flag             | Short | Type    | Description     |
-| ---------------- | ----- | ------- | --------------- |
-| `--input <path>` | `-i`  | string  | File to parse   |
-| `--stdin`        | `-s`  | boolean | Read from stdin |
+<TypeTable
+  type={{
+  input: {
+    description: 'File to parse',
+    type: 'string',
+    short: '-i',
+    required: false,
+  },
+  stdin: {
+    description: 'Read from stdin',
+    type: 'boolean',
+    short: '-s',
+    required: false,
+  },
+}}
+/>
 
 Output [#output]
 
-| Flag                 | Short | Type   | Default      | Description                           |
-| -------------------- | ----- | ------ | ------------ | ------------------------------------- |
-| `--output <path\|->` | `-o`  | string | `-` (stdout) | Write artifact JSON to file or stdout |
+<TypeTable
+  type={{
+  output: {
+    description: 'Write artifact JSON to file or stdout (-)',
+    type: 'string',
+    short: '-o',
+    default: '- (stdout)',
+    required: false,
+  },
+}}
+/>
 
 Parser control [#parser-control]
 
-| Flag             | Type   | Description                                                      |
-| ---------------- | ------ | ---------------------------------------------------------------- |
-| `--mime <type>`  | string | Override MIME type detection                                     |
-| `--parser <pkg>` | string | Use this npm package as parser, overriding any configured parser |
+<TypeTable
+  type={{
+  mime: {
+    description: 'Override MIME type detection',
+    type: 'string',
+    required: false,
+  },
+  parser: {
+    description: 'Use this npm package as parser, overriding any configured parser',
+    type: 'string',
+    required: false,
+  },
+}}
+/>
 
 Image extraction (PDF inputs) [#image-extraction-pdf-inputs]
 
-| Flag                       | Type    | Default | Description                                                        |
-| -------------------------- | ------- | ------- | ------------------------------------------------------------------ |
-| `--images`                 | boolean | false   | Extract embedded images from PDFs                                  |
-| `--screenshots`            | boolean | false   | Render page screenshots                                            |
-| `--screenshot-scale <num>` | number  | 1.5     | Scale factor for screenshots                                       |
-| `--screenshot-width <px>`  | number  | —       | Target screenshot width in pixels (overrides `--screenshot-scale`) |
+<TypeTable
+  type={{
+  images: {
+    description: 'Extract embedded images from PDFs',
+    type: 'boolean',
+    default: 'false',
+    required: false,
+  },
+  screenshots: {
+    description: 'Render page screenshots',
+    type: 'boolean',
+    default: 'false',
+    required: false,
+  },
+  'screenshot-scale': {
+    description: 'Scale factor for screenshots',
+    type: 'number',
+    default: '1.5',
+    required: false,
+  },
+  'screenshot-width': {
+    description: 'Target screenshot width in pixels (overrides --screenshot-scale)',
+    type: 'number',
+    required: false,
+  },
+}}
+/>
 
 Parser resolution order [#parser-resolution-order]
 
@@ -885,27 +1163,39 @@ Built-in parsers [#built-in-parsers]
 
 Examples [#examples]
 
-```bash
-# Inspect a PDF
-struktur parse --input document.pdf
+<Tabs items={['Inspect a PDF', 'Extract with images', 'Custom parser', 'Pipeline', 'Browser viewer']}>
+  <Tab value="Inspect a PDF">
+    ```bash
+    struktur parse --input document.pdf
+    ```
+  </Tab>
 
-# Extract PDF with embedded images and page screenshots
-struktur parse --input slides.pdf --images --screenshots --output artifact.json
+  <Tab value="Extract with images">
+    ```bash
+    struktur parse --input slides.pdf --images --screenshots --output artifact.json
+    ```
+  </Tab>
 
-# Use a configured custom parser
-struktur parse --input report.docx --output artifact.json
+  <Tab value="Custom parser">
+    ```bash
+    struktur parse --input data.xlsx --parser @myorg/xlsx-parser
+    ```
+  </Tab>
 
-# Override the parser on the fly
-struktur parse --input data.xlsx --parser @myorg/xlsx-parser
+  <Tab value="Pipeline">
+    ```bash
+    struktur parse --input doc.pdf --images | \
+      struktur extract --artifact-file - --fields "title, author" --model openai/gpt-4o-mini
+    ```
+  </Tab>
 
-# Pipe into extract
-struktur parse --input doc.pdf --images | \
-  struktur extract --artifact-file - --fields "title, author" --model openai/gpt-4o-mini
-
-# Inspect in the browser
-struktur parse --input doc.pdf | struktur utils artifact-viewer --stdin > viewer.html
-open viewer.html
-```
+  <Tab value="Browser viewer">
+    ```bash
+    struktur parse --input doc.pdf | struktur utils artifact-viewer --stdin > viewer.html
+    open viewer.html
+    ```
+  </Tab>
+</Tabs>
 
 See also [#see-also]
 
@@ -919,6 +1209,10 @@ See also [#see-also]
 
 
 
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
 utils artifact-viewer [#utils-artifact-viewer]
 
 Generates a self-contained HTML file for exploring artifact JSON in a browser.
@@ -930,15 +1224,40 @@ struktur parse --input doc.pdf --images | struktur utils artifact-viewer --stdin
 
 Options [#options]
 
-| Flag                 | Short | Type    | Default      | Description                   |
-| -------------------- | ----- | ------- | ------------ | ----------------------------- |
-| `--input <path>`     | `-i`  | string  | —            | Artifact JSON file            |
-| `--stdin`            | `-s`  | boolean | false        | Read artifact JSON from stdin |
-| `--output <path\|->` | `-o`  | string  | `-` (stdout) | Write HTML to file or stdout  |
+<TypeTable
+  type={{
+  input: {
+    description: 'Artifact JSON file',
+    type: 'string',
+    short: '-i',
+    required: false,
+  },
+  stdin: {
+    description: 'Read artifact JSON from stdin',
+    type: 'boolean',
+    short: '-s',
+    default: 'false',
+    required: false,
+  },
+  output: {
+    description: 'Write HTML to file or stdout (-)',
+    type: 'string',
+    short: '-o',
+    default: '- (stdout)',
+    required: false,
+  },
+}}
+/>
 
 What the viewer shows [#what-the-viewer-shows]
 
-**Default view** (artifact-by-artifact):
+<Cards>
+  <Card title="Default View" description="Artifact-by-artifact view with cards showing type, page count, and image count" />
+
+  <Card title="Batching Mode" description="Chunking visualization with configurable parameters and live token counts" />
+</Cards>
+
+**Default view features:**
 
 * Each artifact as a card with header showing type, page count, and image count
 * Text content with expand/collapse per-slice (truncated at 500 chars, full text on click)
@@ -947,7 +1266,7 @@ What the viewer shows [#what-the-viewer-shows]
 * Image dimensions overlaid on each thumbnail
 * Metadata section (collapsible)
 
-**Batching Mode** (chunking visualization):
+**Batching Mode features:**
 
 * Sidebar listing batches and chunks with token and image counts
 * Main area shows each chunk with a dashed amber border at chunk boundaries
@@ -955,7 +1274,9 @@ What the viewer shows [#what-the-viewer-shows]
 * Image type filter: show/hide embedded images and screenshots independently
 * Token and image counts update live as parameters change
 
-The viewer embeds a JavaScript implementation of Struktur's chunking algorithm so batching mode accurately reflects what `parallel`, `sequential`, and other chunked strategies will do with your documents.
+<Callout type="info">
+  The viewer embeds a JavaScript implementation of Struktur's chunking algorithm so batching mode accurately reflects what `parallel`, `sequential`, and other chunked strategies will do with your documents.
+</Callout>
 
 Workflow example [#workflow-example]
 
@@ -981,6 +1302,9 @@ See also [#see-also]
 
 
 
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+import { Callout } from 'fumadocs-ui/components/callout';
+
 Synopsis [#synopsis]
 
 ```bash
@@ -988,10 +1312,22 @@ struktur verify --input <path>
 struktur verify --stdin
 ```
 
-| Flag             | Short | Type    | Description                     |
-| ---------------- | ----- | ------- | ------------------------------- |
-| `--input <path>` | `-i`  | string  | Artifact JSON file to validate. |
-| `--stdin`        | `-s`  | boolean | Read artifact JSON from stdin.  |
+<TypeTable
+  type={{
+  input: {
+    description: 'Artifact JSON file to validate.',
+    type: 'string',
+    short: '-i',
+    required: false,
+  },
+  stdin: {
+    description: 'Read artifact JSON from stdin.',
+    type: 'boolean',
+    short: '-s',
+    required: false,
+  },
+}}
+/>
 
 Output on success:
 
@@ -999,7 +1335,9 @@ Output on success:
 { "valid": true, "artifacts": 2 }
 ```
 
-Throws with a descriptive error on invalid artifact JSON (schema path, expected type, etc.).
+<Callout type="warn">
+  Throws with a descriptive error on invalid artifact JSON (schema path, expected type, etc.).
+</Callout>
 
 Usage [#usage]
 
@@ -1445,16 +1783,23 @@ See also [#see-also]
 
 
 
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
 Practical examples showing how to use Struktur for common extraction tasks.
 
-Examples [#examples]
+<Cards>
+  <Card title="Extract Invoice Data" description="Parse invoices into structured data with line items" href="/docs/examples/extract-invoice" />
 
-* [Extract Invoice Data](/docs/examples/extract-invoice) — Parse invoices into structured data
-* [Extract Real Estate Listings](/docs/examples/extract-realestate) — Extract property details from listings
-* [Process Directory](/docs/examples/process-directory) — Batch process multiple files
-* [Enrich Records](/docs/examples/enrich-records) — Add structured data to existing records
-* [Watch Folder](/docs/examples/watch-folder) — Monitor and process new files automatically
-* [Pipelines](/docs/examples/pipelines) — Chain multiple extraction steps
+  <Card title="Extract Real Estate Listings" description="Extract property details from listings and exposés" href="/docs/examples/extract-realestate" />
+
+  <Card title="Process Directory" description="Batch process multiple files efficiently" href="/docs/examples/process-directory" />
+
+  <Card title="Enrich Records" description="Add structured data to existing records" href="/docs/examples/enrich-records" />
+
+  <Card title="Watch Folder" description="Monitor and process new files automatically" href="/docs/examples/watch-folder" />
+
+  <Card title="Pipelines" description="Chain multiple extraction steps together" href="/docs/examples/pipelines" />
+</Cards>
 
 
 # Shell Pipelines & Patterns
@@ -2515,21 +2860,32 @@ See also [#see-also]
 
 
 
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
 Deep dives into Struktur's architecture, strategies, and design decisions.
 
-Topics [#topics]
+<Cards>
+  <Card title="The Extraction Pipeline" description="How data flows through Struktur from input to output" href="/docs/explanation/pipeline" />
 
-* [pipeline](/docs/explanation/pipeline) — How data flows through Struktur
-* [artifact-format](/docs/explanation/artifact-format) — The artifact JSON structure
-* [document-parsing](/docs/explanation/document-parsing) — How files are converted to artifacts
-* [strategies](/docs/explanation/strategies) — Extraction strategies overview
-* [chunking](/docs/explanation/chunking) — Token-aware document splitting
-* [validation](/docs/explanation/validation) — Schema validation and retry logic
+  <Card title="Artifact Format" description="The artifact JSON structure" href="/docs/explanation/artifact-format" />
+
+  <Card title="Document Parsing" description="How files are converted to artifacts" href="/docs/explanation/document-parsing" />
+
+  <Card title="Extraction Strategies" description="Built-in strategies overview and how to choose" href="/docs/explanation/strategies" />
+
+  <Card title="Chunking & Token Budgets" description="Token-aware document splitting" href="/docs/explanation/chunking" />
+
+  <Card title="Validation & Retries" description="Schema validation and retry logic" href="/docs/explanation/validation" />
+</Cards>
 
 
 # Extraction Lifecycle
 
 
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { TypeTable } from 'fumadocs-ui/components/type-table';
 
 ```mermaid
 flowchart LR
@@ -2552,8 +2908,11 @@ Inputs and Artifacts [#inputs-and-artifacts]
 
 Struktur converts input files into **Artifacts** before extraction. For plain text or stdin, this is trivial. For structured files (PDFs, Office documents), Struktur runs a parser — built-in or custom — that extracts text and images per-page.
 
-See [Document Parsing](/docs/explanation/document-parsing) for how files are converted to artifacts.
-See [Artifact Format](/docs/explanation/artifact-format) for the data structure.
+<Cards>
+  <Card title="Document Parsing" description="Learn how files are converted to artifacts" href="/docs/explanation/document-parsing" />
+
+  <Card title="Artifact Format" description="Understand the artifact data structure" href="/docs/explanation/artifact-format" />
+</Cards>
 
 The Strategy layer [#the-strategy-layer]
 
@@ -2561,13 +2920,17 @@ A strategy is the orchestration engine. It decides how to split the input, how m
 
 Built-in strategies cover the common patterns. You can also write your own.
 
-See [Strategies](/docs/explanation/strategies) for the strategy concept.
+<Callout type="info">
+  See [Strategies](/docs/explanation/strategies) for the complete strategy reference.
+</Callout>
 
 Validation inside the loop [#validation-inside-the-loop]
 
 The validation loop is a key differentiator. Every LLM response is validated against the schema **before** the strategy considers it done. If validation fails, the errors are serialized and sent back to the model as a follow-up message.
 
-**Smart validation**: For multi-step strategies (parallel, sequential, double-pass), Struktur uses lenient validation during intermediate steps—required field violations are allowed until the final step. This prevents false failures when data is split across chunks. Use the `strict` option to disable this behavior.
+<Callout type="info">
+  **Smart validation**: For multi-step strategies (parallel, sequential, double-pass), Struktur uses lenient validation during intermediate steps—required field violations are allowed until the final step. This prevents false failures when data is split across chunks. Use the `strict` option to disable this behavior.
+</Callout>
 
 Most extractions converge within two attempts. This happens **inside** the strategy, not as a post-processing step.
 
@@ -2577,13 +2940,25 @@ See [Validation & Retries](/docs/explanation/validation) for the validation conc
 
 The result [#the-result]
 
-The extraction result has three fields:
-
-| Field   | Description                                                                       |
-| ------- | --------------------------------------------------------------------------------- |
-| `data`  | Validated output matching your schema. If `error` is set, may not be trustworthy. |
-| `usage` | Aggregated token counts across all LLM calls.                                     |
-| `error` | Set if extraction encountered a non-fatal error.                                  |
+<TypeTable
+  type={{
+  data: {
+    description: 'Validated output matching your schema. If error is set, may not be trustworthy.',
+    type: 'T',
+    required: true,
+  },
+  usage: {
+    description: 'Aggregated token counts across all LLM calls',
+    type: 'Usage',
+    required: true,
+  },
+  error: {
+    description: 'Set if extraction encountered a non-fatal error',
+    type: 'Error | undefined',
+    required: false,
+  },
+}}
+/>
 
 See also [#see-also]
 
@@ -2598,42 +2973,219 @@ See also [#see-also]
 
 
 
-A strategy is the orchestration engine. It decides how to split the input, how many LLM calls to make, whether to run them concurrently or sequentially, and how to combine results.
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+
+The **Agent** strategy is the default and recommended way to use Struktur. It gives the LLM a virtual filesystem and lets it autonomously decide how to extract your data.
+
+For documents where you need more control, Struktur also provides alternative strategies that use fixed chunking and parallelism patterns.
 
 Strategy comparison [#strategy-comparison]
 
-| Strategy              | Speed   | Context | Arrays        | Token Cost |
-| --------------------- | ------- | ------- | ------------- | ---------- |
-| `simple`              | Fastest | Full    | —             | Lowest     |
-| `parallel`            | Fast    | None    | LLM merge     | Medium     |
-| `sequential`          | Medium  | Full    | Context       | Medium     |
-| `parallelAutoMerge`   | Fast    | None    | Auto + dedupe | Medium     |
-| `sequentialAutoMerge` | Medium  | Full    | Auto + dedupe | Medium     |
-| `doublePass`          | Slow    | Full    | LLM merge     | High       |
-| `doublePassAutoMerge` | Slow    | Full    | Auto + dedupe | High       |
+| Strategy              | Speed    | Context  | Arrays        | Token Cost | Best For           |
+| --------------------- | -------- | -------- | ------------- | ---------- | ------------------ |
+| `agent` (default)     | Adaptive | Adaptive | Automatic     | Varies     | **Most documents** |
+| `simple`              | Fastest  | Full     | —             | Lowest     | Small inputs       |
+| `parallel`            | Fast     | None     | LLM merge     | Medium     | Speed priority     |
+| `sequential`          | Medium   | Full     | Context       | Medium     | Context-dependent  |
+| `parallelAutoMerge`   | Fast     | None     | Auto + dedupe | Medium     | Large arrays       |
+| `sequentialAutoMerge` | Medium   | Full     | Auto + dedupe | Medium     | Ordered arrays     |
+| `doublePass`          | Slow     | Full     | LLM merge     | High       | Maximum quality    |
+| `doublePassAutoMerge` | Slow     | Full     | Auto + dedupe | High       | Quality + arrays   |
 
 ***
 
-simple [#simple]
+Agent (Default) [#agent-default]
 
-Single-shot extraction for small inputs.
+<Callout type="info">
+  **The Agent strategy is the default.** You don't need to specify `--strategy agent` — it's used automatically when you run `struktur extract`.
+</Callout>
 
-| Property    | Value                      |
-| ----------- | -------------------------- |
-| Name        | `"simple"`                 |
-| LLM calls   | 1                          |
-| Parallelism | None                       |
-| Merge step  | None                       |
-| Dedupe step | None                       |
-| Best for    | Small, single-chunk inputs |
+Autonomous extraction using a virtual filesystem. The agent decides when to read files, search for patterns, and build output incrementally.
+
+<Cards>
+  <Card title="Best For" description="Most documents — adapts automatically" />
+
+  <Card title="Virtual FS" description="read, grep, find, ls, bash" />
+
+  <Card title="Output Tools" description="set_output_data, update_output_data" />
+
+  <Card title="Model Requirement" description="Must support tool calling" />
+</Cards>
+
+How it works [#how-it-works]
+
+1. **Document loaded** into virtual filesystem (`/artifacts/artifact.json`, `/artifacts/manifest.json`, `/artifacts/images/`)
+2. **Agent explores** using tools: read files, grep for patterns, list directories, execute commands
+3. **Incremental extraction** — calls `set_output_data` when first data found, `update_output_data` as more discovered
+4. **Validation** — schema validation on every output update, with automatic retry on errors
+5. **Completion** — agent calls `finish` when done, or `fail` if extraction impossible
+
+The agent adapts to your document:
+
+* **Small documents** — reads everything at once
+* **Large documents** — navigates systematically, searching for relevant sections
+* **Complex schemas** — builds output incrementally, validating as it goes
 
 Configuration [#configuration]
 
-| Field                | Required | Default | Description                                                   |
-| -------------------- | -------- | ------- | ------------------------------------------------------------- |
-| `model`              | Yes      | -       | Model instance from `@ai-sdk/*`                               |
-| `outputInstructions` | No       | -       | Extra instructions for the model                              |
-| `strict`             | No       | `false` | Always `true` for simple (single-shot, no intermediate steps) |
+<TypeTable
+  type={{
+  provider: {
+    description: 'Provider name (e.g., anthropic, openai)',
+    type: 'string',
+    required: true,
+  },
+  modelId: {
+    description: 'Model identifier (e.g., claude-sonnet-4, gpt-4o)',
+    type: 'string',
+    required: true,
+  },
+  maxSteps: {
+    description: 'Maximum agent steps/turns',
+    type: 'number',
+    default: '50',
+    required: false,
+  },
+  apiKey: {
+    description: 'API key (or use env vars)',
+    type: 'string',
+    required: false,
+  },
+  outputInstructions: {
+    description: 'Additional extraction guidance',
+    type: 'string',
+    required: false,
+  },
+  systemPrompt: {
+    description: 'Override default system prompt',
+    type: 'string',
+    required: false,
+  },
+}}
+/>
+
+Example [#example]
+
+<Tabs items={['CLI', 'SDK']}>
+  <Tab value="CLI">
+    ```bash
+    # Agent is the default — no --strategy needed
+    struktur extract --input ./document.pdf \
+      --schema ./schema.json \
+      --model anthropic/claude-sonnet-4
+
+    # With max steps limit
+    struktur extract --input ./document.pdf \
+      --schema ./schema.json \
+      --model anthropic/claude-sonnet-4 \
+      --max-steps 30
+    ```
+  </Tab>
+
+  <Tab value="SDK">
+    ```ts
+    import { extract, agent } from "@struktur/sdk";
+
+    const result = await extract({
+      artifacts,
+      schema,
+      strategy: agent({
+        provider: "anthropic",
+        modelId: "claude-sonnet-4",
+        maxSteps: 50,
+      }),
+    });
+    ```
+  </Tab>
+</Tabs>
+
+When to use [#when-to-use]
+
+* **Always try agent first** — it's the default for a reason
+* Works well for most document types and sizes
+* Automatically adapts to document structure
+* Best for complex schemas with nested objects
+
+Model compatibility [#model-compatibility]
+
+The agent requires models that support tool/function calling:
+
+| Provider  | Compatible Models                                |
+| --------- | ------------------------------------------------ |
+| Anthropic | Claude 3.5 Sonnet, Claude 3 Opus, Claude 3 Haiku |
+| OpenAI    | GPT-4o, GPT-4 Turbo, GPT-4, GPT-3.5 Turbo        |
+| Google    | Gemini 1.5 Pro, Gemini 1.5 Flash                 |
+
+<Callout type="warn">
+  Some models claim tool support but don't work well with the agent. Avoid: GPT-4o-mini (inconsistent tool calling), older GPT-3.5 models, models without native function calling.
+</Callout>
+
+Virtual filesystem [#virtual-filesystem]
+
+The agent has access to a virtual filesystem containing:
+
+* `/artifacts/artifact.json` — All artifacts in JSON format (images replaced by virtual paths)
+* `/artifacts/manifest.json` — Summary and metadata
+* `/artifacts/images/` — Extracted image files (when artifacts have embedded images)
+
+The agent can:
+
+* **Read** files with pagination (`offset`, `limit`)
+* **Grep** for patterns
+* **Find** files by name
+* **List** directories
+* **Bash** execute commands (on virtual filesystem only)
+
+Output management [#output-management]
+
+Special tools for building extraction output:
+
+* **`set_output_data(data)`** — Set initial output (first time data is found)
+* **`update_output_data(changes)`** — Merge changes into existing output
+* **`finish()`** — Complete extraction (only works if data validates)
+* **`fail(reason)`** — Mark extraction as impossible
+
+The agent is encouraged to update output continuously as it explores, not wait until the end.
+
+***
+
+Simple [#simple]
+
+Single-shot extraction for small inputs. Use when the agent is overkill for tiny documents.
+
+<Cards>
+  <Card title="LLM Calls" description="1" />
+
+  <Card title="Parallelism" description="None" />
+
+  <Card title="Best for" description="Small, single-chunk inputs" />
+</Cards>
+
+Configuration [#configuration-1]
+
+<TypeTable
+  type={{
+  model: {
+    description: 'Model instance from @ai-sdk/*',
+    type: 'LanguageModel',
+    required: true,
+  },
+  outputInstructions: {
+    description: 'Extra instructions for the model',
+    type: 'string',
+    required: false,
+  },
+  strict: {
+    description: 'Always true for simple (single-shot, no intermediate steps)',
+    type: 'boolean',
+    default: 'true',
+    required: false,
+  },
+}}
+/>
 
 Algorithm [#algorithm]
 
@@ -2643,61 +3195,97 @@ Algorithm [#algorithm]
 4. Retry on validation failure (up to 3 attempts)
 5. Return validated output
 
-Example [#example]
+Example [#example-1]
 
-```js
-import { extract, simple } from "@struktur/sdk";
-import { openai } from "@ai-sdk/openai";
+<Tabs items={['CLI', 'SDK']}>
+  <Tab value="CLI">
+    ```bash
+    struktur extract --input document.txt --schema schema.json --strategy simple
+    ```
+  </Tab>
 
-const result = await extract({
-  artifacts,
-  schema,
-  strategy: simple({
-    model: openai("gpt-4o-mini"),
-  }),
-});
-```
+  <Tab value="SDK">
+    ```js
+    import { extract, simple } from "@struktur/sdk";
+    import { openai } from "@ai-sdk/openai";
 
-CLI [#cli]
+    const result = await extract({
+      artifacts,
+      schema,
+      strategy: simple({
+        model: openai("gpt-4o-mini"),
+      }),
+    });
+    ```
+  </Tab>
+</Tabs>
 
-```bash
-struktur --input document.txt --schema schema.json --model openai/gpt-4o-mini
-# --strategy simple is the default
-```
-
-When to use [#when-to-use]
+When to use [#when-to-use-1]
 
 * Document fits within the model's context window (\~10k tokens)
 * Simple schema without nested arrays
 * Testing or prototyping
 * Speed is the priority
+* When you want predictable token costs (agent costs vary by document)
 
 ***
 
-parallel [#parallel]
+Parallel [#parallel]
 
 Concurrent batch processing with LLM merge.
 
-| Property    | Value                        |
-| ----------- | ---------------------------- |
-| Name        | `"parallel"`                 |
-| LLM calls   | N batches + 1 merge          |
-| Parallelism | Full                         |
-| Merge step  | LLM merge                    |
-| Dedupe step | None                         |
-| Best for    | Large inputs, speed priority |
+<Cards>
+  <Card title="LLM Calls" description="N batches + 1 merge" />
 
-Configuration [#configuration-1]
+  <Card title="Parallelism" description="Full" />
 
-| Field                | Required | Default     | Description                            |
-| -------------------- | -------- | ----------- | -------------------------------------- |
-| `model`              | Yes      | -           | Model for extraction                   |
-| `mergeModel`         | Yes      | -           | Model for merging partial results      |
-| `chunkSize`          | Yes      | -           | Token budget per batch                 |
-| `concurrency`        | No       | All batches | Max parallel batches                   |
-| `maxImages`          | No       | Unlimited   | Max images per batch                   |
-| `outputInstructions` | No       | -           | Extra instructions                     |
-| `strict`             | No       | `false`     | Validate required fields on every step |
+  <Card title="Best for" description="Large inputs, speed priority" />
+</Cards>
+
+Configuration [#configuration-2]
+
+<TypeTable
+  type={{
+  model: {
+    description: 'Model for extraction',
+    type: 'LanguageModel',
+    required: true,
+  },
+  mergeModel: {
+    description: 'Model for merging partial results',
+    type: 'LanguageModel',
+    required: true,
+  },
+  chunkSize: {
+    description: 'Token budget per batch',
+    type: 'number',
+    required: true,
+  },
+  concurrency: {
+    description: 'Max parallel batches',
+    type: 'number',
+    default: 'All batches',
+    required: false,
+  },
+  maxImages: {
+    description: 'Max images per batch',
+    type: 'number',
+    default: 'Unlimited',
+    required: false,
+  },
+  outputInstructions: {
+    description: 'Extra instructions',
+    type: 'string',
+    required: false,
+  },
+  strict: {
+    description: 'Validate required fields on every step',
+    type: 'boolean',
+    default: 'false',
+    required: false,
+  },
+}}
+/>
 
 Algorithm [#algorithm-1]
 
@@ -2708,61 +3296,89 @@ Algorithm [#algorithm-1]
 5. Validate merged output
 6. Return final result
 
-Example [#example-1]
+Example [#example-2]
 
-```js
-import { extract, parallel } from "@struktur/sdk";
-import { openai } from "@ai-sdk/openai";
+<Tabs items={['CLI', 'SDK']}>
+  <Tab value="CLI">
+    ```bash
+    struktur extract --input large.pdf --schema schema.json --strategy parallel --model openai/gpt-4o-mini
+    ```
+  </Tab>
 
-const result = await extract({
-  artifacts,
-  schema,
-  strategy: parallel({
-    model: openai("gpt-4o-mini"),
-    mergeModel: openai("gpt-4o-mini"),
-    chunkSize: 10000,
-    concurrency: 3,
-  }),
-});
-```
+  <Tab value="SDK">
+    ```js
+    import { extract, parallel } from "@struktur/sdk";
+    import { openai } from "@ai-sdk/openai";
 
-CLI [#cli-1]
+    const result = await extract({
+      artifacts,
+      schema,
+      strategy: parallel({
+        model: openai("gpt-4o-mini"),
+        mergeModel: openai("gpt-4o-mini"),
+        chunkSize: 10000,
+        concurrency: 3,
+      }),
+    });
+    ```
+  </Tab>
+</Tabs>
 
-```bash
-struktur --input large.pdf --schema schema.json --strategy parallel --model openai/gpt-4o-mini
-```
-
-When to use [#when-to-use-1]
+When to use [#when-to-use-2]
 
 * Speed is the top priority
 * Chunks are relatively independent
 * Many documents to process
 * Can accept potential loss of cross-chunk context
+* When agent costs are too high for your use case
 
 ***
 
-sequential [#sequential]
+Sequential [#sequential]
 
 Process chunks in order with context preservation.
 
-| Property    | Value                       |
-| ----------- | --------------------------- |
-| Name        | `"sequential"`              |
-| LLM calls   | N batches                   |
-| Parallelism | None                        |
-| Merge step  | Context carryover           |
-| Dedupe step | None                        |
-| Best for    | Context-dependent documents |
+<Cards>
+  <Card title="LLM Calls" description="N batches" />
 
-Configuration [#configuration-2]
+  <Card title="Parallelism" description="None" />
 
-| Field                | Required | Default   | Description                            |
-| -------------------- | -------- | --------- | -------------------------------------- |
-| `model`              | Yes      | -         | Model for extraction                   |
-| `chunkSize`          | Yes      | -         | Token budget per batch                 |
-| `maxImages`          | No       | Unlimited | Max images per batch                   |
-| `outputInstructions` | No       | -         | Extra instructions                     |
-| `strict`             | No       | `false`   | Validate required fields on every step |
+  <Card title="Best for" description="Context-dependent documents" />
+</Cards>
+
+Configuration [#configuration-3]
+
+<TypeTable
+  type={{
+  model: {
+    description: 'Model for extraction',
+    type: 'LanguageModel',
+    required: true,
+  },
+  chunkSize: {
+    description: 'Token budget per batch',
+    type: 'number',
+    required: true,
+  },
+  maxImages: {
+    description: 'Max images per batch',
+    type: 'number',
+    default: 'Unlimited',
+    required: false,
+  },
+  outputInstructions: {
+    description: 'Extra instructions',
+    type: 'string',
+    required: false,
+  },
+  strict: {
+    description: 'Validate required fields on every step',
+    type: 'boolean',
+    default: 'false',
+    required: false,
+  },
+}}
+/>
 
 Algorithm [#algorithm-2]
 
@@ -2774,523 +3390,98 @@ Algorithm [#algorithm-2]
    * Store result for next iteration
 3. Return final result
 
-Example [#example-2]
+Example [#example-3]
 
-```js
-import { extract, sequential } from "@struktur/sdk";
-import { openai } from "@ai-sdk/openai";
+<Tabs items={['CLI', 'SDK']}>
+  <Tab value="CLI">
+    ```bash
+    struktur extract --input report.pdf --schema schema.json --strategy sequential --model openai/gpt-4o-mini
+    ```
+  </Tab>
 
-const result = await extract({
-  artifacts,
-  schema,
-  strategy: sequential({
-    model: openai("gpt-4o-mini"),
-    chunkSize: 10000,
-  }),
-});
-```
+  <Tab value="SDK">
+    ```js
+    import { extract, sequential } from "@struktur/sdk";
+    import { openai } from "@ai-sdk/openai";
 
-CLI [#cli-2]
+    const result = await extract({
+      artifacts,
+      schema,
+      strategy: sequential({
+        model: openai("gpt-4o-mini"),
+        chunkSize: 10000,
+      }),
+    });
+    ```
+  </Tab>
+</Tabs>
 
-```bash
-struktur --input report.pdf --schema schema.json --strategy sequential --model openai/gpt-4o-mini
-```
-
-When to use [#when-to-use-2]
+When to use [#when-to-use-3]
 
 * Context between chunks matters
 * Building data incrementally (e.g., accumulating line items)
 * Later sections reference earlier sections
 * Need better accuracy than parallel
+* Agent is making too many tool calls for your document structure
 
 ***
+
+Auto-Merge Strategies [#auto-merge-strategies]
+
+<Callout type="info">
+  Strategies with "AutoMerge" in the name use schema-aware merge and deduplication. They're ideal for extracting arrays that may have duplicates across chunks.
+</Callout>
 
 parallelAutoMerge [#parallelautomerge]
 
 Parallel extraction with schema-aware merge and deduplication.
 
-| Property    | Value                                 |
-| ----------- | ------------------------------------- |
-| Name        | `"parallel-auto-merge"`               |
-| LLM calls   | N batches + 1 dedupe                  |
-| Parallelism | Full                                  |
-| Merge step  | Schema-aware auto-merge               |
-| Dedupe step | CRC32 hash + LLM semantic             |
-| Best for    | Array extraction, duplicates possible |
-
-Configuration [#configuration-3]
-
-| Field                | Required | Default         | Description                            |
-| -------------------- | -------- | --------------- | -------------------------------------- |
-| `model`              | Yes      | -               | Model for extraction                   |
-| `chunkSize`          | Yes      | -               | Token budget per batch                 |
-| `concurrency`        | No       | All batches     | Max parallel batches                   |
-| `maxImages`          | No       | Unlimited       | Max images per batch                   |
-| `outputInstructions` | No       | -               | Extra instructions                     |
-| `dedupeModel`        | No       | Same as `model` | Model for semantic dedupe              |
-| `strict`             | No       | `false`         | Validate required fields on every step |
-
-Algorithm [#algorithm-3]
-
-1. Split artifacts into batches
-2. Extract from each batch concurrently
-3. Validate each batch output with retry
-4. **Schema-aware merge:** arrays concatenate, objects shallow-merge, scalars prefer new values
-5. **Hash dedupe:** CRC32 to remove exact duplicates
-6. **Semantic dedupe:** LLM identifies semantically equivalent entries
-7. Return final result
-
-Merge behavior [#merge-behavior]
-
-Schema-aware auto-merge via `SmartDataMerger`:
-
-* **Arrays:** concatenated
-* **Objects:** shallow-merged (later keys overwrite earlier)
-* **Scalars:** prefer newer non-empty values
-
-No LLM merge call — deterministic.
-
-Deduplication [#deduplication]
-
-Two-stage:
-
-1. **CRC32 hash:** Exact duplicates removed without LLM call
-2. **LLM semantic:** Model identifies near-duplicates (e.g., "iPhone 15" vs "Apple iPhone 15 128GB")
-
-Example [#example-3]
-
-```js
-import { extract, parallelAutoMerge } from "@struktur/sdk";
-import { openai } from "@ai-sdk/openai";
-
-const result = await extract({
-  artifacts,
-  schema,
-  strategy: parallelAutoMerge({
-    model: openai("gpt-4o-mini"),
-    dedupeModel: openai("gpt-4o-mini"),
-    chunkSize: 10000,
-    concurrency: 3,
-  }),
-});
-```
-
-CLI [#cli-3]
-
-```bash
-struktur --input catalog.pdf --schema schema.json --strategy parallelAutoMerge --model openai/gpt-4o-mini
-```
-
-When to use [#when-to-use-3]
-
-* Extracting arrays that may have duplicates across chunks
-* Want to consolidate results without LLM merge cost
-* Documents have repeated information across pages
-* Need deterministic merge behavior
-
-Best for: invoices with line items, real estate with multiple units, catalogs with products that appear on multiple pages.
-
-***
+**Best for:** Array extraction from large inputs where speed matters.
 
 sequentialAutoMerge [#sequentialautomerge]
 
 Sequential extraction with schema-aware merge and deduplication.
 
-| Property    | Value                                     |
-| ----------- | ----------------------------------------- |
-| Name        | `"sequential-auto-merge"`                 |
-| LLM calls   | N batches + 1 dedupe                      |
-| Parallelism | None                                      |
-| Merge step  | Schema-aware auto-merge                   |
-| Dedupe step | CRC32 hash + LLM semantic                 |
-| Best for    | Ordered array extraction, context matters |
-
-Configuration [#configuration-4]
-
-| Field                | Required | Default         | Description                            |
-| -------------------- | -------- | --------------- | -------------------------------------- |
-| `model`              | Yes      | -               | Model for extraction                   |
-| `chunkSize`          | Yes      | -               | Token budget per batch                 |
-| `maxImages`          | No       | Unlimited       | Max images per batch                   |
-| `outputInstructions` | No       | -               | Extra instructions                     |
-| `dedupeModel`        | No       | Same as `model` | Model for semantic dedupe              |
-| `strict`             | No       | `false`         | Validate required fields on every step |
-
-Algorithm [#algorithm-4]
-
-1. Split artifacts into batches
-2. For each batch in order:
-   * Extract from batch
-   * Validate with retry
-   * **Schema-aware merge** with previous results
-3. **Hash dedupe:** CRC32 to remove exact duplicates
-4. **Semantic dedupe:** LLM identifies semantically equivalent entries
-5. Return final result
-
-Example [#example-4]
-
-```js
-import { extract, sequentialAutoMerge } from "@struktur/sdk";
-import { openai } from "@ai-sdk/openai";
-
-const result = await extract({
-  artifacts,
-  schema,
-  strategy: sequentialAutoMerge({
-    model: openai("gpt-4o-mini"),
-    dedupeModel: openai("gpt-4o-mini"),
-    chunkSize: 10000,
-  }),
-});
-```
-
-CLI [#cli-4]
-
-```bash
-struktur --input invoice.pdf --schema schema.json --strategy sequentialAutoMerge --model openai/gpt-4o-mini
-```
-
-When to use [#when-to-use-4]
-
-* Ordered list extraction with cross-chunk dependencies
-* Later chunks need context from earlier chunks
-* Arrays may have duplicates across pages
-* Context preservation matters
-
-Best for: multi-page invoices with line items that span pages, real estate exposés with units referenced across pages.
-
-***
-
-doublePass [#doublepass]
-
-Parallel pass for speed, sequential pass for refinement.
-
-| Property    | Value                                          |
-| ----------- | ---------------------------------------------- |
-| Name        | `"double-pass"`                                |
-| LLM calls   | N × 2 batches + 1 merge                        |
-| Parallelism | First pass full, second pass none              |
-| Merge step  | LLM merge (pass 1), context carryover (pass 2) |
-| Dedupe step | None                                           |
-| Best for    | High-stakes extraction, maximum quality        |
-
-Configuration [#configuration-5]
-
-| Field                | Required | Default     | Description                            |
-| -------------------- | -------- | ----------- | -------------------------------------- |
-| `model`              | Yes      | -           | Model for extraction                   |
-| `mergeModel`         | Yes      | -           | Model for merging partial results      |
-| `chunkSize`          | Yes      | -           | Token budget per batch                 |
-| `concurrency`        | No       | All batches | Max parallel batches                   |
-| `maxImages`          | No       | Unlimited   | Max images per batch                   |
-| `outputInstructions` | No       | -           | Extra instructions                     |
-| `strict`             | No       | `false`     | Validate required fields on every step |
-
-Algorithm [#algorithm-5]
-
-**Pass 1 (parallel):**
-
-1. Split artifacts into batches
-2. Extract from each batch concurrently
-3. Validate each batch output with retry
-4. LLM merge all partial results
-
-**Pass 2 (sequential):**
-
-5. For each batch in order:
-   * Build prompt including pass 1 result as context
-   * Extract from batch
-   * Validate with retry
-   * Store result for next iteration
-6. Return final result
-
-Example [#example-5]
-
-```js
-import { extract, doublePass } from "@struktur/sdk";
-import { openai } from "@ai-sdk/openai";
-
-const result = await extract({
-  artifacts,
-  schema,
-  strategy: doublePass({
-    model: openai("gpt-4o-mini"),
-    mergeModel: openai("gpt-4o-mini"),
-    chunkSize: 10000,
-  }),
-});
-```
-
-CLI [#cli-5]
-
-```bash
-struktur --input critical.pdf --schema schema.json --strategy doublePass --model openai/gpt-4o
-```
-
-When to use [#when-to-use-5]
-
-* Accuracy is more important than cost
-* High-stakes extractions
-* Complex schemas
-* Can afford two full passes
-
-***
+**Best for:** Ordered array extraction where context matters.
 
 doublePassAutoMerge [#doublepassautomerge]
 
 Double-pass extraction with schema-aware merge and deduplication.
 
-| Property    | Value                                   |
-| ----------- | --------------------------------------- |
-| Name        | `"double-pass-auto-merge"`              |
-| LLM calls   | N × 2 batches + 1 dedupe                |
-| Parallelism | First pass full, second pass none       |
-| Merge step  | Schema-aware auto-merge                 |
-| Dedupe step | CRC32 hash + LLM semantic               |
-| Best for    | Large array extraction, maximum quality |
-
-Configuration [#configuration-6]
-
-| Field                | Required | Default         | Description                            |
-| -------------------- | -------- | --------------- | -------------------------------------- |
-| `model`              | Yes      | -               | Model for extraction                   |
-| `chunkSize`          | Yes      | -               | Token budget per batch                 |
-| `concurrency`        | No       | All batches     | Max parallel batches                   |
-| `maxImages`          | No       | Unlimited       | Max images per batch                   |
-| `outputInstructions` | No       | -               | Extra instructions                     |
-| `dedupeModel`        | No       | Same as `model` | Model for semantic dedupe              |
-| `strict`             | No       | `false`         | Validate required fields on every step |
-
-Algorithm [#algorithm-6]
-
-**Pass 1 (parallel):**
-
-1. Split artifacts into batches
-2. Extract from each batch concurrently
-3. Validate each batch output with retry
-4. **Schema-aware merge** all partial results
-5. **Hash dedupe:** CRC32
-6. **Semantic dedupe:** LLM
-
-**Pass 2 (sequential):**
-
-7. For each batch in order:
-   * Build prompt including deduped pass 1 result as context
-   * Extract from batch
-   * Validate with retry
-   * Store result for next iteration
-8. Return final result
-
-Example [#example-6]
-
-```js
-import { extract, doublePassAutoMerge } from "@struktur/sdk";
-import { openai } from "@ai-sdk/openai";
-
-const result = await extract({
-  artifacts,
-  schema,
-  strategy: doublePassAutoMerge({
-    model: openai("gpt-4o-mini"),
-    dedupeModel: openai("gpt-4o-mini"),
-    chunkSize: 10000,
-  }),
-});
-```
-
-CLI [#cli-6]
-
-```bash
-struktur --input catalog.pdf --schema schema.json --strategy doublePassAutoMerge --model openai/gpt-4o
-```
-
-When to use [#when-to-use-6]
-
-* Large array extraction with maximum quality requirement
-* Arrays may have duplicates
-* Cross-chunk context matters
-* Quality trumps cost
+**Best for:** Large array extraction with maximum quality requirement.
 
 ***
 
 Choosing a Strategy [#choosing-a-strategy]
 
-Pick based on input size and whether you're extracting arrays:
+**Start with the Agent.** It's the default because it works best for most documents.
 
-| Strategy              | When to use                                      |
-| --------------------- | ------------------------------------------------ |
-| `simple`              | Small input, fits in one context window          |
-| `parallel`            | Large input, order doesn't matter, scalar fields |
-| `sequential`          | Large input, context carries across chunks       |
-| `parallelAutoMerge`   | Large input with arrays — parallel + dedup       |
-| `sequentialAutoMerge` | Large input with arrays — sequential + dedup     |
-| `doublePass`          | Quality matters, two-pass refinement             |
-| `doublePassAutoMerge` | Quality + arrays + dedup                         |
-
-When speed matters [#when-speed-matters]
-
-Use `parallel` or `parallelAutoMerge`. Accept that cross-chunk context is limited.
-
-When quality matters [#when-quality-matters]
-
-Use `doublePass` or `doublePassAutoMerge`. Accept higher token cost.
-
-When arrays matter [#when-arrays-matter]
-
-Use auto-merge variants (`parallelAutoMerge`, `sequentialAutoMerge`, `doublePassAutoMerge`). They handle deduplication automatically.
+| Strategy              | When to use                                                |
+| --------------------- | ---------------------------------------------------------- |
+| `agent` (default)     | **Start here** — autonomous exploration for most documents |
+| `simple`              | Small input, fits in one context window, predictable costs |
+| `parallel`            | Large input, order doesn't matter, speed priority          |
+| `sequential`          | Large input, context carries across chunks                 |
+| `parallelAutoMerge`   | Large input with arrays — parallel + dedup                 |
+| `sequentialAutoMerge` | Large input with arrays — sequential + dedup               |
+| `doublePass`          | Quality matters, two-pass refinement                       |
+| `doublePassAutoMerge` | Quality + arrays + dedup                                   |
 
 Quick decision flowchart [#quick-decision-flowchart]
 
 ```mermaid
 flowchart TD
-    A[Start] --> B{Input fits in context?}
-    B -->|Yes| C[Use simple]
-    B -->|No| D{Extracting arrays?}
-    D -->|Yes| E{Cross-chunk context matters?}
-    D -->|No| F{Cross-chunk context matters?}
-    E -->|Yes| G[sequentialAutoMerge or doublePassAutoMerge]
-    E -->|No| H[parallelAutoMerge]
-    F -->|Yes| I[sequential or doublePass]
-    F -->|No| J[parallel]
-```
-
-Worked examples [#worked-examples]
-
-50-page PDF invoice with 200 line items [#50-page-pdf-invoice-with-200-line-items]
-
-**Use:** `parallelAutoMerge` or `sequentialAutoMerge`
-
-```bash
-struktur --input invoice.pdf --schema invoice.json --strategy parallelAutoMerge --model openai/gpt-4o-mini
-```
-
-Choose `sequentialAutoMerge` if line items span page boundaries and reference earlier context.
-
-3-page real estate exposé with floor plan images [#3-page-real-estate-exposé-with-floor-plan-images]
-
-**Use:** `sequential` or `sequentialAutoMerge`
-
-```bash
-struktur --input expose.pdf --schema property.json --strategy sequentialAutoMerge --model openai/gpt-4o-mini
-```
-
-Images are handled by vision models without OCR.
-
-2-page contract — parties, dates, value [#2-page-contract--parties-dates-value]
-
-**Use:** `simple` or `sequential`
-
-```bash
-struktur --input contract.pdf --schema contract.json --model openai/gpt-4o-mini
-```
-
-`simple` if it fits in context; `sequential` if you need incremental building.
-
-500 product datasheets [#500-product-datasheets]
-
-**Use:** `parallelAutoMerge` with concurrency
-
-```bash
-for f in datasheets/*.pdf; do
-  markitdown "$f" | struktur --stdin --schema product.json --strategy parallelAutoMerge --model openai/gpt-4o-mini
-done | jq -s '.'
-```
-
-***
-
-Writing a Custom Strategy [#writing-a-custom-strategy]
-
-The interface [#the-interface]
-
-A strategy has:
-
-```js
-const myStrategy = {
-  name: "my-strategy",
-
-  // Optional: used by CLI progress bar.
-  getEstimatedSteps(artifacts) {
-    return 3;
-  },
-
-  async run(options) {
-    // Your orchestration logic here.
-    return { data: ..., usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 } };
-  },
-};
-```
-
-Using built-in helpers [#using-built-in-helpers]
-
-Key internal helpers from `strategies/utils.ts`:
-
-| Helper                                                                            | Description                              |
-| --------------------------------------------------------------------------------- | ---------------------------------------- |
-| `getBatches(artifacts, { maxTokens, maxImages? })`                                | Chunk artifacts into batches             |
-| `extractWithPrompt({ model, schema, system, user, artifacts, events, execute? })` | Run one LLM extraction with retries      |
-| `serializeSchema(schema)`                                                         | Convert schema to JSON string for prompt |
-| `mergeUsage([...usages])`                                                         | Accumulate usage across calls            |
-
-A complete example [#a-complete-example]
-
-```js
-import { extractWithPrompt, getBatches, mergeUsage, serializeSchema } from "@struktur/sdk/strategies/utils";
-import { buildExtractorPrompt } from "@struktur/sdk/prompts/ExtractorPrompt";
-
-const myStrategy = (config) => ({
-  name: "my-strategy",
-
-  getEstimatedSteps(artifacts) {
-    const batches = getBatches(artifacts, { maxTokens: config.chunkSize });
-    return batches.length + 1;
-  },
-
-  async run(options) {
-    const batches = getBatches(options.artifacts, {
-      maxTokens: config.chunkSize,
-    });
-
-    const schema = serializeSchema(options.schema);
-    const usages = [];
-    let currentData = {};
-
-    for (const [index, batch] of batches.entries()) {
-      const prompt = buildExtractorPrompt(batch, schema);
-
-      const result = await extractWithPrompt({
-        model: config.model,
-        schema: options.schema,
-        system: prompt.system,
-        user: prompt.user,
-        artifacts: batch,
-        events: options.events,
-      });
-
-      currentData = { ...currentData, ...result.data };
-      usages.push(result.usage);
-
-      await options.events?.onStep?.({
-        step: index + 1,
-        total: batches.length + 1,
-        label: `batch ${index + 1}/${batches.length}`,
-      });
-    }
-
-    return { data: currentData, usage: mergeUsage(usages) };
-  },
-});
-```
-
-Emitting step events [#emitting-step-events]
-
-Strategies should emit `events.onStep` for progress tracking:
-
-```js
-await options.events?.onStep?.({
-  step: 1,
-  total: 3,
-  label: "extract",
-});
+    A[Start] --> B{Try Agent first?}
+    B -->|Yes| C[Use agent — default]
+    B -->|Need fixed costs| D{Input fits in context?}
+    D -->|Yes| E[Use simple]
+    D -->|No| F{Extracting arrays?}
+    F -->|Yes| G{Cross-chunk context matters?}
+    F -->|No| H{Cross-chunk context matters?}
+    G -->|Yes| I[sequentialAutoMerge or doublePassAutoMerge]
+    G -->|No| J[parallelAutoMerge]
+    H -->|Yes| K[sequential or doublePass]
+    H -->|No| L[parallel]
 ```
 
 ***
@@ -3393,7 +3584,20 @@ See also [#see-also]
 
 
 
-Struktur is an all-in-one tool for structured data extraction that turns pre-parsed documents into validated, schema-typed JSON. It operates on Artifacts, chunks them by token budgets, runs extraction strategies, validates results against your schema, and merges or deduplicates outputs where needed.
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Struktur is an all-in-one tool for structured data extraction using an **autonomous agent**. It turns documents into validated, schema-typed JSON by having an LLM agent explore the content, decide what to read, and build the output incrementally.
+
+<Cards>
+  <Card title="CLI Tool" description="Extract data from the command line with a simple, intuitive interface" href="/docs/cli" />
+
+  <Card title="TypeScript SDK" description="Programmatic API for embedding extraction in your applications" href="/docs/sdk" />
+
+  <Card title="Agent Strategy" description="Autonomous exploration with virtual filesystem tools" href="/docs/explanation/strategies#agent" />
+
+  <Card title="Examples" description="Real-world extraction patterns and use cases" href="/docs/examples" />
+</Cards>
 
 Why Struktur? [#why-struktur]
 
@@ -3401,7 +3605,18 @@ Large document batches arrive with data locked in semi-structured text. Invoices
 
 Managed APIs charge per page, impose schema constraints, and require document uploads to external infrastructure. LLM SDKs provide raw model access but leave you to write chunking, validation, retries, and merging every time.
 
-Struktur fills the gap: a focused extraction engine that handles the orchestration so you can focus on the output.
+Struktur fills the gap: a focused extraction engine with an **autonomous agent** that handles the orchestration so you can focus on the output.
+
+Why an Agent? [#why-an-agent]
+
+Traditional extraction strategies (simple, parallel, sequential) require you to choose the right approach upfront. The agent decides:
+
+* **When to read** — entire document or specific sections
+* **How to search** — grep for patterns, list directories, execute bash commands
+* **What to extract** — build output incrementally as it explores
+* **How to validate** — check against schema and retry automatically
+
+The agent adapts to your document. Small invoices get read in one shot. Large catalogs get navigated systematically. The result is better accuracy without configuration complexity.
 
 Why not managed APIs? [#why-not-managed-apis]
 
@@ -3421,37 +3636,33 @@ A single `generateText()` call gives you:
 * No merging of multi-chunk results
 * No typed output inferred from your schema
 
-You write the same orchestration boilerplate every time. Struktur packages that orchestration into tested, configurable strategies.
+You write the same orchestration boilerplate every time. Struktur's agent packages that orchestration into a single, adaptive strategy.
 
 Design philosophy [#design-philosophy]
 
-**Narrow scope, intentionally.** Struktur does extraction only. No parsing. No streaming. No general-purpose LLM orchestration. This focus keeps the API small and the behavior predictable.
+<Callout type="info">
+  **Agent-first, zero configuration.** The agent strategy is the default. It explores documents autonomously, deciding when to read, search, or extract. No need to pick chunk sizes or parallelism upfront.
+</Callout>
 
-**Shell-composable by default.** Reads stdin, writes stdout, speaks JSON. Integrates with `jq`, `find`, `curl`, and any tool in your pipeline.
-
-**Strategy-first.** Different documents need different approaches. A single-page invoice needs simple extraction. A 100-page catalog with duplicate products needs parallel extraction with deduplication. Strategies encode these patterns.
-
-**Validation in the loop.** Errors go back to the model, not to you. The retry loop means most extractions converge within two attempts.
-
-**Schema-first.** You define the shape, Struktur guarantees it.
-
-**Fields shorthand.** Skip the JSON Schema boilerplate with `--fields "title, price:number, status:enum{draft|live}"`.
+* **Autonomous exploration.** The agent uses a virtual filesystem to read files, grep for patterns, find files, and execute commands. It builds output incrementally as it discovers data.
+* **Shell-composable by default.** Reads stdin, writes stdout, speaks JSON. Integrates with `jq`, `find`, `curl`, and any tool in your pipeline.
+* **Validation in the loop.** Errors go back to the model, not to you. The retry loop means most extractions converge within two attempts.
+* **Schema-first.** You define the shape, Struktur guarantees it.
+* **Fields shorthand.** Skip the JSON Schema boilerplate with `--fields "title, price:number, status:enum{draft|live}"`.
 
 Trade-offs [#trade-offs]
 
 | Trade-off                          | Rationale                                                                          |
 | ---------------------------------- | ---------------------------------------------------------------------------------- |
-| Requires upstream preprocessing    | Keeps Struktur focused; use best-of-breed parsers per format                       |
-| Batch-only, no streaming           | Simpler mental model; input in, JSON out                                           |
+| Requires tool-calling models       | The agent needs models that support function calling (Claude, GPT-4, etc.)         |
 | Depends on Vercel AI SDK providers | OpenAI, Anthropic, Google supported; self-hosted models need OpenAI-compatible API |
-| Token costs depend on strategy     | `doublePass` costs more than `simple`; know your rates                             |
+| Token costs vary by document       | The agent makes multiple tool calls; large documents cost more than small ones     |
 
 A 10-second demo [#a-10-second-demo]
 
 ```bash
-struktur --input invoice.pdf \
-  --fields "number, vendor, total:number" \
-  --model openai/gpt-4o-mini
+struktur extract --input invoice.pdf \
+  --fields "number, vendor, total:number"
 ```
 
 Expected output:
@@ -3464,9 +3675,14 @@ Expected output:
 }
 ```
 
+The agent reads the PDF, decides how to extract the fields, and returns validated JSON.
+
 What Struktur is NOT [#what-struktur-is-not]
 
-* **It is not a general document conversion tool.** It parses files for extraction purposes, not for format conversion. It does not produce formatted output from documents.
+<Callout type="warn">
+  **It is not a general document conversion tool.** It parses files for extraction purposes, not for format conversion. It does not produce formatted output from documents.
+</Callout>
+
 * **It is not a managed API.** It runs locally and calls your provider directly.
 * **It does not stream.** Input in, JSON out.
 * **It is not a general LLM orchestration framework.**
@@ -3475,33 +3691,44 @@ For the full mental model, see [The Extraction Pipeline](/docs/explanation/pipel
 
 Who is it for? [#who-is-it-for]
 
-**CLI users** — data engineers, analysts, shell pipeline builders — use Struktur for one-off extractions, batch processing, and CI/CD automation without writing code.
+<Cards>
+  <Card title="CLI Users" description="Data engineers, analysts, shell pipeline builders — use Struktur for one-off extractions, batch processing, and CI/CD automation without writing code." />
 
-**SDK users** — TypeScript developers embedding extraction in applications — use Struktur for typed results, custom strategies, and fine-grained control over the extraction pipeline.
+  <Card title="SDK Users" description="TypeScript developers embedding extraction in applications — use Struktur for typed results, custom strategies, and fine-grained control over the extraction pipeline." />
+</Cards>
 
-What are Strategies? [#what-are-strategies]
+What is the Agent Strategy? [#what-is-the-agent-strategy]
 
-A strategy implements:
+The agent strategy is the default and recommended way to use Struktur. It implements:
 
-* `name`: string identifier
-* `run()`: the orchestration logic
-* `getEstimatedSteps()`: optional, for progress tracking
+* **Virtual filesystem tools** — read, grep, find, ls, bash
+* **Output management** — set\_output\_data, update\_output\_data, finish, fail
+* **Autonomous exploration** — the agent decides what to do based on your schema
+* **Incremental extraction** — builds output as it discovers data
 
-Strategies own their config (model, chunk size, concurrency). All strategies guarantee: output validates against the schema or they throw.
+How it works [#how-it-works]
 
-Built-in strategies [#built-in-strategies]
+1. The agent receives your schema and access to a virtual filesystem containing the document
+2. It can read files, search for patterns, list directories, and execute commands
+3. As it finds data, it calls `set_output_data` or `update_output_data` to build the result
+4. When complete, it calls `finish` to return validated JSON
 
-| Strategy              | Description                                 |
-| --------------------- | ------------------------------------------- |
-| `simple`              | Single-shot extraction for small inputs     |
-| `parallel`            | Concurrent batches with LLM merge           |
-| `sequential`          | Ordered batches with context carryover      |
-| `parallelAutoMerge`   | Parallel with schema-aware merge + dedupe   |
-| `sequentialAutoMerge` | Sequential with schema-aware merge + dedupe |
-| `doublePass`          | Parallel pass + sequential refinement       |
-| `doublePassAutoMerge` | Double-pass with auto-merge                 |
+When to use other strategies [#when-to-use-other-strategies]
 
-See [Extraction Strategies](/docs/explanation/strategies) for details on each strategy and how to choose.
+The agent is the default and works best for most documents. However, other strategies are available for specific cases:
+
+| Strategy              | When to use                                             |
+| --------------------- | ------------------------------------------------------- |
+| `agent` (default)     | Autonomous exploration — best for most documents        |
+| `simple`              | Small input that fits in one context window             |
+| `parallel`            | Large input where speed matters more than accuracy      |
+| `sequential`          | Large input where order matters                         |
+| `parallelAutoMerge`   | Large arrays with parallel processing + deduplication   |
+| `sequentialAutoMerge` | Large arrays with sequential processing + deduplication |
+| `doublePass`          | Maximum quality with two-pass refinement                |
+| `doublePassAutoMerge` | Maximum quality with arrays + deduplication             |
+
+See [Extraction Strategies](/docs/explanation/strategies) for details on all strategies.
 
 Quick navigation [#quick-navigation]
 
@@ -3519,83 +3746,105 @@ Quick navigation [#quick-navigation]
 
 
 
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+
 Extract structured data from any file in 3 commands. About 5 minutes.
 
-> **Using an AI assistant?** Point it at `https://struktur.sh/llms.txt` for LLM-optimized docs, or install the [Agent Skill](/docs/skill) for built-in Struktur knowledge.
+<Callout type="info">
+  **Using an AI assistant?** Point it at `https://struktur.sh/llms.txt` for LLM-optimized docs, or install the [Agent Skill](/docs/skill) for built-in Struktur knowledge.
+</Callout>
 
 Prerequisites [#prerequisites]
 
 * Node.js 18+ or Bun installed
 * An API key from OpenAI, Anthropic, Google, OpenCode, or OpenRouter
 
-Step 1: Install [#step-1-install]
+<Steps>
+  <Step>
+    Install [#install]
 
-```bash
-# Using npm
-npm install -g @struktur/cli
+    <Tabs items={['npm', 'Bun']} groupId="package-manager">
+      <Tab value="npm">
+        ```bash
+        npm install -g @struktur/cli
+        ```
+      </Tab>
 
-# Or using Bun (recommended)
-bun install -g @struktur/cli
-```
+      <Tab value="Bun">
+        ```bash
+        bun install -g @struktur/cli
+        ```
+      </Tab>
+    </Tabs>
 
-Verify:
+    Verify:
 
-```bash
-struktur --help
-```
+    ```bash
+    struktur --help
+    ```
 
-You should see the usage output.
+    You should see the usage output.
+  </Step>
 
-Step 2: Configure your API key [#step-2-configure-your-api-key]
+  <Step>
+    Configure your API key [#configure-your-api-key]
 
-Store your API key securely with the CLI:
+    Store your API key securely with the CLI:
 
-```bash
-echo "sk-..." | struktur config providers add openai --token-stdin --default
-```
+    ```bash
+    echo "sk-..." | struktur config providers add openai --token-stdin --default
+    ```
 
-The `--default` flag automatically queries the provider API and sets the cheapest available model as default, so `--model` becomes optional in all future commands.
+    The `--default` flag automatically queries the provider API and sets the cheapest available model as default, so `--model` becomes optional in all future commands.
 
-Output: `{ "provider": "openai", "stored": "keychain" }` (or `"file"` on Linux).
+    Output: `{ "provider": "openai", "stored": "keychain" }` (or `"file"` on Linux).
 
-Set a default model (if not using --default) [#set-a-default-model-if-not-using---default]
+    Set a default model (if not using --default) [#set-a-default-model-if-not-using---default]
 
-```bash
-struktur config models use openai/gpt-4o-mini
-```
+    ```bash
+    struktur config models use openai/gpt-4o-mini
+    ```
 
-Once set, `--model` is optional in all `extract` commands.
+    Once set, `--model` is optional in all `extract` commands.
+  </Step>
 
-Step 3: Extract your first data [#step-3-extract-your-first-data]
+  <Step>
+    Extract your first data [#extract-your-first-data]
 
-**From text:**
+    <Tabs items={['From text', 'From PDF']} groupId="input-type">
+      <Tab value="From text">
+        ```bash
+        echo "Invoice #1042 from Acme Corp. Total: $2,400.00. Due: April 1, 2026." | \
+          struktur --stdin \
+          --fields "invoice_number, vendor, total:number, due_date" \
+          --model openai/gpt-4o-mini
+        ```
+      </Tab>
 
-```bash
-echo "Invoice #1042 from Acme Corp. Total: $2,400.00. Due: April 1, 2026." | \
-  struktur --stdin \
-  --fields "invoice_number, vendor, total:number, due_date" \
-  --model openai/gpt-4o-mini
-```
+      <Tab value="From PDF">
+        ```bash
+        struktur --input invoice.pdf \
+          --fields "invoice_number, vendor, total:number, due_date" \
+          --model openai/gpt-4o-mini
+        ```
+      </Tab>
+    </Tabs>
 
-**From a PDF directly:**
+    The `--fields` flag builds a JSON Schema on the fly. Each field defaults to `string`; append `:number`, `:integer`, `:bool`, etc. to set the type. See [Fields Shorthand](/docs/cli/fields) for the full syntax.
 
-```bash
-struktur --input invoice.pdf \
-  --fields "invoice_number, vendor, total:number, due_date" \
-  --model openai/gpt-4o-mini
-```
+    If you need more control (optional fields, nested objects), pass a full schema instead:
 
-The `--fields` flag builds a JSON Schema on the fly. Each field defaults to `string`; append `:number`, `:integer`, `:bool`, etc. to set the type. See [Fields Shorthand](/docs/cli/fields) for the full syntax.
+    ```bash
+    struktur --input invoice.pdf \
+      --schema-json '{"type":"object","properties":{"invoice_number":{"type":"string"},"vendor":{"type":"string"},"total":{"type":"number"},"due_date":{"type":"string"}},"required":["invoice_number","vendor","total","due_date"],"additionalProperties":false}' \
+      --model openai/gpt-4o-mini
+    ```
 
-If you need more control (optional fields, nested objects), pass a full schema instead:
-
-```bash
-struktur --input invoice.pdf \
-  --schema-json '{"type":"object","properties":{"invoice_number":{"type":"string"},"vendor":{"type":"string"},"total":{"type":"number"},"due_date":{"type":"string"}},"required":["invoice_number","vendor","total","due_date"],"additionalProperties":false}' \
-  --model openai/gpt-4o-mini
-```
-
-Notice that `total` is a number, not a string — Struktur enforced the schema.
+    Notice that `total` is a number, not a string — Struktur enforced the schema.
+  </Step>
+</Steps>
 
 What happened? [#what-happened]
 
@@ -3620,14 +3869,35 @@ Where to go next [#where-to-go-next]
 
 
 
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+import { Callout } from 'fumadocs-ui/components/callout';
+
 Available events [#available-events]
 
-| Event          | Description                                          |
-| -------------- | ---------------------------------------------------- |
-| `onStep`       | Fired at each named phase within a strategy          |
-| `onMessage`    | Fired for every message in the LLM conversation      |
-| `onProgress`   | Fired when a strategy can report percentage progress |
-| `onTokenUsage` | Fired after each LLM call with token usage           |
+<TypeTable
+  type={{
+  onStep: {
+    description: 'Fired at each named phase within a strategy',
+    type: '(info: { step: number; total?: number; label?: string }) => void',
+    required: false,
+  },
+  onMessage: {
+    description: 'Fired for every message in the LLM conversation',
+    type: '(msg: { role: string; content: unknown }) => void',
+    required: false,
+  },
+  onProgress: {
+    description: 'Fired when a strategy can report percentage progress',
+    type: '(progress: number) => void',
+    required: false,
+  },
+  onTokenUsage: {
+    description: 'Fired after each LLM call with token usage',
+    type: '(usage: { inputTokens: number; outputTokens: number; totalTokens: number }) => void',
+    required: false,
+  },
+}}
+/>
 
 Example: progress bar [#example-progress-bar]
 
@@ -3674,6 +3944,10 @@ See also [#see-also]
 
 
 
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+
 Usage [#usage]
 
 ```js
@@ -3692,23 +3966,61 @@ console.log(result.usage.totalTokens);
 
 Options [#options]
 
-| Field       | Required                    | Description                                                              |
-| ----------- | --------------------------- | ------------------------------------------------------------------------ |
-| `artifacts` | Yes                         | Array of artifacts to extract from                                       |
-| `schema`    | One of `schema` or `fields` | JSON Schema for output validation                                        |
-| `fields`    | One of `schema` or `fields` | [Fields shorthand](/docs/cli/fields) — comma-separated field definitions |
-| `strategy`  | Yes                         | A strategy instance                                                      |
-| `events`    | No                          | Event handlers for progress tracking                                     |
+<TypeTable
+  type={{
+  artifacts: {
+    description: 'Array of artifacts to extract from',
+    type: 'Artifact[]',
+    required: true,
+  },
+  schema: {
+    description: 'JSON Schema for output validation (one of schema or fields required)',
+    type: 'AnyJSONSchema',
+    required: false,
+  },
+  fields: {
+    description: 'Fields shorthand — comma-separated field definitions',
+    type: 'string',
+    required: false,
+  },
+  strategy: {
+    description: 'A strategy instance',
+    type: 'Strategy',
+    required: true,
+  },
+  events: {
+    description: 'Event handlers for progress tracking',
+    type: 'Events',
+    required: false,
+  },
+}}
+/>
 
-Exactly one of `schema` or `fields` must be provided. Passing both, or neither, throws immediately.
+<Callout type="warn">
+  Exactly one of `schema` or `fields` must be provided. Passing both, or neither, throws immediately.
+</Callout>
 
 Result [#result]
 
-| Field   | Description                                                |
-| ------- | ---------------------------------------------------------- |
-| `data`  | Validated output matching your schema                      |
-| `usage` | Token counts: `inputTokens`, `outputTokens`, `totalTokens` |
-| `error` | Set if extraction encountered a non-fatal error            |
+<TypeTable
+  type={{
+  data: {
+    description: 'Validated output matching your schema',
+    type: 'T',
+    required: true,
+  },
+  usage: {
+    description: 'Token counts: inputTokens, outputTokens, totalTokens',
+    type: 'Usage',
+    required: true,
+  },
+  error: {
+    description: 'Set if extraction encountered a non-fatal error',
+    type: 'Error | undefined',
+    required: false,
+  },
+}}
+/>
 
 Using fields instead of schema [#using-fields-instead-of-schema]
 
@@ -3736,32 +4048,51 @@ See also [#see-also]
 
 
 
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
 The Struktur SDK provides a TypeScript API for programmatic data extraction.
 
-Topics [#topics]
+<Cards>
+  <Card title="Installation" description="Install and configure the SDK" href="/docs/sdk/installation" />
 
-* [installation](/docs/sdk/installation) — Install and configure the SDK
-* [extract](/docs/sdk/extract) — Core extraction function
-* [parse](/docs/sdk/parse) — Building artifacts from URLs and files
-* [events](/docs/sdk/events) — Monitoring extraction progress
+  <Card title="extract()" description="Core extraction function" href="/docs/sdk/extract" />
+
+  <Card title="parse()" description="Building artifacts from URLs and files" href="/docs/sdk/parse" />
+
+  <Card title="Events" description="Monitoring extraction progress" href="/docs/sdk/events" />
+</Cards>
 
 
 # Installation
 
 
 
-```bash
-npm install @struktur/sdk
-# or
-bun add @struktur/sdk
-```
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+<Tabs items={['npm', 'Bun']} groupId="package-manager">
+  <Tab value="npm">
+    ```bash
+    npm install @struktur/sdk
+    ```
+  </Tab>
+
+  <Tab value="Bun">
+    ```bash
+    bun add @struktur/sdk
+    ```
+  </Tab>
+</Tabs>
 
 Peer dependency: `typescript ^5`.
 
 The package exports all types, functions, and strategy factories from the entrypoint. The `@ai-sdk/anthropic`, `@ai-sdk/google`, `@ai-sdk/openai`, and `@openrouter/ai-sdk-provider` packages are bundled as dependencies — you do not need to install them separately.
 
-* [npm: @struktur/sdk](https://www.npmjs.com/package/@struktur/sdk)
-* [GitHub: packages/sdk](https://github.com/mateffy/struktur/tree/main/packages/sdk)
+<Cards>
+  <Card title="npm: @struktur/sdk" href="https://www.npmjs.com/package/@struktur/sdk" external />
+
+  <Card title="GitHub: packages/sdk" href="https://github.com/mateffy/struktur/tree/main/packages/sdk" external />
+</Cards>
 
 Exports [#exports]
 
@@ -3960,21 +4291,28 @@ See also [#see-also]
 
 
 
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
 Struktur provides an Agent Skill that teaches AI coding assistants (like Claude Code, OpenCode, Codex, etc.) how to use Struktur effectively.
 
-**Raw skill file:** [SKILL.md (raw)](https://raw.githubusercontent.com/mateffy/struktur/refs/heads/main/packages/skill/skills/struktur/SKILL.md)
+<Cards>
+  <Card title="Raw Skill File" description="View the skill source on GitHub" href="https://raw.githubusercontent.com/mateffy/struktur/refs/heads/main/packages/skill/skills/struktur/SKILL.md" external />
+</Cards>
 
 What is an Agent Skill? [#what-is-an-agent-skill]
 
 An Agent Skill is a modular knowledge package that AI coding agents can discover and load automatically. Skills follow an open standard and work across 16+ AI agent tools.
 
-When you ask your AI agent to work with Struktur, the skill automatically loads and provides:
+<Callout type="info">
+  When you ask your AI agent to work with Struktur, the skill automatically loads and provides:
 
-* **API Usage**: How to use `extract()`, build artifacts, define schemas
-* **Strategy Selection**: When to use `simple`, `parallel`, `sequential`, `doublePass`, etc.
-* **Schema Definition**: JSON Schema patterns and shorthand field syntax
-* **CLI Commands**: All struktur CLI commands and options
-* **Best Practices**: Token budgets, validation retries, merge rules
+  * **API Usage**: How to use `extract()`, build artifacts, define schemas
+  * **Strategy Selection**: When to use `simple`, `parallel`, `sequential`, `doublePass`, etc.
+  * **Schema Definition**: JSON Schema patterns and shorthand field syntax
+  * **CLI Commands**: All struktur CLI commands and options
+  * **Best Practices**: Token budgets, validation retries, merge rules
+</Callout>
 
 Why Use the Skill? [#why-use-the-skill]
 
@@ -4014,152 +4352,166 @@ bun add @struktur/skill
 
 Next Steps [#next-steps]
 
-* [Installation Guide](/docs/skill/installation) — Install for your preferred tool
-* [Usage Examples](/docs/skill/usage) — How to use the skill with your AI agent
+<Cards>
+  <Card title="Installation Guide" description="Install for your preferred tool" href="/docs/skill/installation" />
+
+  <Card title="Usage Examples" description="How to use the skill with your AI agent" href="/docs/skill/usage" />
+</Cards>
 
 
 # Installation
 
 
 
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
 Install the Struktur agent skill for your preferred AI coding tool.
 
-* [npm: @struktur/skill](https://www.npmjs.com/package/@struktur/skill)
-* [GitHub: packages/skill](https://github.com/mateffy/struktur/tree/main/packages/skill)
+<Cards>
+  <Card title="npm: @struktur/skill" href="https://www.npmjs.com/package/@struktur/skill" external />
+
+  <Card title="GitHub: packages/skill" href="https://github.com/mateffy/struktur/tree/main/packages/skill" external />
+</Cards>
 
 Installation Methods [#installation-methods]
 
-Method 1: From npm Package [#method-1-from-npm-package]
+<Tabs items={['From npm Package', 'Skills CLI', 'Direct from GitHub']}>
+  <Tab value="From npm Package">
+    ```bash
+    # Install the package
+    npm install @struktur/skill
+    # or
+    bun add @struktur/skill
 
-```bash
-# Install the package
-npm install @struktur/skill
-# or
-bun add @struktur/skill
+    # Copy to your tool's skill directory
+    cp -r node_modules/@struktur/skill/skills/struktur ~/.config/claude/skills/
+    ```
+  </Tab>
 
-# Copy to your tool's skill directory
-cp -r node_modules/@struktur/skill/skills/struktur ~/.config/claude/skills/
-```
+  <Tab value="Skills CLI">
+    If you have the [skills CLI](https://github.com/vercel/skills) installed:
 
-Method 2: Using Skills CLI [#method-2-using-skills-cli]
+    ```bash
+    # Install from npm
+    npx skills add @struktur/skill
 
-If you have the [skills CLI](https://github.com/vercel/skills) installed:
+    # Or install from GitHub
+    npx skills add https://github.com/mateffy/struktur/tree/main/packages/skill/skills/struktur
+    ```
+  </Tab>
 
-```bash
-# Install from npm
-npx skills add @struktur/skill
-
-# Or install from GitHub
-npx skills add https://github.com/mateffy/struktur/tree/main/packages/skill/skills/struktur
-```
-
-Method 3: Direct Copy from GitHub [#method-3-direct-copy-from-github]
-
-```bash
-# Clone and copy
-git clone https://github.com/mateffy/struktur.git
-cp -r struktur/packages/skill/skills/struktur ~/.config/claude/skills/
-```
+  <Tab value="Direct from GitHub">
+    ```bash
+    # Clone and copy
+    git clone https://github.com/mateffy/struktur.git
+    cp -r struktur/packages/skill/skills/struktur ~/.config/claude/skills/
+    ```
+  </Tab>
+</Tabs>
 
 Tool-Specific Installation [#tool-specific-installation]
 
-Claude Code [#claude-code]
+<Tabs items={['Claude Code', 'OpenCode', 'OpenAI Codex', 'Amp', 'VS Code', 'Cursor', 'Gemini CLI']}>
+  <Tab value="Claude Code">
+    **Global installation** (available in all projects):
 
-**Global installation** (available in all projects):
+    ```bash
+    mkdir -p ~/.config/claude/skills
+    cp -r node_modules/@struktur/skill/skills/struktur ~/.config/claude/skills/
+    ```
 
-```bash
-mkdir -p ~/.config/claude/skills
-cp -r node_modules/@struktur/skill/skills/struktur ~/.config/claude/skills/
-```
+    **Project installation** (only in this project):
 
-**Project installation** (only in this project):
+    ```bash
+    mkdir -p .agents/skills
+    cp -r node_modules/@struktur/skill/skills/struktur .agents/skills/
+    ```
+  </Tab>
 
-```bash
-mkdir -p .agents/skills
-cp -r node_modules/@struktur/skill/skills/struktur .agents/skills/
-```
+  <Tab value="OpenCode">
+    **Global installation**:
 
-OpenCode [#opencode]
+    ```bash
+    mkdir -p ~/.config/opencode/skills
+    cp -r node_modules/@struktur/skill/skills/struktur ~/.config/opencode/skills/
+    ```
 
-**Global installation**:
+    **Project installation**:
 
-```bash
-mkdir -p ~/.config/opencode/skills
-cp -r node_modules/@struktur/skill/skills/struktur ~/.config/opencode/skills/
-```
+    ```bash
+    mkdir -p .agents/skills
+    cp -r node_modules/@struktur/skill/skills/struktur .agents/skills/
+    ```
+  </Tab>
 
-**Project installation**:
+  <Tab value="OpenAI Codex">
+    **Global installation**:
 
-```bash
-mkdir -p .agents/skills
-cp -r node_modules/@struktur/skill/skills/struktur .agents/skills/
-```
+    ```bash
+    mkdir -p ~/.codex/skills
+    cp -r node_modules/@struktur/skill/skills/struktur ~/.codex/skills/
+    ```
 
-OpenAI Codex [#openai-codex]
+    **Project installation**:
 
-**Global installation**:
+    ```bash
+    mkdir -p .codex/skills
+    cp -r node_modules/@struktur/skill/skills/struktur .codex/skills/
+    ```
+  </Tab>
 
-```bash
-mkdir -p ~/.codex/skills
-cp -r node_modules/@struktur/skill/skills/struktur ~/.codex/skills/
-```
+  <Tab value="Amp">
+    **Global installation**:
 
-**Project installation**:
+    ```bash
+    mkdir -p ~/.config/amp/skills
+    cp -r node_modules/@struktur/skill/skills/struktur ~/.config/amp/skills/
+    ```
 
-```bash
-mkdir -p .codex/skills
-cp -r node_modules/@struktur/skill/skills/struktur .codex/skills/
-```
+    **Project installation**:
 
-Amp [#amp]
+    ```bash
+    mkdir -p .agents/skills
+    cp -r node_modules/@struktur/skill/skills/struktur .agents/skills/
+    ```
+  </Tab>
 
-**Global installation**:
+  <Tab value="VS Code">
+    **Workspace installation**:
 
-```bash
-mkdir -p ~/.config/amp/skills
-cp -r node_modules/@struktur/skill/skills/struktur ~/.config/amp/skills/
-```
+    ```bash
+    mkdir -p .vscode/skills
+    cp -r node_modules/@struktur/skill/skills/struktur .vscode/skills/struktur
+    ```
+  </Tab>
 
-**Project installation**:
+  <Tab value="Cursor">
+    **Project installation**:
 
-```bash
-mkdir -p .agents/skills
-cp -r node_modules/@struktur/skill/skills/struktur .agents/skills/
-```
+    ```bash
+    mkdir -p .cursor/skills
+    cp -r node_modules/@struktur/skill/skills/struktur .cursor/skills/struktur
+    ```
+  </Tab>
 
-VS Code (GitHub Copilot) [#vs-code-github-copilot]
+  <Tab value="Gemini CLI">
+    **Global installation**:
 
-**Workspace installation**:
+    ```bash
+    mkdir -p ~/.config/gemini/skills
+    cp -r node_modules/@struktur/skill/skills/struktur ~/.config/gemini/skills/
+    ```
 
-```bash
-mkdir -p .vscode/skills
-cp -r node_modules/@struktur/skill/skills/struktur .vscode/skills/struktur
-```
+    **Project installation**:
 
-Cursor [#cursor]
-
-**Project installation**:
-
-```bash
-mkdir -p .cursor/skills
-cp -r node_modules/@struktur/skill/skills/struktur .cursor/skills/struktur
-```
-
-Gemini CLI [#gemini-cli]
-
-**Global installation**:
-
-```bash
-mkdir -p ~/.config/gemini/skills
-cp -r node_modules/@struktur/skill/skills/struktur ~/.config/gemini/skills/
-```
-
-**Project installation**:
-
-```bash
-mkdir -p .agents/skills
-cp -r node_modules/@struktur/skill/skills/struktur .agents/skills/
-```
+    ```bash
+    mkdir -p .agents/skills
+    cp -r node_modules/@struktur/skill/skills/struktur .agents/skills/
+    ```
+  </Tab>
+</Tabs>
 
 Verification [#verification]
 
@@ -4173,7 +4525,9 @@ The agent should confirm it can see the skill and describe what it knows about S
 
 Updating [#updating]
 
-To update to the latest version:
+<Callout type="info">
+  To update to the latest version:
+</Callout>
 
 ```bash
 # Update the npm package
@@ -4203,16 +4557,23 @@ rm -rf .agents/skills/struktur
 
 
 
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+
 How to use the Struktur agent skill with your AI coding assistant.
 
 How It Works [#how-it-works]
 
 The skill uses **progressive disclosure** to minimize token usage:
 
-1. **Metadata Phase** (\~100 tokens): Agent loads only the skill name and description
-2. **Activation Phase**: When your request matches the description, the agent asks permission to load the full skill
-3. **Full Load** (up to 5,000 tokens): Complete skill instructions load into context
-4. **On-Demand**: Supporting files (scripts, references) load as needed
+<Callout type="info">
+  1. **Metadata Phase** (\~100 tokens): Agent loads only the skill name and description
+  2. **Activation Phase**: When your request matches the description, the agent asks permission to load the full skill
+  3. **Full Load** (up to 5,000 tokens): Complete skill instructions load into context
+  4. **On-Demand**: Supporting files (scripts, references) load as needed
+</Callout>
 
 This means you can have hundreds of skills installed without bloating the agent's context window.
 
@@ -4231,70 +4592,72 @@ The agent will recognize these requests and load the skill automatically.
 
 Example Conversations [#example-conversations]
 
-Example 1: Basic Extraction [#example-1-basic-extraction]
+<Accordions type="single">
+  <Accordion title="Example 1: Basic Extraction">
+    **You:**
 
-**You:**
+    ```
+    Use struktur to extract the title and author from this document.
+    ```
 
-```
-Use struktur to extract the title and author from this document.
-```
+    **Agent (with skill loaded):**
 
-**Agent (with skill loaded):**
+    ```
+    I'll use Struktur's simple strategy for this extraction. Let me:
 
-```
-I'll use Struktur's simple strategy for this extraction. Let me:
+    1. Build an artifact from your document
+    2. Define a schema with title and author fields
+    3. Call extract() with the simple strategy
 
-1. Build an artifact from your document
-2. Define a schema with title and author fields
-3. Call extract() with the simple strategy
+    [proceeds with correct API usage, proper schema definition, and best practices]
+    ```
+  </Accordion>
 
-[proceeds with correct API usage, proper schema definition, and best practices]
-```
+  <Accordion title="Example 2: Large Document with Parallel Strategy">
+    **You:**
 
-Example 2: Large Document with Parallel Strategy [#example-2-large-document-with-parallel-strategy]
+    ```
+    I have a 500-page PDF with product listings. Extract all products with their names, prices, and categories.
+    ```
 
-**You:**
+    **Agent (with skill loaded):**
 
-```
-I have a 500-page PDF with product listings. Extract all products with their names, prices, and categories.
-```
+    ```
+    For a 500-page document with multiple products, I'll use the parallel strategy:
 
-**Agent (with skill loaded):**
+    - It will chunk the document by token budget
+    - Extract products from each chunk in parallel
+    - Merge the results automatically
 
-```
-For a 500-page document with multiple products, I'll use the parallel strategy:
+    Let me set this up with:
+    - strategy: parallel with appropriate chunk size
+    - schema: array of products with name, price, category
+    - model: your configured default
 
-- It will chunk the document by token budget
-- Extract products from each chunk in parallel
-- Merge the results automatically
+    [proceeds with optimal configuration]
+    ```
+  </Accordion>
 
-Let me set this up with:
-- strategy: parallel with appropriate chunk size
-- schema: array of products with name, price, category
-- model: your configured default
+  <Accordion title="Example 3: CLI Configuration">
+    **You:**
 
-[proceeds with optimal configuration]
-```
+    ```
+    Set up the struktur CLI to use OpenAI GPT-4o as the default model.
+    ```
 
-Example 3: CLI Configuration [#example-3-cli-configuration]
+    **Agent (with skill loaded):**
 
-**You:**
+    ```
+    I'll configure the struktur CLI:
 
-```
-Set up the struktur CLI to use OpenAI GPT-4o as the default model.
-```
+    1. Set your OpenAI API token
+    2. Set gpt-4o as the default model
+    3. Optionally create aliases for quick access
 
-**Agent (with skill loaded):**
-
-```
-I'll configure the struktur CLI:
-
-1. Set your OpenAI API token
-2. Set gpt-4o as the default model
-3. Optionally create aliases for quick access
-
-[runs correct CLI commands]
-```
+    [runs correct CLI commands]
+    ```
+  </Accordion>
+</Accordions>
 
 What the Skill Knows [#what-the-skill-knows]
 
@@ -4312,12 +4675,12 @@ Strategy Selection [#strategy-selection]
 
 The skill teaches the agent to choose strategies based on:
 
-| Input Size           | Output Shape        | Recommended Strategy              |
-| -------------------- | ------------------- | --------------------------------- |
-| Small (\<10K tokens) | Any                 | `simple`                          |
-| Large                | Array/list          | `parallel` or `parallelAutoMerge` |
-| Large                | Object with context | `sequential`                      |
-| Large                | Maximum accuracy    | `doublePass`                      |
+| Input Size            | Output Shape        | Recommended Strategy              |
+| --------------------- | ------------------- | --------------------------------- |
+| Small (`<10K` tokens) | Any                 | `simple`                          |
+| Large                 | Array/list          | `parallel` or `parallelAutoMerge` |
+| Large                 | Object with context | `sequential`                      |
+| Large                 | Maximum accuracy    | `doublePass`                      |
 
 CLI Commands [#cli-commands]
 
@@ -4357,32 +4720,34 @@ Check your tool's documentation for manual skill loading commands.
 
 Troubleshooting [#troubleshooting]
 
-Skill Not Loading [#skill-not-loading]
+<Accordions type="single">
+  <Accordion title="Skill Not Loading">
+    If the skill doesn't load automatically:
 
-If the skill doesn't load automatically:
+    1. **Check installation**: Verify the skill is in the correct directory
+    2. **Restart the agent**: Some tools require a restart after installation
+    3. **Be more specific**: Use explicit keywords like "struktur", "extract", "artifact"
+    4. **Check logs**: Some tools show skill discovery in debug mode
+  </Accordion>
 
-1. **Check installation**: Verify the skill is in the correct directory
-2. **Restart the agent**: Some tools require a restart after installation
-3. **Be more specific**: Use explicit keywords like "struktur", "extract", "artifact"
-4. **Check logs**: Some tools show skill discovery in debug mode
+  <Accordion title="Outdated Information">
+    If the skill seems outdated:
 
-Outdated Information [#outdated-information]
+    ```bash
+    # Update to latest version
+    npm update @struktur/skill
+    cp -r node_modules/@struktur/skill/skills/struktur ~/.config/claude/skills/
+    ```
+  </Accordion>
 
-If the skill seems outdated:
+  <Accordion title="Wrong Strategy Recommended">
+    The skill provides general guidance, but you can override:
 
-```bash
-# Update to latest version
-npm update @struktur/skill
-cp -r node_modules/@struktur/skill/skills/struktur ~/.config/claude/skills/
-```
-
-Wrong Strategy Recommended [#wrong-strategy-recommended]
-
-The skill provides general guidance, but you can override:
-
-```
-Use struktur with the sequential strategy (not parallel) because order matters for this document.
-```
+    ```
+    Use struktur with the sequential strategy (not parallel) because order matters for this document.
+    ```
+  </Accordion>
+</Accordions>
 
 Advanced Usage [#advanced-usage]
 
@@ -4403,9 +4768,13 @@ Combining with Other Skills [#combining-with-other-skills]
 
 The Struktur skill works alongside other skills:
 
-* Database skills (for saving extracted data)
-* Testing skills (for validating extraction results)
-* Deployment skills (for CI/CD integration)
+<Cards>
+  <Card title="Database Skills" description="For saving extracted data" />
+
+  <Card title="Testing Skills" description="For validating extraction results" />
+
+  <Card title="Deployment Skills" description="For CI/CD integration" />
+</Cards>
 
 Resources [#resources]
 

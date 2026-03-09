@@ -1,5 +1,9 @@
 
 
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+
 Usage [#usage]
 
 ```js
@@ -18,23 +22,61 @@ console.log(result.usage.totalTokens);
 
 Options [#options]
 
-| Field       | Required                    | Description                                                              |
-| ----------- | --------------------------- | ------------------------------------------------------------------------ |
-| `artifacts` | Yes                         | Array of artifacts to extract from                                       |
-| `schema`    | One of `schema` or `fields` | JSON Schema for output validation                                        |
-| `fields`    | One of `schema` or `fields` | [Fields shorthand](/docs/cli/fields) — comma-separated field definitions |
-| `strategy`  | Yes                         | A strategy instance                                                      |
-| `events`    | No                          | Event handlers for progress tracking                                     |
+<TypeTable
+  type={{
+  artifacts: {
+    description: 'Array of artifacts to extract from',
+    type: 'Artifact[]',
+    required: true,
+  },
+  schema: {
+    description: 'JSON Schema for output validation (one of schema or fields required)',
+    type: 'AnyJSONSchema',
+    required: false,
+  },
+  fields: {
+    description: 'Fields shorthand — comma-separated field definitions',
+    type: 'string',
+    required: false,
+  },
+  strategy: {
+    description: 'A strategy instance',
+    type: 'Strategy',
+    required: true,
+  },
+  events: {
+    description: 'Event handlers for progress tracking',
+    type: 'Events',
+    required: false,
+  },
+}}
+/>
 
-Exactly one of `schema` or `fields` must be provided. Passing both, or neither, throws immediately.
+<Callout type="warn">
+  Exactly one of `schema` or `fields` must be provided. Passing both, or neither, throws immediately.
+</Callout>
 
 Result [#result]
 
-| Field   | Description                                                |
-| ------- | ---------------------------------------------------------- |
-| `data`  | Validated output matching your schema                      |
-| `usage` | Token counts: `inputTokens`, `outputTokens`, `totalTokens` |
-| `error` | Set if extraction encountered a non-fatal error            |
+<TypeTable
+  type={{
+  data: {
+    description: 'Validated output matching your schema',
+    type: 'T',
+    required: true,
+  },
+  usage: {
+    description: 'Token counts: inputTokens, outputTokens, totalTokens',
+    type: 'Usage',
+    required: true,
+  },
+  error: {
+    description: 'Set if extraction encountered a non-fatal error',
+    type: 'Error | undefined',
+    required: false,
+  },
+}}
+/>
 
 Using fields instead of schema [#using-fields-instead-of-schema]
 
