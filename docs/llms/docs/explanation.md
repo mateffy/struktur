@@ -7,6 +7,8 @@ Deep dives into Struktur's architecture, strategies, and design decisions.
 <Cards>
   <Card title="The Extraction Pipeline" description="How data flows through Struktur from input to output" href="/docs/explanation/pipeline" />
 
+  <Card title="Models and Providers" description="Supported LLM providers and how to add new ones" href="/docs/explanation/models-and-providers" />
+
   <Card title="Artifact Format" description="The artifact JSON structure" href="/docs/explanation/artifact-format" />
 
   <Card title="Document Parsing" description="How files are converted to artifacts" href="/docs/explanation/document-parsing" />

@@ -28,6 +28,10 @@ export const Route = createRootRoute({
         content: "All-in-one tool for structured data extraction. Turn documents into validated JSON with AI.",
       },
       {
+        name: "google-site-verification",
+        content: "YOUR_VERIFICATION_CODE_HERE", // Replace with code from Google Search Console
+      },
+      {
         property: "og:title",
         content: "Struktur",
       },
@@ -66,6 +70,7 @@ export const Route = createRootRoute({
     ],
     links: [
       { rel: "icon", type: "image/png", href: "/struktur-icon.png" },
+      { rel: "canonical", href: "https://struktur.sh" },
     ],
   }),
   component: RootComponent,
@@ -80,6 +85,28 @@ function RootComponent() {
 }
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "Struktur",
+    description: "All-in-one tool for structured data extraction. Turn documents into validated JSON with AI.",
+    applicationCategory: "DeveloperApplication",
+    operatingSystem: "Any",
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "USD",
+    },
+    author: {
+      "@type": "Person",
+      name: "Lukas Mateffy",
+      url: "https://mateffy.org",
+    },
+    codeRepository: "https://github.com/mateffy/struktur",
+    programmingLanguage: ["TypeScript", "JavaScript"],
+    softwareRequirements: "Node.js, Bun, or Deno runtime",
+  };
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -88,6 +115,10 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <script dangerouslySetInnerHTML={{
           __html: `window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }`
         }} />
+        <script 
+          type="application/ld+json" 
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
       </head>
       <body className="flex flex-col min-h-screen">
         <RootProvider search={{ SearchDialog }}>{children}</RootProvider>

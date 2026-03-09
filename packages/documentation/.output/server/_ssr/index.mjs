@@ -3611,7 +3611,7 @@ function getResponse() {
   return event.res;
 }
 async function getStartManifest(matchedRoutes) {
-  const { tsrStartManifest } = await import("./_tanstack-start-manifest_v-C5VEns0e.mjs");
+  const { tsrStartManifest } = await import("./_tanstack-start-manifest_v-BAmXD2Zu.mjs");
   const startManifest = tsrStartManifest();
   const rootRoute = startManifest.routes[rootRouteId] = startManifest.routes[rootRouteId] || {};
   rootRoute.assets = rootRoute.assets || [];
@@ -3767,7 +3767,7 @@ function createMultiplexedStream(jsonStream, rawStreams) {
 }
 const manifest = { "3dffc64eabe29fc8f5f4021f5e1cdf4bfea9319ffba3a59848ead9dcd2fa0308": {
   functionName: "loader_createServerFn_handler",
-  importer: () => import("./_-CS2lOEaX.mjs")
+  importer: () => import("./_-CPcl0qKL.mjs")
 } };
 async function getServerFnById(id) {
   const serverFnInfo = manifest[id];
@@ -4183,7 +4183,7 @@ let entriesPromise;
 let baseManifestPromise;
 let cachedFinalManifestPromise;
 async function loadEntries() {
-  const routerEntry = await import("./router-DXWzjVxr.mjs").then((n2) => n2.a1);
+  const routerEntry = await import("./router-CEJMeLK1.mjs").then((n2) => n2.a1);
   const startEntry = await import("./start-HYkvq4Ni.mjs");
   return { startEntry, routerEntry };
 }

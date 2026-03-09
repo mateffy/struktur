@@ -1,0 +1,195 @@
+---
+title: Models and Providers
+description: How Struktur integrates with LLM providers through the Vercel AI SDK.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+Struktur is built on the [Vercel AI SDK](https://sdk.vercel.ai/docs/introduction), which provides a unified interface to multiple LLM providers. This architecture makes it straightforward to use any model from supported providers—or add new ones.
+
+## Supported Providers
+
+Struktur currently supports the following providers out of the box:
+
+| Provider | Environment Variable | Package |
+|----------|---------------------|---------|
+| **OpenAI** | `OPENAI_API_KEY` | `@ai-sdk/openai` |
+| **Anthropic** | `ANTHROPIC_API_KEY` | `@ai-sdk/anthropic` |
+| **Google** | `GOOGLE_GENERATIVE_AI_API_KEY` | `@ai-sdk/google` |
+| **OpenCode** | `OPENCODE_API_KEY` | `@ai-sdk/openai`* |
+| **OpenRouter** | `OPENROUTER_API_KEY` | `@openrouter/ai-sdk-provider` |
+
+*OpenCode uses the OpenAI-compatible API via the Vercel SDK's OpenAI provider.
+
+<Callout type="info">
+  **Model names change frequently.** Rather than document specific models, Struktur focuses on provider integration. Check your provider's documentation for available models and their capabilities.
+</Callout>
+
+## Specifying Models
+
+Models are specified using the format `provider/model-name`:
+
+```typescript
+import { extract } from "@struktur/sdk";
+
+// OpenAI
+const result = await extract({
+  artifacts,
+  schema,
+  strategy: { type: "simple", model: "openai/gpt-4o" }
+});
+
+// Anthropic
+const result = await extract({
+  artifacts,
+  schema,
+  strategy: { type: "simple", model: "anthropic/claude-3-5-sonnet" }
+});
+
+// Google
+const result = await extract({
+  artifacts,
+  schema,
+  strategy: { type: "simple", model: "google/gemini-1.5-pro" }
+});
+```
+
+## Authentication
+
+Struktur supports two authentication methods:
+
+### Environment Variables
+
+Set the appropriate API key for your provider:
+
+```bash
+export OPENAI_API_KEY="sk-..."
+export ANTHROPIC_API_KEY="sk-ant-..."
+export GOOGLE_GENERATIVE_AI_API_KEY="..."
+export OPENCODE_API_KEY="..."
+export OPENROUTER_API_KEY="..."
+```
+
+### Secure Token Storage
+
+For CLI usage, Struktur can store tokens securely:
+
+```bash
+# Store in macOS Keychain (preferred on macOS)
+struktur auth set --provider openai --token "sk-..."
+
+# Or store in file
+struktur auth set --provider openai --token "sk-..." --storage file
+```
+
+<Callout type="info">
+  On macOS, Struktur defaults to the system Keychain. On other platforms, tokens are stored in `~/.config/struktur/tokens.json` with strict permissions (`0o600`).
+</Callout>
+
+## Special Providers
+
+### OpenCode (PyCoding Agent)
+
+OpenCode provides access to multiple model families through a single API:
+
+```typescript
+// OpenAI-compatible models
+"opencode/gpt-5.2"
+"opencode/gpt-5.1"
+
+// Anthropic-compatible models
+"opencode/claude-opus-4-6"
+"opencode/claude-sonnet-4-5"
+
+// Google-compatible models
+"opencode/gemini-3.1-pro"
+"opencode/gemini-3-flash"
+
+// Other providers
+"opencode/kimi-k2.5"
+"opencode/glm-5"
+```
+
+Struktur automatically routes OpenCode requests to the correct Vercel SDK provider based on the model prefix (`gpt-`, `claude-`, `gemini-`).
+
+### OpenRouter
+
+OpenRouter provides access to models from multiple providers through a unified API. You can also specify a preferred upstream provider:
+
+```typescript
+// Basic usage
+"openrouter/anthropic/claude-3.5-sonnet"
+
+// With preferred provider (using hashtag syntax)
+"openrouter/anthropic/claude-3.5-sonnet#octoai"
+```
+
+## Adding New Providers
+
+Because Struktur uses the Vercel AI SDK, adding support for new providers is straightforward:
+
+1. **Check if Vercel AI SDK supports the provider**
+   
+   The Vercel AI SDK has a growing ecosystem of [community providers](https://sdk.vercel.ai/providers/community-providers). If your provider is listed there, integration is simple.
+
+2. **Create a provider resolver**
+
+   Add a case to `resolveModel` in `packages/sdk/src/llm/resolveModel.ts`:
+
+   ```typescript
+   case "newprovider": {
+     const { createNewProvider } = await import("@ai-sdk/newprovider");
+     return createNewProvider({ apiKey })(modelName);
+   }
+   ```
+
+3. **Add environment variable mapping**
+
+   Update `resolveProviderEnvVar` in `packages/sdk/src/auth/tokens.ts`:
+
+   ```typescript
+   case "newprovider":
+     return "NEWPROVIDER_API_KEY";
+   ```
+
+4. **(Optional) Add model listing support**
+
+   If the provider has a models API, add support in `packages/sdk/src/llm/models.ts`.
+
+## Model Capabilities
+
+When selecting a model, consider:
+
+| Capability | Considerations |
+|------------|---------------|
+| **Structured Output** | All supported providers support JSON schema output |
+| **Vision/Multimodal** | Check if the model supports image input for PDF/image extraction |
+| **Context Window** | Larger documents require models with larger context windows |
+| **Rate Limits** | Consider provider rate limits for batch processing |
+| **Cost** | Different models have vastly different pricing |
+
+<Callout type="warning">
+  Not all models support image inputs. If you're extracting from PDFs or images with visual content, use a vision-capable model (e.g., GPT-4o, Claude 3.5 Sonnet, Gemini 1.5 Pro).
+</Callout>
+
+## Listing Available Models
+
+The CLI can list available models from configured providers:
+
+```bash
+# List models for a specific provider
+struktur models --provider openai
+
+# List models for all configured providers
+struktur models
+
+# Pick the cheapest available model
+struktur extract --model cheapest --provider openai
+```
+
+## See Also
+
+- [Extraction Strategies](/docs/explanation/strategies) — How strategies use models
+- [CLI Authentication](/docs/cli/config) — Managing provider tokens
+- [Vercel AI SDK Documentation](https://sdk.vercel.ai/docs) — Full provider documentation

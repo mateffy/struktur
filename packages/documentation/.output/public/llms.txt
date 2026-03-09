@@ -19,6 +19,7 @@
 - [Chunking & Token Budgets](/docs/explanation/chunking): How large documents are split and merged to fit within context windows.
 - [Document Parsing](/docs/explanation/document-parsing): How Struktur converts files into Artifacts before extraction.
 - [Explanation](/docs/explanation): undefined
+- [Models and Providers](/docs/explanation/models-and-providers): How Struktur integrates with LLM providers through the Vercel AI SDK.
 - [Extraction Lifecycle](/docs/explanation/pipeline): How data flows through Struktur from input to output.
 - [Extraction Strategies](/docs/explanation/strategies): The Agent strategy uses autonomous exploration. Other strategies are available for specific use cases.
 - [Validation & Retries](/docs/explanation/validation): How the schema validation loop works and why it matters.
