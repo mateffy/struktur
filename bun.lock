@@ -18,7 +18,7 @@
     },
     "packages/agent-strategy": {
       "name": "@struktur/agent-strategy",
-      "version": "2.1.0",
+      "version": "2.1.2",
       "dependencies": {
         "@mariozechner/pi-coding-agent": "^0.57.1",
         "@sinclair/typebox": "^0.34.48",
@@ -51,7 +51,7 @@
     },
     "packages/cli": {
       "name": "@struktur/cli",
-      "version": "2.1.0",
+      "version": "2.1.2",
       "bin": {
         "struktur": "src/cli.ts",
       },
@@ -122,7 +122,7 @@
     },
     "packages/sdk": {
       "name": "@struktur/sdk",
-      "version": "2.1.0",
+      "version": "2.1.2",
       "dependencies": {
         "@ai-sdk/anthropic": "^3.0.0",
         "@ai-sdk/google": "^3.0.0",
@@ -147,7 +147,7 @@
     },
     "packages/telemetry": {
       "name": "@struktur/telemetry",
-      "version": "2.1.0",
+      "version": "2.1.2",
       "dependencies": {
         "@struktur/sdk": "workspace:*",
       },
