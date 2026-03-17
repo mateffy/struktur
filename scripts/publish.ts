@@ -5,7 +5,6 @@ const packages = [
   { name: "@struktur/sdk", path: "packages/sdk" },
   { name: "@struktur/cli", path: "packages/cli" },
   { name: "@struktur/telemetry", path: "packages/telemetry" },
-  { name: "@struktur/agent-strategy", path: "packages/agent-strategy" },
 ];
 
 // Read version from SDK package (source of truth)
