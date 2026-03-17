@@ -1,7 +1,30 @@
 import type { ExtractionOptions, ExtractionResult } from "./types";
 import { buildSchemaFromFields } from "./fields";
+import type { TelemetryAdapter } from "./types";
 
 const emptyUsage = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
+
+const safeShutdown = async (telemetry: TelemetryAdapter | null | undefined): Promise<void> => {
+  if (!telemetry) return;
+  try {
+    await telemetry.shutdown();
+  } catch {
+    // Ignore telemetry shutdown errors
+  }
+};
+
+const safeEndSpan = (
+  telemetry: TelemetryAdapter | null | undefined,
+  span: { id: string } | undefined,
+  result: { status: "ok" | "error"; error?: Error; output?: unknown }
+): void => {
+  if (!telemetry || !span) return;
+  try {
+    telemetry.endSpan(span, result);
+  } catch {
+    // Ignore telemetry span errors
+  }
+};
 
 /**
  * Resolve and validate the schema from ExtractionOptions.
@@ -34,11 +57,16 @@ export const extract = async <T>(
   options: ExtractionOptions<T>,
 ): Promise<ExtractionResult<T>> => {
   const debug = options.debug;
-  const telemetry = options.telemetry;
+  let telemetry = options.telemetry;
 
-  // Initialize telemetry if provided
+  // Initialize telemetry if provided, gracefully handle failures
   if (telemetry) {
-    await telemetry.initialize();
+    try {
+      await telemetry.initialize();
+    } catch (error) {
+      console.error("Telemetry initialization failed, continuing without telemetry:", (error as Error).message);
+      telemetry = undefined;
+    }
   }
 
   // Start root extraction span
@@ -67,11 +95,11 @@ export const extract = async <T>(
         error: (error as Error).message,
       });
 
-      telemetry?.endSpan(rootSpan!, {
+      safeEndSpan(telemetry, rootSpan, {
         status: "error",
         error: error as Error,
       });
-      await telemetry?.shutdown();
+      await safeShutdown(telemetry);
 
       return {
         data: null as unknown as T,
@@ -118,12 +146,12 @@ export const extract = async <T>(
       error: result.error?.message,
     });
 
-    telemetry?.endSpan(rootSpan!, {
+    safeEndSpan(telemetry, rootSpan, {
       status: result.error ? "error" : "ok",
       output: result.data,
       error: result.error,
     });
-    await telemetry?.shutdown();
+    await safeShutdown(telemetry);
 
     return result;
   } catch (error) {
@@ -135,11 +163,11 @@ export const extract = async <T>(
       error: (error as Error).message,
     });
 
-    telemetry?.endSpan(rootSpan!, {
+    safeEndSpan(telemetry, rootSpan, {
       status: "error",
       error: error as Error,
     });
-    await telemetry?.shutdown();
+    await safeShutdown(telemetry);
 
     return {
       data: null as unknown as T,

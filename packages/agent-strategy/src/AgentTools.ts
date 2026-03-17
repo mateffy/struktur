@@ -123,14 +123,6 @@ export const createVirtualFilesystemTools = (
       try {
         const result = await bash.exec(params.command);
         
-        // Log non-zero exit codes for debugging
-        if (result.exitCode !== 0) {
-          console.error(`[AgentTools] Bash command failed with exit code ${result.exitCode}: ${params.command}`);
-          if (result.stderr) {
-            console.error(`[AgentTools] stderr: ${result.stderr}`);
-          }
-        }
-        
         return {
           content: [
             {
@@ -221,11 +213,6 @@ export const createVirtualFilesystemTools = (
         const result = await bash.exec(command);
 
         if (result.exitCode !== 0) {
-          console.error(`[AgentTools] Read file failed: ${params.file_path}`);
-          console.error(`[AgentTools] Command: ${command}`);
-          if (result.stderr) {
-            console.error(`[AgentTools] stderr: ${result.stderr}`);
-          }
           return {
             content: [
               {

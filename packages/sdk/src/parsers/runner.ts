@@ -1,6 +1,8 @@
 import os from "node:os";
 import path from "node:path";
-import { rm, writeFile } from "node:fs/promises";
+import { rm, writeFile, readFile } from "node:fs/promises";
+import { exec } from "node:child_process";
+import { promisify } from "node:util";
 import type { Artifact } from "../types";
 import type { ParserDef, ParserInput } from "./types";
 import type { NpmParserModule } from "./npm";
@@ -8,6 +10,8 @@ import {
   hydrateSerializedArtifacts,
   validateSerializedArtifacts,
 } from "../artifacts/input";
+
+const execAsync = promisify(exec);
 
 const parseCommandOutput = (stdout: string): Artifact[] => {
   let parsed: unknown;
@@ -26,32 +30,21 @@ const spawnAndCapture = async (command: string, stdinBuffer?: Buffer): Promise<s
     throw new Error(`Empty command: ${command}`);
   }
 
-  const proc = Bun.spawn(["sh", "-c", command], {
-    stdout: "pipe",
-    stderr: "pipe",
-    stdin: stdinBuffer ? "pipe" : "ignore",
-  });
-
-  if (stdinBuffer && proc.stdin) {
-    // Bun's FileSink uses write/end, not the WritableStream API
-    const sink = proc.stdin as { write: (data: Uint8Array) => void; end: () => void };
-    sink.write(stdinBuffer);
-    sink.end();
+  try {
+    const options = stdinBuffer
+      ? { input: stdinBuffer.toString(), maxBuffer: 50 * 1024 * 1024 }
+      : { maxBuffer: 50 * 1024 * 1024 };
+    const { stdout } = await execAsync(command, options);
+    return stdout;
+  } catch (error) {
+    if (error instanceof Error && "stderr" in error) {
+      const stderr = (error as { stderr: string }).stderr;
+      throw new Error(
+        `Parser command failed: ${command}\nStderr: ${stderr?.slice(0, 500) ?? ""}`
+      );
+    }
+    throw error;
   }
-
-  const [stdout, stderr, exitCode] = await Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-    proc.exited,
-  ]);
-
-  if (exitCode !== 0) {
-    throw new Error(
-      `Parser command exited with code ${exitCode}: ${command}\nStderr: ${stderr.slice(0, 500)}`
-    );
-  }
-
-  return stdout;
 };
 
 const runNpmParser = async (
@@ -76,8 +69,10 @@ const runNpmParser = async (
       return mod.parseFile!(input.path, mimeType);
     }
     // Fallback: open file as stream
-    const file = Bun.file(input.path);
-    const stream = file.stream() as ReadableStream<Uint8Array>;
+    const { createReadStream } = await import("node:fs");
+    const { Readable } = await import("node:stream");
+    const nodeStream = createReadStream(input.path);
+    const stream = Readable.toWeb(nodeStream) as ReadableStream<Uint8Array>;
     return mod.parseStream!(stream, mimeType);
   }
 
@@ -137,8 +132,7 @@ const runCommandStdinParser = async (
   let buffer: Buffer;
 
   if (input.kind === "file") {
-    const file = Bun.file(input.path);
-    buffer = Buffer.from(await file.arrayBuffer());
+    buffer = await readFile(input.path);
   } else {
     buffer = input.buffer;
   }
@@ -162,8 +156,7 @@ export const runParser = async (
     case "inline": {
       let buffer: Buffer;
       if (input.kind === "file") {
-        const file = Bun.file(input.path);
-        buffer = Buffer.from(await file.arrayBuffer());
+        buffer = await readFile(input.path);
       } else {
         buffer = input.buffer;
       }

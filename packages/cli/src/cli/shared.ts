@@ -13,6 +13,8 @@ import {
   resolveProviderToken,
 } from "@struktur/sdk";
 import type { NpmParserDef, ParsersConfig, AnyJSONSchema, Artifact, NpmParserEntry } from "@struktur/sdk";
+import { readFile } from "node:fs/promises";
+import { Buffer } from "node:buffer";
 
 export type ParsedArgs = {
   command?: string;
@@ -54,7 +56,7 @@ export const usage = () => {
     "  --schema-json <json>     JSON schema string",
     "  --model <provider/model> Model identifier (e.g. openai/gpt-5, default: configured or cheapest)",
     "  --output <path|->        Output path or stdout (default: -)",
-    "  --strategy <name>        Strategy name (simple|parallel|sequential|parallelAutoMerge|sequentialAutoMerge|doublePass|doublePassAutoMerge|agent, default: simple)",
+    "  --strategy <name>        Strategy name (simple|parallel|sequential|parallelAutoMerge|sequentialAutoMerge|doublePass|doublePassAutoMerge|agent, default: agent)",
     "  --chunk-size <number>    Token budget per batch for chunked strategies (default: 10000)",
     "  --max-steps <number>     Maximum agent steps for agent strategy (default: 50)",
     "",
@@ -142,7 +144,7 @@ export const readStdinText = async () => {
 };
 
 export const readJsonFile = async (path: string) => {
-  const text = await Bun.file(path).text();
+  const text = await readFile(path, "utf-8");
   return JSON.parse(text) as unknown;
 };
 
@@ -308,7 +310,7 @@ export const loadArtifactsFromOptions = async (
       const serialized = await fetchArtifactFromUrl(artifactFile as string);
       return parse({ kind: "artifact-json", data: serialized });
     }
-    const source = await Bun.file(artifactFile as string).text();
+    const source = await readFile(artifactFile as string, "utf-8");
     const serialized = parseArtifactText(artifactFile as string, source);
     return parse({ kind: "artifact-json", data: serialized });
   }
@@ -400,9 +402,11 @@ export const loadArtifactsFromOptions = async (
       // Read first 512 bytes for magic byte detection
       let headerBuffer: Buffer | undefined;
       try {
-        const file = Bun.file(input);
-        const arrayBuf = await file.slice(0, 512).arrayBuffer();
-        headerBuffer = Buffer.from(arrayBuf);
+        const fd = await import("node:fs/promises").then(fs => fs.open(input, "r"));
+        const buffer = Buffer.alloc(512);
+        await fd.read(buffer, 0, 512, 0);
+        await fd.close();
+        headerBuffer = buffer;
       } catch {
         // Ignore read failures for detection
       }

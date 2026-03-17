@@ -1,6 +1,10 @@
 import path from "node:path";
 import os from "node:os";
-import { chmod, mkdir } from "node:fs/promises";
+import { chmod, mkdir, readFile, writeFile, stat, access } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+
+const execFileAsync = promisify(execFile);
 
 export type TokenStorageType = "auto" | "keychain" | "file";
 
@@ -31,11 +35,12 @@ const emptyStore = (): TokenStore => ({ version: 1, providers: {} });
 
 const readTokenStore = async (): Promise<TokenStore> => {
   const tokensPath = resolveTokensPath();
-  const exists = await Bun.file(tokensPath).exists();
-  if (!exists) {
+  try {
+    await stat(tokensPath);
+  } catch {
     return emptyStore();
   }
-  const raw = await Bun.file(tokensPath).text();
+  const raw = await readFile(tokensPath, "utf-8");
   const parsed = JSON.parse(raw) as TokenStore;
   if (!parsed || parsed.version !== 1 || typeof parsed.providers !== "object") {
     return emptyStore();
@@ -47,7 +52,7 @@ const writeTokenStore = async (store: TokenStore) => {
   const configDir = resolveConfigDir();
   const tokensPath = resolveTokensPath();
   await mkdir(configDir, { recursive: true, mode: 0o700 });
-  await Bun.write(tokensPath, JSON.stringify(store, null, 2));
+  await writeFile(tokensPath, JSON.stringify(store, null, 2));
   await chmod(configDir, 0o700);
   await chmod(tokensPath, 0o600);
 };
@@ -59,25 +64,28 @@ const isKeychainAvailable = async () => {
   if (process.platform !== "darwin") {
     return false;
   }
-  return await Bun.file("/usr/bin/security").exists();
+  try {
+    await access("/usr/bin/security");
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 const keychainService = () => process.env[SERVICE_ENV] ?? DEFAULT_SERVICE;
 
 const runSecurity = async (args: string[]) => {
-  const proc = Bun.spawn({
-    cmd: ["/usr/bin/security", ...args],
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-  const stdout = await new Response(proc.stdout).text();
-  const stderr = await new Response(proc.stderr).text();
-  const exitCode = await proc.exited;
-  if (exitCode !== 0) {
-    const message = stderr.trim() || `security exited with ${exitCode}`;
-    throw new Error(message);
+  try {
+    const { stdout } = await execFileAsync("/usr/bin/security", args);
+    return stdout;
+  } catch (error) {
+    if (error instanceof Error && "stderr" in error) {
+      const stderr = (error as { stderr: string }).stderr;
+      const message = stderr?.trim() || error.message;
+      throw new Error(message);
+    }
+    throw error;
   }
-  return stdout;
 };
 
 const writeKeychainToken = async (provider: string, token: string) => {

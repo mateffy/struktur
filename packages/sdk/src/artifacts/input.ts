@@ -4,6 +4,8 @@ import { defaultArtifactProviders, type ArtifactProviders } from "./providers";
 import type { ParsersConfig } from "../parsers/types";
 import { runParser } from "../parsers/runner";
 import type { ParsePdfOptions } from "../parsers/pdf";
+import { readFile } from "node:fs/promises";
+import { detectMimeType } from "../parsers/mime";
 
 export type SerializedArtifactImage = Omit<ArtifactImage, "contents"> & {
   contents?: never;
@@ -136,12 +138,6 @@ export const splitTextIntoContents = (text: string): ArtifactContent[] => {
   return blocks.map((block) => ({ text: block }));
 };
 
-const detectMimeType = async (path: string) => {
-  const file = Bun.file(path);
-  const type = file.type?.trim();
-  return type && type.length > 0 ? type : "application/octet-stream";
-};
-
 const bufferToTextArtifact = (buffer: Buffer, id?: string): Artifact => {
   const text = buffer.toString();
   return {
@@ -262,11 +258,11 @@ const fileParser: ArtifactInputParser = {
     if (input.kind !== "file") {
       return [];
     }
-    const mimeType = input.mimeType ?? (await detectMimeType(input.path));
+    const mimeType = input.mimeType ?? (await detectMimeType({ filePath: input.path })) ?? "application/octet-stream";
 
     // JSON auto-detection: if MIME type is application/json, first try to validate as SerializedArtifact[]
     if (mimeType === "application/json") {
-      const text = await Bun.file(input.path).text();
+      const text = await readFile(input.path, "utf-8");
       try {
         const parsed = JSON.parse(text) as unknown;
         const serialized = validateSerializedArtifacts(parsed);
@@ -285,8 +281,7 @@ const fileParser: ArtifactInputParser = {
       }
     }
 
-    const file = Bun.file(input.path);
-    const buffer = Buffer.from(await file.arrayBuffer());
+    const buffer = await readFile(input.path);
     return parseBufferInput(
       buffer, 
       mimeType, 

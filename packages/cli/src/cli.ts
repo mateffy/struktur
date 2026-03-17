@@ -1,5 +1,3 @@
-#!/usr/bin/env bun
-
 // Workaround for AI SDK timestamp parsing issue with certain providers
 // Some providers (e.g., opencode) return invalid timestamps that cause
 // RangeError: Invalid Date when AI SDK tries to call toISOString()
@@ -15,6 +13,8 @@ Date.prototype.toISOString = function () {
 
 import { defineCommand, renderUsage, runMain } from "citty";
 import yoctoSpinner from "yocto-spinner";
+import { writeFile, readFile } from "node:fs/promises";
+import { Buffer } from "node:buffer";
 import {
   extract,
   doublePass,
@@ -102,7 +102,7 @@ const writeOutput = async (target: string | undefined, data: string) => {
     }
     return;
   }
-  await Bun.write(target, data);
+  await writeFile(target, data);
 };
 
 const generateArtifactViewerHtml = (artifacts: SerializedArtifact[], version: string): string => {
@@ -1698,7 +1698,7 @@ const utilsVerifyArtifactCommand = defineCommand({
 
     const raw = useStdin
       ? await readStdinText()
-      : await Bun.file(args.input!).text();
+      : await readFile(args.input!, "utf-8");
     const parsed = JSON.parse(raw) as unknown;
     const artifacts = validateSerializedArtifacts(parsed);
     const json = JSON.stringify(
@@ -1770,7 +1770,7 @@ const extractCommand = defineCommand({
       description:
         "Extraction strategy (simple|parallel|sequential|parallelAutoMerge|sequentialAutoMerge|doublePass|doublePassAutoMerge|agent)",
       alias: "S",
-      default: "simple",
+      default: "agent",
       valueHint: "simple|parallel|...|agent",
     },
     "chunk-size": {
@@ -1997,19 +1997,23 @@ const extractCommand = defineCommand({
       const telemetryConfig = await getTelemetryConfig();
       
       if (telemetryConfig?.enabled) {
-        const { createTelemetry } = await import("@struktur/telemetry");
-        
-        telemetry = await createTelemetry({
-          provider: telemetryConfig.provider,
-          config: {
-            ...(telemetryConfig.url && { url: telemetryConfig.url }),
-            ...(telemetryConfig.apiKey && { apiKey: telemetryConfig.apiKey }),
-            ...(telemetryConfig.projectName && { projectName: telemetryConfig.projectName }),
-            ...(telemetryConfig.publicKey && { publicKey: telemetryConfig.publicKey }),
-            ...(telemetryConfig.secretKey && { secretKey: telemetryConfig.secretKey }),
-            ...(telemetryConfig.baseUrl && { baseUrl: telemetryConfig.baseUrl }),
-          },
-        });
+        try {
+          const { createTelemetry } = await import("@struktur/telemetry");
+          
+          telemetry = await createTelemetry({
+            provider: telemetryConfig.provider,
+            config: {
+              ...(telemetryConfig.url && { url: telemetryConfig.url }),
+              ...(telemetryConfig.apiKey && { apiKey: telemetryConfig.apiKey }),
+              ...(telemetryConfig.projectName && { projectName: telemetryConfig.projectName }),
+              ...(telemetryConfig.publicKey && { publicKey: telemetryConfig.publicKey }),
+              ...(telemetryConfig.secretKey && { secretKey: telemetryConfig.secretKey }),
+              ...(telemetryConfig.baseUrl && { baseUrl: telemetryConfig.baseUrl }),
+            },
+          });
+        } catch (error) {
+          console.error("Failed to initialize telemetry, continuing without it:", (error as Error).message);
+        }
       }
 
       const result = await extract({
@@ -2140,8 +2144,7 @@ const parseCommand = defineCommand({
       buffer = Buffer.from(text);
     } else {
       filePath = args.input!;
-      const file = Bun.file(filePath);
-      buffer = Buffer.from(await file.arrayBuffer());
+      buffer = await readFile(filePath);
     }
 
     // Detect MIME type
@@ -2578,7 +2581,7 @@ const utilsArtifactViewerCommand = defineCommand({
 
     const raw = useStdin
       ? await readStdinText()
-      : await Bun.file(args.input!).text();
+      : await readFile(args.input!, "utf-8");
     
     const parsed = JSON.parse(raw) as unknown;
     const artifacts = validateSerializedArtifacts(parsed);

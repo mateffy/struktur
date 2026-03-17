@@ -1,6 +1,6 @@
 import path from "node:path";
 import os from "node:os";
-import { chmod, mkdir } from "node:fs/promises";
+import { chmod, mkdir, readFile, writeFile, stat } from "node:fs/promises";
 import type { ParserDef, ParsersConfig } from "@struktur/sdk";
 
 type TelemetryConfig = {
@@ -35,11 +35,12 @@ const emptyStore = (): ConfigStore => ({ version: 1 });
 
 const readConfigStore = async (): Promise<ConfigStore> => {
   const configPath = resolveConfigPath();
-  const exists = await Bun.file(configPath).exists();
-  if (!exists) {
+  try {
+    await stat(configPath);
+  } catch {
     return emptyStore();
   }
-  const raw = await Bun.file(configPath).text();
+  const raw = await readFile(configPath, "utf-8");
   const parsed = JSON.parse(raw) as ConfigStore;
   if (!parsed || parsed.version !== 1) {
     return emptyStore();
@@ -51,7 +52,7 @@ const writeConfigStore = async (store: ConfigStore) => {
   const configDir = resolveConfigDir();
   const configPath = resolveConfigPath();
   await mkdir(configDir, { recursive: true, mode: 0o700 });
-  await Bun.write(configPath, JSON.stringify(store, null, 2));
+  await writeFile(configPath, JSON.stringify(store, null, 2));
   await chmod(configDir, 0o700);
   await chmod(configPath, 0o600);
 };

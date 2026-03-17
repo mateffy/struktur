@@ -6,6 +6,7 @@
   ],
   "scripts": {
     "test": "bun test",
+    "build": "bun run --filter '@struktur/agent-strategy' --filter '@struktur/sdk' --filter '@struktur/telemetry' --filter '@struktur/cli' build",
     "docs": "bun run docs:build && bun run docs:publish",
     "docs:build": "bun run --filter @struktur/documentation build",
     "docs:publish": "git add ./docs ./packages/documentation && git commit -m 'chore: update docs' && git push",

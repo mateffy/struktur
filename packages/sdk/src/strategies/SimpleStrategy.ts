@@ -25,7 +25,7 @@ export class SimpleStrategy<T> implements ExtractionStrategy<T> {
 
   async run(options: ExtractionOptions<T>): Promise<ExtractionResult<T>> {
     const debug = options.debug;
-    const { telemetry } = options;
+    const telemetry = options.telemetry ?? undefined;
     
     // Create strategy-level span
     const strategySpan = telemetry?.startSpan({

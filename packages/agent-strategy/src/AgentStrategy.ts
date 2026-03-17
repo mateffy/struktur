@@ -19,18 +19,18 @@ import { serializeArtifactsToFilesystem, createVirtualFilesystem } from "./Artif
 import { createVirtualFilesystemTools } from "./AgentTools";
 
 export type AgentStrategyConfig = {
-  /** 
+  /**
    * The model to use. Can be a pi Model or any model object with provider/id.
    * If not provided, uses the first available model from the registry.
    */
   model?: unknown;
-  /** 
-   * Provider name (e.g., 'anthropic', 'openai'). 
+  /**
+   * Provider name (e.g., 'anthropic', 'openai').
    * Used with modelId when model object not provided.
    */
   provider?: string;
-  /** 
-   * Model ID (e.g., 'claude-sonnet-4'). 
+  /**
+   * Model ID (e.g., 'claude-sonnet-4').
    * Used with provider when model object not provided.
    */
   modelId?: string;
@@ -40,7 +40,7 @@ export type AgentStrategyConfig = {
   outputInstructions?: string;
   /** Override the default system prompt entirely */
   systemPrompt?: string;
-  /** 
+  /**
    * API key for authentication. If not provided, uses environment variables
    * or auth storage (ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.)
    */
@@ -98,16 +98,16 @@ This is a **sandboxed environment** - you CANNOT install packages or tools:
 - **set_output_data** - Set the initial extraction output. Call this as soon as you find the first piece of data.
   - Example: set_output_data({"data": {"company_name": "Acme Corp"}})
   - The data can be any shape - you'll update it incrementally
-  
+
 - **update_output_data** - Add or modify fields in the existing output data
   - Example: update_output_data({"changes": {"address": "123 Main St"}})
   - This merges new data with existing data (deep merge)
   - Call this frequently as you discover more information
-  
+
 - **finish** - Call this when extraction is complete and data validates against the schema
   - Only works if the data is valid according to the schema
   - This ends the extraction successfully
-  
+
 - **fail** - Call this if the schema cannot be satisfied with available data
   - Provide a reason explaining what data was missing or why extraction failed
 
@@ -229,7 +229,7 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
     const debug = options.debug ?? this.config.debug;
     const { telemetry } = options;
     const maxSteps = this.config.maxSteps ?? 50;
-    
+
     // Create strategy-level AGENT span
     const agentSpan = telemetry?.startSpan({
       name: "strategy.agent",
@@ -237,13 +237,13 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
       attributes: {
         "strategy.name": this.name,
         "agent.max_steps": maxSteps,
-        "agent.model": this.config.model 
-          ? "custom" 
+        "agent.model": this.config.model
+          ? "custom"
           : `${this.config.provider}/${this.config.modelId}`,
         "agent.artifacts.count": options.artifacts.length,
       },
     });
-    
+
     // Track active spans for messages (LLM calls) and tool calls
     const activeMessageSpans = new Map<string, any>();
     const activeToolSpans = new Map<string, any>();
@@ -269,7 +269,7 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
       "/artifact.json": filesystem["/artifact.json"],
       "/manifest.json": filesystem["/manifest.json"],
     };
-    
+
     // Add virtual image files to the filesystem
     for (const [path, content] of filesystem.virtualFiles) {
       files[path] = content;
@@ -305,7 +305,7 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
 
     // Set up auth storage
     const agentDir = this.config.agentDir;
-    const authStorage = agentDir 
+    const authStorage = agentDir
       ? AuthStorage.create(`${agentDir}/auth.json`)
       : AuthStorage.create();
 
@@ -341,7 +341,7 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
       agentDir: agentDir || undefined,
       systemPromptOverride: () => systemPrompt,
     });
-    
+
     await loader.reload();
 
     // Create in-memory settings
@@ -355,7 +355,7 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
     let finishError: string | null = null;
     let extractionFailed = false;
     let failureReason: string | null = null;
-    
+
     // Helper to validate data against schema
     const validateData = (data: any): { valid: boolean; errors: string[] } => {
       try {
@@ -365,7 +365,7 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
         return { valid: false, errors: [(e as Error).message] };
       }
     };
-    
+
     // Helper to deep merge objects
     const deepMerge = (target: any, source: any): any => {
       const output = Object.assign({}, target);
@@ -384,7 +384,7 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
       }
       return output;
     };
-    
+
     const isObject = (item: any): boolean => {
       return item && typeof item === "object" && !Array.isArray(item);
     };
@@ -404,7 +404,7 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
 
     // Create output management tools
     const { Type } = await import("@sinclair/typebox");
-    
+
     const setOutputDataTool = {
       name: "set_output_data",
       label: "Set Output Data",
@@ -416,28 +416,28 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
         currentOutput = params.data;
         const validation = validateData(params.data);
         const status = validation.valid ? "✓ Valid structure" : `✗ Validation issues: ${validation.errors.join(", ")}`;
-        
+
         // Emit progress so CLI shows the update
         await options.events?.onStep?.({
           step: stepCount + 1,
           total: this.getEstimatedSteps(),
           label: `Output: ${JSON.stringify(params.data).slice(0, 50)}...`,
         });
-        
+
         return {
           content: [{ type: "text", text: `Output data set. ${status}` }],
           details: { validation },
         };
       },
     };
-    
+
     const updateOutputDataTool = {
       name: "update_output_data",
       label: "Update Output Data",
       description: "Update the output data by merging changes. Existing fields are preserved, new fields are added.",
       parameters: Type.Object({
-        changes: Type.Record(Type.String(), Type.Any(), { 
-          description: "Changes to merge into existing data" 
+        changes: Type.Record(Type.String(), Type.Any(), {
+          description: "Changes to merge into existing data"
         }),
       }),
       execute: async (toolCallId: string, params: { changes: any }) => {
@@ -447,25 +447,25 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
             isError: true,
           };
         }
-        
+
         currentOutput = deepMerge(currentOutput, params.changes);
         const validation = validateData(currentOutput);
         const status = validation.valid ? "✓ Valid structure" : `✗ Validation issues: ${validation.errors.join(", ")}`;
-        
+
         // Emit progress so CLI shows the update
         await options.events?.onStep?.({
           step: stepCount + 1,
           total: this.getEstimatedSteps(),
           label: `Updated: ${JSON.stringify(params.changes).slice(0, 50)}...`,
         });
-        
+
         return {
           content: [{ type: "text", text: `Output data updated. ${status}` }],
           details: { validation, currentOutput },
         };
       },
     };
-    
+
     const finishTool = {
       name: "finish",
       label: "Finish Extraction",
@@ -478,33 +478,33 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
             isError: true,
           };
         }
-        
+
         if (currentOutput === null) {
           return {
             content: [{ type: "text", text: "Error: No output data set. Extract data first." }],
             isError: true,
           };
         }
-        
+
         const validation = validateData(currentOutput);
         if (!validation.valid) {
           finishError = `Schema validation failed: ${validation.errors.join(", ")}`;
           return {
-            content: [{ 
-              type: "text", 
-              text: `Cannot finish: ${finishError}\n\nFix the data and try again, or use fail() if extraction is impossible.` 
+            content: [{
+              type: "text",
+              text: `Cannot finish: ${finishError}\n\nFix the data and try again, or use fail() if extraction is impossible.`
             }],
             isError: true,
           };
         }
-        
+
         isFinished = true;
         return {
           content: [{ type: "text", text: "✓ Extraction complete! Data validated successfully." }],
         };
       },
     };
-    
+
     const failTool = {
       name: "fail",
       label: "Fail Extraction",
@@ -533,11 +533,11 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
       finishTool as any,
       failTool as any,
     ];
-    
+
     if (this.config.verbose) {
       console.error(`[AgentStrategy] Creating session with ${allTools.length} tools`);
       console.error(`[AgentStrategy] Tool names: ${allTools.map((t: any) => t.name).join(', ')}`);
-      
+
       // Log detailed tool info for debugging
       allTools.forEach((tool: any) => {
         console.error(`[AgentStrategy] Tool "${tool.name}" details:`);
@@ -550,7 +550,7 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
         }
       });
     }
-    
+
     const { session } = await createAgentSession({
       model: model as any,
       authStorage,
@@ -561,7 +561,7 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
       tools: [], // No default tools
       customTools: allTools,
     });
-    
+
     if (this.config.verbose) {
       console.error(`[AgentStrategy] Session created successfully`);
     }
@@ -584,36 +584,35 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
     let stepCount = 0;
     let finalResponse = "";
     const maxToolCalls = maxSteps;
-    
+
     // Buffer for streaming text - accumulate until we see a newline
     let textBuffer = "";
 
     try {
       // Subscribe to events
       const unsubscribe = session.subscribe((event) => {
-        console.error(`[AgentStrategy] Received event:`, event.type);
         try {
           switch (event.type) {
           case "message_update": {
             if (event.assistantMessageEvent.type === "text_delta") {
               const delta = event.assistantMessageEvent.delta;
               finalResponse += delta;
-              
+
               // Emit agent message event for UI streaming
               options.events?.onAgentMessage?.({
                 content: delta,
                 role: "assistant",
               });
-              
+
               // Buffer the text and only emit when we have complete lines
               textBuffer += delta;
-              
+
               // Check for complete lines in the buffer
               let newlineIndex;
               while ((newlineIndex = textBuffer.indexOf('\n')) !== -1) {
                 const line = textBuffer.slice(0, newlineIndex).trim();
                 textBuffer = textBuffer.slice(newlineIndex + 1);
-                
+
                 if (line.length > 0) {
                   options.events?.onStep?.({
                     step: stepCount,
@@ -622,7 +621,7 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
                   });
                 }
               }
-              
+
               // If buffer gets too long without a newline, emit it anyway
               if (textBuffer.length > 100) {
                 const line = textBuffer.trim();
@@ -638,7 +637,7 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
             }
             break;
           }
-            
+
             case "tool_execution_start": {
               stepCount++;
               // Start TOOL span for this tool execution
@@ -655,30 +654,21 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
                 });
                 activeToolSpans.set(event.toolCallId, toolSpan);
               }
-              
+
               // Format a nice label based on the tool and its arguments
               let label: string;
               let detail: string;
               const args = event.args;
               const toolName = event.toolName;
-              
-              // Log tool execution for debugging
-              if (this.config.verbose) {
-                console.error(`[AgentStrategy] Tool start: ${toolName} (call ID: ${event.toolCallId})`);
-                if (args) {
-                  console.error(`[AgentStrategy] Args:`, JSON.stringify(args).slice(0, 200));
-                }
-              }
-              
+
               // Emit detailed agent tool start event for UI
               const toolStartEvent = {
                 toolName,
                 toolCallId: event.toolCallId,
                 args: args || {},
               };
-              console.error(`[AgentStrategy] Emitting onAgentToolStart:`, toolStartEvent);
               options.events?.onAgentToolStart?.(toolStartEvent);
-              
+
               // Format labels for exploration tools
               if (toolName === "read" && args?.file_path) {
                 const fileName = args.file_path.split("/").pop() || args.file_path;
@@ -694,8 +684,8 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
                 detail = "";
               } else if (toolName === "bash" && args?.command) {
                 // Truncate long commands
-                const cmd = args.command.length > 40 
-                  ? args.command.slice(0, 37) + "..." 
+                const cmd = args.command.length > 40
+                  ? args.command.slice(0, 37) + "..."
                   : args.command;
                 label = `Bash: ${cmd}`;
                 detail = "";
@@ -725,7 +715,7 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
                 label = toolName;
                 detail = args ? JSON.stringify(args).slice(0, 100) : "";
               }
-              
+
               // Emit progress event with nice label and detail
               options.events?.onStep?.({
                 step: stepCount + 1,
@@ -744,28 +734,28 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
 
             case "tool_execution_end": {
               const toolEndEvent = event as any;
-              
+
               // End TOOL span for this tool execution
               const toolSpan = activeToolSpans.get(toolEndEvent.toolCallId);
               if (toolSpan && telemetry) {
                 const hasError = toolEndEvent.isError || toolEndEvent.error;
                 telemetry.endSpan(toolSpan, {
                   status: hasError ? "error" : "ok",
-                  error: hasError 
-                    ? new Error(toolEndEvent.error || "Tool execution failed") 
+                  error: hasError
+                    ? new Error(toolEndEvent.error || "Tool execution failed")
                     : undefined,
                   output: toolEndEvent.result,
                 });
                 activeToolSpans.delete(toolEndEvent.toolCallId);
               }
-              
+
               // Emit detailed agent tool end event for UI
               options.events?.onAgentToolEnd?.({
                 toolCallId: toolEndEvent.toolCallId,
                 result: toolEndEvent.result,
                 error: toolEndEvent.error || toolEndEvent.isError ? toolEndEvent.error || "Tool execution failed" : undefined,
               });
-              
+
               // Check if tool execution resulted in an error
               if (toolEndEvent.isError || toolEndEvent.error) {
                 const errorMsg = toolEndEvent.error || "Unknown tool error";
@@ -793,7 +783,7 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
                 });
                 textBuffer = "";
               }
-              
+
               // Update usage from agent state if available
               if (event.messages && event.messages.length > 0) {
                 // Calculate approximate usage from messages
@@ -925,13 +915,13 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
         if (this.config.verbose) {
           console.error("[AgentStrategy] No output after first run. Sending retry prompt...");
         }
-        
+
         await options.events?.onStep?.({
           step: stepCount + 1,
           total: this.getEstimatedSteps(),
           label: "Retry: forcing output extraction",
         });
-        
+
         // Re-subscribe for the retry
         const retryUnsubscribe = session.subscribe((event) => {
           try {
@@ -940,22 +930,22 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
                 if (event.assistantMessageEvent.type === "text_delta") {
                   const delta = event.assistantMessageEvent.delta;
                   finalResponse += delta;
-                  
+
                   // Emit agent message event for UI streaming
                   options.events?.onAgentMessage?.({
                     content: delta,
                     role: "assistant",
                   });
-                  
+
                   // Buffer the text and only emit when we have complete lines
                   textBuffer += delta;
-                  
+
                   // Check for complete lines in the buffer
                   let newlineIndex;
                   while ((newlineIndex = textBuffer.indexOf('\n')) !== -1) {
                     const line = textBuffer.slice(0, newlineIndex).trim();
                     textBuffer = textBuffer.slice(newlineIndex + 1);
-                    
+
                     if (line.length > 0) {
                       options.events?.onStep?.({
                         step: stepCount,
@@ -964,7 +954,7 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
                       });
                     }
                   }
-                  
+
                   // If buffer gets too long without a newline, emit it anyway
                   if (textBuffer.length > 100) {
                     const line = textBuffer.trim();
@@ -980,12 +970,12 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
                 }
                 break;
               }
-              
+
               case "tool_execution_start": {
                 stepCount++;
                 const toolName = event.toolName;
                 const args = event.args;
-                
+
                 // Format label for retry run
                 let label = toolName;
                 if (toolName === "set_output_data") {
@@ -997,7 +987,7 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
                 } else if (toolName === "fail") {
                   label = "Fail (retry)";
                 }
-                
+
                 options.events?.onStep?.({
                   step: stepCount + 1,
                   total: this.getEstimatedSteps(),
@@ -1012,7 +1002,7 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
             }
           }
         });
-        
+
         // Send a forceful retry prompt
         await session.prompt(
           `You have explored the artifacts but haven't called any output tools yet. You MUST now extract data and call either:\n` +
@@ -1022,7 +1012,7 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
           `Extract what you can from the artifacts and set the output data NOW.`,
           {}
         );
-        
+
         retryUnsubscribe();
       }
 
@@ -1033,11 +1023,11 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
 
       // Determine the extraction result based on agent output tools
       let extractedData: T;
-      
+
       if (extractionFailed) {
         throw new Error(`Extraction failed: ${failureReason}`);
       }
-      
+
       if (!isFinished) {
         // Agent didn't call finish() - check if we have partial data
         if (currentOutput !== null) {
@@ -1053,7 +1043,7 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
           // Check if this might be a model compatibility issue
           const toolCallsMade = stepCount > 0;
           const toolsFailed = toolCallsMade && currentOutput === null;
-          
+
           if (toolsFailed) {
             const errorMsg = `Agent did not produce any output data. The model may not support tool calling properly.
 
@@ -1120,13 +1110,13 @@ Retry was attempted but the agent still didn't produce output.`;
           telemetry.endSpan(span, { status: "ok" });
         }
         activeMessageSpans.clear();
-        
+
         // End any active tool spans
         for (const [key, span] of activeToolSpans.entries()) {
           telemetry.endSpan(span, { status: "ok" });
         }
         activeToolSpans.clear();
-        
+
         // End the main agent span
         if (agentSpan) {
           telemetry.endSpan(agentSpan, {
@@ -1149,27 +1139,27 @@ Retry was attempted but the agent still didn't produce output.`;
         durationMs,
         error: (error as Error).message,
       });
-      
+
       // Clean up telemetry spans on error
       if (telemetry) {
         // End any active message spans with error
         for (const [key, span] of activeMessageSpans.entries()) {
-          telemetry.endSpan(span, { 
-            status: "error", 
+          telemetry.endSpan(span, {
+            status: "error",
             error: error instanceof Error ? error : new Error(String(error))
           });
         }
         activeMessageSpans.clear();
-        
+
         // End any active tool spans with error
         for (const [key, span] of activeToolSpans.entries()) {
-          telemetry.endSpan(span, { 
+          telemetry.endSpan(span, {
             status: "error",
             error: error instanceof Error ? error : new Error(String(error))
           });
         }
         activeToolSpans.clear();
-        
+
         // End the main agent span with error
         if (agentSpan) {
           telemetry.endSpan(agentSpan, {
