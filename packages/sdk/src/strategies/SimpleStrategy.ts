@@ -25,6 +25,18 @@ export class SimpleStrategy<T> implements ExtractionStrategy<T> {
 
   async run(options: ExtractionOptions<T>): Promise<ExtractionResult<T>> {
     const debug = options.debug;
+    const { telemetry } = options;
+    
+    // Create strategy-level span
+    const strategySpan = telemetry?.startSpan({
+      name: "strategy.simple",
+      kind: "CHAIN",
+      attributes: {
+        "strategy.name": this.name,
+        "strategy.artifacts.count": options.artifacts.length,
+      },
+    });
+    
     const schema = serializeSchema(options.schema);
     const { system, user } = buildExtractorPrompt(
       options.artifacts,
@@ -56,6 +68,8 @@ export class SimpleStrategy<T> implements ExtractionStrategy<T> {
       strict: options.strict ?? this.config.strict,
       debug,
       callId: "simple_extract",
+      telemetry,
+      parentSpan: strategySpan,
     });
 
     debug?.step({
@@ -63,6 +77,12 @@ export class SimpleStrategy<T> implements ExtractionStrategy<T> {
       total: this.getEstimatedSteps(),
       label: "complete",
       strategy: this.name,
+    });
+
+    // End strategy span
+    telemetry?.endSpan(strategySpan!, {
+      status: "ok",
+      output: result.data,
     });
 
     return { data: result.data, usage: result.usage };

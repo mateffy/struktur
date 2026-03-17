@@ -36,6 +36,19 @@ export class SequentialStrategy<T> implements ExtractionStrategy<T> {
 
   async run(options: ExtractionOptions<T>): Promise<ExtractionResult<T>> {
     const debug = options.debug;
+    const { telemetry } = options;
+    
+    // Create strategy-level span
+    const strategySpan = telemetry?.startSpan({
+      name: "strategy.sequential",
+      kind: "CHAIN",
+      attributes: {
+        "strategy.name": this.name,
+        "strategy.artifacts.count": options.artifacts.length,
+        "strategy.chunk_size": this.config.chunkSize,
+      },
+    });
+    
     const batches = getBatches(
       options.artifacts,
       {
@@ -43,6 +56,8 @@ export class SequentialStrategy<T> implements ExtractionStrategy<T> {
         maxImages: this.config.maxImages,
       },
       debug,
+      telemetry ?? undefined,
+      strategySpan,
     );
 
     const schema = serializeSchema(options.schema);
@@ -84,6 +99,8 @@ export class SequentialStrategy<T> implements ExtractionStrategy<T> {
         strict: options.strict ?? this.config.strict,
         debug,
         callId: `sequential_batch_${index + 1}`,
+        telemetry: telemetry ?? undefined,
+        parentSpan: strategySpan,
       });
 
       currentData = result.data;
@@ -109,6 +126,12 @@ export class SequentialStrategy<T> implements ExtractionStrategy<T> {
     if (!currentData) {
       throw new Error("No data extracted from sequential strategy");
     }
+
+    // End strategy span
+    telemetry?.endSpan(strategySpan!, {
+      status: "ok",
+      output: currentData,
+    });
 
     return { data: currentData, usage: mergeUsage(usages) };
   }

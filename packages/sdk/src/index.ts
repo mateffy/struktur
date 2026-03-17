@@ -10,6 +10,14 @@ export type {
   Usage,
   AnyJSONSchema,
   TypedJSONSchema,
+  // Agent event types
+  AgentEvents,
+  AgentToolStartInfo,
+  AgentToolEndInfo,
+  AgentMessageInfo,
+  AgentReasoningInfo,
+  // Telemetry
+  TelemetryAdapter,
 } from "./types";
 
 export { extract } from "./extract";
@@ -83,6 +91,11 @@ export {
   getParser,
   setParser,
   deleteParser,
+  getTelemetryConfig,
+  setTelemetryConfig,
+  enableTelemetry,
+  disableTelemetry,
+  deleteTelemetryConfig,
 } from "./auth/config";
 export {
   listStoredProviders,

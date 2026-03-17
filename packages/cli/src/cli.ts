@@ -57,6 +57,10 @@ import {
   listStoredProviders,
   maskToken,
   setProviderToken,
+  getTelemetryConfig,
+  enableTelemetry,
+  disableTelemetry,
+  deleteTelemetryConfig,
 } from "@struktur/sdk";
 import type { TokenStorageType } from "@struktur/sdk";
 import {
@@ -1988,6 +1992,26 @@ const extractCommand = defineCommand({
     };
 
     try {
+      // Initialize telemetry if configured
+      let telemetry = null;
+      const telemetryConfig = await getTelemetryConfig();
+      
+      if (telemetryConfig?.enabled) {
+        const { createTelemetry } = await import("@struktur/telemetry");
+        
+        telemetry = await createTelemetry({
+          provider: telemetryConfig.provider,
+          config: {
+            ...(telemetryConfig.url && { url: telemetryConfig.url }),
+            ...(telemetryConfig.apiKey && { apiKey: telemetryConfig.apiKey }),
+            ...(telemetryConfig.projectName && { projectName: telemetryConfig.projectName }),
+            ...(telemetryConfig.publicKey && { publicKey: telemetryConfig.publicKey }),
+            ...(telemetryConfig.secretKey && { secretKey: telemetryConfig.secretKey }),
+            ...(telemetryConfig.baseUrl && { baseUrl: telemetryConfig.baseUrl }),
+          },
+        });
+      }
+
       const result = await extract({
         artifacts,
         ...(schemaResult.kind === "schema"
@@ -1997,6 +2021,7 @@ const extractCommand = defineCommand({
         events,
         debug,
         strict: args.strict,
+        telemetry,
       });
 
       if (agentTUI) {
@@ -2365,6 +2390,140 @@ const configParsersCommand = defineCommand({
 });
 
 // ---------------------------------------------------------------------------
+// config telemetry enable
+// ---------------------------------------------------------------------------
+const configTelemetryEnableCommand = defineCommand({
+  meta: {
+    name: "enable",
+    description: "Enable telemetry provider",
+  },
+  args: {
+    provider: {
+      type: "positional",
+      description: "Provider name (phoenix, langfuse)",
+      required: true,
+    },
+    url: {
+      type: "string",
+      description: "Endpoint URL",
+    },
+    apiKey: {
+      type: "string",
+      description: "API key",
+      alias: "k",
+    },
+    project: {
+      type: "string",
+      description: "Project name",
+      alias: "p",
+    },
+    secretKey: {
+      type: "string",
+      description: "Secret key (for Langfuse)",
+      alias: "s",
+    },
+  },
+  async run({ args }) {
+    const provider = args.provider;
+    const options: Parameters<typeof enableTelemetry>[1] = {};
+
+    if (args.url) options.url = args.url;
+    if (args.apiKey) options.apiKey = args.apiKey;
+    if (args.project) options.projectName = args.project;
+    if (args.secretKey) options.secretKey = args.secretKey;
+
+    // Provider-specific defaults
+    if (provider === "phoenix") {
+      options.url = options.url ?? "http://localhost:6006";
+      options.projectName = options.projectName ?? "struktur";
+    } else if (provider === "langfuse") {
+      options.url = options.url ?? "https://cloud.langfuse.com";
+      if (!options.apiKey) {
+        throw new UserError("Langfuse requires --api-key (public key)");
+      }
+      if (!options.secretKey) {
+        throw new UserError("Langfuse requires --secret-key");
+      }
+      options.publicKey = options.apiKey;
+      options.baseUrl = options.url;
+    }
+
+    await enableTelemetry(provider, options);
+
+    process.stderr.write(`✓ Telemetry enabled: ${provider}\n`);
+    if (options.url) {
+      process.stderr.write(`  Endpoint: ${options.url}\n`);
+    }
+    if (options.projectName) {
+      process.stderr.write(`  Project: ${options.projectName}\n`);
+    }
+  },
+});
+
+// ---------------------------------------------------------------------------
+// config telemetry disable
+// ---------------------------------------------------------------------------
+const configTelemetryDisableCommand = defineCommand({
+  meta: {
+    name: "disable",
+    description: "Disable telemetry",
+  },
+  async run() {
+    await disableTelemetry();
+    process.stderr.write("✓ Telemetry disabled\n");
+  },
+});
+
+// ---------------------------------------------------------------------------
+// config telemetry status
+// ---------------------------------------------------------------------------
+const configTelemetryStatusCommand = defineCommand({
+  meta: {
+    name: "status",
+    description: "Show telemetry status",
+  },
+  async run() {
+    const config = await getTelemetryConfig();
+
+    if (!config?.enabled) {
+      process.stderr.write("Telemetry: disabled\n");
+      process.stderr.write("\nAvailable providers:\n");
+      process.stderr.write("  phoenix   - Arize Phoenix (OpenTelemetry)\n");
+      process.stderr.write("  langfuse  - Langfuse (Open source)\n");
+      process.stderr.write("\nEnable with: struktur config telemetry enable <provider>\n");
+      return;
+    }
+
+    process.stderr.write(`Telemetry: enabled\n`);
+    process.stderr.write(`Provider: ${config.provider}\n`);
+    if (config.projectName) {
+      process.stderr.write(`Project: ${config.projectName}\n`);
+    }
+    if (config.url) {
+      process.stderr.write(`Endpoint: ${config.url}\n`);
+    }
+    if (config.apiKey) {
+      process.stderr.write(`API Key: ${maskToken(config.apiKey)}\n`);
+    }
+  },
+});
+
+// ---------------------------------------------------------------------------
+// config telemetry (parent)
+// ---------------------------------------------------------------------------
+const configTelemetryCommand = defineCommand({
+  meta: {
+    name: "telemetry",
+    description: "Manage telemetry configuration",
+  },
+  subCommands: {
+    enable: configTelemetryEnableCommand,
+    disable: configTelemetryDisableCommand,
+    status: configTelemetryStatusCommand,
+  },
+});
+
+// ---------------------------------------------------------------------------
 // config (parent) — houses models, providers, parsers
 // ---------------------------------------------------------------------------
 const configCommand = defineCommand({
@@ -2376,6 +2535,7 @@ const configCommand = defineCommand({
     models: modelsCommand,
     providers: providersCommand,
     parsers: configParsersCommand,
+    telemetry: configTelemetryCommand,
   },
 });
 

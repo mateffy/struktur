@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { ProviderId } from "@/lib/secure-storage";
 import { loadFilesFromStorage, saveFilesToStorage, clearStoredFiles } from "@/lib/file-storage";
@@ -22,7 +21,7 @@ import { Logo } from "./Logo";
 import { OutputViewer } from "./OutputViewer";
 import { Sidebar } from "./Sidebar";
 import { type TimelineEntry, UnifiedTimeline } from "./UnifiedTimeline";
-import { AgentViewer, useAgentActivities, type AgentActivityPayload } from "./AgentViewer";
+import { AgentViewer, useAgentActivities } from "./AgentViewer";
 
 export type ExecutionStatus =
 	| "idle"
@@ -47,6 +46,19 @@ type Artifact = {
 	type: string;
 	contents: any[];
 };
+
+// Cache key based on file names and parsing options
+type ParseCacheEntry = {
+	artifacts: Artifact[];
+	timestamp: number;
+};
+
+// Generate cache key from files and options
+function generateParseCacheKey(files: File[], options: { images: boolean; screenshots: boolean; parser: string }): string {
+	const fileNames = files.map(f => `${f.name}:${f.size}:${f.lastModified}`).join(',');
+	const optionsKey = `${options.images}:${options.screenshots}:${options.parser}`;
+	return `${fileNames}|${optionsKey}`;
+}
 
 export type ExtractionResult = {
 	data: unknown;
@@ -76,10 +88,42 @@ async function postFormData(url: string, formData: FormData): Promise<any> {
 	return response.json();
 }
 
-// Extract provider from model string (e.g., "openai/gpt-4o" -> "openai")
-function getProviderFromModel(model: string): ProviderId | null {
+// Cache for aliases
+let aliasesCache: Record<string, string> = {};
+let aliasesCacheTime = 0;
+const ALIASES_CACHE_DURATION = 60000; // 1 minute
+
+async function loadAliases(): Promise<Record<string, string>> {
+	const now = Date.now();
+	if (now - aliasesCacheTime < ALIASES_CACHE_DURATION && Object.keys(aliasesCache).length > 0) {
+		return aliasesCache;
+	}
+	
+	try {
+		const response = await fetch("/api/config");
+		if (response.ok) {
+			const config = await response.json();
+			aliasesCache = config.aliases || {};
+			aliasesCacheTime = now;
+		}
+	} catch {
+		// Ignore fetch errors
+	}
+	return aliasesCache;
+}
+
+function resolveAliasLocal(model: string, aliases: Record<string, string>): string {
+	return aliases[model] || model;
+}
+
+// Extract provider from model string, resolving aliases first
+function getProviderFromModel(model: string, aliases: Record<string, string>): ProviderId | null {
 	if (!model) return null;
-	const provider = model.split("/")[0];
+	
+	// Resolve alias to get the actual model spec
+	const resolvedModel = resolveAliasLocal(model, aliases);
+	
+	const provider = resolvedModel.split("/")[0];
 	if (!provider) return null;
 
 	const validProviders: ProviderId[] = [
@@ -127,9 +171,19 @@ export function ExtractPage() {
 	const [timeline, setTimeline] = useState<TimelineEntry[]>([]);
 	const [isChunkingLoading, setIsChunkingLoading] = useState(false);
 	const [settingsOpen, setSettingsOpen] = useState(false);
+	const [aliases, setAliases] = useState<Record<string, string>>({});
+	
+	// Cache for parsed artifacts keyed by file signatures + parsing options
+	const [parseCache, setParseCache] = useState<Map<string, ParseCacheEntry>>(new Map());
 
 	const abortControllerRef = useRef<AbortController | null>(null);
 	const chunkSizeDebounceRef = useRef<NodeJS.Timeout | null>(null);
+	const parsingDebounceRef = useRef<NodeJS.Timeout | null>(null);
+
+	// Load aliases on mount
+	useEffect(() => {
+		loadAliases().then(setAliases);
+	}, []);
 
 	// Load files from storage on mount
 	useEffect(() => {
@@ -276,7 +330,7 @@ export function ExtractPage() {
 	const hasKeyForModel = useCallback((modelString: string): boolean => {
 		if (!modelString) return false;
 		
-		const provider = getProviderFromModel(modelString);
+		const provider = getProviderFromModel(modelString, aliases);
 		if (!provider) return false;
 		
 		// If using server-side keys, check if server has the key
@@ -286,10 +340,28 @@ export function ExtractPage() {
 		
 		// If using local keys, check if we have a key stored in the secure storage
 		return storedProviders.includes(provider);
-	}, [storedProviders, globalProviders, useGlobalProviders, apiSource]);
+	}, [storedProviders, globalProviders, useGlobalProviders, apiSource, aliases]);
 
 	const handleParse = useCallback(async () => {
 		if (files.length === 0) return;
+
+		// Check cache first
+		const cacheKey = generateParseCacheKey(files, parsingOptions);
+		const cached = parseCache.get(cacheKey);
+		
+		if (cached) {
+			// Use cached result
+			setArtifacts(cached.artifacts);
+			setStatus("success");
+			addTimelineEntry(
+				"action",
+				"parse",
+				"Loaded cached parse result",
+				{ fileCount: files.length, cached: true },
+				"completed",
+			);
+			return;
+		}
 
 		setStatus("parsing");
 		setError(null);
@@ -308,9 +380,20 @@ export function ExtractPage() {
 			const formData = buildFormDataWithFiles(files);
 			formData.append("options", JSON.stringify(parsingOptions));
 			const response = await postFormData("/api/parse", formData);
-
-			setArtifacts(response.artifacts as Artifact[]);
-			updateTimelineEntry(stepId, { status: "completed", endTimestamp: new Date(), metadata: { artifactCount: response.artifacts.length } });
+			const parsedArtifacts = response.artifacts as Artifact[];
+			
+			// Store in cache
+			setParseCache(prev => {
+				const newCache = new Map(prev);
+				newCache.set(cacheKey, {
+					artifacts: parsedArtifacts,
+					timestamp: Date.now(),
+				});
+				return newCache;
+			});
+			
+			setArtifacts(parsedArtifacts);
+			updateTimelineEntry(stepId, { status: "completed", endTimestamp: new Date(), metadata: { artifactCount: parsedArtifacts.length } });
 			setStatus("success");
 		} catch (err) {
 			const error = err instanceof Error ? err : new Error("Unknown error");
@@ -318,7 +401,7 @@ export function ExtractPage() {
 			updateTimelineEntry(stepId, { status: "error", endTimestamp: new Date(), details: error.message });
 			setStatus("error");
 		}
-	}, [files, parsingOptions, addTimelineEntry, updateTimelineEntry]);
+	}, [files, parsingOptions, addTimelineEntry, updateTimelineEntry, parseCache, setParseCache]);
 
 	const handleExtract = async () => {
 		if (files.length === 0) return;
@@ -353,7 +436,7 @@ export function ExtractPage() {
 
 		try {
 			// Get the provider from the selected model and retrieve API key if available
-			const provider = getProviderFromModel(model);
+			const provider = getProviderFromModel(model, aliases);
 			let apiKey: string | undefined;
 
 			if (provider && isUnlocked) {
@@ -431,6 +514,7 @@ export function ExtractPage() {
 						}
 
 						case "agent_tool_start":
+							console.log(`[ExtractPage] Received agent_tool_start:`, data.data);
 							if (strategy === "agent") {
 								const toolData = data.data as any;
 								addAgentActivity({
@@ -443,6 +527,7 @@ export function ExtractPage() {
 							break;
 
 						case "agent_tool_end":
+							console.log(`[ExtractPage] Received agent_tool_end:`, data.data);
 							if (strategy === "agent") {
 								const toolData = data.data as any;
 								addAgentActivity({
@@ -455,6 +540,7 @@ export function ExtractPage() {
 							break;
 
 						case "agent_message":
+							console.log(`[ExtractPage] Received agent_message:`, data.data);
 							if (strategy === "agent") {
 								const msgData = data.data as any;
 								addAgentActivity({
@@ -465,6 +551,7 @@ export function ExtractPage() {
 							break;
 
 						case "agent_reasoning":
+							console.log(`[ExtractPage] Received agent_reasoning:`, data.data);
 							if (strategy === "agent") {
 								const reasoningData = data.data as any;
 								addAgentActivity({
@@ -535,13 +622,31 @@ export function ExtractPage() {
 		setTimeline([]);
 	}, []);
 
+	const hasParsed = artifacts.length > 0;
+
 	useEffect(() => {
 		if (files.length > 0 && status === "idle") {
 			handleParse();
 		}
 	}, [files, status, handleParse]);
 
-	const hasParsed = artifacts.length > 0;
+	useEffect(() => {
+		if (files.length > 0 && status === "idle" && hasParsed) {
+			// Debounce parsing to avoid excessive re-parsing
+			if (parsingDebounceRef.current) {
+				clearTimeout(parsingDebounceRef.current);
+			}
+			parsingDebounceRef.current = setTimeout(() => {
+				handleParse();
+			}, 500);
+		}
+
+		return () => {
+			if (parsingDebounceRef.current) {
+				clearTimeout(parsingDebounceRef.current);
+			}
+		};
+	}, [parsingOptions, files.length, status, hasParsed, handleParse]);
 
 	return (
 		<div className="h-screen bg-[#f5efe6] flex flex-col">
@@ -574,35 +679,47 @@ export function ExtractPage() {
 				</div>
 
 				<div className="flex items-center gap-4 electrobun-webkit-app-region-no-drag">
-					{/* API Source Toggle - Only show when server keys are available */}
-					{useGlobalProviders && globalProviders.length > 0 && (
-						<div className="flex items-center gap-1 bg-[#ede5d8] rounded-md p-1 border border-[#d4c8b8]">
-							<button
-								type="button"
-								onClick={() => handleApiSourceChange("local")}
-								className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
-									apiSource === "local"
-										? "bg-[#7a5c3a] text-white"
-										: "text-[#7a5c3a] hover:text-[#2d1b0e] hover:bg-[#f5efe6]"
-								}`}
-								title="Use API keys stored locally in your browser"
+					{/* API Source Indicator - Always show which keys are being used */}
+					<div className="flex items-center gap-2">
+						{useGlobalProviders && globalProviders.length > 0 ? (
+							// Toggle when both options are available
+							<div className="flex items-center gap-1 bg-[#ede5d8] rounded-md p-1 border border-[#d4c8b8]">
+								<button
+									type="button"
+									onClick={() => handleApiSourceChange("local")}
+									className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+										apiSource === "local"
+											? "bg-[#7a5c3a] text-white"
+											: "text-[#7a5c3a] hover:text-[#2d1b0e] hover:bg-[#f5efe6]"
+									}`}
+									title="Use API keys stored locally in your browser"
+								>
+									Local Keys
+								</button>
+								<button
+									type="button"
+									onClick={() => handleApiSourceChange("server")}
+									className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+										apiSource === "server"
+											? "bg-[#7a5c3a] text-white"
+											: "text-[#7a5c3a] hover:text-[#2d1b0e] hover:bg-[#f5efe6]"
+									}`}
+									title="Use API keys configured on the server (CLI)"
+								>
+									Server Keys
+								</button>
+							</div>
+						) : (
+							// Indicator when only local keys are available
+							<div 
+								className="flex items-center gap-1.5 px-2 py-1 text-xs text-[#7a5c3a] bg-[#ede5d8] rounded-md border border-[#d4c8b8]"
+								title="Using locally stored API keys"
 							>
-								Local
-							</button>
-							<button
-								type="button"
-								onClick={() => handleApiSourceChange("server")}
-								className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
-									apiSource === "server"
-										? "bg-[#7a5c3a] text-white"
-										: "text-[#7a5c3a] hover:text-[#2d1b0e] hover:bg-[#f5efe6]"
-								}`}
-								title="Use API keys configured on the server (CLI)"
-							>
-								Server
-							</button>
-						</div>
-					)}
+								<KeyRound className="w-3 h-3" />
+								<span>Local Keys</span>
+							</div>
+						)}
+					</div>
 
 					{/* Lock/Settings Button */}
 					{isUnlocked ? (
@@ -741,21 +858,52 @@ export function ExtractPage() {
 				<main className="flex-1 flex overflow-hidden">
 					<div className="flex-1 flex">
 						<div className="flex-1 overflow-y-auto p-6">
-							{error && (
-								<Card className="mb-6 border-[#c4a8a8] bg-[#f5e6e6]">
-									<CardContent className="py-4">
-										<div className="flex items-start gap-3">
-											<AlertCircle className="h-5 w-5 text-[#a05c5c] flex-shrink-0 mt-0.5" />
-											<div>
-												<div className="font-medium text-[#8a4a4a]">Error</div>
-												<div className="text-sm text-[#7a5c5c] mt-1">
-													{error.message}
-												</div>
+						{error && (
+							<div className="mb-6 relative overflow-hidden rounded-xl border-2 border-[#a05c5c] bg-gradient-to-br from-[#f5e6e6] via-[#faf0f0] to-[#f5e6e6] shadow-[0_8px_32px_rgba(160,92,92,0.15)]">
+								{/* Animated background pattern */}
+								<div className="absolute inset-0 opacity-10">
+									<div className="absolute inset-0" style={{
+										backgroundImage: `repeating-linear-gradient(
+											45deg,
+											transparent,
+											transparent 10px,
+											rgba(160, 92, 92, 0.1) 10px,
+											rgba(160, 92, 92, 0.1) 20px
+										)`,
+									}} />
+								</div>
+								
+								{/* Glowing accent line */}
+								<div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#a05c5c] to-transparent opacity-60" />
+								
+								<div className="relative p-5">
+									<div className="flex items-start gap-4">
+										{/* Animated icon container */}
+										<div className="relative flex-shrink-0">
+											<div className="absolute inset-0 bg-[#a05c5c] rounded-full animate-ping opacity-20" />
+											<div className="relative w-12 h-12 rounded-full bg-gradient-to-br from-[#a05c5c] to-[#8a4a4a] flex items-center justify-center shadow-lg">
+												<AlertCircle className="h-6 w-6 text-white" strokeWidth={2.5} />
 											</div>
 										</div>
-									</CardContent>
-								</Card>
-							)}
+										
+										<div className="flex-1 min-w-0 pt-1">
+											<div className="flex items-center gap-2 mb-2">
+												<span className="text-sm font-bold text-[#8a4a4a] uppercase tracking-wider">
+													Error
+												</span>
+												<div className="flex-1 h-px bg-gradient-to-r from-[#a05c5c]/30 to-transparent" />
+											</div>
+											
+											<div className="relative">
+												<p className="text-sm text-[#5c3a3a] leading-relaxed font-medium">
+													{error.message}
+												</p>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						)}
 
 							<ArtifactViewer
 								artifacts={artifacts}

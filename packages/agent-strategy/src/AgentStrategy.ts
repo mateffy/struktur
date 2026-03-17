@@ -227,7 +227,26 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
 
   async run(options: ExtractionOptions<T>): Promise<ExtractionResult<T>> {
     const debug = options.debug ?? this.config.debug;
+    const { telemetry } = options;
     const maxSteps = this.config.maxSteps ?? 50;
+    
+    // Create strategy-level AGENT span
+    const agentSpan = telemetry?.startSpan({
+      name: "strategy.agent",
+      kind: "AGENT",
+      attributes: {
+        "strategy.name": this.name,
+        "agent.max_steps": maxSteps,
+        "agent.model": this.config.model 
+          ? "custom" 
+          : `${this.config.provider}/${this.config.modelId}`,
+        "agent.artifacts.count": options.artifacts.length,
+      },
+    });
+    
+    // Track active spans for messages (LLM calls) and tool calls
+    const activeMessageSpans = new Map<string, any>();
+    const activeToolSpans = new Map<string, any>();
 
     // Emit start event
     await options.events?.onStep?.({
@@ -572,12 +591,19 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
     try {
       // Subscribe to events
       const unsubscribe = session.subscribe((event) => {
+        console.error(`[AgentStrategy] Received event:`, event.type);
         try {
           switch (event.type) {
           case "message_update": {
             if (event.assistantMessageEvent.type === "text_delta") {
               const delta = event.assistantMessageEvent.delta;
               finalResponse += delta;
+              
+              // Emit agent message event for UI streaming
+              options.events?.onAgentMessage?.({
+                content: delta,
+                role: "assistant",
+              });
               
               // Buffer the text and only emit when we have complete lines
               textBuffer += delta;
@@ -615,6 +641,21 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
             
             case "tool_execution_start": {
               stepCount++;
+              // Start TOOL span for this tool execution
+              if (telemetry && agentSpan) {
+                const toolSpan = telemetry.startSpan({
+                  name: `agent.tool.${event.toolName}`,
+                  kind: "TOOL",
+                  parentSpan: agentSpan,
+                  attributes: {
+                    "tool.name": event.toolName,
+                    "tool.call_id": event.toolCallId,
+                    "tool.args": JSON.stringify(event.args || {}),
+                  },
+                });
+                activeToolSpans.set(event.toolCallId, toolSpan);
+              }
+              
               // Format a nice label based on the tool and its arguments
               let label: string;
               let detail: string;
@@ -628,6 +669,15 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
                   console.error(`[AgentStrategy] Args:`, JSON.stringify(args).slice(0, 200));
                 }
               }
+              
+              // Emit detailed agent tool start event for UI
+              const toolStartEvent = {
+                toolName,
+                toolCallId: event.toolCallId,
+                args: args || {},
+              };
+              console.error(`[AgentStrategy] Emitting onAgentToolStart:`, toolStartEvent);
+              options.events?.onAgentToolStart?.(toolStartEvent);
               
               // Format labels for exploration tools
               if (toolName === "read" && args?.file_path) {
@@ -693,8 +743,30 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
             }
 
             case "tool_execution_end": {
-              // Check if tool execution resulted in an error
               const toolEndEvent = event as any;
+              
+              // End TOOL span for this tool execution
+              const toolSpan = activeToolSpans.get(toolEndEvent.toolCallId);
+              if (toolSpan && telemetry) {
+                const hasError = toolEndEvent.isError || toolEndEvent.error;
+                telemetry.endSpan(toolSpan, {
+                  status: hasError ? "error" : "ok",
+                  error: hasError 
+                    ? new Error(toolEndEvent.error || "Tool execution failed") 
+                    : undefined,
+                  output: toolEndEvent.result,
+                });
+                activeToolSpans.delete(toolEndEvent.toolCallId);
+              }
+              
+              // Emit detailed agent tool end event for UI
+              options.events?.onAgentToolEnd?.({
+                toolCallId: toolEndEvent.toolCallId,
+                result: toolEndEvent.result,
+                error: toolEndEvent.error || toolEndEvent.isError ? toolEndEvent.error || "Tool execution failed" : undefined,
+              });
+              
+              // Check if tool execution resulted in an error
               if (toolEndEvent.isError || toolEndEvent.error) {
                 const errorMsg = toolEndEvent.error || "Unknown tool error";
                 const toolName = toolEndEvent.toolName || "unknown";
@@ -759,14 +831,39 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
             }
 
             case "message_start": {
-              // Message lifecycle event - agent started a new message
-              // Only log in debug mode to avoid cluttering output
+              // Start LLM span for this message generation
+              // Generate a unique key for this message since message objects don't have IDs
+              const messageKey = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+              if (telemetry && agentSpan) {
+                const llmSpan = telemetry.startSpan({
+                  name: "agent.llm.generate",
+                  kind: "LLM",
+                  parentSpan: agentSpan,
+                  attributes: {
+                    "llm.message_type": event.message?.role || "unknown",
+                    "llm.type": "agent_message",
+                  },
+                });
+                activeMessageSpans.set(messageKey, llmSpan);
+                // Store the key on the event for retrieval in message_end
+                (event as any)._telemetryKey = messageKey;
+              }
               break;
             }
 
             case "message_end": {
-              // Message lifecycle event - agent finished a message
-              // Only log in debug mode to avoid cluttering output  
+              // End LLM span for this message generation
+              const messageKey = (event as any)._telemetryKey;
+              if (messageKey) {
+                const llmSpan = activeMessageSpans.get(messageKey);
+                if (llmSpan && telemetry) {
+                  telemetry.endSpan(llmSpan, {
+                    status: "ok",
+                    output: finalResponse.slice(-200), // Last 200 chars as output preview
+                  });
+                  activeMessageSpans.delete(messageKey);
+                }
+              }
               break;
             }
 
@@ -843,6 +940,12 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
                 if (event.assistantMessageEvent.type === "text_delta") {
                   const delta = event.assistantMessageEvent.delta;
                   finalResponse += delta;
+                  
+                  // Emit agent message event for UI streaming
+                  options.events?.onAgentMessage?.({
+                    content: delta,
+                    role: "assistant",
+                  });
                   
                   // Buffer the text and only emit when we have complete lines
                   textBuffer += delta;
@@ -1010,6 +1113,29 @@ Retry was attempted but the agent still didn't produce output.`;
         strategy: this.name,
       });
 
+      // Clean up any remaining telemetry spans
+      if (telemetry) {
+        // End any active message spans
+        for (const [key, span] of activeMessageSpans.entries()) {
+          telemetry.endSpan(span, { status: "ok" });
+        }
+        activeMessageSpans.clear();
+        
+        // End any active tool spans
+        for (const [key, span] of activeToolSpans.entries()) {
+          telemetry.endSpan(span, { status: "ok" });
+        }
+        activeToolSpans.clear();
+        
+        // End the main agent span
+        if (agentSpan) {
+          telemetry.endSpan(agentSpan, {
+            status: "ok",
+            output: extractedData,
+          });
+        }
+      }
+
       return { data: extractedData, usage };
     } catch (error) {
       const durationMs = Date.now() - startTime;
@@ -1023,6 +1149,35 @@ Retry was attempted but the agent still didn't produce output.`;
         durationMs,
         error: (error as Error).message,
       });
+      
+      // Clean up telemetry spans on error
+      if (telemetry) {
+        // End any active message spans with error
+        for (const [key, span] of activeMessageSpans.entries()) {
+          telemetry.endSpan(span, { 
+            status: "error", 
+            error: error instanceof Error ? error : new Error(String(error))
+          });
+        }
+        activeMessageSpans.clear();
+        
+        // End any active tool spans with error
+        for (const [key, span] of activeToolSpans.entries()) {
+          telemetry.endSpan(span, { 
+            status: "error",
+            error: error instanceof Error ? error : new Error(String(error))
+          });
+        }
+        activeToolSpans.clear();
+        
+        // End the main agent span with error
+        if (agentSpan) {
+          telemetry.endSpan(agentSpan, {
+            status: "error",
+            error: error instanceof Error ? error : new Error(String(error)),
+          });
+        }
+      }
 
       throw error;
     } finally {

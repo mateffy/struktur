@@ -5,7 +5,7 @@ import {
   validateAllowingMissingRequired,
 } from "../validation/validator";
 import type { ModelMessage } from "ai";
-import type { ExtractionEvents, Usage } from "../types";
+import type { ExtractionEvents, Usage, TelemetryAdapter } from "../types";
 import type { DebugLogger } from "../debug/logger";
 import { generateStructured } from "./LLMClient";
 import type { UserContent } from "./message";
@@ -22,9 +22,30 @@ export type RetryOptions<T> = {
   strict?: boolean;
   debug?: DebugLogger;
   callId?: string;
+  /**
+   * Telemetry adapter for tracing validation and retries
+   */
+  telemetry?: TelemetryAdapter;
+  /**
+   * Parent span for creating hierarchical traces
+   */
+  parentSpan?: { id: string; traceId: string; name: string; kind: string; startTime: number; parentId?: string };
 };
 
 export const runWithRetries = async <T>(options: RetryOptions<T>) => {
+  const { telemetry, parentSpan } = options;
+  
+  // Start validation/retry span if telemetry is enabled
+  const retrySpan = telemetry?.startSpan({
+    name: "struktur.validation_retry",
+    kind: "CHAIN",
+    parentSpan,
+    attributes: {
+      "retry.max_attempts": options.maxAttempts ?? 3,
+      "retry.schema_name": options.schemaName ?? "extract",
+    },
+  });
+
   const ajv = createAjv();
   const maxAttempts = options.maxAttempts ?? 3;
   const messages: ModelMessage[] = [{ role: "user", content: options.user }];
@@ -76,6 +97,8 @@ export const runWithRetries = async <T>(options: RetryOptions<T>) => {
       user: options.user,
       messages,
       strict: options.strict,
+      telemetry,
+      parentSpan: retrySpan,
     });
     const durationMs = Date.now() - startTime;
 
@@ -105,6 +128,24 @@ export const runWithRetries = async <T>(options: RetryOptions<T>) => {
           durationMs,
         });
 
+        // Record successful validation
+        if (retrySpan && telemetry) {
+          telemetry.recordEvent(retrySpan, {
+            type: "validation",
+            attempt,
+            maxAttempts,
+            schema: options.schema,
+            input: result.data,
+            success: true,
+            latencyMs: durationMs,
+          });
+          telemetry.endSpan(retrySpan, {
+            status: "ok",
+            output: validated,
+            latencyMs: durationMs,
+          });
+        }
+
         return { data: validated, usage };
       } else {
         const validationResult = validateAllowingMissingRequired<T>(
@@ -125,6 +166,24 @@ export const runWithRetries = async <T>(options: RetryOptions<T>) => {
             durationMs,
           });
 
+          // Record successful validation
+          if (retrySpan && telemetry) {
+            telemetry.recordEvent(retrySpan, {
+              type: "validation",
+              attempt,
+              maxAttempts,
+              schema: options.schema,
+              input: result.data,
+              success: true,
+              latencyMs: durationMs,
+            });
+            telemetry.endSpan(retrySpan, {
+              status: "ok",
+              output: validationResult.data,
+              latencyMs: durationMs,
+            });
+          }
+
           return { data: validationResult.data, usage };
         }
 
@@ -142,6 +201,20 @@ export const runWithRetries = async <T>(options: RetryOptions<T>) => {
           attempt,
           errors: error.errors,
         });
+
+        // Record failed validation
+        if (retrySpan && telemetry) {
+          telemetry.recordEvent(retrySpan, {
+            type: "validation",
+            attempt,
+            maxAttempts,
+            schema: options.schema,
+            input: result.data,
+            success: false,
+            errors: error.errors,
+            latencyMs: durationMs,
+          });
+        }
 
         // Emit retry event before attempting retry
         const nextAttempt = attempt + 1;
@@ -179,6 +252,15 @@ export const runWithRetries = async <T>(options: RetryOptions<T>) => {
         durationMs,
         error: (error as Error).message,
       });
+
+      // Record error in telemetry
+      if (retrySpan && telemetry) {
+        telemetry.endSpan(retrySpan, {
+          status: "error",
+          error: error as Error,
+          latencyMs: durationMs,
+        });
+      }
 
       break;
     }

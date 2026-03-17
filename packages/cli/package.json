@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@struktur/sdk": "workspace:*",
+    "@struktur/telemetry": "workspace:*",
     "citty": "^0.2.1",
     "yocto-spinner": "^1.1.0"
   },

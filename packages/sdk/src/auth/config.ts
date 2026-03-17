@@ -3,11 +3,24 @@ import os from "node:os";
 import { chmod, mkdir } from "node:fs/promises";
 import type { ParserDef, ParsersConfig } from "@struktur/sdk";
 
+type TelemetryConfig = {
+  enabled: boolean;
+  provider: string;
+  url?: string;
+  apiKey?: string;
+  projectName?: string;
+  publicKey?: string; // For Langfuse
+  secretKey?: string; // For Langfuse
+  baseUrl?: string; // For Langfuse
+  sampleRate?: number;
+};
+
 type ConfigStore = {
   version: 1;
   defaultModel?: string;
   aliases?: Record<string, string>;
   parsers?: ParsersConfig;
+  telemetry?: TelemetryConfig;
 };
 
 const CONFIG_DIR_ENV = "STRUKTUR_CONFIG_DIR";
@@ -124,6 +137,50 @@ export const deleteParser = async (mimeType: string): Promise<boolean> => {
     return false;
   }
   delete store.parsers[mimeType];
+  await writeConfigStore(store);
+  return true;
+};
+
+// --- Telemetry config management ---
+
+export const getTelemetryConfig = async (): Promise<TelemetryConfig | undefined> => {
+  const store = await readConfigStore();
+  return store.telemetry;
+};
+
+export const setTelemetryConfig = async (config: TelemetryConfig): Promise<void> => {
+  const store = await readConfigStore();
+  store.telemetry = config;
+  await writeConfigStore(store);
+};
+
+export const enableTelemetry = async (
+  provider: string,
+  options: Omit<TelemetryConfig, "enabled" | "provider">
+): Promise<void> => {
+  const store = await readConfigStore();
+  store.telemetry = {
+    enabled: true,
+    provider,
+    ...options,
+  };
+  await writeConfigStore(store);
+};
+
+export const disableTelemetry = async (): Promise<void> => {
+  const store = await readConfigStore();
+  if (store.telemetry) {
+    store.telemetry.enabled = false;
+  }
+  await writeConfigStore(store);
+};
+
+export const deleteTelemetryConfig = async (): Promise<boolean> => {
+  const store = await readConfigStore();
+  if (!store.telemetry) {
+    return false;
+  }
+  delete store.telemetry;
   await writeConfigStore(store);
   return true;
 };

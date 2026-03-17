@@ -1,5 +1,5 @@
 import { generateText, Output, jsonSchema, type ModelMessage } from "ai";
-import type { AnyJSONSchema, Usage } from "../types";
+import type { AnyJSONSchema, Usage, TelemetryAdapter } from "../types";
 import type { UserContent } from "./message";
 
 type GenerateTextParams = Parameters<typeof generateText>[0];
@@ -15,6 +15,14 @@ export type StructuredRequest<T> = {
   schemaName?: string;
   schemaDescription?: string;
   strict?: boolean;
+  /**
+   * Telemetry adapter for tracing LLM calls
+   */
+  telemetry?: TelemetryAdapter;
+  /**
+   * Parent span for creating hierarchical traces
+   */
+  parentSpan?: { id: string; traceId: string; name: string; kind: string; startTime: number; parentId?: string };
 };
 
 export type StructuredResponse<T> = {
@@ -36,6 +44,21 @@ const isZodSchema = (
 export const generateStructured = async <T>(
   request: StructuredRequest<T>,
 ): Promise<StructuredResponse<T>> => {
+  const { telemetry, parentSpan } = request;
+  
+  // Start LLM span if telemetry is enabled
+  const llmSpan = telemetry?.startSpan({
+    name: "llm.generateStructured",
+    kind: "LLM",
+    parentSpan,
+    attributes: {
+      "llm.schema_name": request.schemaName ?? "extract",
+      "llm.strict": request.strict ?? false,
+    },
+  });
+
+  const startTime = Date.now();
+
   const schema = isZodSchema(request.schema)
     ? request.schema
     : jsonSchema(request.schema as AnyJSONSchema);
@@ -84,6 +107,13 @@ export const generateStructured = async <T>(
       ...(providerOptions ? { providerOptions } : {}),
     });
   } catch (error) {
+    // Determine model ID for error messages
+    const modelId =
+      typeof request.model === "object" && request.model !== null
+        ? (request.model as { modelId?: string }).modelId ??
+          JSON.stringify(request.model)
+        : String(request.model);
+
     if (
       error &&
       typeof error === "object" &&
@@ -100,12 +130,6 @@ export const generateStructured = async <T>(
           param?: string | null;
         };
       };
-
-      const modelId =
-        typeof request.model === "object" && request.model !== null
-          ? (request.model as { modelId?: string }).modelId ??
-            JSON.stringify(request.model)
-          : String(request.model);
 
       const responseBody = apiError.responseBody;
       const errorData = apiError.data;
@@ -156,6 +180,30 @@ export const generateStructured = async <T>(
         );
       }
     }
+    
+    // Record error in telemetry
+    if (llmSpan && telemetry) {
+      const latencyMs = Date.now() - startTime;
+      telemetry.recordEvent(llmSpan, {
+        type: "llm_call",
+        model: modelId,
+        provider: "unknown", // Will be determined by the model
+        input: {
+          messages: request.messages ?? [{ role: "user", content: typeof request.user === "string" ? request.user : "" }],
+          temperature: undefined,
+          maxTokens: undefined,
+          schema: request.schema,
+        },
+        error: error instanceof Error ? error : new Error(String(error)),
+        latencyMs,
+      });
+      telemetry.endSpan(llmSpan, {
+        status: "error",
+        error: error instanceof Error ? error : new Error(String(error)),
+        latencyMs,
+      });
+    }
+    
     throw error;
   }
 
@@ -178,6 +226,39 @@ export const generateStructured = async <T>(
     outputTokens,
     totalTokens,
   };
+
+  // Record successful LLM call in telemetry
+  if (llmSpan && telemetry) {
+    const latencyMs = Date.now() - startTime;
+    telemetry.recordEvent(llmSpan, {
+      type: "llm_call",
+      model: typeof request.model === "object" && request.model !== null
+        ? (request.model as { modelId?: string }).modelId ?? "unknown"
+        : String(request.model),
+      provider: preferredProvider ?? "unknown",
+      input: {
+        messages: request.messages ?? [{ role: "user", content: typeof request.user === "string" ? request.user : "" }],
+        temperature: undefined,
+        maxTokens: undefined,
+        schema: request.schema,
+      },
+      output: {
+        content: JSON.stringify(result.output),
+        structured: true,
+        usage: {
+          input: inputTokens,
+          output: outputTokens,
+          total: totalTokens,
+        },
+      },
+      latencyMs,
+    });
+    telemetry.endSpan(llmSpan, {
+      status: "ok",
+      output: result.output,
+      latencyMs,
+    });
+  }
 
   return { data: result.output as T, usage };
 };

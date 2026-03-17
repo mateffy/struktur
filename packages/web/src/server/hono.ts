@@ -224,18 +224,21 @@ app.post("/api/extract/stream", async (c) => {
 		async start(controller) {
 			const encoder = new TextEncoder();
 
-			const sendEvent = (event: ExtractionEvent) => {
+			const sendEvent = async (event: ExtractionEvent) => {
+				console.error(`[Hono] Sending SSE event:`, event.type);
 				const data = JSON.stringify(event);
 				controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+				// Yield to allow the stream to flush to the network
+				await new Promise((resolve) => setTimeout(resolve, 0));
 			};
 
 			try {
-				sendEvent({
+				await sendEvent({
 					type: "step",
 					data: { step: 0, total: 1, label: "parsing" },
 				});
 				const artifacts = await parseFiles(files, parsingOptions ?? {});
-				sendEvent({
+				await sendEvent({
 					type: "step",
 					data: {
 						step: 1,
@@ -265,9 +268,9 @@ app.post("/api/extract/stream", async (c) => {
 					artifacts,
 				});
 
-				sendEvent({ type: "complete", data: { result, savedPath, artifacts } });
+				await sendEvent({ type: "complete", data: { result, savedPath, artifacts } });
 			} catch (error) {
-				sendEvent({
+				await sendEvent({
 					type: "error",
 					data: { message: (error as Error).message },
 				});

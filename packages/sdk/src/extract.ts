@@ -34,29 +34,52 @@ export const extract = async <T>(
   options: ExtractionOptions<T>,
 ): Promise<ExtractionResult<T>> => {
   const debug = options.debug;
+  const telemetry = options.telemetry;
 
-  // Validate mutual exclusion and resolve the concrete schema early so that
-  // every strategy receives a fully-populated options object.
-  let resolvedOptions: ExtractionOptions<T>;
-  try {
-    const schema = resolveSchema(options);
-    resolvedOptions = { ...options, schema };
-  } catch (error) {
-    debug?.extractionComplete({
-      success: false,
-      totalInputTokens: 0,
-      totalOutputTokens: 0,
-      totalTokens: 0,
-      error: (error as Error).message,
-    });
-    return {
-      data: null as unknown as T,
-      usage: emptyUsage,
-      error: error as Error,
-    };
+  // Initialize telemetry if provided
+  if (telemetry) {
+    await telemetry.initialize();
   }
 
+  // Start root extraction span
+  const rootSpan = telemetry?.startSpan({
+    name: "struktur.extract",
+    kind: "CHAIN",
+    attributes: {
+      "extraction.strategy": options.strategy?.name ?? "default",
+      "extraction.artifacts.count": options.artifacts.length,
+    },
+  });
+
   try {
+    // Validate mutual exclusion and resolve the concrete schema early so that
+    // every strategy receives a fully-populated options object.
+    let resolvedOptions: ExtractionOptions<T>;
+    try {
+      const schema = resolveSchema(options);
+      resolvedOptions = { ...options, schema };
+    } catch (error) {
+      debug?.extractionComplete({
+        success: false,
+        totalInputTokens: 0,
+        totalOutputTokens: 0,
+        totalTokens: 0,
+        error: (error as Error).message,
+      });
+
+      telemetry?.endSpan(rootSpan!, {
+        status: "error",
+        error: error as Error,
+      });
+      await telemetry?.shutdown();
+
+      return {
+        data: null as unknown as T,
+        usage: emptyUsage,
+        error: error as Error,
+      };
+    }
+
     const total = resolvedOptions.strategy.getEstimatedSteps?.(resolvedOptions.artifacts);
 
     debug?.strategyRunStart({
@@ -95,6 +118,13 @@ export const extract = async <T>(
       error: result.error?.message,
     });
 
+    telemetry?.endSpan(rootSpan!, {
+      status: result.error ? "error" : "ok",
+      output: result.data,
+      error: result.error,
+    });
+    await telemetry?.shutdown();
+
     return result;
   } catch (error) {
     debug?.extractionComplete({
@@ -104,6 +134,12 @@ export const extract = async <T>(
       totalTokens: 0,
       error: (error as Error).message,
     });
+
+    telemetry?.endSpan(rootSpan!, {
+      status: "error",
+      error: error as Error,
+    });
+    await telemetry?.shutdown();
 
     return {
       data: null as unknown as T,

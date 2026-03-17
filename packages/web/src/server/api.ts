@@ -215,13 +215,16 @@ export async function extractData(
 	strategyName: string,
 	chunkSize: number,
 	apiKey: string | undefined,
-	onEvent?: (event: ExtractionEvent) => void,
+	onEvent?: (event: ExtractionEvent) => void | Promise<void>,
 ): Promise<{
 	data: unknown;
 	usage: { inputTokens: number; outputTokens: number };
 }> {
-	// Determine provider from model spec
-	const provider = modelSpec.split("/")[0];
+	// Resolve alias first to get the actual model spec
+	const resolvedModelSpec = await resolveAlias(modelSpec);
+
+	// Determine provider from the resolved (not aliased) model spec
+	const provider = resolvedModelSpec.split("/")[0];
 
 	// Check if we're using global providers
 	const globalProvidersEnabled = useGlobalProviders();
@@ -250,9 +253,9 @@ export async function extractData(
 	}
 
 	try {
-		// Resolve model
+		// Resolve model (already resolved alias above, but this also handles defaults)
 		const resolvedModel =
-			modelSpec || (await getDefaultModel()) || "openai/gpt-4o-mini";
+			resolvedModelSpec || (await getDefaultModel()) || "openai/gpt-4o-mini";
 		const modelString = await resolveAlias(resolvedModel);
 		const model = await resolveModel(modelString);
 
@@ -276,11 +279,28 @@ export async function extractData(
 			schema,
 			strategy,
 			events: {
-				onStep: (info) => onEvent?.({ type: "step", data: info }),
-				onMessage: (info) => onEvent?.({ type: "message", data: info }),
-				onProgress: (info) => onEvent?.({ type: "progress", data: info }),
-				onTokenUsage: (info) => onEvent?.({ type: "tokenUsage", data: info }),
-				onRetry: (info) => onEvent?.({ type: "retry", data: info }),
+				onStep: async (info) => await onEvent?.({ type: "step", data: info }),
+				onMessage: async (info) => await onEvent?.({ type: "message", data: info }),
+				onProgress: async (info) => await onEvent?.({ type: "progress", data: info }),
+				onTokenUsage: async (info) => await onEvent?.({ type: "tokenUsage", data: info }),
+				onRetry: async (info) => await onEvent?.({ type: "retry", data: info }),
+				// Agent-specific events for streaming UI
+				onAgentToolStart: async (info) => {
+					console.error(`[API] Received onAgentToolStart:`, info);
+					await onEvent?.({ type: "agent_tool_start", data: info });
+				},
+				onAgentToolEnd: async (info) => {
+					console.error(`[API] Received onAgentToolEnd:`, info);
+					await onEvent?.({ type: "agent_tool_end", data: info });
+				},
+				onAgentMessage: async (info) => {
+					console.error(`[API] Received onAgentMessage:`, info);
+					await onEvent?.({ type: "agent_message", data: info });
+				},
+				onAgentReasoning: async (info) => {
+					console.error(`[API] Received onAgentReasoning:`, info);
+					await onEvent?.({ type: "agent_reasoning", data: info });
+				},
 			},
 		});
 
@@ -326,7 +346,8 @@ function createStrategy(name: string, model: unknown, chunkSize: number, modelSp
 		case "agent":
 			// Extract provider and modelId from modelSpec for agent strategy
 			if (modelSpec) {
-				const [provider, modelId] = modelSpec.split("/");
+				const [provider, ...rest] = modelSpec.split("/");
+				const modelId = rest.join("/");
 				if (provider && modelId) {
 					return agent({ provider, modelId });
 				}

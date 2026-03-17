@@ -1,4 +1,4 @@
-import type { Artifact, ExtractionEvents, Usage } from "../types";
+import type { Artifact, ExtractionEvents, Usage, TelemetryAdapter } from "../types";
 import type { DebugLogger } from "../debug/logger";
 import { batchArtifacts, type BatchOptions } from "../chunking/ArtifactBatcher";
 import { buildUserContent } from "../llm/message";
@@ -22,9 +22,44 @@ export const mergeUsage = (usages: Usage[]) => {
 export const getBatches = (
   artifacts: Artifact[],
   options: BatchOptions,
-  debug?: DebugLogger
+  debug?: DebugLogger,
+  telemetry?: TelemetryAdapter,
+  parentSpan?: { id: string; traceId: string; name: string; kind: string; startTime: number; parentId?: string }
 ) => {
-  return batchArtifacts(artifacts, { ...options, debug });
+  // Create chunking span if telemetry is enabled
+  const chunkingSpan = telemetry?.startSpan({
+    name: "struktur.chunking",
+    kind: "RETRIEVER",
+    parentSpan,
+    attributes: {
+      "chunking.artifact_count": artifacts.length,
+      "chunking.max_tokens": options.maxTokens,
+      "chunking.max_images": options.maxImages,
+    },
+  });
+  
+  const batches = batchArtifacts(artifacts, { ...options, debug });
+  
+  // Record chunking results
+  if (chunkingSpan && telemetry) {
+    batches.forEach((batch, index) => {
+      telemetry.recordEvent(chunkingSpan, {
+        type: "chunk",
+        chunkIndex: index,
+        totalChunks: batches.length,
+        tokens: batch.reduce((sum, a) => sum + (a.tokens || 0), 0),
+        images: batch.reduce((sum, a) => 
+          sum + (a.contents?.flatMap((c) => c.media || []).length || 0), 0),
+      });
+    });
+    
+    telemetry.endSpan(chunkingSpan, {
+      status: "ok",
+      output: { batchCount: batches.length },
+    });
+  }
+  
+  return batches;
 };
 
 export const extractWithPrompt = async <T>(options: {
@@ -38,6 +73,8 @@ export const extractWithPrompt = async <T>(options: {
   strict?: boolean;
   debug?: DebugLogger;
   callId?: string;
+  telemetry?: TelemetryAdapter;
+  parentSpan?: { id: string; traceId: string; name: string; kind: string; startTime: number; parentId?: string };
 }) => {
   const userContent = buildUserContent(options.user, options.artifacts);
   const result = await runWithRetries<T>({
@@ -50,6 +87,8 @@ export const extractWithPrompt = async <T>(options: {
     strict: options.strict,
     debug: options.debug,
     callId: options.callId,
+    telemetry: options.telemetry,
+    parentSpan: options.parentSpan,
   });
 
   return result;

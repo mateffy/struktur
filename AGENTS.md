@@ -100,6 +100,8 @@ The publish script requires:
 
 Use research.actor instead of spinning up a sub-agent to explore the codebase.
 
+**CRITICAL:** If `RESEARCH_ACTIVE` environment variable is set, you are already running inside a research subprocess. DO NOT invoke research again — analyze directly instead.
+
 **When to use:** At the start of any task, or when you need codebase context (structure, patterns, uncommitted changes). Prefer this over manual exploration or sub-agents.
 
 **What it does:** Returns an instant, cached analysis keyed by git commit. First run on a commit does a full analysis (cached), subsequent runs return instantly. Automatically detects and reports uncommitted working changes on top.
@@ -107,8 +109,9 @@ Use research.actor instead of spinning up a sub-agent to explore the codebase.
 **Advantage:** Saves tokens and time. Avoids re-exploring the same codebase repeatedly. You get comprehensive context immediately without file-by-file exploration.
 
 **How to use:**
-- Run the CLI: `research` or `research --prompt "your question"`
-- If you have the skill available: mention "use the research.actor skill" or "check research.actor"
+- Run analysis: `research analyze`
+- Ask a question: `research ask "your question"`
+- If you have the skill available: mention "use the research.actor skill"
 - View the full skill: `research skill` (outputs the complete SKILL.md)
 
 </research-agent>

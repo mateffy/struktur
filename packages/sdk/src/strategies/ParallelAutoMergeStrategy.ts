@@ -83,6 +83,20 @@ export class ParallelAutoMergeStrategy<T> implements ExtractionStrategy<T> {
 
   async run(options: ExtractionOptions<T>): Promise<ExtractionResult<T>> {
     const debug = options.debug;
+    const { telemetry } = options;
+    
+    // Create strategy-level span
+    const strategySpan = telemetry?.startSpan({
+      name: "strategy.parallel-auto-merge",
+      kind: "CHAIN",
+      attributes: {
+        "strategy.name": this.name,
+        "strategy.artifacts.count": options.artifacts.length,
+        "strategy.chunk_size": this.config.chunkSize,
+        "strategy.concurrency": this.config.concurrency,
+      },
+    });
+    
     const batches = getBatches(
       options.artifacts,
       {
@@ -90,6 +104,8 @@ export class ParallelAutoMergeStrategy<T> implements ExtractionStrategy<T> {
         maxImages: this.config.maxImages,
       },
       debug,
+      telemetry ?? undefined,
+      strategySpan,
     );
 
     const schema = serializeSchema(options.schema);
@@ -113,6 +129,8 @@ export class ParallelAutoMergeStrategy<T> implements ExtractionStrategy<T> {
         strict: options.strict ?? this.config.strict,
         debug,
         callId: `parallel_auto_batch_${index + 1}`,
+        telemetry: telemetry ?? undefined,
+        parentSpan: strategySpan,
       });
       step += 1;
       await options.events?.onStep?.({
@@ -144,6 +162,17 @@ export class ParallelAutoMergeStrategy<T> implements ExtractionStrategy<T> {
       inputCount: results.length,
       strategy: this.name,
     });
+    
+    // Create smart merge span
+    const mergeSpan = telemetry?.startSpan({
+      name: "struktur.smart_merge",
+      kind: "CHAIN",
+      parentSpan: strategySpan,
+      attributes: {
+        "merge.strategy": "smart",
+        "merge.input_count": results.length,
+      },
+    });
 
     for (let i = 0; i < results.length; i++) {
       const result = results[i]!;
@@ -169,6 +198,16 @@ export class ParallelAutoMergeStrategy<T> implements ExtractionStrategy<T> {
           leftCount: leftArray,
           rightCount: rightArray,
         });
+        
+        // Record merge event in telemetry
+        if (mergeSpan && telemetry) {
+          telemetry.recordEvent(mergeSpan, {
+            type: "merge",
+            strategy: "smart",
+            inputCount: rightArray ?? 1,
+            outputCount: leftArray ?? 1,
+          });
+        }
       }
     }
 
@@ -176,14 +215,56 @@ export class ParallelAutoMergeStrategy<T> implements ExtractionStrategy<T> {
       mergeId: "parallel_auto_smart_merge",
       success: true,
     });
+    
+    // End merge span
+    if (mergeSpan && telemetry) {
+      telemetry.endSpan(mergeSpan, {
+        status: "ok",
+        output: merged,
+      });
+    }
 
     merged = dedupeArrays(merged);
+    
+    // Create exact dedupe span
+    const exactDedupeSpan = telemetry?.startSpan({
+      name: "struktur.exact_dedupe",
+      kind: "CHAIN",
+      parentSpan: strategySpan,
+      attributes: {
+        "dedupe.method": "exact_hashing",
+      },
+    });
+    
+    // End exact dedupe span
+    if (exactDedupeSpan && telemetry) {
+      telemetry.recordEvent(exactDedupeSpan, {
+        type: "merge",
+        strategy: "exact_hash_dedupe",
+        inputCount: Object.keys(merged).length,
+        outputCount: Object.keys(merged).length,
+      });
+      telemetry.endSpan(exactDedupeSpan, {
+        status: "ok",
+        output: merged,
+      });
+    }
 
     const dedupePrompt = buildDeduplicationPrompt(schema, merged);
 
     debug?.dedupeStart({
       dedupeId: "parallel_auto_dedupe",
       itemCount: Object.keys(merged).length,
+    });
+    
+    // Create LLM dedupe span
+    const llmDedupeSpan = telemetry?.startSpan({
+      name: "struktur.llm_dedupe",
+      kind: "CHAIN",
+      parentSpan: strategySpan,
+      attributes: {
+        "dedupe.method": "llm",
+      },
     });
 
     const dedupeResponse = await runWithRetries<{ keys: string[] }>({
@@ -196,6 +277,8 @@ export class ParallelAutoMergeStrategy<T> implements ExtractionStrategy<T> {
       strict: this.config.strict,
       debug,
       callId: "parallel_auto_dedupe",
+      telemetry: telemetry ?? undefined,
+      parentSpan: llmDedupeSpan,
     });
 
     step += 1;
@@ -220,6 +303,27 @@ export class ParallelAutoMergeStrategy<T> implements ExtractionStrategy<T> {
       dedupeId: "parallel_auto_dedupe",
       duplicatesFound: dedupeResponse.data.keys.length,
       itemsRemoved: dedupeResponse.data.keys.length,
+    });
+    
+    // End LLM dedupe span
+    if (llmDedupeSpan && telemetry) {
+      telemetry.recordEvent(llmDedupeSpan, {
+        type: "merge",
+        strategy: "llm_dedupe",
+        inputCount: Object.keys(merged).length,
+        outputCount: Object.keys(deduped).length,
+        deduped: dedupeResponse.data.keys.length,
+      });
+      telemetry.endSpan(llmDedupeSpan, {
+        status: "ok",
+        output: deduped,
+      });
+    }
+
+    // End strategy span
+    telemetry?.endSpan(strategySpan!, {
+      status: "ok",
+      output: deduped,
     });
 
     return {
