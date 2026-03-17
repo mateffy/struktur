@@ -1,6 +1,6 @@
 {
   "name": "@struktur/agent-strategy",
-  "version": "1.0.0",
+  "version": "2.1.0",
   "license": "FSL-1.1-MIT",
   "type": "module",
   "main": "src/index.ts",

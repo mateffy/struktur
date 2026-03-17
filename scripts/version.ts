@@ -8,19 +8,24 @@ if (!["patch", "minor", "major"].includes(versionType)) {
   process.exit(1);
 }
 
-const packages = ["packages/sdk", "packages/cli"];
+const packages = [
+  "packages/sdk",
+  "packages/cli",
+  "packages/telemetry",
+  "packages/agent-strategy",
+];
 
 for (const pkg of packages) {
   console.log(`Updating ${pkg}...`);
-  
+
   // Read package.json
   const pkgPath = `${pkg}/package.json`;
   const pkgJson = await Bun.file(pkgPath).json();
-  
+
   // Parse current version
   const currentVersion = pkgJson.version;
   const [major, minor, patch] = currentVersion.split(".").map(Number);
-  
+
   // Calculate new version
   let newVersion: string;
   if (versionType === "major") {
@@ -30,13 +35,13 @@ for (const pkg of packages) {
   } else {
     newVersion = `${major}.${minor}.${patch + 1}`;
   }
-  
+
   // Update version
   pkgJson.version = newVersion;
-  
+
   // Write back
   await Bun.write(pkgPath, JSON.stringify(pkgJson, null, 2) + "\n");
-  
+
   console.log(`${pkgJson.name}: v${newVersion}`);
 }
 
