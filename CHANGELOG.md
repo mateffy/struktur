@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 2.3.0
+- Moved `@struktur/agent-strategy` into `@struktur/sdk`
+
 ## 2.2.0
 - **Node.js support**
   - The package was Bun-only before and didn't have a TypeScript buildstep. It does now and thus works correctly with normal Node environments too!

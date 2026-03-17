@@ -1,6 +1,6 @@
 {
   "name": "@struktur/sdk",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "license": "FSL-1.1-MIT",
   "type": "module",
   "main": "dist/index.js",
