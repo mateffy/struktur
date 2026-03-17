@@ -4,27 +4,21 @@
   "license": "FSL-1.1-MIT",
   "type": "module",
   "main": "dist/index.js",
-  "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "import": "./dist/index.js"
     },
     "./types": {
-      "import": "./dist/types.js",
-      "types": "./dist/types.d.ts"
+      "import": "./dist/types.js"
     },
     "./factory": {
-      "import": "./dist/factory.js",
-      "types": "./dist/factory.d.ts"
+      "import": "./dist/factory.js"
     },
     "./adapters/phoenix": {
-      "import": "./dist/adapters/phoenix.js",
-      "types": "./dist/adapters/phoenix.d.ts"
+      "import": "./dist/adapters/phoenix.js"
     },
     "./adapters/langfuse": {
-      "import": "./dist/adapters/langfuse.js",
-      "types": "./dist/adapters/langfuse.d.ts"
+      "import": "./dist/adapters/langfuse.js"
     }
   },
   "files": [
@@ -36,9 +30,7 @@
     "build": "tsup",
     "prepublishOnly": "bun run build"
   },
-  "dependencies": {
-    "@struktur/sdk": "workspace:*"
-  },
+  "dependencies": {},
   "optionalDependencies": {
     "@arizeai/phoenix-otel": "^0.4.2",
     "@arizeai/openinference-core": "^1.0.0",

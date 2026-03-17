@@ -1,7 +1,7 @@
 import path from "node:path";
 import os from "node:os";
 import { chmod, mkdir, readFile, writeFile, stat } from "node:fs/promises";
-import type { ParserDef, ParsersConfig } from "@struktur/sdk";
+import type { ParserDef, ParsersConfig } from "../parsers/types";
 
 type TelemetryConfig = {
   enabled: boolean;

@@ -7,35 +7,39 @@
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     },
     "./strategies": {
-      "import": "./dist/strategies.js",
-      "types": "./dist/strategies.d.ts"
+      "types": "./dist/strategies.d.ts",
+      "import": "./dist/strategies.js"
     },
     "./parsers": {
-      "import": "./dist/parsers.js",
-      "types": "./dist/parsers.d.ts"
+      "types": "./dist/parsers.d.ts",
+      "import": "./dist/parsers.js"
     }
   },
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && tsc --project tsconfig.build.json && node scripts/postbuild.mjs",
     "prepublishOnly": "bun run build"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.0",
     "@ai-sdk/google": "^3.0.0",
     "@ai-sdk/openai": "^3.0.0",
+    "@ai-sdk/provider": "^3.0.8",
+    "@mariozechner/pi-coding-agent": "^0.57.1",
     "@openrouter/ai-sdk-provider": "^2.0.0",
-    "@struktur/agent-strategy": "workspace:*",
+    "@sinclair/typebox": "^0.34.48",
     "ai": "^6.0.97",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
-    "pdf-parse": "^2.4.5"
+    "just-bash": "^2.11.15",
+    "pdf-parse": "^2.4.5",
+    "zod": "^3.25.76"
   },
   "peerDependencies": {
     "typescript": "^5"

@@ -5,3 +5,4 @@ export { ParallelAutoMergeStrategy, parallelAutoMerge } from "./ParallelAutoMerg
 export { SequentialAutoMergeStrategy, sequentialAutoMerge } from "./SequentialAutoMergeStrategy";
 export { DoublePassStrategy, doublePass } from "./DoublePassStrategy";
 export { DoublePassAutoMergeStrategy, doublePassAutoMerge } from "./DoublePassAutoMergeStrategy";
+export { AgentStrategy, agent, type AgentStrategyConfig } from "./agent/AgentStrategy";

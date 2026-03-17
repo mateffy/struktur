@@ -14,7 +14,6 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   external: [
-    "@struktur/sdk",
     "@arizeai/phoenix-otel",
     "@arizeai/openinference-core",
     "@arizeai/openinference-semantic-conventions",

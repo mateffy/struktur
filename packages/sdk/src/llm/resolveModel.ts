@@ -1,6 +1,11 @@
 import { resolveProviderEnvVar, resolveProviderToken } from "../auth/tokens";
 
-export const resolveModel = async (model: string) => {
+// AI SDK model types have private properties (config, getArgs) that can't be
+// represented in .d.ts files. Using unknown to avoid TS4094 errors.
+// See: https://github.com/microsoft/TypeScript/issues/30369
+export type AiSdkModel = unknown;
+
+export const resolveModel = async (model: string): Promise<AiSdkModel> => {
   (globalThis as { AI_SDK_LOG_WARNINGS?: boolean }).AI_SDK_LOG_WARNINGS ??= false;
   process.env.AI_SDK_LOG_WARNINGS ??= "false";
   const [provider, ...rest] = model.split("/");
