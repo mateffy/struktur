@@ -1332,14 +1332,8 @@ function Home() {
             </a>
           </div>
 
-          <a href="https://smollaunch.com" target="_blank" rel="noopener" >
-            <img
-              src="https://smollaunch.com/badges/featured-dark.svg"
-              alt="Featured on Smol Launch"
-              loading="lazy"
-              height="30"
-              style={{ height: '40px'}}
-            />
+          <a href="https://smollaunch.com" target="_blank" rel="noopener">
+            <img src="https://smollaunch.com/badges/featured.svg" alt="Featured on Smol Launch" loading="lazy" width="250" height="60" />
           </a>
         </div>
         <nav

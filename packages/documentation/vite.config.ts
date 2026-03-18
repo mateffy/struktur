@@ -17,12 +17,13 @@ export default defineConfig({
       projects: ['./tsconfig.json'],
     }),
     tanstackStart({
-      spa: {
+      prerender: {
         enabled: true,
-        prerender: {
-          enabled: true,
-          crawlLinks: true,
-        },
+        crawlLinks: true,
+      },
+
+      spa: {
+        enabled: false,
       },
 
       pages: [
@@ -44,7 +45,7 @@ export default defineConfig({
       ],
     }),
     react(),
-    // please see https://tanstack.com/start/latest/docs/framework/react/guide/hosting#nitro for guides on hosting
+    // please see https://tanstack.com/start/latest/docs/framework/react/hosting#nitro for guides on hosting
     nitro(),
   ],
 });
