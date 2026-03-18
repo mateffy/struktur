@@ -31,6 +31,8 @@ if (tagExists) {
   process.exit(1);
 }
 
+await $`bun install`;
+
 // Check for uncommitted changes
 try {
   const status = await $`git status --porcelain`.quiet();

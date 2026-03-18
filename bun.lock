@@ -33,7 +33,7 @@
     },
     "packages/cli": {
       "name": "@struktur/cli",
-      "version": "2.3.2",
+      "version": "2.4.0",
       "bin": {
         "struktur": "dist/cli.js",
       },
@@ -105,7 +105,7 @@
     },
     "packages/sdk": {
       "name": "@struktur/sdk",
-      "version": "2.3.2",
+      "version": "2.4.0",
       "dependencies": {
         "@ai-sdk/anthropic": "^3.0.0",
         "@ai-sdk/google": "^3.0.0",
@@ -135,7 +135,7 @@
     },
     "packages/telemetry": {
       "name": "@struktur/telemetry",
-      "version": "2.3.2",
+      "version": "2.4.0",
       "devDependencies": {
         "@types/bun": "latest",
         "tsup": "^8.0.0",

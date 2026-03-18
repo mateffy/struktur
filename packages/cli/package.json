@@ -1,6 +1,6 @@
 {
   "name": "@struktur/cli",
-  "version": "2.3.2",
+  "version": "2.4.0",
   "license": "FSL-1.1-MIT",
   "type": "module",
   "bin": {
