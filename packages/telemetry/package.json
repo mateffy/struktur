@@ -1,6 +1,6 @@
 {
   "name": "@struktur/telemetry",
-  "version": "2.4.0",
+  "version": "2.4.1",
   "license": "FSL-1.1-MIT",
   "type": "module",
   "main": "dist/index.js",
