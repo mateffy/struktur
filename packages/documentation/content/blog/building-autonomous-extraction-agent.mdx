@@ -1,0 +1,33 @@
+---
+title: Building an Autonomous Extraction Agent
+description: How Struktur's agent explores documents and extracts data
+date: "2026-03-18"
+author: "Lukas Mateffy"
+---
+
+# Building an Autonomous Extraction Agent
+
+*This article is a work in progress.*
+
+## The Problem
+
+Fixed extraction strategies require upfront configuration. You need to know your document structure before you start.
+
+## The Solution
+
+An autonomous agent that can:
+
+- **Read** — Explore document content
+- **Grep** — Search for specific patterns
+- **Find** — Locate relevant sections
+- **Explore** — Navigate without predefined paths
+
+## Coming Soon
+
+This article will cover:
+
+- Virtual filesystem design: `/artifacts/`, `/manifest.json`
+- Tool design: `set_output_data`, `update_output_data`, `finish`, `fail`
+- How the agent decides what to do
+- Example: agent exploring a 50-page contract
+- Trade-offs: variable token cost, requires tool-calling model

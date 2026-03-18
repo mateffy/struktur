@@ -85,7 +85,7 @@ function RootComponent() {
 }
 
 function RootDocument({ children }: { children: React.ReactNode }) {
-  const structuredData = {
+  const softwareSchema = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     name: "Struktur",
@@ -107,6 +107,22 @@ function RootDocument({ children }: { children: React.ReactNode }) {
     softwareRequirements: "Node.js, Bun, or Deno runtime",
   };
 
+  const organizationSchema = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "Struktur",
+    url: "https://struktur.sh",
+    logo: "https://struktur.sh/struktur-icon.png",
+    founder: {
+      "@type": "Person",
+      name: "Lukas Mateffy",
+      url: "https://mateffy.org",
+    },
+    sameAs: [
+      "https://github.com/mateffy/struktur",
+    ],
+  };
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -117,7 +133,11 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         }} />
         <script 
           type="application/ld+json" 
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareSchema) }}
+        />
+        <script 
+          type="application/ld+json" 
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
         />
       </head>
       <body className="flex flex-col min-h-screen">

@@ -1,0 +1,32 @@
+---
+title: "Agent vs Simple vs Parallel: Choosing a Strategy"
+description: "When to use each extraction strategy"
+date: "2026-03-18"
+author: "Lukas Mateffy"
+---
+
+# Agent vs Simple vs Parallel: Choosing a Strategy
+
+*This article is a work in progress.*
+
+## The Decision Tree
+
+Start with the agent strategy, fall back when needed.
+
+## Strategies Overview
+
+| Strategy | Use Case |
+|----------|----------|
+| Simple | Document fits in context |
+| Parallel | Speed > cross-chunk context |
+| Sequential | Order matters (line items) |
+| Agent | Unknown structure, exploration needed |
+
+## Coming Soon
+
+This article will cover:
+
+- Auto-merge variants: deduplication for arrays
+- Double-pass: when quality is worth the cost
+- Real examples: invoice (simple), catalog (parallel), contract (agent)
+- Token cost comparison

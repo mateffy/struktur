@@ -8,6 +8,21 @@ const create = server<typeof Config, import("fumadocs-mdx/runtime/types").Intern
   }
 }>({"doc":{"passthroughs":["extractedReferences"]}});
 
+export const blog = await create.docs("blog", "content/blog", import.meta.glob(["./**/*.{json,yaml}"], {
+  "base": "./../content/blog",
+  "query": {
+    "collection": "blog"
+  },
+  "import": "default",
+  "eager": true
+}), import.meta.glob(["./**/*.{mdx,md}"], {
+  "base": "./../content/blog",
+  "query": {
+    "collection": "blog"
+  },
+  "eager": true
+}));
+
 export const docs = await create.docs("docs", "content/docs", import.meta.glob(["./**/*.{json,yaml}"], {
   "base": "./../content/docs",
   "query": {
@@ -19,6 +34,21 @@ export const docs = await create.docs("docs", "content/docs", import.meta.glob([
   "base": "./../content/docs",
   "query": {
     "collection": "docs"
+  },
+  "eager": true
+}));
+
+export const vs = await create.docs("vs", "content/vs", import.meta.glob(["./**/*.{json,yaml}"], {
+  "base": "./../content/vs",
+  "query": {
+    "collection": "vs"
+  },
+  "import": "default",
+  "eager": true
+}), import.meta.glob(["./**/*.{mdx,md}"], {
+  "base": "./../content/vs",
+  "query": {
+    "collection": "vs"
   },
   "eager": true
 }));

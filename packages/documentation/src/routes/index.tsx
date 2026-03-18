@@ -535,6 +535,8 @@ function Home() {
       <nav className="navbar-desktop">
         {[
           { label: "Documentation", href: "/docs" },
+          { label: "Blog", href: "/blog" },
+          { label: "Comparisons", href: "/vs" },
           { label: "GitHub", href: "https://github.com/mateffy/struktur" },
           { label: "Made by Lukas Mateffy", href: "https://mateffy.org" },
         ].map((link) => (
@@ -1341,6 +1343,8 @@ function Home() {
         >
           {[
             { label: "Documentation", href: "/docs" },
+            { label: "Blog", href: "/blog" },
+            { label: "Comparisons", href: "/vs" },
             { label: "Quickstart", href: "/docs/quickstart" },
             { label: "Strategies", href: "/docs/explanation/strategies" },
             { label: "Pipeline", href: "/docs/explanation/pipeline" },

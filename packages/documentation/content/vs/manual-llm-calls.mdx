@@ -1,0 +1,52 @@
+---
+title: Struktur vs Manual LLM Calls
+description: The boilerplate you'd write yourself
+---
+
+# Struktur vs Manual LLM Calls
+
+*This article is a work in progress.*
+
+## The Question
+
+"Can't I just call the LLM API directly?"
+
+Yes, you can. But you'll need to build:
+
+## What You'd Need to Build
+
+```typescript
+// What you'd need to build manually:
+// 1. Token counting and chunking
+// 2. Prompt construction per chunk
+// 3. LLM API calls with error handling
+// 4. Schema validation (ajv/zod)
+// 5. Retry logic with error feedback
+// 6. Result merging strategy
+// 7. Deduplication for arrays
+// 8. Token usage tracking
+// 9. File parsing (PDF, images)
+// 10. CLI argument parsing
+```
+
+## Quick Comparison
+
+| Aspect | Struktur | Manual Implementation |
+|--------|----------|------------------------|
+| Chunking | Token-aware, automatic | You build it |
+| Validation | Schema validation + retry | You build it |
+| Merging | LLM merge or auto-merge | You build it |
+| Deduplication | Schema-aware | You build it |
+| File parsing | Built-in + extensible | You build it |
+| Error handling | Comprehensive | You build it |
+| Token tracking | Built-in | You build it |
+| Time to ship | Minutes | Days/weeks |
+
+## Coming Soon
+
+This article will cover:
+
+- Detailed breakdown of each component
+- When building manually makes sense
+- When to use Struktur
+- Code examples

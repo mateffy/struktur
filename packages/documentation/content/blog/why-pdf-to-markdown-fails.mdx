@@ -1,0 +1,32 @@
+---
+title: Why PDF-to-Markdown Fails for Structured Extraction
+description: The information loss that breaks LLM-based extraction
+date: "2026-03-18"
+author: "Lukas Mateffy"
+---
+
+# Why PDF-to-Markdown Fails for Structured Extraction
+
+*This article is a work in progress.*
+
+## The Promise
+
+The common approach: PDF → Markdown → LLM → JSON. It seems straightforward. Convert your PDF to Markdown, feed it to an LLM, and get structured JSON out.
+
+## The Problem
+
+What gets lost in the conversion:
+
+- **Bounding boxes** — Where on the page is this text?
+- **Reading order** — Multi-column layouts get scrambled
+- **Table structure** — Merged cells, nested tables
+- **Confidence scores** — Is this OCR output reliable?
+
+## Coming Soon
+
+This article will cover:
+
+- Real examples of extraction failures
+- Why LLMs need structure, not just text
+- How Struktur's artifact format preserves what matters
+- When Markdown IS enough (simple text documents)

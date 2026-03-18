@@ -1,0 +1,32 @@
+---
+title: The Chunking, Validation, and Retry Problem
+description: Why you keep writing the same extraction boilerplate
+date: "2026-03-18"
+author: "Lukas Mateffy"
+---
+
+# The Chunking, Validation, and Retry Problem
+
+*This article is a work in progress.*
+
+## The Boilerplate
+
+Every LLM extraction project needs:
+
+1. Token counting and chunking
+2. Prompt construction per chunk
+3. LLM API calls with error handling
+4. Schema validation
+5. Retry logic with error feedback
+6. Result merging strategy
+7. Deduplication for arrays
+
+## Coming Soon
+
+This article will cover:
+
+- Token budgets: why 10k tokens isn't arbitrary
+- Validation in the loop: sending errors back to the LLM
+- Why most extractions converge in 2 attempts
+- Merging strategies: LLM merge vs schema-aware auto-merge
+- How Struktur handles this so you don't have to

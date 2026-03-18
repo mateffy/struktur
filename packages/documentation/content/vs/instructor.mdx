@@ -1,0 +1,38 @@
+---
+title: Struktur vs Instructor
+description: Full pipeline vs extraction-only library
+---
+
+# Struktur vs Instructor
+
+*This article is a work in progress.*
+
+## Overview
+
+Instructor is a Python library for structured LLM outputs. It provides type-safe extraction with automatic retries, but doesn't handle document parsing, chunking, or merging.
+
+## Quick Comparison
+
+| Aspect | Struktur | Instructor |
+|--------|----------|------------|
+| Language | TypeScript/CLI | Python |
+| Scope | Full pipeline | Extraction only |
+| Chunking | Built-in | You implement |
+| Validation | Built-in | Built-in |
+| Merging | Built-in | You implement |
+| File parsing | Built-in | You implement |
+| Agent strategy | Yes | No |
+| Retries | Yes | Yes |
+
+## Note
+
+These are complementary tools. You could use Instructor within Struktur's extraction pipeline.
+
+## Coming Soon
+
+This article will cover:
+
+- Detailed feature comparison
+- When to choose Struktur
+- When to choose Instructor
+- How they can work together
