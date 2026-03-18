@@ -18,8 +18,8 @@ export const blog = defineDocs({
   },
 });
 
-export const vs = defineDocs({
-  dir: 'content/vs',
+export const compare = defineDocs({
+  dir: 'content/compare',
   docs: {
     postprocess: {
       includeProcessedMarkdown: true,

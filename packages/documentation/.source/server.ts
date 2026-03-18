@@ -23,6 +23,21 @@ export const blog = await create.docs("blog", "content/blog", import.meta.glob([
   "eager": true
 }));
 
+export const compare = await create.docs("compare", "content/compare", import.meta.glob(["./**/*.{json,yaml}"], {
+  "base": "./../content/compare",
+  "query": {
+    "collection": "compare"
+  },
+  "import": "default",
+  "eager": true
+}), import.meta.glob(["./**/*.{mdx,md}"], {
+  "base": "./../content/compare",
+  "query": {
+    "collection": "compare"
+  },
+  "eager": true
+}));
+
 export const docs = await create.docs("docs", "content/docs", import.meta.glob(["./**/*.{json,yaml}"], {
   "base": "./../content/docs",
   "query": {
@@ -34,21 +49,6 @@ export const docs = await create.docs("docs", "content/docs", import.meta.glob([
   "base": "./../content/docs",
   "query": {
     "collection": "docs"
-  },
-  "eager": true
-}));
-
-export const vs = await create.docs("vs", "content/vs", import.meta.glob(["./**/*.{json,yaml}"], {
-  "base": "./../content/vs",
-  "query": {
-    "collection": "vs"
-  },
-  "import": "default",
-  "eager": true
-}), import.meta.glob(["./**/*.{mdx,md}"], {
-  "base": "./../content/vs",
-  "query": {
-    "collection": "vs"
   },
   "eager": true
 }));

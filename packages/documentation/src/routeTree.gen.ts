@@ -12,12 +12,12 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LlmsDottxtRouteImport } from './routes/llms[.]txt'
 import { Route as LlmsFullDottxtRouteImport } from './routes/llms-full[.]txt'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as VsSplatRouteImport } from './routes/vs/$'
 import { Route as DocsSplatRouteImport } from './routes/docs/$'
+import { Route as CompareSplatRouteImport } from './routes/compare/$'
 import { Route as BlogSplatRouteImport } from './routes/blog/$'
 import { Route as ApiSearchRouteImport } from './routes/api/search'
-import { Route as LlmsVsSplatRouteImport } from './routes/llms.vs.$'
 import { Route as LlmsDocsSplatRouteImport } from './routes/llms.docs.$'
+import { Route as LlmsCompareSplatRouteImport } from './routes/llms.compare.$'
 import { Route as LlmsBlogSplatRouteImport } from './routes/llms.blog.$'
 
 const LlmsDottxtRoute = LlmsDottxtRouteImport.update({
@@ -35,14 +35,14 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const VsSplatRoute = VsSplatRouteImport.update({
-  id: '/vs/$',
-  path: '/vs/$',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const DocsSplatRoute = DocsSplatRouteImport.update({
   id: '/docs/$',
   path: '/docs/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompareSplatRoute = CompareSplatRouteImport.update({
+  id: '/compare/$',
+  path: '/compare/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BlogSplatRoute = BlogSplatRouteImport.update({
@@ -55,14 +55,14 @@ const ApiSearchRoute = ApiSearchRouteImport.update({
   path: '/api/search',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LlmsVsSplatRoute = LlmsVsSplatRouteImport.update({
-  id: '/llms/vs/$',
-  path: '/llms/vs/$',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const LlmsDocsSplatRoute = LlmsDocsSplatRouteImport.update({
   id: '/llms/docs/$',
   path: '/llms/docs/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LlmsCompareSplatRoute = LlmsCompareSplatRouteImport.update({
+  id: '/llms/compare/$',
+  path: '/llms/compare/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LlmsBlogSplatRoute = LlmsBlogSplatRouteImport.update({
@@ -77,11 +77,11 @@ export interface FileRoutesByFullPath {
   '/llms.txt': typeof LlmsDottxtRoute
   '/api/search': typeof ApiSearchRoute
   '/blog/$': typeof BlogSplatRoute
+  '/compare/$': typeof CompareSplatRoute
   '/docs/$': typeof DocsSplatRoute
-  '/vs/$': typeof VsSplatRoute
   '/llms/blog/$': typeof LlmsBlogSplatRoute
+  '/llms/compare/$': typeof LlmsCompareSplatRoute
   '/llms/docs/$': typeof LlmsDocsSplatRoute
-  '/llms/vs/$': typeof LlmsVsSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -89,11 +89,11 @@ export interface FileRoutesByTo {
   '/llms.txt': typeof LlmsDottxtRoute
   '/api/search': typeof ApiSearchRoute
   '/blog/$': typeof BlogSplatRoute
+  '/compare/$': typeof CompareSplatRoute
   '/docs/$': typeof DocsSplatRoute
-  '/vs/$': typeof VsSplatRoute
   '/llms/blog/$': typeof LlmsBlogSplatRoute
+  '/llms/compare/$': typeof LlmsCompareSplatRoute
   '/llms/docs/$': typeof LlmsDocsSplatRoute
-  '/llms/vs/$': typeof LlmsVsSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -102,11 +102,11 @@ export interface FileRoutesById {
   '/llms.txt': typeof LlmsDottxtRoute
   '/api/search': typeof ApiSearchRoute
   '/blog/$': typeof BlogSplatRoute
+  '/compare/$': typeof CompareSplatRoute
   '/docs/$': typeof DocsSplatRoute
-  '/vs/$': typeof VsSplatRoute
   '/llms/blog/$': typeof LlmsBlogSplatRoute
+  '/llms/compare/$': typeof LlmsCompareSplatRoute
   '/llms/docs/$': typeof LlmsDocsSplatRoute
-  '/llms/vs/$': typeof LlmsVsSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -116,11 +116,11 @@ export interface FileRouteTypes {
     | '/llms.txt'
     | '/api/search'
     | '/blog/$'
+    | '/compare/$'
     | '/docs/$'
-    | '/vs/$'
     | '/llms/blog/$'
+    | '/llms/compare/$'
     | '/llms/docs/$'
-    | '/llms/vs/$'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -128,11 +128,11 @@ export interface FileRouteTypes {
     | '/llms.txt'
     | '/api/search'
     | '/blog/$'
+    | '/compare/$'
     | '/docs/$'
-    | '/vs/$'
     | '/llms/blog/$'
+    | '/llms/compare/$'
     | '/llms/docs/$'
-    | '/llms/vs/$'
   id:
     | '__root__'
     | '/'
@@ -140,11 +140,11 @@ export interface FileRouteTypes {
     | '/llms.txt'
     | '/api/search'
     | '/blog/$'
+    | '/compare/$'
     | '/docs/$'
-    | '/vs/$'
     | '/llms/blog/$'
+    | '/llms/compare/$'
     | '/llms/docs/$'
-    | '/llms/vs/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -153,11 +153,11 @@ export interface RootRouteChildren {
   LlmsDottxtRoute: typeof LlmsDottxtRoute
   ApiSearchRoute: typeof ApiSearchRoute
   BlogSplatRoute: typeof BlogSplatRoute
+  CompareSplatRoute: typeof CompareSplatRoute
   DocsSplatRoute: typeof DocsSplatRoute
-  VsSplatRoute: typeof VsSplatRoute
   LlmsBlogSplatRoute: typeof LlmsBlogSplatRoute
+  LlmsCompareSplatRoute: typeof LlmsCompareSplatRoute
   LlmsDocsSplatRoute: typeof LlmsDocsSplatRoute
-  LlmsVsSplatRoute: typeof LlmsVsSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -183,18 +183,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/vs/$': {
-      id: '/vs/$'
-      path: '/vs/$'
-      fullPath: '/vs/$'
-      preLoaderRoute: typeof VsSplatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/docs/$': {
       id: '/docs/$'
       path: '/docs/$'
       fullPath: '/docs/$'
       preLoaderRoute: typeof DocsSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/compare/$': {
+      id: '/compare/$'
+      path: '/compare/$'
+      fullPath: '/compare/$'
+      preLoaderRoute: typeof CompareSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/blog/$': {
@@ -211,18 +211,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSearchRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/llms/vs/$': {
-      id: '/llms/vs/$'
-      path: '/llms/vs/$'
-      fullPath: '/llms/vs/$'
-      preLoaderRoute: typeof LlmsVsSplatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/llms/docs/$': {
       id: '/llms/docs/$'
       path: '/llms/docs/$'
       fullPath: '/llms/docs/$'
       preLoaderRoute: typeof LlmsDocsSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/llms/compare/$': {
+      id: '/llms/compare/$'
+      path: '/llms/compare/$'
+      fullPath: '/llms/compare/$'
+      preLoaderRoute: typeof LlmsCompareSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/llms/blog/$': {
@@ -241,11 +241,11 @@ const rootRouteChildren: RootRouteChildren = {
   LlmsDottxtRoute: LlmsDottxtRoute,
   ApiSearchRoute: ApiSearchRoute,
   BlogSplatRoute: BlogSplatRoute,
+  CompareSplatRoute: CompareSplatRoute,
   DocsSplatRoute: DocsSplatRoute,
-  VsSplatRoute: VsSplatRoute,
   LlmsBlogSplatRoute: LlmsBlogSplatRoute,
+  LlmsCompareSplatRoute: LlmsCompareSplatRoute,
   LlmsDocsSplatRoute: LlmsDocsSplatRoute,
-  LlmsVsSplatRoute: LlmsVsSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -1,0 +1,222 @@
+---
+title: "Struktur vs Unstract"
+description: "Compare two open source document extraction platforms"
+---
+
+Unstract and Struktur are both open source tools for structured data extraction. Unstract offers a visual prompt engineering interface and n8n integration. Struktur focuses on an autonomous agent approach and CLI-first workflow.
+
+## Quick Comparison
+
+| Aspect | Struktur | Unstract |
+|--------|----------|----------|
+| License | MIT | Apache 2.0 |
+| Approach | Agent-first | Prompt-based |
+| Self-hosted | Yes, lightweight | Yes, Docker stack |
+| Visual tools | None | Prompt Studio |
+| Verification | Schema validation | LLMChallenge (dual LLM) |
+| Cost optimization | Multiple strategies | Summarized/SinglePass |
+| Workflow integration | CLI/SDK | n8n, API |
+| Language | TypeScript | Python |
+
+## Unstract Overview
+
+Unstract is an open source document processing platform with both a self-hosted edition and cloud offering. It emphasizes visual prompt engineering and workflow automation.
+
+### Key Features
+
+**Prompt Studio** — Visual interface for designing extraction prompts. See how prompts perform, iterate without code changes.
+
+**LLMChallenge** — Uses two LLMs: one extracts, one challenges. Either get the right answer or NULL (no wrong answers). Available in cloud/on-prem, not open source edition.
+
+**SummarizedExtraction** — Summarizes document sections before extraction, reducing token usage up to 6x.
+
+**SinglePass Extraction** — Combines all prompts into one, reducing token usage up to 8x.
+
+**n8n Integration** — Connect extraction to 400+ integrations via n8n workflows.
+
+### Open Source Edition Limitations
+
+The open source edition lacks:
+- SSO support
+- Human quality review
+- LLMChallenge verification
+- SummarizedExtraction
+- SinglePass Extraction
+
+These features require cloud or on-prem licenses.
+
+### Deployment
+
+Unstract requires Docker Compose with multiple containers:
+- PostgreSQL with PGVector
+- Unstructured.io for parsing
+- Ollama for local LLMs
+- Unstract platform
+
+Minimum 8GB RAM recommended.
+
+## Struktur Overview
+
+Struktur is a lightweight extraction library and CLI. It provides multiple extraction strategies including an autonomous agent that explores documents without predefined prompts.
+
+### Key Features
+
+**Autonomous Agent** — LLM explores documents using tools (read, grep, find), decides what to extract dynamically.
+
+**Multiple Strategies** — Simple, parallel, sequential, agent, double-pass. Choose based on document type.
+
+**Schema-aware Auto-merge** — Automatically deduplicates and merges array results.
+
+**CLI-first** — Extract from command line without writing code.
+
+**Lightweight** — Single npm package, no Docker required.
+
+### Deployment
+
+Install via npm/bun:
+```bash
+npm install @struktur/sdk
+# or
+bun add @struktur/sdk
+```
+
+Or use CLI:
+```bash
+npx struktur extract invoice.pdf --schema schema.json
+```
+
+No infrastructure required beyond an LLM API key.
+
+## Approach Differences
+
+### Prompt-based (Unstract)
+
+1. Design prompts for each field in Prompt Studio
+2. Test prompts against sample documents
+3. Deploy prompts to production
+4. Documents processed through fixed prompt pipeline
+
+Works well when:
+- Document structure is known
+- You want visual iteration
+- Non-technical users design extractions
+
+### Agent-based (Struktur)
+
+1. Define output schema
+2. Agent explores document, decides what to read
+3. Agent extracts iteratively
+4. Output validated against schema
+
+Works well when:
+- Document structure varies
+- You don't know what sections matter
+- You want adaptive extraction
+
+## Verification Differences
+
+### Schema Validation (Struktur)
+
+Struktur validates output against JSON Schema. If validation fails, it sends errors back to the LLM for retry. Most extractions converge in 2-3 attempts.
+
+### LLMChallenge (Unstract)
+
+Unstract's LLMChallenge uses two LLMs:
+1. Extractor LLM produces output
+2. Challenger LLM verifies correctness
+3. If challenger disagrees, return NULL instead of wrong answer
+
+This prevents hallucinations but doubles token costs. Not available in open source edition.
+
+## Cost Optimization
+
+### Struktur
+
+- Choose cheaper models (GPT-4o-mini, local LLMs)
+- Use parallel strategy for speed
+- Use simple strategy for small documents
+- Agent only explores relevant sections
+
+### Unstract
+
+- SummarizedExtraction reduces tokens 6x
+- SinglePass reduces tokens 8x
+- Both require cloud/on-prem license
+
+## When to Choose Struktur
+
+- **Want autonomous agent** — Documents explore themselves
+- **Prefer CLI-first workflow** — Extract without writing code
+- **Lightweight self-hosting** — No Docker stack required
+- **TypeScript/JavaScript stack** — Native SDK
+- **Variable document structures** — Agent adapts
+- **Full open source features** — No feature-gated capabilities
+
+## When to Choose Unstract
+
+- **Need visual prompt engineering** — Prompt Studio for iteration
+- **Want LLMChallenge verification** — Dual-LLM validation
+- **Using n8n workflows** — Native integration
+- **Python-centric stack** — Python SDK
+- **Non-technical users** — Visual interface
+- **Enterprise features** — SSO, human review (cloud/on-prem)
+
+## Integration Comparison
+
+### Struktur
+
+```typescript
+import { extract } from '@struktur/sdk';
+
+const result = await extract({
+  artifacts: [{ path: 'invoice.pdf' }],
+  schema: invoiceSchema,
+  strategy: 'agent',
+});
+
+console.log(result.data);
+```
+
+### Unstract
+
+```python
+from unstract.sdk import UnstractSDK
+
+client = UnstractSDK(api_key="...")
+result = client.extract(
+    document="invoice.pdf",
+    schema=invoice_schema,
+    prompt_profile="invoice_extraction"
+)
+```
+
+## Architecture Comparison
+
+| Aspect | Struktur | Unstract |
+|--------|----------|----------|
+| Runtime | Node.js/Bun | Python |
+| Parsing | Built-in providers | Unstructured.io |
+| Vector DB | Not required | PGVector |
+| LLM support | OpenAI, Anthropic, local | OpenAI, Anthropic, Ollama |
+| Infrastructure | Single process | Docker Compose |
+
+## Migration Path
+
+Both use JSON Schema for output definitions. Schemas are portable between platforms.
+
+From Unstract to Struktur:
+1. Export schema from Unstract
+2. Use directly in Struktur (compatible format)
+3. Replace prompt profiles with strategy selection
+4. Deploy without Docker stack
+
+From Struktur to Unstract:
+1. Use same schema
+2. Create prompt profile in Prompt Studio
+3. Deploy via Docker Compose
+
+## See Also
+
+- [Struktur vs LlamaIndex](/compare/llamaindex) — Cloud vs self-hosted
+- [Struktur vs Instructor](/compare/instructor) — Full pipeline vs library
+- [What is an Extraction Agent?](/docs/what-is-an-extraction-agent)

@@ -212,4 +212,4 @@ See Also [#see-also]
 
 * [What is Structured Data Extraction?](/docs/what-is-structured-data-extraction)
 * [Building an Autonomous Extraction Agent](/blog/building-autonomous-extraction-agent)
-* [Struktur vs Manual LLM Calls](/vs/manual-llm-calls)
+* [Struktur vs Manual LLM Calls](/compare/manual-llm-calls)

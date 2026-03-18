@@ -37,7 +37,7 @@ export default defineConfig({
           path: '/blog',
         },
         {
-          path: '/vs',
+          path: '/compare',
         },
         {
           path: '/api/search',

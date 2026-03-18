@@ -15,17 +15,17 @@ const browserCollections = {
     },
     "eager": false
   })),
+  compare: create.doc("compare", import.meta.glob(["./**/*.{mdx,md}"], {
+    "base": "./../content/compare",
+    "query": {
+      "collection": "compare"
+    },
+    "eager": false
+  })),
   docs: create.doc("docs", import.meta.glob(["./**/*.{mdx,md}"], {
     "base": "./../content/docs",
     "query": {
       "collection": "docs"
-    },
-    "eager": false
-  })),
-  vs: create.doc("vs", import.meta.glob(["./**/*.{mdx,md}"], {
-    "base": "./../content/vs",
-    "query": {
-      "collection": "vs"
     },
     "eager": false
   })),

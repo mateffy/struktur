@@ -375,4 +375,4 @@ See Also [#see-also]
 
 * [Agent vs Simple vs Parallel](/blog/agent-vs-simple-vs-parallel) — Strategy selection
 * [The Chunking, Validation, and Retry Problem](/blog/chunking-validation-retries) — Pipeline details
-* [Struktur vs LlamaIndex](/vs/llamaindex) — Cost comparison
+* [Struktur vs LlamaIndex](/compare/llamaindex) — Cost comparison

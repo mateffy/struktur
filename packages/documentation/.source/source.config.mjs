@@ -16,8 +16,8 @@ var blog = defineDocs({
     }
   }
 });
-var vs = defineDocs({
-  dir: "content/vs",
+var compare = defineDocs({
+  dir: "content/compare",
   docs: {
     postprocess: {
       includeProcessedMarkdown: true
@@ -27,7 +27,7 @@ var vs = defineDocs({
 var source_config_default = defineConfig();
 export {
   blog,
+  compare,
   source_config_default as default,
-  docs,
-  vs
+  docs
 };

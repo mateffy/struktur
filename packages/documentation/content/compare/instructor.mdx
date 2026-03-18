@@ -1,0 +1,241 @@
+---
+title: "Struktur vs Instructor"
+description: "Full pipeline vs extraction-only library"
+---
+
+Instructor is a Python library for structured LLM outputs. It provides type-safe extraction with automatic retries, but doesn't handle document parsing, chunking, or merging. Struktur is a full extraction pipeline with parsing, chunking, validation, merging, and multiple strategies.
+
+## Quick Comparison
+
+| Aspect | Struktur | Instructor |
+|--------|----------|------------|
+| Language | TypeScript/CLI | Python |
+| Scope | Full pipeline | Extraction only |
+| Document parsing | Built-in | You implement |
+| Chunking | Built-in | You implement |
+| Validation | Built-in | Built-in |
+| Merging | Built-in | You implement |
+| Agent strategy | Yes | No |
+| Retries | Yes | Yes |
+| LLM providers | OpenAI, Anthropic, local | 15+ providers |
+
+## Instructor Overview
+
+Instructor is the most popular Python library for structured LLM outputs, with 3M+ monthly downloads and 11k GitHub stars. It wraps LLM clients to return validated Pydantic models instead of raw text.
+
+### What Instructor Does
+
+```python
+import instructor
+from openai import OpenAI
+from pydantic import BaseModel
+
+class User(BaseModel):
+    name: str
+    age: int
+
+client = instructor.from_openai(OpenAI())
+user = client.chat.completions.create(
+    model="gpt-4o",
+    response_model=User,
+    messages=[{"role": "user", "content": "Extract: John is 25 years old"}]
+)
+# user.name = "John", user.age = 25
+```
+
+Instructor handles:
+- **Type-safe extraction** — Pydantic models define structure
+- **Validation** — Automatic validation with error feedback
+- **Retries** — Re-prompt LLM with validation errors
+- **Streaming** — Stream structured outputs
+
+### What Instructor Doesn't Do
+
+- **Document parsing** — No PDF/image handling
+- **Chunking** — No token-aware splitting
+- **Merging** — No result aggregation
+- **File handling** — No file I/O
+- **CLI** — No command-line interface
+
+You build these yourself.
+
+## Struktur Overview
+
+Struktur is a complete extraction pipeline. It handles everything from file input to validated JSON output.
+
+### What Struktur Does
+
+```typescript
+import { extract } from '@struktur/sdk';
+
+const result = await extract({
+  artifacts: [{ path: 'contract.pdf' }],
+  schema: contractSchema,
+  strategy: 'agent',
+});
+// result.data is validated JSON
+```
+
+Struktur handles:
+- **Document parsing** — PDFs, images, text files
+- **Chunking** — Token-aware splitting
+- **Extraction** — Multiple strategies
+- **Validation** — JSON Schema validation with retries
+- **Merging** — LLM merge or auto-merge
+- **Deduplication** — Schema-aware dedup for arrays
+- **CLI** — Command-line interface
+
+## Scope Comparison
+
+### Instructor: Extraction Layer Only
+
+```
+Document → [You parse] → [You chunk] → [Instructor extracts] → [You merge] → Output
+```
+
+You implement parsing, chunking, and merging. Instructor handles the extraction call.
+
+### Struktur: Full Pipeline
+
+```
+Document → [Struktur parses] → [Struktur chunks] → [Struktur extracts] → [Struktur merges] → Output
+```
+
+Struktur handles everything from file to validated output.
+
+## When They're Complementary
+
+You can use Instructor within Struktur's extraction pipeline. Struktur handles parsing, chunking, and merging while Instructor handles the actual LLM call.
+
+This makes sense if:
+- You're in a Python environment
+- You want Pydantic models
+- You need Instructor's retry logic
+- You want Struktur's pipeline orchestration
+
+## When to Choose Instructor
+
+- **Already have parsing/chunking solved** — Just need extraction
+- **Python stack** — Native Pydantic integration
+- **Simple, single-shot extraction** — Document fits in context
+- **Maximum flexibility** — Control every step
+- **Familiar with Pydantic** — Leverage existing knowledge
+
+Example use case: You have a text processing pipeline. Documents are already chunked. You just need to extract structured data from each chunk.
+
+## When to Choose Struktur
+
+- **Need full pipeline** — Don't want to build parsing/chunking/merging
+- **Working with documents** — PDFs, images, scanned files
+- **Want agent-based extraction** — Autonomous exploration
+- **TypeScript/JavaScript stack** — Native SDK
+- **Want CLI** — Extract without writing code
+
+Example use case: Process 10,000 PDF invoices. Need parsing, chunking for long documents, extraction, and merging multi-page results.
+
+## Code Comparison
+
+### Instructor (Python)
+
+```python
+from pydantic import BaseModel
+from typing import List
+import instructor
+from openai import OpenAI
+
+class LineItem(BaseModel):
+    description: str
+    amount: float
+
+class Invoice(BaseModel):
+    vendor: str
+    total: float
+    items: List[LineItem]
+
+client = instructor.from_openai(OpenAI())
+
+# You must:
+# 1. Parse the PDF yourself
+# 2. Chunk if too long
+# 3. Call instructor for each chunk
+# 4. Merge results yourself
+
+text = parse_pdf("invoice.pdf")  # You implement this
+invoice = client.chat.completions.create(
+    model="gpt-4o",
+    response_model=Invoice,
+    messages=[{"role": "user", "content": text}]
+)
+```
+
+### Struktur (TypeScript)
+
+```typescript
+import { extract } from '@struktur/sdk';
+import { Type } from '@sinclair/typebox';
+
+const Invoice = Type.Object({
+  vendor: Type.String(),
+  total: Type.Number(),
+  items: Type.Array(Type.Object({
+    description: Type.String(),
+    amount: Type.Number(),
+  })),
+});
+
+// Struktur handles everything
+const result = await extract({
+  artifacts: [{ path: 'invoice.pdf' }],
+  schema: Invoice,
+  strategy: 'simple',
+});
+
+console.log(result.data);
+```
+
+## Feature Breakdown
+
+### Both Have
+
+- Schema validation
+- Automatic retries with error feedback
+- Multiple LLM provider support
+- Streaming support
+
+### Only Instructor Has
+
+- Pydantic model integration
+- 15+ LLM provider integrations
+- Python ecosystem
+- 3M+ monthly downloads (mature)
+
+### Only Struktur Has
+
+- Document parsing (PDF, images)
+- Token-aware chunking
+- Result merging
+- Deduplication
+- Agent strategy
+- CLI
+- Multiple extraction strategies
+
+## Migration Path
+
+If you start with Instructor and need more:
+
+1. Keep your Pydantic models
+2. Convert to JSON Schema (Pydantic has built-in support)
+3. Use schemas with Struktur
+4. Get parsing, chunking, merging for free
+
+```python
+# Pydantic to JSON Schema
+schema = Invoice.model_json_schema()
+# Use this schema with Struktur
+```
+
+## See Also
+
+- [Struktur vs LlamaIndex](/compare/llamaindex) — Cloud vs self-hosted
+- [Struktur vs Unstract](/compare/unstract) — Open source platforms
+- [Struktur vs Manual LLM Calls](/compare/manual-llm-calls) — Building it yourself

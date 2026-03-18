@@ -1,0 +1,344 @@
+---
+title: "Struktur vs Manual LLM Calls"
+description: "The boilerplate you'd write yourself"
+---
+
+"Can't I just call the LLM API directly?" Yes, you can. But you'll need to build significant infrastructure around that call. This page breaks down what you'd need to implement yourself.
+
+## What You'd Need to Build
+
+```typescript
+// What you'd need to build manually:
+// 1. Token counting and chunking
+// 2. Prompt construction per chunk
+// 3. LLM API calls with error handling
+// 4. Schema validation (ajv/zod)
+// 5. Retry logic with error feedback
+// 6. Result merging strategy
+// 7. Deduplication for arrays
+// 8. Token usage tracking
+// 9. File parsing (PDF, images)
+// 10. CLI argument parsing
+```
+
+Let's examine each component.
+
+## 1. Document Parsing
+
+**The problem:** LLMs accept text, not PDFs or images. You need to convert documents.
+
+**What you'd build:**
+
+```typescript
+import { PDFLoader } from 'langchain/document_loaders/fs/pdf';
+
+async function parseDocument(path: string): Promise<string> {
+  const loader = new PDFLoader(path);
+  const docs = await loader.load();
+  return docs.map(d => d.pageContent).join('\n');
+}
+```
+
+**What Struktur provides:**
+
+```typescript
+const result = await extract({
+  artifacts: [{ path: 'invoice.pdf' }],
+  // parsing happens automatically
+});
+```
+
+Struktur supports PDFs, images, text files, and has an extensible provider system.
+
+## 2. Token Counting and Chunking
+
+**The problem:** LLMs have context limits. A 50-page contract exceeds GPT-4o's 128k context. You need to split documents intelligently.
+
+**What you'd build:**
+
+```typescript
+import { Tiktoken } from 'tiktoken';
+
+function chunkText(text: string, maxTokens: number): string[] {
+  const encoder = new Tiktoken('cl100k_base');
+  const tokens = encoder.encode(text);
+  
+  const chunks: string[] = [];
+  for (let i = 0; i < tokens.length; i += maxTokens) {
+    const chunkTokens = tokens.slice(i, i + maxTokens);
+    chunks.push(encoder.decode(chunkTokens));
+  }
+  
+  encoder.free();
+  return chunks;
+}
+```
+
+**What Struktur provides:**
+
+Token-aware chunking built-in. Configurable budgets. Handles edge cases like mid-sentence splits.
+
+## 3. Prompt Construction
+
+**The problem:** Each chunk needs a prompt that includes the schema, instructions, and context.
+
+**What you'd build:**
+
+```typescript
+function buildPrompt(chunk: string, schema: object): string {
+  return `
+Extract data from the following document according to this schema:
+
+${JSON.stringify(schema, null, 2)}
+
+Document:
+${chunk}
+
+Return valid JSON only.
+`;
+}
+```
+
+**What Struktur provides:**
+
+Optimized prompts for each strategy. Schema formatting. Context passing between chunks.
+
+## 4. LLM API Calls
+
+**The problem:** Call the API, handle rate limits, timeouts, errors.
+
+**What you'd build:**
+
+```typescript
+import OpenAI from 'openai';
+
+const client = new OpenAI();
+
+async function callLLM(prompt: string): Promise<string> {
+  try {
+    const response = await client.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [{ role: 'user', content: prompt }],
+    });
+    return response.choices[0].message.content || '';
+  } catch (error) {
+    if (error.status === 429) {
+      // Rate limit - wait and retry
+      await sleep(60000);
+      return callLLM(prompt);
+    }
+    throw error;
+  }
+}
+```
+
+**What Struktur provides:**
+
+Built-in retry logic, rate limit handling, timeout configuration, multiple provider support.
+
+## 5. Schema Validation
+
+**The problem:** LLM output might not match your schema. You need to validate.
+
+**What you'd build:**
+
+```typescript
+import Ajv from 'ajv';
+
+const ajv = new Ajv();
+
+function validate(data: unknown, schema: object): { valid: boolean; errors?: string[] } {
+  const validate = ajv.compile(schema);
+  const valid = validate(data);
+  
+  if (!valid) {
+    return { valid: false, errors: validate.errors };
+  }
+  return { valid: true };
+}
+```
+
+**What Struktur provides:**
+
+JSON Schema validation built-in. Error formatting for LLM feedback.
+
+## 6. Retry Logic with Error Feedback
+
+**The problem:** When validation fails, send errors back to LLM for correction.
+
+**What you'd build:**
+
+```typescript
+async function extractWithRetry(prompt: string, schema: object, maxAttempts = 3): Promise<unknown> {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const response = await callLLM(prompt);
+    const data = JSON.parse(response);
+    
+    const { valid, errors } = validate(data, schema);
+    if (valid) return data;
+    
+    // Add errors to prompt for next attempt
+    prompt = `${prompt}\n\nPrevious attempt had errors:\n${JSON.stringify(errors)}\n\nPlease fix and try again.`;
+  }
+  
+  throw new Error('Max retries exceeded');
+}
+```
+
+**What Struktur provides:**
+
+Automatic retry with error feedback. Configurable max attempts. Convergence tracking.
+
+## 7. Result Merging
+
+**The problem:** Multiple chunks produce multiple results. You need to merge them.
+
+**What you'd build:**
+
+```typescript
+function mergeResults(results: unknown[], schema: object): unknown {
+  // How do you merge?
+  // - Arrays: concatenate? deduplicate?
+  // - Objects: deep merge? last wins?
+  // - Scalars: which one is correct?
+  
+  // This is schema-dependent and non-trivial
+}
+```
+
+**What Struktur provides:**
+
+Two merge strategies:
+- **LLM merge** — Ask LLM to combine results
+- **Auto-merge** — Schema-aware automatic merging
+
+## 8. Deduplication
+
+**The problem:** When merging arrays, you get duplicates. How do you dedupe?
+
+**What you'd build:**
+
+```typescript
+function deduplicateArray(items: unknown[], keyField: string): unknown[] {
+  const seen = new Set();
+  return items.filter(item => {
+    const key = item[keyField];
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+```
+
+But what if there's no unique key? What if items are similar but not identical?
+
+**What Struktur provides:**
+
+Schema-aware deduplication. Handles objects without obvious keys.
+
+## 9. Token Usage Tracking
+
+**The problem:** You need to track costs. How many tokens did you use?
+
+**What you'd build:**
+
+```typescript
+let totalTokens = 0;
+
+async function callLLMWithTracking(prompt: string): Promise<{ result: string; tokens: number }> {
+  const response = await client.chat.completions.create({
+    model: 'gpt-4o',
+    messages: [{ role: 'user', content: prompt }],
+  });
+  
+  const tokens = response.usage?.total_tokens || 0;
+  totalTokens += tokens;
+  
+  return { result: response.choices[0].message.content || '', tokens };
+}
+```
+
+**What Struktur provides:**
+
+Built-in token tracking. Per-extraction and cumulative usage. Cost estimation.
+
+## 10. CLI Argument Parsing
+
+**The problem:** You want to run extractions from the command line.
+
+**What you'd build:**
+
+```typescript
+import { program } from 'commander';
+
+program
+  .argument('<file>')
+  .option('-s, --schema <path>')
+  .option('-o, --output <path>')
+  .action(async (file, options) => {
+    const schema = JSON.parse(fs.readFileSync(options.schema, 'utf-8'));
+    const result = await extract(file, schema);
+    fs.writeFileSync(options.output, JSON.stringify(result, null, 2));
+  });
+
+program.parse();
+```
+
+**What Struktur provides:**
+
+Full CLI with:
+```bash
+struktur extract invoice.pdf --schema schema.json --output result.json
+```
+
+## Time Investment
+
+| Component | Time to Build | Time to Debug |
+|-----------|---------------|---------------|
+| Document parsing | 2-4 hours | 4-8 hours |
+| Token chunking | 2-4 hours | 2-4 hours |
+| Prompt construction | 1-2 hours | 2-4 hours |
+| API calls + retry | 2-4 hours | 4-8 hours |
+| Schema validation | 1-2 hours | 2-4 hours |
+| Retry with feedback | 2-4 hours | 4-8 hours |
+| Result merging | 4-8 hours | 8-16 hours |
+| Deduplication | 2-4 hours | 4-8 hours |
+| Token tracking | 1-2 hours | 1-2 hours |
+| CLI | 2-4 hours | 2-4 hours |
+| **Total** | **19-38 hours** | **33-66 hours** |
+
+And that's for a basic implementation. Production-ready code takes longer.
+
+## When to Build Manually
+
+- **Learning exercise** — Understand how extraction works
+- **Very specific requirements** — Struktur doesn't fit your use case
+- **Minimal scope** — Single document type, simple schema
+- **No external dependencies** — Can't add npm packages
+
+## When to Use Struktur
+
+- **Production workloads** — Need reliability
+- **Multiple document types** — Different formats, schemas
+- **Need to ship fast** — Hours, not weeks
+- **Want maintained code** — Bug fixes, improvements
+- **Want tests** — Edge cases covered
+
+## The Value Proposition
+
+Struktur is ~3,000 lines of tested, documented code. It handles edge cases you haven't thought of yet:
+
+- What if the LLM returns markdown instead of JSON?
+- What if validation fails 5 times in a row?
+- What if a chunk ends mid-sentence?
+- What if the document is empty?
+- What if the schema has nested arrays?
+- What if two chunks extract the same entity differently?
+
+You can build this yourself. Or you can use Struktur and focus on your application logic.
+
+## See Also
+
+- [Struktur vs Instructor](/compare/instructor) — Python library comparison
+- [Struktur vs LlamaIndex](/compare/llamaindex) — Cloud service comparison
+- [Quickstart Guide](/docs/quickstart) — Get started in 5 minutes

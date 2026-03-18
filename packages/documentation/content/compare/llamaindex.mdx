@@ -1,0 +1,149 @@
+---
+title: "Struktur vs LlamaIndex"
+description: "Compare Struktur to LlamaParse and LlamaExtract for structured data extraction"
+---
+
+LlamaIndex offers LlamaParse for document parsing and LlamaExtract for structured data extraction. Both are managed cloud services with per-page pricing. Struktur is open source, self-hosted, and uses an autonomous agent approach.
+
+## Quick Comparison
+
+| Aspect | Struktur | LlamaIndex |
+|--------|----------|------------|
+| License | MIT (open source) | Proprietary |
+| Deployment | Self-hosted | Cloud only |
+| Pricing | Your LLM API costs | $0.005-$0.075/page |
+| Data privacy | Full control | Uploaded to their servers |
+| Extraction approach | Agent + multiple strategies | Single extraction method |
+| Citations | Not yet | Yes, with bounding boxes |
+| Confidence scores | Not yet | Yes, per-field |
+| Chunking | Token-aware, automatic | Built-in |
+| Validation + retry | Built-in | Built-in |
+| Merging | LLM merge or auto-merge | Built-in |
+
+## LlamaIndex Overview
+
+LlamaIndex provides two main products:
+
+**LlamaParse** — Document parsing service that converts PDFs, images, and other formats into structured text. Supports multiple parsing modes from fast (3 credits/page) to premium (60 credits/page).
+
+**LlamaExtract** — Structured extraction built on LlamaParse. Define a schema, upload documents, get validated JSON output with citations and confidence scores.
+
+### Pricing Model
+
+LlamaIndex uses a credit system:
+- 1,000 credits = $1.25 (US) or $1.50 (EU)
+- Fast mode: 5 credits/page
+- Balanced mode: 10 credits/page
+- Premium mode: 60 credits/page
+
+For 10,000 pages at balanced mode: ~$125 in credits.
+
+### Strengths
+
+- **Citations with bounding boxes** — Know exactly where each extracted value came from
+- **Confidence scores** — Per-field certainty metrics
+- **Managed infrastructure** — No servers to maintain
+- **Excellent parsing quality** — LlamaParse handles complex layouts well
+
+### Limitations
+
+- **Cloud-only** — Documents must be uploaded to their servers
+- **Per-page costs** — Scales with document volume
+- **Single extraction approach** — No strategy selection
+- **Vendor lock-in** — Proprietary platform
+
+## Struktur Overview
+
+Struktur is an open source extraction library and CLI. It provides multiple extraction strategies including an autonomous agent that explores documents dynamically.
+
+### Pricing Model
+
+You pay only for your LLM API calls. Using GPT-4o at ~$2.50/1M input tokens:
+- Typical invoice: ~2,000 tokens input → $0.005
+- 10,000 invoices: ~$50 in API costs
+
+Costs vary by model choice. Use cheaper models (GPT-4o-mini, local LLMs) for lower costs.
+
+### Strengths
+
+- **Self-hosted** — Data never leaves your infrastructure
+- **Multiple strategies** — Agent, simple, parallel, sequential, double-pass
+- **Autonomous agent** — Explores documents, adapts to structure
+- **Cost control** — Choose your model, pay your API rates
+- **Open source** — MIT licensed, fully customizable
+
+### Limitations
+
+- **No citations** — Can't trace extracted values to source locations
+- **No confidence scores** — No per-field certainty metrics
+- **Requires setup** — Need to configure LLM provider
+- **Manual scaling** — Handle your own infrastructure
+
+## When to Choose Struktur
+
+- **Data cannot leave your infrastructure** — Healthcare, finance, legal documents
+- **Cost-sensitive at scale** — High document volumes where per-page fees add up
+- **Variable document structures** — Agent adapts to unknown layouts
+- **Want control over LLM provider** — Use OpenAI, Anthropic, local models
+- **Need multiple extraction strategies** — Different approaches for different documents
+- **TypeScript/JavaScript stack** — Native SDK support
+
+## When to Choose LlamaIndex
+
+- **Need citations** — Must trace extracted values to source locations
+- **Need confidence scores** — Require certainty metrics for each field
+- **Want managed infrastructure** — Don't want to manage servers
+- **Quality > cost** — Willing to pay for excellent parsing quality
+- **Single extraction approach is fine** — Don't need strategy selection
+- **Documents can be uploaded** — No data residency requirements
+
+## Cost Comparison Example
+
+Processing 10,000 invoices per month:
+
+| Solution | Monthly Cost |
+|----------|--------------|
+| LlamaExtract (balanced) | ~$125 |
+| Struktur + GPT-4o | ~$50 |
+| Struktur + GPT-4o-mini | ~$5 |
+| Struktur + Local LLM | Hardware costs only |
+
+## Technical Differences
+
+### Extraction Approach
+
+**LlamaExtract** uses a single extraction pipeline: parse → extract → validate. The extraction logic is fixed.
+
+**Struktur** offers multiple strategies:
+- **Simple** — Single LLM call for small documents
+- **Parallel** — Process chunks simultaneously for speed
+- **Sequential** — Process in order for context
+- **Agent** — Autonomous exploration for unknown structures
+- **Double-pass** — Extract, then verify for quality
+
+### Validation
+
+Both handle schema validation and retry with error feedback. LlamaExtract provides confidence scores; Struktur provides token usage tracking.
+
+### Integration
+
+**LlamaExtract** — REST API, Python SDK, TypeScript SDK
+
+**Struktur** — TypeScript SDK, CLI, programmatic API
+
+## Migration Path
+
+If you start with LlamaExtract and later need self-hosting:
+
+1. Export your schemas from LlamaExtract
+2. Convert to JSON Schema format
+3. Use Struktur SDK with same schema
+4. Deploy on your infrastructure
+
+The schemas are compatible. The main difference is extraction approach and infrastructure.
+
+## See Also
+
+- [Struktur vs Unstract](/compare/unstract) — Open source alternatives
+- [Struktur vs Instructor](/compare/instructor) — Python library comparison
+- [What is Structured Data Extraction?](/docs/what-is-structured-data-extraction)

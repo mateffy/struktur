@@ -539,7 +539,7 @@ function Home() {
         {[
           { label: "Documentation", href: "/docs" },
           { label: "Blog", href: "/blog" },
-          { label: "Comparisons", href: "/vs" },
+          { label: "Comparisons", href: "/compare" },
           { label: "GitHub", href: "https://github.com/mateffy/struktur" },
           { label: "Made by Lukas Mateffy", href: "https://mateffy.org" },
         ].map((link) => (
@@ -1337,9 +1337,12 @@ function Home() {
             </a>
           </div>
 
-          <a href="https://smollaunch.com" target="_blank" rel="noopener">
-            <img src="https://smollaunch.com/badges/featured.svg" alt="Featured on Smol Launch" loading="lazy" width="250" height="60" />
-          </a>
+          <div className="opacity-80">
+            <a href="https://smollaunch.com" target="_blank" rel="noopener">
+              <img src="https://smollaunch.com/badges/featured.svg" alt="Featured on Smol Launch" loading="lazy" width="250" height="60" />
+            </a>
+            <a href="https://ufind.best/products/struktur?utm_source=ufind.best" target="_blank" rel="noopener"><img src="https://ufind.best/badges/ufind-best-badge-light.svg" alt="Featured on ufind.best" width="150" /></a>
+          </div>
         </div>
         <nav
           className="footer-nav"
@@ -1347,7 +1350,7 @@ function Home() {
           {[
             { label: "Documentation", href: "/docs" },
             { label: "Blog", href: "/blog" },
-            { label: "Comparisons", href: "/vs" },
+            { label: "Comparisons", href: "/compare" },
             { label: "Quickstart", href: "/docs/quickstart" },
             { label: "Strategies", href: "/docs/explanation/strategies" },
             { label: "Pipeline", href: "/docs/explanation/pipeline" },

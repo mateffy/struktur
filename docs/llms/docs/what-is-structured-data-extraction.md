@@ -48,5 +48,5 @@ Tools for Structured Data Extraction [#tools-for-structured-data-extraction]
 See Also [#see-also]
 
 * [What is an Extraction Agent?](/docs/what-is-an-extraction-agent)
-* [Struktur vs Alternatives](/vs)
+* [Struktur vs Alternatives](/compare)
 * [Quickstart Guide](/docs/quickstart)
