@@ -469,8 +469,8 @@ function TerminalDemo() {
                 marginLeft: "1px",
                 marginBottom: "1px",
                 verticalAlign: "text-bottom",
-                animation: phase === "typing" 
-                  ? "terminal-cursor-solid 0.05s step-end infinite" 
+                animation: phase === "typing"
+                  ? "terminal-cursor-solid 0.05s step-end infinite"
                   : "terminal-cursor-blink 1.2s step-end infinite",
               }}
             />
@@ -1309,25 +1309,37 @@ function Home() {
           maxWidth: "950px",
           margin: "0 auto",
           display: "flex",
-          alignItems: "center",
+          alignItems: "start",
           justifyContent: "space-between",
           flexWrap: "wrap",
           gap: "16px",
         }}
       >
-        <div
-          style={{
-            fontSize: "13px",
-            color: "#a0926f",
-            fontFamily: "Inter, sans-serif",
-          }}
-        >
-          struktur by{" "}
-          <a
-            href="https://mateffy.org"
-            style={{ color: "#7a5c3a", textDecoration: "none", fontWeight: 500 }}
+        <div className="flex flex-col gap-2">
+          <div
+            style={{
+              fontSize: "13px",
+              color: "#a0926f",
+              fontFamily: "Inter, sans-serif",
+            }}
           >
-            Lukas Mateffy
+            struktur by{" "}
+            <a
+              href="https://mateffy.org"
+              style={{ color: "#7a5c3a", textDecoration: "none", fontWeight: 500 }}
+            >
+              Lukas Mateffy
+            </a>
+          </div>
+
+          <a href="https://smollaunch.com" target="_blank" rel="noopener" >
+            <img
+              src="https://smollaunch.com/badges/featured-dark.svg"
+              alt="Featured on Smol Launch"
+              loading="lazy"
+              height="30"
+              style={{ height: '40px'}}
+            />
           </a>
         </div>
         <nav
@@ -1355,6 +1367,7 @@ function Home() {
               {link.label}
             </a>
           ))}
+
         </nav>
       </footer>
     </div>
