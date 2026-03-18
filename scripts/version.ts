@@ -40,4 +40,10 @@ for (const pkg of packages) {
   console.log(`${pkgJson.name}: v${newVersion}`);
 }
 
+// Update bun.lock so workspace:* resolves to the new versions at publish time.
+// Without this, bun publish reads the version from bun.lock instead of package.json
+// and pins the old version. See: https://github.com/oven-sh/bun/issues/20477
+console.log("Updating bun.lock...");
+await $`bun install --lockfile-only`;
+
 console.log("Done!");
