@@ -16,7 +16,9 @@ import { Route as VsSplatRouteImport } from './routes/vs/$'
 import { Route as DocsSplatRouteImport } from './routes/docs/$'
 import { Route as BlogSplatRouteImport } from './routes/blog/$'
 import { Route as ApiSearchRouteImport } from './routes/api/search'
+import { Route as LlmsVsSplatRouteImport } from './routes/llms.vs.$'
 import { Route as LlmsDocsSplatRouteImport } from './routes/llms.docs.$'
+import { Route as LlmsBlogSplatRouteImport } from './routes/llms.blog.$'
 
 const LlmsDottxtRoute = LlmsDottxtRouteImport.update({
   id: '/llms.txt',
@@ -53,9 +55,19 @@ const ApiSearchRoute = ApiSearchRouteImport.update({
   path: '/api/search',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LlmsVsSplatRoute = LlmsVsSplatRouteImport.update({
+  id: '/llms/vs/$',
+  path: '/llms/vs/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LlmsDocsSplatRoute = LlmsDocsSplatRouteImport.update({
   id: '/llms/docs/$',
   path: '/llms/docs/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LlmsBlogSplatRoute = LlmsBlogSplatRouteImport.update({
+  id: '/llms/blog/$',
+  path: '/llms/blog/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -67,7 +79,9 @@ export interface FileRoutesByFullPath {
   '/blog/$': typeof BlogSplatRoute
   '/docs/$': typeof DocsSplatRoute
   '/vs/$': typeof VsSplatRoute
+  '/llms/blog/$': typeof LlmsBlogSplatRoute
   '/llms/docs/$': typeof LlmsDocsSplatRoute
+  '/llms/vs/$': typeof LlmsVsSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -77,7 +91,9 @@ export interface FileRoutesByTo {
   '/blog/$': typeof BlogSplatRoute
   '/docs/$': typeof DocsSplatRoute
   '/vs/$': typeof VsSplatRoute
+  '/llms/blog/$': typeof LlmsBlogSplatRoute
   '/llms/docs/$': typeof LlmsDocsSplatRoute
+  '/llms/vs/$': typeof LlmsVsSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -88,7 +104,9 @@ export interface FileRoutesById {
   '/blog/$': typeof BlogSplatRoute
   '/docs/$': typeof DocsSplatRoute
   '/vs/$': typeof VsSplatRoute
+  '/llms/blog/$': typeof LlmsBlogSplatRoute
   '/llms/docs/$': typeof LlmsDocsSplatRoute
+  '/llms/vs/$': typeof LlmsVsSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -100,7 +118,9 @@ export interface FileRouteTypes {
     | '/blog/$'
     | '/docs/$'
     | '/vs/$'
+    | '/llms/blog/$'
     | '/llms/docs/$'
+    | '/llms/vs/$'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -110,7 +130,9 @@ export interface FileRouteTypes {
     | '/blog/$'
     | '/docs/$'
     | '/vs/$'
+    | '/llms/blog/$'
     | '/llms/docs/$'
+    | '/llms/vs/$'
   id:
     | '__root__'
     | '/'
@@ -120,7 +142,9 @@ export interface FileRouteTypes {
     | '/blog/$'
     | '/docs/$'
     | '/vs/$'
+    | '/llms/blog/$'
     | '/llms/docs/$'
+    | '/llms/vs/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -131,7 +155,9 @@ export interface RootRouteChildren {
   BlogSplatRoute: typeof BlogSplatRoute
   DocsSplatRoute: typeof DocsSplatRoute
   VsSplatRoute: typeof VsSplatRoute
+  LlmsBlogSplatRoute: typeof LlmsBlogSplatRoute
   LlmsDocsSplatRoute: typeof LlmsDocsSplatRoute
+  LlmsVsSplatRoute: typeof LlmsVsSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -185,11 +211,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSearchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/llms/vs/$': {
+      id: '/llms/vs/$'
+      path: '/llms/vs/$'
+      fullPath: '/llms/vs/$'
+      preLoaderRoute: typeof LlmsVsSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/llms/docs/$': {
       id: '/llms/docs/$'
       path: '/llms/docs/$'
       fullPath: '/llms/docs/$'
       preLoaderRoute: typeof LlmsDocsSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/llms/blog/$': {
+      id: '/llms/blog/$'
+      path: '/llms/blog/$'
+      fullPath: '/llms/blog/$'
+      preLoaderRoute: typeof LlmsBlogSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -203,7 +243,9 @@ const rootRouteChildren: RootRouteChildren = {
   BlogSplatRoute: BlogSplatRoute,
   DocsSplatRoute: DocsSplatRoute,
   VsSplatRoute: VsSplatRoute,
+  LlmsBlogSplatRoute: LlmsBlogSplatRoute,
   LlmsDocsSplatRoute: LlmsDocsSplatRoute,
+  LlmsVsSplatRoute: LlmsVsSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

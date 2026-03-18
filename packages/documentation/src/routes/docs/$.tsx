@@ -78,6 +78,9 @@ export const Route = createFileRoute('/docs/$')({
           content: "https://struktur.sh/og.webp",
         },
       ],
+      links: [
+        { rel: "canonical", href: `https://struktur.sh/docs/${slugs?.join('/') ?? ''}` },
+      ],
     };
   },
 });

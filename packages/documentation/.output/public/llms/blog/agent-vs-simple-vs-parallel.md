@@ -1,0 +1,330 @@
+
+
+Struktur offers multiple extraction strategies. Each has different trade-offs. Here's how to choose the right one for your use case.
+
+The Decision Tree [#the-decision-tree]
+
+```
+Start: What's your document like?
+│
+├─ Fits in context window?
+│   └─ YES → Use "simple"
+│
+├─ Need speed over cross-chunk context?
+│   └─ YES → Use "parallel"
+│
+├─ Order matters (building up results)?
+│   └─ YES → Use "sequential"
+│
+├─ Unknown structure, need exploration?
+│   └─ YES → Use "agent"
+│
+└─ Need maximum quality?
+    └─ YES → Use "doublePass"
+```
+
+Strategy Overview [#strategy-overview]
+
+| Strategy   | Chunks   | Parallelism | Best For          |
+| ---------- | -------- | ----------- | ----------------- |
+| Simple     | 1        | N/A         | Small documents   |
+| Parallel   | Many     | Yes         | Speed             |
+| Sequential | Many     | No          | Order matters     |
+| Agent      | Variable | No          | Unknown structure |
+| DoublePass | Many     | No          | Quality           |
+
+Simple Strategy [#simple-strategy]
+
+**When to use:**
+
+* Document fits in context window
+* No chunking needed
+* Single LLM call
+
+**How it works:**
+
+```
+Document → [LLM] → Output
+```
+
+**Example:**
+
+```typescript
+const result = await extract({
+  artifacts: [{ path: 'invoice.pdf' }],
+  schema: invoiceSchema,
+  strategy: 'simple',
+});
+```
+
+**Pros:**
+
+* Fastest (single LLM call)
+* Lowest cost
+* No merging complexity
+
+**Cons:**
+
+* Only works for small documents
+* No cross-chunk context (not applicable)
+
+**Typical use case:** Single-page invoices, short forms, simple contracts.
+
+Parallel Strategy [#parallel-strategy]
+
+**When to use:**
+
+* Document doesn't fit in context
+* Speed matters more than cross-chunk context
+* Chunks are independent
+
+**How it works:**
+
+```
+Document → [Chunk 1] → [LLM] → Result 1 ┐
+         → [Chunk 2] → [LLM] → Result 2 ├→ Merge → Output
+         → [Chunk 3] → [LLM] → Result 3 ┘
+```
+
+All chunks processed simultaneously.
+
+**Example:**
+
+```typescript
+const result = await extract({
+  artifacts: [{ path: 'catalog.pdf' }],
+  schema: productSchema,
+  strategy: 'parallel',
+});
+```
+
+**Pros:**
+
+* Fast (parallel processing)
+* Scales to large documents
+* Good for independent chunks
+
+**Cons:**
+
+* No cross-chunk context
+* May miss relationships between chunks
+* Merging can introduce errors
+
+**Typical use case:** Product catalogs, directories, documents with independent sections.
+
+Sequential Strategy [#sequential-strategy]
+
+**When to use:**
+
+* Order matters
+* Building up results across chunks
+* Later chunks depend on earlier context
+
+**How it works:**
+
+```
+Document → [Chunk 1] → [LLM] → Result 1
+         → [Chunk 2] → [LLM] → Result 2 (with context from 1)
+         → [Chunk 3] → [LLM] → Result 3 (with context from 1,2)
+         → Merge → Output
+```
+
+**Example:**
+
+```typescript
+const result = await extract({
+  artifacts: [{ path: 'contract.pdf' }],
+  schema: contractSchema,
+  strategy: 'sequential',
+});
+```
+
+**Pros:**
+
+* Maintains context across chunks
+* Good for building up results
+* Handles cross-chunk references
+
+**Cons:**
+
+* Slower than parallel (sequential processing)
+* Higher cost (more context per call)
+
+**Typical use case:** Multi-page contracts, documents with running totals, narratives.
+
+Agent Strategy [#agent-strategy]
+
+**When to use:**
+
+* Document structure unknown
+* Need to explore before extracting
+* Variable document types
+
+**How it works:**
+
+```
+Document → [Agent explores] → [Agent reads relevant sections] → Output
+```
+
+The agent decides what to read based on what it finds.
+
+**Example:**
+
+```typescript
+const result = await extract({
+  artifacts: [{ path: 'legal-brief.pdf' }],
+  schema: briefSchema,
+  strategy: 'agent',
+});
+```
+
+**Pros:**
+
+* Adapts to document structure
+* Only reads relevant sections
+* Handles variation well
+
+**Cons:**
+
+* Variable cost (depends on agent decisions)
+* Requires tool-calling model
+* Non-deterministic
+
+**Typical use case:** Legal documents, research papers, documents with unknown structure.
+
+Auto-Merge Variants [#auto-merge-variants]
+
+Both parallel and sequential have auto-merge variants:
+
+* `parallelAutoMerge` — Parallel + automatic deduplication
+* `sequentialAutoMerge` — Sequential + automatic deduplication
+
+Use these when:
+
+* Schema has arrays
+* Chunks might extract same entities
+* You want automatic deduplication
+
+**Example:**
+
+```typescript
+const result = await extract({
+  artifacts: [{ path: 'report.pdf' }],
+  schema: reportSchema, // has arrays
+  strategy: 'parallelAutoMerge',
+});
+```
+
+DoublePass Strategy [#doublepass-strategy]
+
+**When to use:**
+
+* Quality is critical
+* Willing to pay for verification
+* High-stakes extractions
+
+**How it works:**
+
+```
+Document → [Pass 1: Extract] → Result 1
+         → [Pass 2: Verify]  → Verified Result
+```
+
+Second LLM call verifies the first.
+
+**Example:**
+
+```typescript
+const result = await extract({
+  artifacts: [{ path: 'financial-statement.pdf' }],
+  schema: financialSchema,
+  strategy: 'doublePass',
+});
+```
+
+**Pros:**
+
+* Higher accuracy
+* Catches extraction errors
+* Good for critical data
+
+**Cons:**
+
+* 2x cost (two LLM passes)
+* Slower
+
+**Typical use case:** Financial documents, legal contracts, medical records.
+
+Token Cost Comparison [#token-cost-comparison]
+
+Processing a 20-page contract:
+
+| Strategy   | LLM Calls | Approx Tokens     | Cost (GPT-4o) |
+| ---------- | --------- | ----------------- | ------------- |
+| Simple     | 1         | N/A (doesn't fit) | N/A           |
+| Parallel   | 5         | 50k               | $0.125        |
+| Sequential | 5         | 75k               | $0.19         |
+| Agent      | 3-10      | 30k-100k          | $0.08-$0.25   |
+| DoublePass | 10        | 100k              | $0.25         |
+
+*Approximate. Actual costs vary by document and model.*
+
+Real Examples [#real-examples]
+
+Invoice (1 page) [#invoice-1-page]
+
+```typescript
+// Simple is best
+strategy: 'simple'
+// Single call, fast, cheap
+```
+
+Product Catalog (50 pages) [#product-catalog-50-pages]
+
+```typescript
+// Parallel is best
+strategy: 'parallelAutoMerge'
+// Products are independent, dedupe similar items
+```
+
+Legal Contract (30 pages) [#legal-contract-30-pages]
+
+```typescript
+// Sequential or Agent
+strategy: 'sequential'  // if structure is known
+strategy: 'agent'       // if structure varies
+```
+
+Financial Statement (20 pages) [#financial-statement-20-pages]
+
+```typescript
+// DoublePass for quality
+strategy: 'doublePass'
+// Verify critical numbers
+```
+
+Combining Strategies [#combining-strategies]
+
+You can use different strategies for different document types:
+
+```typescript
+function chooseStrategy(document: Document): Strategy {
+  if (document.pageCount === 1) return 'simple';
+  if (document.type === 'catalog') return 'parallelAutoMerge';
+  if (document.type === 'contract') return 'agent';
+  if (document.type === 'financial') return 'doublePass';
+  return 'sequential';
+}
+
+const result = await extract({
+  artifacts: [document],
+  schema: schema,
+  strategy: chooseStrategy(document),
+});
+```
+
+See Also [#see-also]
+
+* [What is an Extraction Agent?](/docs/what-is-an-extraction-agent)
+* [Building an Autonomous Extraction Agent](/blog/building-autonomous-extraction-agent)
+* [Struktur Documentation](/docs)

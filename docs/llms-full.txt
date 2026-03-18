@@ -4979,3 +4979,150 @@ Resources [#resources]
 * [Struktur Documentation](/docs)
 * [Agent Skills Specification](https://github.com/anthropics/skills)
 * [Skills CLI](https://github.com/vercel/skills)
+
+
+# What is an Extraction Agent?
+
+
+
+An extraction agent is an autonomous LLM that explores documents and decides how to extract data, rather than following a fixed extraction strategy. It uses tools to read, search, and navigate documents before producing output.
+
+How It Differs from Fixed Strategies [#how-it-differs-from-fixed-strategies]
+
+| Approach   | How It Works                                               |
+| ---------- | ---------------------------------------------------------- |
+| Simple     | Process entire document in one LLM call                    |
+| Parallel   | Split into chunks, process simultaneously                  |
+| Sequential | Process chunks in order, building up results               |
+| **Agent**  | Explore document, decide what to read, extract iteratively |
+
+Why Use an Agent? [#why-use-an-agent]
+
+Fixed strategies work well when you know the document structure upfront. But when documents vary:
+
+* **Unknown structure** — Agent discovers layout dynamically
+* **Variable length** — Agent reads only what's needed
+* **Complex navigation** — Agent can search, skip, revisit sections
+* **Adaptive extraction** — Agent adjusts strategy per document
+
+How Agents Work [#how-agents-work]
+
+An extraction agent is given:
+
+1. **A virtual filesystem** — Access to document content
+2. **Tools** — Read, grep, find, explore
+3. **Output schema** — What data to extract
+4. **Control tools** — Set/update output, finish, fail
+
+The agent:
+
+1. Explores the document using tools
+2. Identifies relevant sections
+3. Extracts data iteratively
+4. Validates and corrects
+5. Signals completion
+
+Example: Contract Analysis [#example-contract-analysis]
+
+```
+Agent: "I need to find the parties involved."
+→ uses grep("party") 
+→ finds section 2.1
+
+Agent: "Let me read section 2.1"
+→ uses read("/artifacts/contract.pdf#section-2.1")
+→ extracts party names
+
+Agent: "Now I need the effective date"
+→ uses grep("effective date")
+→ extracts date
+
+Agent: "I have all required fields"
+→ uses finish()
+```
+
+Trade-offs [#trade-offs]
+
+| Advantage                     | Disadvantage                |
+| ----------------------------- | --------------------------- |
+| Handles unknown structures    | Variable token cost         |
+| Adapts to document variations | Requires tool-calling model |
+| Can skip irrelevant sections  | More complex to debug       |
+| Better for complex documents  | Overkill for simple cases   |
+
+When to Use an Agent [#when-to-use-an-agent]
+
+Use an agent strategy when:
+
+* Document structure varies significantly
+* You don't know what sections contain relevant data
+* Documents are long but only parts are relevant
+* You need to cross-reference within the document
+
+Use simpler strategies when:
+
+* Documents have consistent structure
+* Entire document is relevant
+* You know exactly what to extract
+
+See Also [#see-also]
+
+* [What is Structured Data Extraction?](/docs/what-is-structured-data-extraction)
+* [Choosing an Extraction Strategy](/blog/agent-vs-simple-vs-parallel)
+* [Struktur Documentation](/docs)
+
+
+# What is Structured Data Extraction?
+
+
+
+Structured data extraction is the process of converting unstructured documents (PDFs, images, text files) into validated, typed data using AI and schema validation. The output is typically JSON that conforms to a predefined schema.
+
+The Problem [#the-problem]
+
+Documents contain valuable information, but it's locked in unstructured formats:
+
+* **PDFs** — Text, tables, images mixed together
+* **Images** — Scanned documents, photos, screenshots
+* **Text files** — Unstructured prose, logs, transcripts
+
+Traditional approaches require manual data entry or brittle regex patterns that break when formats change.
+
+The Solution [#the-solution]
+
+Modern structured data extraction uses LLMs to:
+
+1. **Parse** documents into processable content
+2. **Extract** relevant information based on a schema
+3. **Validate** output against the schema
+4. **Retry** with error feedback if validation fails
+
+Key Components [#key-components]
+
+| Component       | Purpose                                         |
+| --------------- | ----------------------------------------------- |
+| Document parser | Converts PDFs, images to text/structure         |
+| Schema          | Defines expected output structure (JSON Schema) |
+| LLM             | Extracts data following the schema              |
+| Validator       | Checks output against schema                    |
+| Retry loop      | Fixes errors with LLM feedback                  |
+
+Use Cases [#use-cases]
+
+* **Invoice processing** — Extract vendor, line items, totals
+* **Contract analysis** — Extract parties, dates, obligations
+* **Form data entry** — Convert scanned forms to structured data
+* **Research papers** — Extract methods, results, citations
+
+Tools for Structured Data Extraction [#tools-for-structured-data-extraction]
+
+* **Struktur** — Open source, autonomous agent-based extraction
+* **LlamaExtract** — Managed cloud service with citations
+* **Unstract** — Open source with visual prompt engineering
+* **Instructor** — Python library for structured LLM outputs
+
+See Also [#see-also]
+
+* [What is an Extraction Agent?](/docs/what-is-an-extraction-agent)
+* [Struktur vs Alternatives](/vs)
+* [Quickstart Guide](/docs/quickstart)

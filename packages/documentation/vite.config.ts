@@ -34,6 +34,12 @@ export default defineConfig({
           path: '/docs',
         },
         {
+          path: '/blog',
+        },
+        {
+          path: '/vs',
+        },
+        {
           path: '/api/search',
         },
         {

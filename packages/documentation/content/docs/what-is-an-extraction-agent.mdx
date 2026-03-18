@@ -1,0 +1,90 @@
+---
+title: "What is an Extraction Agent?"
+description: "An extraction agent is an autonomous LLM that explores documents and decides how to extract data, rather than following a fixed extraction strategy."
+---
+
+An extraction agent is an autonomous LLM that explores documents and decides how to extract data, rather than following a fixed extraction strategy. It uses tools to read, search, and navigate documents before producing output.
+
+## How It Differs from Fixed Strategies
+
+| Approach | How It Works |
+|----------|--------------|
+| Simple | Process entire document in one LLM call |
+| Parallel | Split into chunks, process simultaneously |
+| Sequential | Process chunks in order, building up results |
+| **Agent** | Explore document, decide what to read, extract iteratively |
+
+## Why Use an Agent?
+
+Fixed strategies work well when you know the document structure upfront. But when documents vary:
+
+- **Unknown structure** — Agent discovers layout dynamically
+- **Variable length** — Agent reads only what's needed
+- **Complex navigation** — Agent can search, skip, revisit sections
+- **Adaptive extraction** — Agent adjusts strategy per document
+
+## How Agents Work
+
+An extraction agent is given:
+
+1. **A virtual filesystem** — Access to document content
+2. **Tools** — Read, grep, find, explore
+3. **Output schema** — What data to extract
+4. **Control tools** — Set/update output, finish, fail
+
+The agent:
+
+1. Explores the document using tools
+2. Identifies relevant sections
+3. Extracts data iteratively
+4. Validates and corrects
+5. Signals completion
+
+## Example: Contract Analysis
+
+```
+Agent: "I need to find the parties involved."
+→ uses grep("party") 
+→ finds section 2.1
+
+Agent: "Let me read section 2.1"
+→ uses read("/artifacts/contract.pdf#section-2.1")
+→ extracts party names
+
+Agent: "Now I need the effective date"
+→ uses grep("effective date")
+→ extracts date
+
+Agent: "I have all required fields"
+→ uses finish()
+```
+
+## Trade-offs
+
+| Advantage | Disadvantage |
+|-----------|--------------|
+| Handles unknown structures | Variable token cost |
+| Adapts to document variations | Requires tool-calling model |
+| Can skip irrelevant sections | More complex to debug |
+| Better for complex documents | Overkill for simple cases |
+
+## When to Use an Agent
+
+Use an agent strategy when:
+
+- Document structure varies significantly
+- You don't know what sections contain relevant data
+- Documents are long but only parts are relevant
+- You need to cross-reference within the document
+
+Use simpler strategies when:
+
+- Documents have consistent structure
+- Entire document is relevant
+- You know exactly what to extract
+
+## See Also
+
+- [What is Structured Data Extraction?](/docs/what-is-structured-data-extraction)
+- [Choosing an Extraction Strategy](/blog/agent-vs-simple-vs-parallel)
+- [Struktur Documentation](/docs)

@@ -46,6 +46,9 @@ export const Route = createFileRoute('/blog/$')({
         { name: "twitter:description", content: description },
         { name: "twitter:image", content: "https://struktur.sh/og.webp" },
       ],
+      links: [
+        { rel: "canonical", href: `https://struktur.sh/blog/${slugs?.join('/') ?? ''}` },
+      ],
     };
   },
 });

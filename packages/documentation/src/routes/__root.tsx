@@ -70,7 +70,6 @@ export const Route = createRootRoute({
     ],
     links: [
       { rel: "icon", type: "image/png", href: "/struktur-icon.png" },
-      { rel: "canonical", href: "https://struktur.sh" },
     ],
   }),
   component: RootComponent,

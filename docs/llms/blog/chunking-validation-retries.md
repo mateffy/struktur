@@ -1,0 +1,280 @@
+
+
+Every LLM extraction project needs the same infrastructure: chunking, validation, retries, merging. It's boilerplate you've probably written multiple times. Here's why it's harder than it looks and how Struktur handles it.
+
+The Boilerplate [#the-boilerplate]
+
+Every extraction pipeline needs:
+
+1. **Token counting** — Know when you're hitting limits
+2. **Chunking** — Split documents that don't fit
+3. **Prompt construction** — Build prompts per chunk
+4. **API calls** — Handle rate limits, timeouts, errors
+5. **Schema validation** — Check output matches schema
+6. **Retry logic** — Send errors back to LLM
+7. **Result merging** — Combine chunk results
+8. **Deduplication** — Remove duplicates from arrays
+
+You can build each piece. But together, they form a complex system with subtle edge cases.
+
+Token Budgets [#token-budgets]
+
+Why 10k Tokens Isn't Arbitrary [#why-10k-tokens-isnt-arbitrary]
+
+LLMs have context limits. GPT-4o: 128k tokens. Claude 3.5: 200k tokens. But you can't use all of that:
+
+* **Input tokens** — Your document + prompt
+* **Output tokens** — The extracted JSON
+* **Safety margin** — Room for error messages, retries
+
+A 50-page contract might be 80k tokens. You can't process it in one call. You need to chunk.
+
+The Chunking Problem [#the-chunking-problem]
+
+Naive chunking breaks documents:
+
+```
+Document: "...the total amount of $1,234,567.89 shall be paid..."
+
+Chunk 1: "...the total amount of $1,234,"
+Chunk 2: "567.89 shall be paid..."
+```
+
+Now the LLM sees "$1,234" in one chunk and "567.89" in another. Neither is the correct total.
+
+**Smart chunking:**
+
+* Split at sentence boundaries
+* Preserve context overlap
+* Track chunk relationships
+
+Validation in the Loop [#validation-in-the-loop]
+
+The Problem [#the-problem]
+
+LLMs produce invalid output:
+
+* Missing required fields
+* Wrong types (string instead of number)
+* Invalid enum values
+* Malformed JSON
+
+You can't trust raw LLM output.
+
+The Solution [#the-solution]
+
+Validate, then retry with feedback:
+
+```typescript
+const schema = {
+  type: "object",
+  properties: {
+    total: { type: "number" },
+    date: { type: "string", format: "date" }
+  },
+  required: ["total", "date"]
+};
+
+// Attempt 1
+const output1 = await llm.extract(document);
+const errors1 = validate(output1, schema);
+// errors1: "total is required but missing"
+
+// Attempt 2 (with feedback)
+const output2 = await llm.extract(document, { 
+  previousErrors: errors1 
+});
+const errors2 = validate(output2, schema);
+// errors2: null (valid!)
+```
+
+Why This Works [#why-this-works]
+
+LLMs are good at correcting mistakes when told what's wrong:
+
+```
+Previous output had validation errors:
+- "total" is required but was missing
+- "date" must be in YYYY-MM-DD format
+
+Please fix these errors and try again.
+```
+
+Most extractions converge in 2-3 attempts.
+
+The Retry Limit [#the-retry-limit]
+
+You can't retry forever. Set a limit:
+
+```typescript
+const maxAttempts = 3;
+
+for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+  const output = await llm.extract(document, { previousErrors });
+  const errors = validate(output, schema);
+  
+  if (errors === null) {
+    return output; // Success!
+  }
+}
+
+throw new Error("Max retries exceeded");
+```
+
+Merging Strategies [#merging-strategies]
+
+The Problem [#the-problem-1]
+
+Multiple chunks produce multiple results:
+
+```typescript
+// Chunk 1 output
+{ lineItems: [{ name: "Widget A", price: 100 }] }
+
+// Chunk 2 output
+{ lineItems: [{ name: "Widget B", price: 200 }] }
+
+// Chunk 3 output
+{ total: 300 }
+```
+
+How do you combine these?
+
+Strategy 1: LLM Merge [#strategy-1-llm-merge]
+
+Ask the LLM to merge:
+
+```typescript
+const merged = await llm.merge({
+  results: [result1, result2, result3],
+  schema: schema,
+  instruction: "Combine these partial extractions into one complete result."
+});
+```
+
+**Pros:** Handles complex merging logic
+**Cons:** Extra LLM call, more tokens, more cost
+
+Strategy 2: Auto-Merge [#strategy-2-auto-merge]
+
+Merge programmatically based on schema:
+
+```typescript
+function autoMerge(results: object[], schema: object): object {
+  const merged = {};
+  
+  for (const key of Object.keys(schema.properties)) {
+    const propSchema = schema.properties[key];
+    
+    if (propSchema.type === 'array') {
+      // Concatenate arrays
+      merged[key] = results.flatMap(r => r[key] || []);
+    } else {
+      // Take first non-null value
+      merged[key] = results.find(r => r[key] != null)?.[key];
+    }
+  }
+  
+  return merged;
+}
+```
+
+**Pros:** Fast, no extra tokens
+**Cons:** Can't handle complex logic
+
+Strategy 3: Schema-Aware Merge [#strategy-3-schema-aware-merge]
+
+Combine both approaches:
+
+* Use auto-merge for simple fields
+* Use LLM merge for complex fields
+* Let schema specify which to use
+
+Deduplication [#deduplication]
+
+The Problem [#the-problem-2]
+
+When merging arrays, you get duplicates:
+
+```typescript
+// Chunk 1: mentions "Widget A" twice
+{ lineItems: [{ name: "Widget A" }, { name: "Widget A" }] }
+
+// Chunk 2: also mentions "Widget A"
+{ lineItems: [{ name: "Widget A" }] }
+
+// Merged: 3 copies of "Widget A"
+{ lineItems: [{ name: "Widget A" }, { name: "Widget A" }, { name: "Widget A" }] }
+```
+
+The Solution [#the-solution-1]
+
+Schema-aware deduplication:
+
+```typescript
+function deduplicate(items: object[], schema: object): object[] {
+  const uniqueKey = findUniqueKey(schema);
+  
+  if (uniqueKey) {
+    // Dedupe by unique key
+    const seen = new Set();
+    return items.filter(item => {
+      const key = item[uniqueKey];
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  } else {
+    // Dedupe by similarity (fuzzy matching)
+    return fuzzyDeduplicate(items);
+  }
+}
+```
+
+How Struktur Handles This [#how-struktur-handles-this]
+
+Struktur provides all of this out of the box:
+
+```typescript
+import { extract } from '@struktur/sdk';
+
+const result = await extract({
+  artifacts: [{ path: 'contract.pdf' }],
+  schema: contractSchema,
+  strategy: 'sequential', // handles chunking + merging
+  options: {
+    maxRetries: 3,
+    tokenBudget: 10000,
+    mergeStrategy: 'auto',
+  }
+});
+
+console.log(result.data);    // Validated, merged output
+console.log(result.usage);   // Token usage stats
+```
+
+Under the hood:
+
+1. **Token counting** — Uses tiktoken for accurate counts
+2. **Chunking** — Splits at sentence boundaries with overlap
+3. **Validation** — JSON Schema validation with ajv
+4. **Retries** — Sends errors back to LLM
+5. **Merging** — Schema-aware auto-merge
+6. **Deduplication** — Removes duplicates from arrays
+
+The Hidden Complexity [#the-hidden-complexity]
+
+Each piece seems simple. Together, they interact in complex ways:
+
+* Chunking affects what the LLM sees
+* Validation errors affect retry prompts
+* Merging depends on chunk boundaries
+* Deduplication depends on merge results
+
+Building this once is educational. Building it correctly for production takes weeks.
+
+See Also [#see-also]
+
+* [Struktur vs Manual LLM Calls](/vs/manual-llm-calls) — The full breakdown
+* [Agent vs Simple vs Parallel](/blog/agent-vs-simple-vs-parallel) — Choosing strategies
+* [Quickstart Guide](/docs/quickstart) — Get started in 5 minutes

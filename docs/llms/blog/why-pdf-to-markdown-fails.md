@@ -1,0 +1,215 @@
+
+
+The common approach to document extraction is: PDF → Markdown → LLM → JSON. It seems straightforward. Convert your PDF to Markdown, feed it to an LLM, and get structured JSON out. But this approach loses critical information that makes extraction unreliable.
+
+The Promise [#the-promise]
+
+Markdown is a reasonable intermediate format:
+
+* LLMs understand Markdown well
+* It's token-efficient compared to raw text
+* Preserves some structure (headings, lists, tables)
+* Easy to debug and inspect
+
+Tools like `pandoc`, `marker`, and `pymupdf` convert PDFs to Markdown with decent quality. For human reading, it works great.
+
+What Gets Lost [#what-gets-lost]
+
+For LLM extraction, Markdown loses information that matters:
+
+1. Spatial Relationships [#1-spatial-relationships]
+
+Markdown is linear. PDFs are 2D.
+
+```
+PDF layout:                    Markdown output:
+┌─────────────────────────┐    Total: $1,234.56
+│ Total: $1,234.56         │    Date: 2024-03-15
+│ Date: 2024-03-15         │    (no indication these are related)
+│                         │
+│ Line Items:             │    Line Items:
+│  Widget A    $100.00    │    Widget A $100.00
+│  Widget B    $200.00    │    Widget B $200.00
+└─────────────────────────┘
+```
+
+In the PDF, "Total" and "Date" are visually grouped. In Markdown, they're just sequential lines. The LLM has no signal that they're related.
+
+2. Table Structure [#2-table-structure]
+
+Markdown tables work for simple cases. But real-world tables have:
+
+* **Merged cells** — Markdown can't represent
+* **Nested tables** — Lost entirely
+* **Multi-row headers** — Flattened incorrectly
+* **Column alignment** — Not preserved
+
+```
+PDF table with merged cell:    Markdown (broken):
+┌──────────┬───────┐          | Category | Item |
+│ Category │ Item  │          |----------|-------|
+│          │ A     │          | A        | A     |  ← wrong
+│ Widgets  ├───────┤          | B        | B     |  ← wrong
+│          │ B     │          | C        | C     |  ← wrong
+└──────────┴───────┘
+```
+
+3. Reading Order [#3-reading-order]
+
+Multi-column layouts get scrambled:
+
+```
+PDF (2 columns):               Markdown (wrong order):
+┌─────────┬─────────┐         Introduction text...
+│ Intro   │ Sidebar │         More intro text...
+│ text... │ text... │         Sidebar text...      ← should be later
+│ More    │ More    │         More sidebar text... ← should be later
+│ intro...│ sidebar │         Conclusion text...
+│ Conclu- │         │
+│ sion... │         │
+└─────────┴─────────┘
+```
+
+The LLM receives text in the wrong order, breaking context.
+
+4. Confidence Signals [#4-confidence-signals]
+
+OCR-generated Markdown has no confidence scores. The LLM sees:
+
+```
+Invoice Number: lNVOlCE-2024-00l
+```
+
+Is that "INVOICE-2024-001" or "lNVOlCE-2024-00l"? The LLM can't know the OCR was uncertain. It will hallucinate a reasonable interpretation.
+
+5. Bounding Boxes [#5-bounding-boxes]
+
+When extraction fails, you can't trace back:
+
+* "Where did this value come from?"
+* "Which page had the total?"
+* "Was this handwritten or printed?"
+
+Markdown has no location information. You can't cite sources or debug failures.
+
+Real Example: Invoice Extraction [#real-example-invoice-extraction]
+
+Consider this invoice:
+
+```
+┌────────────────────────────────────┐
+│ ACME Corp                          │
+│ Invoice #12345                     │
+│                                    │
+│ Bill To:           Ship To:        │
+│ John Smith         John Smith      │
+│ 123 Main St        456 Oak Ave     │
+│                    (different!)    │
+│                                    │
+│ Items:                             │
+│ ┌──────────────┬───────┬──────┐   │
+│ │ Description  │ Qty   │ Price│   │
+│ ├──────────────┼───────┼──────┤   │
+│ │ Widget A     │ 2     │ $50  │   │
+│ │ Widget B     │ 1     │ $75  │   │
+│ │ Widget C     │ 3     │ $25  │   │
+│ └──────────────┴───────┴──────┘   │
+│                         ───────── │
+│ Subtotal:               $275.00   │
+│ Tax (8%):               $22.00    │
+│                         ───────── │
+│ Total:                  $297.00   │
+│                                    │
+│ Notes: See attached terms.         │
+└────────────────────────────────────┘
+```
+
+**Markdown output:**
+
+```markdown
+ACME Corp
+Invoice #12345
+
+Bill To: Ship To:
+John Smith John Smith
+123 Main St 456 Oak Ave
+
+Items:
+| Description | Qty | Price |
+|-------------|-----|-------|
+| Widget A | 2 | $50 |
+| Widget B | 1 | $75 |
+| Widget C | 3 | $25 |
+
+Subtotal: $275.00
+Tax (8%): $22.00
+Total: $297.00
+
+Notes: See attached terms.
+```
+
+**Problems:**
+
+1. "Bill To" and "Ship To" are now on one line — LLM might merge them
+2. Table is correct, but no indication it's the main content
+3. "Notes" is at the end — LLM might skip it
+4. No indication that "Total" is the most important field
+
+When Markdown IS Enough [#when-markdown-is-enough]
+
+Markdown works fine for:
+
+* **Simple text documents** — No tables, single column
+* **Narrative content** — Articles, reports, books
+* **When you don't need citations** — Just want the text
+* **Human reading** — Not machine extraction
+
+If your documents are simple, PDF-to-Markdown is reasonable.
+
+What Struktur Does Instead [#what-struktur-does-instead]
+
+Struktur's artifact format preserves more information:
+
+```typescript
+{
+  slices: [
+    { type: "text", content: "ACME Corp", bbox: [0, 0, 100, 20] },
+    { type: "text", content: "Invoice #12345", bbox: [0, 25, 100, 40] },
+    { type: "table", rows: [...], bbox: [0, 100, 300, 200] },
+  ],
+  metadata: {
+    pageCount: 1,
+    hasImages: false,
+  }
+}
+```
+
+This gives the LLM:
+
+* **Spatial context** — Where elements are on the page
+* **Type information** — This is a table, not just text
+* **Bounding boxes** — Can cite sources
+* **Metadata** — Document structure hints
+
+The agent strategy can use this to explore documents intelligently:
+
+1. "I need the total. Let me search for 'total' in the bottom-right area."
+2. "I found a table. Let me read it row by row."
+3. "There are two addresses. Let me check which is 'Bill To' vs 'Ship To'."
+
+The Trade-off [#the-trade-off]
+
+Markdown is simpler. It works for simple cases. But for production extraction:
+
+* You'll hit edge cases
+* Debugging is harder
+* Accuracy suffers
+* You can't trace failures
+
+The artifact format is more complex, but it preserves what matters for reliable extraction.
+
+See Also [#see-also]
+
+* [What is Structured Data Extraction?](/docs/what-is-structured-data-extraction)
+* [Building an Autonomous Extraction Agent](/blog/building-autonomous-extraction-agent)
+* [Struktur vs Manual LLM Calls](/vs/manual-llm-calls)

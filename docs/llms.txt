@@ -33,3 +33,5 @@
 - [Struktur Agent Skill](/docs/skill): Install the Struktur agent skill to teach AI coding assistants how to use Struktur.
 - [Installation](/docs/skill/installation): Install the Struktur agent skill for your preferred AI coding tool.
 - [Usage](/docs/skill/usage): How to use the Struktur agent skill with your AI coding assistant.
+- [What is an Extraction Agent?](/docs/what-is-an-extraction-agent): An extraction agent is an autonomous LLM that explores documents and decides how to extract data, rather than following a fixed extraction strategy.
+- [What is Structured Data Extraction?](/docs/what-is-structured-data-extraction): Structured data extraction is the process of converting unstructured documents into validated, typed data using AI and schema validation.

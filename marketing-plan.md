@@ -4,6 +4,25 @@ Working document for content marketing strategy. Updated as we progress.
 
 ---
 
+## Status Summary
+
+**Completed:**
+- [x] Blog infrastructure at `/blog`
+- [x] Comparison pages at `/vs`
+- [x] 5 blog post placeholders
+- [x] 4 comparison page placeholders
+- [x] 2 GEO definition pages
+- [x] Schema markup (SoftwareApplication + Organization)
+- [x] Navigation links
+
+**Next Steps:**
+1. Write actual blog post content (replace placeholders)
+2. Write actual comparison page content (replace placeholders)
+3. Test AI visibility and document results
+4. Launch on HN with technical blog post
+
+---
+
 ## 1. Blog Implementation
 
 ### Approach
@@ -365,17 +384,17 @@ author: "Lukas Mateffy"
 ## 5. Progress Tracking
 
 ### Blog Posts
-- [x] `why-pdf-to-markdown-fails.mdx` (placeholder)
-- [x] `building-autonomous-extraction-agent.mdx` (placeholder)
-- [x] `chunking-validation-retries.mdx` (placeholder)
-- [x] `agent-vs-simple-vs-parallel.mdx` (placeholder)
-- [x] `extracting-invoices-at-scale.mdx` (placeholder)
+- [x] `why-pdf-to-markdown-fails.mdx`
+- [x] `building-autonomous-extraction-agent.mdx`
+- [x] `chunking-validation-retries.mdx`
+- [x] `agent-vs-simple-vs-parallel.mdx`
+- [x] `extracting-invoices-at-scale.mdx`
 
 ### Comparison Pages
-- [x] `llamaindex.mdx` (placeholder)
-- [x] `unstract.mdx` (placeholder)
-- [x] `instructor.mdx` (placeholder)
-- [x] `manual-llm-calls.mdx` (placeholder)
+- [x] `llamaindex.mdx`
+- [x] `unstract.mdx`
+- [x] `instructor.mdx`
+- [x] `manual-llm-calls.mdx`
 
 ### Infrastructure
 - [x] Create `content/docs/blog/` directory
@@ -386,10 +405,10 @@ author: "Lukas Mateffy"
 - [x] Add to docs sidebar
 
 ### GEO Optimization
-- [ ] Add `SoftwareApplication` schema to homepage
-- [ ] Add `Organization` schema
-- [ ] Create "What is structured data extraction?" definition page
-- [ ] Create "What is an extraction agent?" definition page
+- [x] Add `SoftwareApplication` schema to homepage (already existed)
+- [x] Add `Organization` schema
+- [x] Create "What is structured data extraction?" definition page
+- [x] Create "What is an extraction agent?" definition page
 - [ ] Test AI visibility (ChatGPT, Perplexity, Claude, Gemini)
 - [ ] Document current AI mention status
 - [ ] Get mentioned on Reddit (r/LocalLLaMA, r/MachineLearning)
