@@ -1,3 +1,5 @@
+declare const __CLI_VERSION__: string;
+
 // Workaround for AI SDK timestamp parsing issue with certain providers
 // Some providers (e.g., opencode) return invalid timestamps that cause
 // RangeError: Invalid Date when AI SDK tries to call toISOString()
@@ -2608,7 +2610,7 @@ const utilsCommand = defineCommand({
 const main = defineCommand({
   meta: {
     name: "struktur",
-    version: "0.1.0",
+    version: __CLI_VERSION__,
     description: "Structured data extraction using LLMs",
   },
   subCommands: {
