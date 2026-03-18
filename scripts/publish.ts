@@ -2,9 +2,9 @@
 import { $ } from "bun";
 
 const packages = [
+  { name: "@struktur/telemetry", path: "packages/telemetry" },
   { name: "@struktur/sdk", path: "packages/sdk" },
   { name: "@struktur/cli", path: "packages/cli" },
-  { name: "@struktur/telemetry", path: "packages/telemetry" },
 ];
 
 // Read version from SDK package (source of truth)
@@ -99,6 +99,7 @@ if (ghAvailable) {
 }
 
 console.log(`\n✓ Successfully published version ${version}!`);
+console.log(`  - npm: @struktur/telemetry@${version}`);
 console.log(`  - npm: @struktur/sdk@${version}`);
 console.log(`  - npm: @struktur/cli@${version}`);
 console.log(
