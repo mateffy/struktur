@@ -1,5 +1,5 @@
 import type { ProviderModelsResult } from "../types";
-import { resolveProviderEnvVar, resolveProviderToken } from "../auth/tokens";
+import { resolveProviderEnvVar, resolveProviderToken, resolveOllamaBaseURL } from "../auth/tokens";
 
 const openAiModelsUrl = "https://api.openai.com/v1/models";
 const anthropicModelsUrl = "https://api.anthropic.com/v1/models";
@@ -35,6 +35,11 @@ const parseGoogleModels = (json: unknown) => {
 const parseOpenRouterModels = (json: unknown) => {
   const data = (json as { data?: Array<{ id?: string }> } | undefined)?.data ?? [];
   return data.map((item) => item.id).filter((id): id is string => typeof id === "string");
+};
+
+const parseOllamaModels = (json: unknown) => {
+  const models = (json as { models?: Array<{ name?: string }> } | undefined)?.models ?? [];
+  return models.map((item) => item.name).filter((name): name is string => typeof name === "string");
 };
 
 const requestModels = async (provider: string, token: string): Promise<string[]> => {
@@ -81,6 +86,17 @@ const requestModels = async (provider: string, token: string): Promise<string[]>
     }
     const json = (await response.json()) as unknown;
     return parseOpenRouterModels(json);
+  }
+
+  if (provider === "ollama") {
+    const baseURL = await resolveOllamaBaseURL();
+    const tagsURL = new URL("tags", baseURL.endsWith("/") ? baseURL : `${baseURL}/`).href;
+    const response = await fetch(tagsURL);
+    if (!response.ok) {
+      throw new Error(await response.text());
+    }
+    const json = (await response.json()) as unknown;
+    return parseOllamaModels(json);
   }
 
   if (provider === "opencode") {
@@ -131,6 +147,7 @@ const cheapestModelPreferences: Record<string, string[]> = {
   google: ["gemini-1.5-flash-8b", "gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"],
   opencode: ["gpt-5-nano", "claude-haiku-3.5", "gemini-3-flash", "kimi-k2-free", "glm-5-free", "minimax-m2.5-free"],
   openrouter: ["openai/gpt-4o-mini", "anthropic/claude-3.5-haiku", "google/gemini-flash-1.5"],
+  ollama: ["llama3.2:1b", "llama3.2:3b", "phi3:mini", "gemma2:2b"],
 };
 
 const matchesPreference = (model: string, preference: string) => {
@@ -138,13 +155,22 @@ const matchesPreference = (model: string, preference: string) => {
 };
 
 export const listProviderModels = async (provider: string): Promise<ProviderModelsResult> => {
-  const token = await getTokenForProvider(provider);
-  if (!token) {
-    return { provider, ok: false, error: "No token available" };
+  if (provider !== "ollama") {
+    const token = await getTokenForProvider(provider);
+    if (!token) {
+      return { provider, ok: false, error: "No token available" };
+    }
+    try {
+      const models = await requestModels(provider, token);
+      return { provider, ok: true, models };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return { provider, ok: false, error: message };
+    }
   }
 
   try {
-    const models = await requestModels(provider, token);
+    const models = await requestModels(provider, "");
     return { provider, ok: true, models };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -186,5 +212,6 @@ export const __testing__ = {
   parseAnthropicModels,
   parseGoogleModels,
   parseOpenRouterModels,
+  parseOllamaModels,
   pickCheapestModel,
 };

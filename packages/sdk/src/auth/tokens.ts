@@ -229,6 +229,17 @@ export const resolveProviderEnvVar = (provider: string) => {
   }
 };
 
+export const resolveOllamaBaseURL = async () => {
+  if (process.env.OLLAMA_BASE_URL) {
+    return process.env.OLLAMA_BASE_URL;
+  }
+  const stored = await resolveProviderToken("ollama");
+  if (stored) {
+    return stored;
+  }
+  return "http://localhost:11434/api";
+};
+
 export const maskToken = (token: string) => {
   if (token.length <= 8) {
     return "********";

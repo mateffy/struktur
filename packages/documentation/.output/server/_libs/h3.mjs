@@ -1,5 +1,5 @@
 import { N as NullProtoObj } from "./rou3.mjs";
-import { F as FastURL, N as NodeResponse } from "./srvx.mjs";
+import { F as FastURL, a as FastResponse } from "./srvx.mjs";
 const kEventNS = "h3.internal.event.";
 const kEventRes = /* @__PURE__ */ Symbol.for(`${kEventNS}res`);
 const kEventResHeaders = /* @__PURE__ */ Symbol.for(`${kEventNS}res.headers`);
@@ -162,7 +162,7 @@ var HTTPResponse = class {
   }
 };
 function prepareResponse(val, event, config, nested) {
-  if (val === kHandled) return new NodeResponse(null);
+  if (val === kHandled) return new FastResponse(null);
   if (val === kNotFound) val = new HTTPError({
     status: 404,
     message: `Cannot find any route matching [${event.req.method}] ${event.url}`
@@ -184,7 +184,7 @@ function prepareResponse(val, event, config, nested) {
   if (!(val instanceof Response)) {
     const res = prepareResponseBody(val, event, config);
     const status = res.status || preparedRes?.status;
-    return new NodeResponse(nullBody(event.req.method, status) ? null : res.body, {
+    return new FastResponse(nullBody(event.req.method, status) ? null : res.body, {
       status,
       statusText: res.statusText || preparedRes?.statusText,
       headers: res.headers && preparedHeaders ? mergeHeaders$1(res.headers, preparedHeaders) : res.headers || preparedHeaders
@@ -195,7 +195,7 @@ function prepareResponse(val, event, config, nested) {
     mergeHeaders$1(val.headers, preparedHeaders, val.headers);
     return val;
   } catch {
-    return new NodeResponse(nullBody(event.req.method, val.status) ? null : val.body, {
+    return new FastResponse(nullBody(event.req.method, val.status) ? null : val.body, {
       status: val.status,
       statusText: val.statusText,
       headers: mergeHeaders$1(val.headers, preparedHeaders)
@@ -260,7 +260,7 @@ function nullBody(method, status) {
   return method === "HEAD" || status === 100 || status === 101 || status === 102 || status === 204 || status === 205 || status === 304;
 }
 function errorResponse(error, debug) {
-  return new NodeResponse(JSON.stringify({
+  return new FastResponse(JSON.stringify({
     ...error.toJSON(),
     stack: debug && error.stack ? error.stack.split("\n").map((l) => l.trim()) : void 0
   }, void 0, debug ? 2 : void 0), {

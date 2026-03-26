@@ -80,3 +80,31 @@ test("pickCheapestModel handles unknown provider", () => {
   const models = ["model-a", "model-b"];
   expect(__testing__.pickCheapestModel("unknown", models)).toBe("model-a");
 });
+
+test("parseOllamaModels returns model names", () => {
+  const models = __testing__.parseOllamaModels({
+    models: [
+      { name: "llama3.2:3b" },
+      { name: "phi3:mini" },
+      { name: "gemma2:2b" },
+    ],
+  });
+  expect(models).toEqual(["llama3.2:3b", "phi3:mini", "gemma2:2b"]);
+});
+
+test("parseOllamaModels handles empty models", () => {
+  const models = __testing__.parseOllamaModels({});
+  expect(models).toEqual([]);
+});
+
+test("parseOllamaModels filters out entries without name", () => {
+  const models = __testing__.parseOllamaModels({
+    models: [{ name: "llama3.2:3b" }, { digest: "sha256:abc" }],
+  });
+  expect(models).toEqual(["llama3.2:3b"]);
+});
+
+test("pickCheapestModel handles ollama preferences", () => {
+  const models = ["llama3.2:70b", "llama3.2:3b", "phi3:mini"];
+  expect(__testing__.pickCheapestModel("ollama", models)).toBe("llama3.2:3b");
+});

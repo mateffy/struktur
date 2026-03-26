@@ -7,5 +7,5 @@ Auth module
 - Alias API: `listAliases`, `getAlias`, `setAlias`, `deleteAlias`, `resolveAlias` (resolves alias → model spec, passthrough if not an alias).
 - Parsers config API: `listParsers`, `getParser`, `setParser`, `deleteParser`.
   - `setParser` validates that `command-file` type parsers contain `FILE_PATH` in the command string.
-- Environment variables: OPENAI_API_KEY, ANTHROPIC_API_KEY, GOOGLE_GENERATIVE_AI_API_KEY, OPENCODE_API_KEY, OPENROUTER_API_KEY.
+- Environment variables: OPENAI_API_KEY, ANTHROPIC_API_KEY, GOOGLE_GENERATIVE_AI_API_KEY, OPENCODE_API_KEY, OPENROUTER_API_KEY, OLLAMA_BASE_URL.
 - Tests: `tokens.test.ts`.

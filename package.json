@@ -16,7 +16,9 @@
     "publish": "bun scripts/publish.ts"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "oxfmt": "^0.42.0",
+    "oxlint": "^1.57.0"
   },
   "peerDependencies": {
     "typescript": "^5"

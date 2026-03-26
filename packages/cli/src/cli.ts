@@ -15,6 +15,13 @@ Date.prototype.toISOString = function () {
 
 import { defineCommand, renderUsage, runMain } from "citty";
 import yoctoSpinner from "yocto-spinner";
+import kleur from "kleur";
+
+// Disable colors if NO_COLOR is set or CI environment is detected
+if (process.env.NO_COLOR !== undefined || process.env.CI !== undefined) {
+  kleur.enabled = false;
+}
+
 import { writeFile, readFile } from "node:fs/promises";
 import { Buffer } from "node:buffer";
 import {
@@ -82,6 +89,7 @@ const supportedProviders = [
   "google",
   "opencode",
   "openrouter",
+  "ollama",
 ];
 
 const isBrokenPipe = (error: unknown) => {
@@ -1048,6 +1056,7 @@ const generateArtifactViewerHtml = (artifacts: SerializedArtifact[], version: st
 type StrategyOptions = {
   chunkSize?: number;
   maxSteps?: number;
+  maxIterations?: number;
 };
 
 const DEFAULT_CHUNK_SIZE = 10_000;
@@ -1087,6 +1096,7 @@ const createStrategy = (
         provider,
         modelId,
         maxSteps: options?.maxSteps ?? 50,
+        maxIterations: options?.maxIterations ?? 1,
       });
     }
     default:
@@ -1104,7 +1114,8 @@ const parseStorage = (value: unknown): TokenStorageType => {
 const readTokenInput = async (
   token: string | undefined,
   tokenStdin: boolean | undefined,
-): Promise<string> => {
+  provider?: string,
+): Promise<string | undefined> => {
   const hasToken = token !== undefined && token !== "";
   const hasTokenStdin = tokenStdin === true;
 
@@ -1115,6 +1126,9 @@ const readTokenInput = async (
   }
 
   if (!hasToken && !hasTokenStdin) {
+    if (provider === "ollama") {
+      return undefined;
+    }
     throw new UserError("Token is required. Use --token <value> or --token-stdin");
   }
 
@@ -1243,8 +1257,8 @@ class AgentTUI {
     const label = this.formatLabel(step.label);
     const detail = step.detail || "";
     
-    // Build line: icon  label  detail
-    let line = `  ${icon}  ${label}`;
+    // Build line: icon label  detail (no indent)
+    let line = `${icon} ${label}`;
     if (detail) {
       line += `  ${detail}`;
     }
@@ -1585,7 +1599,7 @@ const providersAddCommand = defineCommand({
     provider: {
       type: "positional",
       description:
-        "Provider ID (openai, anthropic, google, opencode, openrouter)",
+        "Provider ID (openai, anthropic, google, opencode, openrouter, ollama)",
       required: true,
     },
     token: {
@@ -1614,9 +1628,16 @@ const providersAddCommand = defineCommand({
         `Unknown provider: ${args.provider}. Supported providers: ${supportedProviders.join(", ")}`,
       );
     }
-    const token = await readTokenInput(args.token, args["token-stdin"]);
-    const storage = parseStorage(args.storage);
-    const stored = await setProviderToken(args.provider, token, storage);
+    const token = await readTokenInput(args.token, args["token-stdin"], args.provider);
+
+    let stored: string | undefined;
+    if (args.provider === "ollama") {
+      const storage = parseStorage(args.storage);
+      stored = await setProviderToken(args.provider, token ?? "http://localhost:11434/api", storage);
+    } else {
+      const storage = parseStorage(args.storage);
+      stored = await setProviderToken(args.provider, token!, storage);
+    }
 
     let defaultModel: string | undefined;
     if (args.default) {
@@ -1785,6 +1806,11 @@ const extractCommand = defineCommand({
       description: "Maximum agent steps for agent strategy",
       default: "50",
     },
+    "max-iterations": {
+      type: "string",
+      description: "Maximum iteration loops for agent strategy",
+      default: "1",
+    },
     debug: {
       type: "boolean",
       description: "Enable verbose JSON debug logging to stderr",
@@ -1902,6 +1928,9 @@ const extractCommand = defineCommand({
       }
     }
 
+    // Store vision detection result
+    let visionStatus: boolean | null = null;
+
     debug.artifactsLoaded({
       count: artifacts.length,
       artifacts: artifactSummaries,
@@ -1922,10 +1951,11 @@ const extractCommand = defineCommand({
     debug.modelResolved({ modelSpec, resolvedModel: JSON.stringify(model) });
 
     const maxSteps = parseInt(args["max-steps"] as string, 10) || 50;
-    const strategy = createStrategy(args.strategy, model, modelSpec as string, { chunkSize, maxSteps });
+    const maxIterations = parseInt(args["max-iterations"] as string, 10) || 1;
+    const strategy = createStrategy(args.strategy, model, modelSpec as string, { chunkSize, maxSteps, maxIterations });
     debug.strategyCreated({
       strategy: args.strategy,
-      config: { chunkSize, maxSteps, model: JSON.stringify(model) },
+      config: { chunkSize, maxSteps, maxIterations, model: JSON.stringify(model) },
     });
 
     const spinner = isDebug ? null : createSpinner();
@@ -1943,6 +1973,11 @@ const extractCommand = defineCommand({
       onStep: async (info) => {
         if (info.label) {
           currentStepLabel = info.label;
+        }
+        // Skip lifecycle events in TUI - only show meaningful steps
+        const skipLabels = ['start', 'agent_explore', 'agent_init'];
+        if (info.label && skipLabels.includes(info.label)) {
+          return;
         }
         if (agentTUI && info.label) {
           agentTUI.updateStep({ label: info.label, step: info.step, total: info.total });
@@ -1990,6 +2025,73 @@ const extractCommand = defineCommand({
       },
       onTokenUsage: async () => {
         // Token usage tracked in result
+      },
+      onAgentToolStart: async (info) => {
+        const toolId = info.toolCallId || info.toolName || 'unknown';
+        // Choose creative unicode icon based on tool name (geometric dingbats, no emojis) with colors
+        const iconColored = (() => {
+          switch (info.toolName) {
+            case 'read': return kleur.cyan('❐');      // Cyan for reading
+            case 'bash': return kleur.yellow('➙');    // Yellow for commands
+            case 'grep': return kleur.magenta('✧');   // Magenta for searching
+            case 'find': return kleur.blue('❖');      // Blue for discovery
+            case 'ls': return kleur.white('☰');       // White for listing
+            case 'tree': return kleur.green('❡');     // Green for tree
+            case 'view_image': return kleur.magenta('◴'); // Magenta for images
+            case 'set_output_data': return kleur.green('✏'); // Green for save
+            case 'update_output_data': return kleur.yellow('✏'); // Yellow for update
+            case 'finish': return kleur.green('✓');   // Green for success
+            case 'fail': return kleur.red('✗');       // Red for error
+            default: return kleur.gray('▸');          // Gray for default
+          }
+        })();
+        
+        // Format input params with gray names and white values
+        const paramsColored = info.args ? Object.entries(info.args).map(([k, v]) => {
+          const val = typeof v === 'string' ? v : JSON.stringify(v);
+          const truncated = val.length > 30 ? val.slice(0, 30) + '…' : val;
+          // Gray param name, white value
+          return kleur.gray(`${k}=`) + kleur.white(truncated);
+        }).join(kleur.gray(', ')) : '';
+        
+        // Build line: colored icon + white tool name + colored params (no tool ID)
+        const toolNameColored = kleur.white(info.toolName);
+        console.log(`${iconColored} ${toolNameColored}${paramsColored ? ' ' + paramsColored : ''}`);
+      },
+      onAgentToolEnd: async (info) => {
+        const resultText = info.result?.text || "done";
+        const truncated = resultText.length > 100 ? resultText.slice(0, 100) + "..." : resultText;
+        // Gray output tree line
+        console.log(kleur.gray(`└─> ${truncated}`));
+      },
+      onAgentReasoning: async (info) => {
+        // Show thinking output in gray, truncated to one line
+        let thought = info.thought || "";
+        // Convert to string if it's an object/array
+        if (typeof thought !== 'string') {
+          thought = JSON.stringify(thought);
+        }
+        // Skip empty or array-like strings
+        if (!thought || thought === '[]' || thought === '{}' || thought.trim().length === 0) {
+          return;
+        }
+        // Clean up: remove newlines and extra spaces, truncate to ~100 chars
+        const cleaned = thought
+          .replace(/\n/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .slice(0, 100);
+        if (cleaned) {
+          const truncated = thought.length > 100 ? cleaned + '…' : cleaned;
+          console.log(kleur.gray(`  💭 ${truncated}`));
+        }
+      },
+      onVisionStatus: async (info) => {
+        visionStatus = info.enabled;
+        // Print compact environment description with detected vision status
+        const visionText = visionStatus ? '✓' : '✗';
+        const envDesc = `${artifacts.length} artifact${artifacts.length !== 1 ? 's' : ''} • ${totalImages} image${totalImages !== 1 ? 's' : ''} • vision: ${visionText}`;
+        console.log(kleur.gray(envDesc));
       },
     };
 
@@ -2053,6 +2155,8 @@ const extractCommand = defineCommand({
       }
 
       const json = JSON.stringify(result.data, null, 2);
+      // Print result to stdout for visibility (in addition to file output if specified)
+      console.log(json);
       await writeOutput(args.output, json);
     } catch (error) {
       if (agentTUI) {

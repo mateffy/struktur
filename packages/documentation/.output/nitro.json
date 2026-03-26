@@ -1,6 +1,6 @@
 {
-  "date": "2026-03-18T14:16:06.846Z",
-  "preset": "node-server",
+  "date": "2026-03-25T23:20:46.794Z",
+  "preset": "bun",
   "framework": {
     "name": "nitro",
     "version": ""
@@ -9,7 +9,7 @@
     "nitro": "3.0.1-alpha.2"
   },
   "commands": {
-    "preview": "node ./server/index.mjs"
+    "preview": "bun run ./server/index.mjs"
   },
   "config": {}
 }

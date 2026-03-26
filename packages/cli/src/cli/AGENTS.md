@@ -28,8 +28,8 @@
     - `config models alias set <alias> <model>`  — create or update an alias
     - `config models alias remove <alias>`  — delete an alias
     - `config models use <alias_or_model>`  — set the default model
-    - `config providers list`  — show all 5 supported providers with configured status
-    - `config providers add <provider>`  — store an API token (--token/--token-stdin, --storage, --default)
+    - `config providers list`  — show all 6 supported providers with configured status
+    - `config providers add <provider>`  — store an API token (--token/--token-stdin, --storage, --default); ollama uses --token for a custom base URL (optional, defaults to http://localhost:11434/api)
     - `config providers remove <provider>`  — delete a stored token
     - `config parsers list`  — list all configured parsers
     - `config parsers get --mime <type>`  — get parser for a MIME type
@@ -51,7 +51,7 @@
 - Alias resolution: `resolveAlias` (from `auth/config.ts`) is called in both `resolveDefaultModelSpec` and `resolveExplicitModelSpec` so aliases work transparently for `--model` and the stored default.
 - Progress indication: uses `yocto-spinner` with descriptive messages showing current LLM operations (e.g. "Processing batch 3/10", "Pass 1: Merging results"). Spinner clears when done.
 - Design: keep CLI behavior consistent for both interactive and non-interactive runs. Schema loading supports local files, inline JSON, and HTTP(S) URLs with JSON accept headers.
-- Model resolution (`resolveModel` in `shared.ts`): supports openai, anthropic, google, opencode (Zen), and openrouter providers. OpenCode Zen uses different AI SDK packages based on model family (openai for GPT, anthropic for Claude, google for Gemini, openai-compatible for others).
+- Model resolution (`resolveModel` in `shared.ts`): supports openai, anthropic, google, opencode (Zen), openrouter, and ollama providers. OpenCode Zen uses different AI SDK packages based on model family (openai for GPT, anthropic for Claude, google for Gemini, openai-compatible for others). Ollama uses `ollama-ai-provider-v2` with configurable base URL (OLLAMA_BASE_URL env var or stored token, default http://localhost:11434/api).
 - OpenRouter provider routing: Supports hashtag syntax for provider selection (e.g., `openrouter/anthropic/claude-3.5-sonnet#cerebras`). The hashtag prefix is stripped from the model name and passed to the LLM layer as a routing preference.
 - `loadArtifactsFromOptions` (in `shared.ts`): accepts `--no-parse`, `--images`, `--screenshots`, `--mime`, and `--parser` options. When `--input <file>` is used, loads `parsers` config, detects MIME type (magic bytes + extension + npm `detectFileType`), and passes config to `parse`. For stdin, first tries to parse as artifact JSON, then runs MIME detection on the buffer and falls back to `text/plain`. Image and screenshot options are passed to the PDF parser. `--artifact-file` accepts a file path or URL to artifact JSON.
 - Breaking change: `models` and `providers` are now subcommands of `config` (no backward-compat aliases — pre-1.0).

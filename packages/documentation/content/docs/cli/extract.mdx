@@ -167,11 +167,16 @@ These flags control how `--input` files are parsed before extraction.
   }}
 />
 
-Strategy names: `simple`, `parallel`, `sequential`, `parallelAutoMerge`, `sequentialAutoMerge`, `doublePass`, `doublePassAutoMerge`.
+Strategy names: `simple`, `parallel`, `sequential`, `parallelAutoMerge`, `sequentialAutoMerge`, `doublePass`, `doublePassAutoMerge`, `agent` (default).
 
-<Callout type="info">
-  When using `--strategy` other than `simple`, both `model` and `mergeModel`/`dedupeModel` are set to the same model. For different models per role, use the TypeScript SDK.
-</Callout>
+#### Agent strategy options
+
+When using `--strategy agent`, these additional options are available:
+
+| Option | Description | Default |
+| ------ | ----------- | -------- |
+| `--max-steps` | Maximum tool calls per iteration | 50 |
+| `--max-iterations` | Number of iteration loops | 1 |
 
 ## Output
 

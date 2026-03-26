@@ -6,7 +6,4 @@ export {
   type TransformedArtifact,
   type ArtifactsManifest,
 } from "./ArtifactFilesystem";
-export {
-  createVirtualFilesystemTools,
-  type VirtualFilesystemTools,
-} from "./AgentTools";
+export { createVirtualFilesystemTools } from "./AgentTools";

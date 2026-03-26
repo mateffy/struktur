@@ -1,4 +1,4 @@
-import { resolveProviderEnvVar, resolveProviderToken } from "../auth/tokens";
+import { resolveProviderEnvVar, resolveProviderToken, resolveOllamaBaseURL } from "../auth/tokens";
 
 // AI SDK model types have private properties (config, getArgs) that can't be
 // represented in .d.ts files. Using unknown to avoid TS4094 errors.
@@ -15,11 +15,13 @@ export const resolveModel = async (model: string): Promise<AiSdkModel> => {
     throw new Error(`Invalid model format: ${model}. Expected format: provider/model (e.g., openai/gpt-4)`);
   }
 
-  const envVar = resolveProviderEnvVar(provider);
-  if (envVar && !process.env[envVar]) {
-    const storedToken = await resolveProviderToken(provider);
-    if (storedToken) {
-      process.env[envVar] = storedToken;
+  if (provider !== "ollama") {
+    const envVar = resolveProviderEnvVar(provider);
+    if (envVar && !process.env[envVar]) {
+      const storedToken = await resolveProviderToken(provider);
+      if (storedToken) {
+        process.env[envVar] = storedToken;
+      }
     }
   }
 
@@ -85,7 +87,13 @@ export const resolveModel = async (model: string): Promise<AiSdkModel> => {
       
       return modelInstance;
     }
+    case "ollama": {
+      const { createOllama } = await import("ollama-ai-provider-v2");
+      const baseURL = await resolveOllamaBaseURL();
+      const ollama = createOllama({ baseURL });
+      return ollama(modelName);
+    }
     default:
-      throw new Error(`Unsupported model provider: ${provider}. Supported providers: openai, anthropic, google, opencode, openrouter`);
+      throw new Error(`Unsupported model provider: ${provider}. Supported providers: openai, anthropic, google, opencode, openrouter, ollama`);
   }
 };

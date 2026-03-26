@@ -450,11 +450,16 @@ Strategy [#strategy]
 }}
 />
 
-Strategy names: `simple`, `parallel`, `sequential`, `parallelAutoMerge`, `sequentialAutoMerge`, `doublePass`, `doublePassAutoMerge`.
+Strategy names: `simple`, `parallel`, `sequential`, `parallelAutoMerge`, `sequentialAutoMerge`, `doublePass`, `doublePassAutoMerge`, `agent` (default).
 
-<Callout type="info">
-  When using `--strategy` other than `simple`, both `model` and `mergeModel`/`dedupeModel` are set to the same model. For different models per role, use the TypeScript SDK.
-</Callout>
+Agent strategy options [#agent-strategy-options]
+
+When using `--strategy agent`, these additional options are available:
+
+| Option             | Description                      | Default |
+| ------------------ | -------------------------------- | ------- |
+| `--max-steps`      | Maximum tool calls per iteration | 50      |
+| `--max-iterations` | Number of iteration loops        | 1       |
 
 Output [#output]
 
@@ -2899,6 +2904,7 @@ Struktur currently supports the following providers out of the box:
 | **OpenAI**     | `OPENAI_API_KEY`               | `@ai-sdk/openai`              |
 | **Anthropic**  | `ANTHROPIC_API_KEY`            | `@ai-sdk/anthropic`           |
 | **Google**     | `GOOGLE_GENERATIVE_AI_API_KEY` | `@ai-sdk/google`              |
+| **Mistral**    | `MISTRAL_API_KEY`              | mistralai provider            |
 | **OpenCode**   | `OPENCODE_API_KEY`             | `@ai-sdk/openai`\*            |
 | **OpenRouter** | `OPENROUTER_API_KEY`           | `@openrouter/ai-sdk-provider` |
 
@@ -3307,18 +3313,38 @@ When to use [#when-to-use]
 * Automatically adapts to document structure
 * Best for complex schemas with nested objects
 
-Model compatibility [#model-compatibility]
+Model compatibility (March 2026) [#model-compatibility-march-2026]
 
 The agent requires models that support tool/function calling:
 
-| Provider  | Compatible Models                                |
-| --------- | ------------------------------------------------ |
-| Anthropic | Claude 3.5 Sonnet, Claude 3 Opus, Claude 3 Haiku |
-| OpenAI    | GPT-4o, GPT-4 Turbo, GPT-4, GPT-3.5 Turbo        |
-| Google    | Gemini 1.5 Pro, Gemini 1.5 Flash                 |
+| Provider  | Compatible Models (2026)                             |
+| --------- | ---------------------------------------------------- |
+| Anthropic | Claude Opus 4.6, Claude Sonnet 4.6, Claude Haiku 4.5 |
+| OpenAI    | GPT-5.4, GPT-5.4 Pro, GPT-5.2, GPT-4o                |
+| Google    | Gemini 3.1 Pro, Gemini 2.5 Pro, Gemini 2.5 Flash     |
+| xAI       | Grok 4, Grok 4 Beta                                  |
+| Mistral   | Mistral Large 3, Mistral Medium 3, Mistral Small 3.1 |
+
+Recommended models for extraction [#recommended-models-for-extraction]
+
+| Use Case              | Model             | Cost (per 1M tokens) | Why                              |
+| --------------------- | ----------------- | -------------------- | -------------------------------- |
+| **Best quality**      | Claude Sonnet 4.6 | $3/$15               | Best balance of quality and cost |
+| **Latest frontier**   | GPT-5.4           | $2.50/$15            | Native computer use, 1M context  |
+| **Large docs**        | Gemini 3.1 Pro    | $2/$12               | 2M token context                 |
+| **Budget extraction** | Mistral Small 3.1 | $0.20/$0.60          | Cheapest capable                 |
+
+OpenRouter budget picks [#openrouter-budget-picks]
+
+| Model                        | Cost    | Best For                   |
+| ---------------------------- | ------- | -------------------------- |
+| Qwen3-235B-Thinking          | \~$0.30 | Best reasoning at low cost |
+| google/gemini-2.0-flash-lite | $0.25   | Fast, cheap, vision        |
+| mistralai/mistral-small-2603 | $0.15   | Best price/quality         |
+| deepseek/deepseek-chat       | \~$0.28 | Excellent reasoning        |
 
 <Callout type="warn">
-  Some models claim tool support but don't work well with the agent. Avoid: GPT-4o-mini (inconsistent tool calling), older GPT-3.5 models, models without native function calling.
+  Some models claim tool support but don't work well with the agent. Avoid: older GPT-4o-mini (inconsistent tool calling), GPT-3.5 models.
 </Callout>
 
 Virtual filesystem [#virtual-filesystem]

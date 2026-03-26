@@ -122,6 +122,7 @@ export type AgentEvents = {
 	onAgentToolEnd?: (info: AgentToolEndInfo) => void | Promise<void>;
 	onAgentMessage?: (info: AgentMessageInfo) => void | Promise<void>;
 	onAgentReasoning?: (info: AgentReasoningInfo) => void | Promise<void>;
+	onVisionStatus?: (info: { enabled: boolean; provider: string; modelId: string }) => void | Promise<void>;
 };
 
 export type ExtractionEvents = {

@@ -1,19 +1,12 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import { F as FastURL, N as NodeResponse } from "../_libs/srvx.mjs";
+import { F as FastURL, a as FastResponse } from "../_libs/srvx.mjs";
 import { j as jsxRuntimeExports } from "../_chunks/_libs/react.mjs";
 import { r as renderRouterToStream, R as RouterProvider } from "../_chunks/_libs/@tanstack/react-router.mjs";
 import { o as defineHandlerCallback } from "../_chunks/_libs/@tanstack/router-core.mjs";
-import "node:http";
-import "node:stream";
-import "node:https";
-import "node:http2";
 import "../_libs/tiny-warning.mjs";
 import "../_libs/tiny-invariant.mjs";
-import "../_chunks/_libs/react-dom.mjs";
-import "util";
-import "crypto";
-import "async_hooks";
-import "stream";
+import "node:stream";
+import "../_libs/react-dom.mjs";
 import "../_libs/isbot.mjs";
 import "../_chunks/_libs/@tanstack/history.mjs";
 import "node:stream/web";
@@ -3431,7 +3424,7 @@ var HTTPResponse = class {
   }
 };
 function prepareResponse(val, event, config, nested) {
-  if (val === kHandled) return new NodeResponse(null);
+  if (val === kHandled) return new FastResponse(null);
   if (val === kNotFound) val = new HTTPError({
     status: 404,
     message: `Cannot find any route matching [${event.req.method}] ${event.url}`
@@ -3453,7 +3446,7 @@ function prepareResponse(val, event, config, nested) {
   if (!(val instanceof Response)) {
     const res = prepareResponseBody(val, event, config);
     const status = res.status || preparedRes?.status;
-    return new NodeResponse(nullBody(event.req.method, status) ? null : res.body, {
+    return new FastResponse(nullBody(event.req.method, status) ? null : res.body, {
       status,
       statusText: res.statusText || preparedRes?.statusText,
       headers: res.headers && preparedHeaders ? mergeHeaders$1(res.headers, preparedHeaders) : res.headers || preparedHeaders
@@ -3464,7 +3457,7 @@ function prepareResponse(val, event, config, nested) {
     mergeHeaders$1(val.headers, preparedHeaders, val.headers);
     return val;
   } catch {
-    return new NodeResponse(nullBody(event.req.method, val.status) ? null : val.body, {
+    return new FastResponse(nullBody(event.req.method, val.status) ? null : val.body, {
       status: val.status,
       statusText: val.statusText,
       headers: mergeHeaders$1(val.headers, preparedHeaders)
@@ -3529,7 +3522,7 @@ function nullBody(method, status) {
   return method === "HEAD" || status === 100 || status === 101 || status === 102 || status === 204 || status === 205 || status === 304;
 }
 function errorResponse(error, debug) {
-  return new NodeResponse(JSON.stringify({
+  return new FastResponse(JSON.stringify({
     ...error.toJSON(),
     stack: debug && error.stack ? error.stack.split("\n").map((l) => l.trim()) : void 0
   }, void 0, debug ? 2 : void 0), {
@@ -3611,7 +3604,7 @@ function getResponse() {
   return event.res;
 }
 async function getStartManifest(matchedRoutes) {
-  const { tsrStartManifest } = await import("./_tanstack-start-manifest_v-DxHgFrMf.mjs");
+  const { tsrStartManifest } = await import("./_tanstack-start-manifest_v-CCafhnF8.mjs");
   const startManifest = tsrStartManifest();
   const rootRoute = startManifest.routes[rootRouteId] = startManifest.routes[rootRouteId] || {};
   rootRoute.assets = rootRoute.assets || [];
@@ -3765,15 +3758,15 @@ function createMultiplexedStream(jsonStream, rawStreams) {
     }
   });
 }
-const manifest = { "25a0ac6bb1a085a7932460f6190d5ea34d18506c9bd20fc50ccaad89dc52c20c": {
+const manifest = { "300554c3ab8f003654334d9b2a88828fe0a1605f8a59e9d3da4c875392dd96a9": {
   functionName: "loader_createServerFn_handler",
-  importer: () => import("./_-BKFIOeOJ.mjs")
-}, "300554c3ab8f003654334d9b2a88828fe0a1605f8a59e9d3da4c875392dd96a9": {
+  importer: () => import("./_-BujrczyK.mjs")
+}, "25a0ac6bb1a085a7932460f6190d5ea34d18506c9bd20fc50ccaad89dc52c20c": {
   functionName: "loader_createServerFn_handler",
-  importer: () => import("./_-BrBE1ncW.mjs")
+  importer: () => import("./_-BERuFCQX.mjs")
 }, "3dffc64eabe29fc8f5f4021f5e1cdf4bfea9319ffba3a59848ead9dcd2fa0308": {
   functionName: "loader_createServerFn_handler",
-  importer: () => import("./_-BiykHK9a.mjs")
+  importer: () => import("./_-5RghemD8.mjs")
 } };
 async function getServerFnById(id) {
   const serverFnInfo = manifest[id];
@@ -4189,7 +4182,7 @@ let entriesPromise;
 let baseManifestPromise;
 let cachedFinalManifestPromise;
 async function loadEntries() {
-  const routerEntry = await import("./router-B8jVzjaF.mjs").then((n2) => n2.a5);
+  const routerEntry = await import("./router-BEYNYY0z.mjs").then((n2) => n2.a5);
   const startEntry = await import("./start-HYkvq4Ni.mjs");
   return { startEntry, routerEntry };
 }

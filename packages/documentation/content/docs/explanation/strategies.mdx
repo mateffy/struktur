@@ -134,18 +134,38 @@ const result = await extract({
 - Automatically adapts to document structure
 - Best for complex schemas with nested objects
 
-### Model compatibility
+### Model compatibility (March 2026)
 
 The agent requires models that support tool/function calling:
 
-| Provider | Compatible Models |
-|----------|------------------|
-| Anthropic | Claude 3.5 Sonnet, Claude 3 Opus, Claude 3 Haiku |
-| OpenAI | GPT-4o, GPT-4 Turbo, GPT-4, GPT-3.5 Turbo |
-| Google | Gemini 1.5 Pro, Gemini 1.5 Flash |
+| Provider | Compatible Models (2026) |
+|----------|--------------------------|
+| Anthropic | Claude Opus 4.6, Claude Sonnet 4.6, Claude Haiku 4.5 |
+| OpenAI | GPT-5.4, GPT-5.4 Pro, GPT-5.2, GPT-4o |
+| Google | Gemini 3.1 Pro, Gemini 2.5 Pro, Gemini 2.5 Flash |
+| xAI | Grok 4, Grok 4 Beta |
+| Mistral | Mistral Large 3, Mistral Medium 3, Mistral Small 3.1 |
+
+### Recommended models for extraction
+
+| Use Case | Model | Cost (per 1M tokens) | Why |
+| -------- | ----- | -------------------- | ----- |
+| **Best quality** | Claude Sonnet 4.6 | $3.00/$15.00 | Best balance of quality and cost |
+| **Latest frontier** | GPT-5.4 | $2.50/$15.00 | Native computer use, 1M context |
+| **Large docs** | Gemini 3.1 Pro | $2.00/$12.00 | 2M token context |
+| **Budget extraction** | Mistral Small 3.1 | $0.20/$0.60 | Cheapest capable |
+
+### OpenRouter budget picks
+
+| Model | Cost (per 1M) | Best For |
+| ----- | ------------- | -------- |
+| Qwen3-235B-Thinking | $0.30/$1.20 | Best reasoning at low cost |
+| google/gemini-2.0-flash-lite | $0.25/$1.50 | Fast, cheap, vision |
+| mistralai/mistral-small-2603 | $0.15/$0.60 | Best price/quality |
+| deepseek/deepseek-chat | $0.28/$1.10 | Excellent reasoning |
 
 <Callout type="warn">
-  Some models claim tool support but don't work well with the agent. Avoid: GPT-4o-mini (inconsistent tool calling), older GPT-3.5 models, models without native function calling.
+  Some models claim tool support but don't work well with the agent. Avoid: older GPT-4o-mini (inconsistent tool calling), GPT-3.5 models.
 </Callout>
 
 ### Virtual filesystem
