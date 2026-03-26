@@ -16,7 +16,7 @@ const safeShutdown = async (telemetry: TelemetryAdapter | null | undefined): Pro
 const safeEndSpan = (
   telemetry: TelemetryAdapter | null | undefined,
   span: { id: string } | undefined,
-  result: { status: "ok" | "error"; error?: Error; output?: unknown }
+  result: { status: "ok" | "error"; error?: Error; output?: unknown },
 ): void => {
   if (!telemetry || !span) return;
   try {
@@ -35,9 +35,7 @@ const resolveSchema = <T>(options: ExtractionOptions<T>) => {
   const hasFields = options.fields !== undefined;
 
   if (hasSchema && hasFields) {
-    throw new Error(
-      "Provide either `schema` or `fields`, not both. They are mutually exclusive.",
-    );
+    throw new Error("Provide either `schema` or `fields`, not both. They are mutually exclusive.");
   }
 
   if (!hasSchema && !hasFields) {
@@ -53,9 +51,7 @@ const resolveSchema = <T>(options: ExtractionOptions<T>) => {
   return options.schema as NonNullable<typeof options.schema>;
 };
 
-export const extract = async <T>(
-  options: ExtractionOptions<T>,
-): Promise<ExtractionResult<T>> => {
+export const extract = async <T>(options: ExtractionOptions<T>): Promise<ExtractionResult<T>> => {
   const debug = options.debug;
   let telemetry = options.telemetry;
 
@@ -64,7 +60,10 @@ export const extract = async <T>(
     try {
       await telemetry.initialize();
     } catch (error) {
-      console.error("Telemetry initialization failed, continuing without telemetry:", (error as Error).message);
+      console.error(
+        "Telemetry initialization failed, continuing without telemetry:",
+        (error as Error).message,
+      );
       telemetry = undefined;
     }
   }

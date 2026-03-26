@@ -50,7 +50,7 @@ Include all information from previous data, enriched with the new artifacts.
 const sequentialUserPrompt = (
   artifactsXml: string,
   previousData: string,
-  outputInstructions?: string
+  outputInstructions?: string,
 ) => {
   return `${artifactsXml}
 
@@ -72,7 +72,7 @@ export const buildSequentialPrompt = (
   artifacts: Artifact[],
   schema: string,
   previousData: string,
-  outputInstructions?: string
+  outputInstructions?: string,
 ) => {
   const artifactsXml = formatArtifactsXml(artifacts);
   return {

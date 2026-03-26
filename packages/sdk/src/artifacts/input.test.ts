@@ -42,7 +42,7 @@ test("validateSerializedArtifacts rejects invalid artifacts", () => {
     validateSerializedArtifacts({
       type: "text",
       contents: [],
-    })
+    }),
   ).toThrow("Schema validation failed");
 });
 
@@ -75,11 +75,14 @@ test("parse uses providers when available", async () => {
     }),
   };
 
-  const artifacts = await parse({
-    kind: "buffer",
-    buffer: Buffer.from("data"),
-    mimeType: "application/pdf",
-  }, { providers });
+  const artifacts = await parse(
+    {
+      kind: "buffer",
+      buffer: Buffer.from("data"),
+      mimeType: "application/pdf",
+    },
+    { providers },
+  );
 
   expect(artifacts[0]?.type).toBe("pdf");
   expect(artifacts[0]?.contents[0]?.text).toBe("from-provider");
@@ -112,11 +115,13 @@ test("parse uses parserConfig over providers", async () => {
     }),
   };
 
-  const artifactJson = JSON.stringify([{
-    id: "from-parser",
-    type: "text",
-    contents: [{ text: "from-parser" }],
-  }]);
+  const artifactJson = JSON.stringify([
+    {
+      id: "from-parser",
+      type: "text",
+      contents: [{ text: "from-parser" }],
+    },
+  ]);
   const parserConfig = {
     "application/pdf": {
       type: "command-stdin" as const,
@@ -130,7 +135,7 @@ test("parse uses parserConfig over providers", async () => {
       buffer: Buffer.from("data"),
       mimeType: "application/pdf",
     },
-    { providers, parserConfig }
+    { providers, parserConfig },
   );
 
   expect(artifacts[0]?.id).toBe("from-parser");
@@ -162,7 +167,7 @@ test("parse throws for non-artifact JSON with no custom parser", async () => {
       kind: "buffer",
       buffer,
       mimeType: "application/json",
-    })
+    }),
   ).rejects.toThrow("not in SerializedArtifact format");
 });
 
@@ -196,7 +201,7 @@ test("parse passes includeImages: false to parsePdf", async () => {
       buffer: pdfBuffer,
       mimeType: "application/pdf",
     },
-    { includeImages: false }
+    { includeImages: false },
   );
 
   expect(artifacts).toHaveLength(1);

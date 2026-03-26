@@ -1,0 +1,15 @@
+{
+  "ignorePatterns": [
+    "docs/**",
+    "packages/app/build/**",
+    "packages/app/dist/**",
+    "packages/web/.dist/**",
+    "packages/web/.output/**",
+    "packages/documentation/.output/**",
+    "**/*.json",
+    "**/*.mdx",
+    "**/*.md",
+    "**/*.html",
+    "**/*.css"
+  ]
+}

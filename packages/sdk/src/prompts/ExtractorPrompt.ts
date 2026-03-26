@@ -62,7 +62,7 @@ ${artifactsXml}
 export const buildExtractorPrompt = (
   artifacts: Artifact[],
   schema: string,
-  outputInstructions?: string
+  outputInstructions?: string,
 ) => {
   const artifactsXml = formatArtifactsXml(artifacts);
   return {

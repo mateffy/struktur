@@ -1,6 +1,6 @@
 /**
  * RPC Type Definitions for Struktur App
- * 
+ *
  * These types define the typed RPC interface between the main Bun process
  * and the webview. They enable type-safe communication for:
  * - Secure storage operations (API keys via SDK auth)
@@ -41,7 +41,7 @@ export type StrukturAppRPC = {
           error?: string;
         };
       };
-      
+
       /**
        * Retrieve stored API tokens
        */
@@ -57,7 +57,7 @@ export type StrukturAppRPC = {
           error?: string;
         };
       };
-      
+
       /**
        * Check if API tokens exist for given providers
        */
@@ -70,7 +70,7 @@ export type StrukturAppRPC = {
           providers: string[];
         };
       };
-      
+
       /**
        * Clear all stored API tokens
        */
@@ -80,7 +80,7 @@ export type StrukturAppRPC = {
           success: boolean;
         };
       };
-      
+
       // Configuration Management
       /**
        * Get the default model from config
@@ -91,7 +91,7 @@ export type StrukturAppRPC = {
           model: string | null;
         };
       };
-      
+
       /**
        * Set the default model
        */
@@ -105,7 +105,7 @@ export type StrukturAppRPC = {
           error?: string;
         };
       };
-      
+
       /**
        * List all model aliases
        */
@@ -115,7 +115,7 @@ export type StrukturAppRPC = {
           aliases: Record<string, string>;
         };
       };
-      
+
       /**
        * Create or update a model alias
        */
@@ -129,7 +129,7 @@ export type StrukturAppRPC = {
           error?: string;
         };
       };
-      
+
       /**
        * Delete a model alias
        */
@@ -141,7 +141,7 @@ export type StrukturAppRPC = {
           success: boolean;
         };
       };
-      
+
       // File System Operations
       /**
        * Open native file picker dialog
@@ -163,7 +163,7 @@ export type StrukturAppRPC = {
           canceled: boolean;
         };
       };
-      
+
       /**
        * Read file as ArrayBuffer for processing
        */
@@ -176,7 +176,7 @@ export type StrukturAppRPC = {
           error?: string;
         };
       };
-      
+
       // Window Management
       /**
        * Get current window state
@@ -189,7 +189,7 @@ export type StrukturAppRPC = {
           isFocused: boolean;
         };
       };
-      
+
       /**
        * Show native save dialog
        */
@@ -206,7 +206,7 @@ export type StrukturAppRPC = {
           canceled: boolean;
         };
       };
-      
+
       // Application Info
       /**
        * Get app version and system info
@@ -220,7 +220,7 @@ export type StrukturAppRPC = {
         };
       };
     };
-    
+
     messages: {
       // One-way messages (no response expected)
       /**
@@ -231,14 +231,14 @@ export type StrukturAppRPC = {
         message: string;
         context?: Record<string, unknown>;
       };
-      
+
       /**
        * Window state changed
        */
       windowStateChanged: {
         state: "maximized" | "minimized" | "restored" | "focused" | "blurred";
       };
-      
+
       /**
        * Notify that extraction process started/completed
        */
@@ -249,7 +249,7 @@ export type StrukturAppRPC = {
       };
     };
   }>;
-  
+
   // Functions that execute in the webview/browser context
   webview: RPCSchema<{
     requests: {
@@ -265,7 +265,7 @@ export type StrukturAppRPC = {
           success: boolean;
         };
       };
-      
+
       /**
        * Request webview to show a notification
        */
@@ -280,7 +280,7 @@ export type StrukturAppRPC = {
         };
       };
     };
-    
+
     messages: {
       /**
        * Notify webview that API keys were updated
@@ -288,14 +288,14 @@ export type StrukturAppRPC = {
       apiKeysUpdated: {
         providers: string[];
       };
-      
+
       /**
        * Notify webview that a file was dropped on the app
        */
       fileDropped: {
         paths: string[];
       };
-      
+
       /**
        * Deep link opened (e.g., struktur://open?file=...)
        */

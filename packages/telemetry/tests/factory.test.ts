@@ -3,11 +3,11 @@
  */
 
 import { test, expect, describe } from "bun:test";
-import { 
-  createTelemetry, 
-  createPhoenixTelemetry, 
+import {
+  createTelemetry,
+  createPhoenixTelemetry,
   createLangfuseTelemetry,
-  createNoopTelemetry 
+  createNoopTelemetry,
 } from "../src/factory.js";
 import type { TelemetryOptions, PhoenixConfig, LangfuseConfig } from "../src/types.js";
 
@@ -18,7 +18,7 @@ describe("createTelemetry", () => {
       config: { projectName: "test" },
       enabled: false,
     };
-    
+
     const telemetry = await createTelemetry(options);
     expect(telemetry).toBeNull();
   });
@@ -28,7 +28,7 @@ describe("createTelemetry", () => {
       provider: "unknown" as any,
       config: {},
     };
-    
+
     await expect(createTelemetry(options)).rejects.toThrow("Unknown telemetry provider");
   });
 });
@@ -36,7 +36,7 @@ describe("createTelemetry", () => {
 describe("createNoopTelemetry", () => {
   test("should create noop adapter", () => {
     const adapter = createNoopTelemetry();
-    
+
     expect(adapter).toBeDefined();
     expect(adapter.name).toBe("noop");
     expect(adapter.version).toBe("1.0.0");
@@ -44,13 +44,13 @@ describe("createNoopTelemetry", () => {
 
   test("should work without initialization", async () => {
     const adapter = createNoopTelemetry();
-    
+
     // Should not require initialize
     const span = adapter.startSpan({
       name: "test",
       kind: "CHAIN",
     });
-    
+
     expect(span).toBeDefined();
     expect(span.name).toBe("test");
   });
@@ -62,7 +62,7 @@ describe("createPhoenixTelemetry", () => {
       projectName: "test",
       url: "http://localhost:6006",
     };
-    
+
     try {
       const adapter = await createPhoenixTelemetry(config);
       expect(adapter).toBeDefined();
@@ -80,7 +80,7 @@ describe("createLangfuseTelemetry", () => {
       publicKey: "pk-test",
       secretKey: "sk-test",
     };
-    
+
     try {
       const adapter = await createLangfuseTelemetry(config);
       expect(adapter).toBeDefined();

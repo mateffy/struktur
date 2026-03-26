@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from "react";
 
 interface LogoAnimationProps {
   size?: number;
@@ -17,11 +17,15 @@ interface LogoAnimationProps {
  * - Hover in: quadrants fade in one-by-one with exponential speed, then full empty shows
  * - Hover out: quadrants fade out one-by-one with exponential speed
  */
-export function LogoAnimation({ size = 28, className = '', isHovered: externalHovered }: LogoAnimationProps) {
+export function LogoAnimation({
+  size = 28,
+  className = "",
+  isHovered: externalHovered,
+}: LogoAnimationProps) {
   const [internalHovered, setInternalHovered] = useState(false);
   const [isInitial, setIsInitial] = useState(true);
   const hovered = externalHovered ?? internalHovered;
-  
+
   // Track which quadrants are visible (0-4, where 0 = none, 4 = all)
   // Also track if full empty is shown (separate state)
   const [visibleCount, setVisibleCount] = useState(4); // Start with all 4 visible
@@ -41,12 +45,10 @@ export function LogoAnimation({ size = 28, className = '', isHovered: externalHo
     delays.forEach((delay) => {
       cumulative += delay;
       timerRef.current.push(
-        setTimeout(() => setVisibleCount(prev => Math.max(0, prev - 1)), cumulative)
+        setTimeout(() => setVisibleCount((prev) => Math.max(0, prev - 1)), cumulative),
       );
     });
-    timerRef.current.push(
-      setTimeout(() => setIsInitial(false), cumulative + 100)
-    );
+    timerRef.current.push(setTimeout(() => setIsInitial(false), cumulative + 100));
 
     return clearTimers;
   }, [clearTimers]);
@@ -65,13 +67,11 @@ export function LogoAnimation({ size = 28, className = '', isHovered: externalHo
       delays.forEach((delay) => {
         cumulative += delay;
         timerRef.current.push(
-          setTimeout(() => setVisibleCount(prev => Math.min(4, prev + 1)), cumulative)
+          setTimeout(() => setVisibleCount((prev) => Math.min(4, prev + 1)), cumulative),
         );
       });
       // Show full empty after all quadrants (don't hide quadrants - full empty covers them)
-      timerRef.current.push(
-        setTimeout(() => setShowFullEmpty(true), cumulative + 100)
-      );
+      timerRef.current.push(setTimeout(() => setShowFullEmpty(true), cumulative + 100));
     } else {
       // Fade out quadrants with exponential speed
       setShowFullEmpty(false);
@@ -80,7 +80,7 @@ export function LogoAnimation({ size = 28, className = '', isHovered: externalHo
       delays.forEach((delay) => {
         cumulative += delay;
         timerRef.current.push(
-          setTimeout(() => setVisibleCount(prev => Math.max(0, prev - 1)), cumulative)
+          setTimeout(() => setVisibleCount((prev) => Math.max(0, prev - 1)), cumulative),
         );
       });
     }
@@ -90,14 +90,14 @@ export function LogoAnimation({ size = 28, className = '', isHovered: externalHo
 
   // Quadrant clip regions (top-left, top-right, bottom-left, bottom-right)
   const quadrants: Array<{ x: number; y: number; q: number }> = [
-    { x: 0, y: 0, q: 1 },   // top-left
-    { x: 50, y: 0, q: 2 },  // top-right
-    { x: 0, y: 50, q: 3 },  // bottom-left
+    { x: 0, y: 0, q: 1 }, // top-left
+    { x: 50, y: 0, q: 2 }, // top-right
+    { x: 0, y: 50, q: 3 }, // bottom-left
     { x: 50, y: 50, q: 4 }, // bottom-right
   ];
 
   // Bouncy easing for opacity
-  const bounceEasing = 'cubic-bezier(0.34, 1.56, 0.64, 1)';
+  const bounceEasing = "cubic-bezier(0.34, 1.56, 0.64, 1)";
   const radius = size * 0.25;
 
   return (
@@ -106,7 +106,7 @@ export function LogoAnimation({ size = 28, className = '', isHovered: externalHo
       role="img"
       aria-label="Struktur"
       style={{
-        position: 'relative',
+        position: "relative",
         width: size,
         height: size,
         flexShrink: 0,
@@ -121,12 +121,12 @@ export function LogoAnimation({ size = 28, className = '', isHovered: externalHo
         src="/struktur-icon.png"
         alt=""
         style={{
-          position: 'absolute',
+          position: "absolute",
           inset: 0,
-          width: '100%',
-          height: '100%',
+          width: "100%",
+          height: "100%",
           borderRadius: radius,
-          display: 'block',
+          display: "block",
         }}
         draggable={false}
       />
@@ -134,20 +134,20 @@ export function LogoAnimation({ size = 28, className = '', isHovered: externalHo
       {/* 4 quadrant slices of the empty icon */}
       {quadrants.map(({ x, y, q }) => {
         const visible = q <= visibleCount;
-        
+
         return (
           <div
             key={q}
             aria-hidden
             style={{
-              position: 'absolute',
+              position: "absolute",
               inset: 0,
-              width: '100%',
-              height: '100%',
-              overflow: 'hidden',
+              width: "100%",
+              height: "100%",
+              overflow: "hidden",
               opacity: visible ? 1 : 0,
               transition: `opacity 120ms ${bounceEasing}`,
-              pointerEvents: 'none',
+              pointerEvents: "none",
               clipPath: `inset(${y}% ${x === 0 ? 50 : 0}% ${y === 0 ? 50 : 0}% ${x}%)`,
               borderRadius: radius,
             }}
@@ -156,12 +156,12 @@ export function LogoAnimation({ size = 28, className = '', isHovered: externalHo
               src="/struktur-icon-empty.webp"
               alt=""
               style={{
-                position: 'absolute',
+                position: "absolute",
                 inset: 0,
-                width: '100%',
-                height: '100%',
+                width: "100%",
+                height: "100%",
                 borderRadius: radius,
-                display: 'block',
+                display: "block",
               }}
               draggable={false}
             />
@@ -175,15 +175,15 @@ export function LogoAnimation({ size = 28, className = '', isHovered: externalHo
         alt=""
         aria-hidden
         style={{
-          position: 'absolute',
+          position: "absolute",
           inset: 0,
-          width: '100%',
-          height: '100%',
+          width: "100%",
+          height: "100%",
           borderRadius: radius,
-          display: 'block',
+          display: "block",
           opacity: showFullEmpty ? 1 : 0,
           transition: `opacity 150ms ${bounceEasing}`,
-          pointerEvents: 'none',
+          pointerEvents: "none",
         }}
         draggable={false}
       />

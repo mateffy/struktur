@@ -1,6 +1,12 @@
 import { test, expect } from "bun:test";
 import type { JSONSchemaType, ErrorObject } from "ajv";
-import { createAjv, validateOrThrow, SchemaValidationError, isRequiredError, validateAllowingMissingRequired } from "./validator";
+import {
+  createAjv,
+  validateOrThrow,
+  SchemaValidationError,
+  isRequiredError,
+  validateAllowingMissingRequired,
+} from "./validator";
 
 type Person = {
   name: string;
@@ -115,51 +121,47 @@ test("createAjv supports artifact-id format", () => {
 });
 
 test("isRequiredError identifies required constraint violations", () => {
-  const requiredError = { 
-    keyword: "required", 
+  const requiredError = {
+    keyword: "required",
     params: { missingProperty: "name" },
     instancePath: "",
-    schemaPath: "#/required"
+    schemaPath: "#/required",
   } as unknown as ErrorObject;
-  const typeError = { 
-    keyword: "type", 
+  const typeError = {
+    keyword: "type",
     params: { type: "string" },
     instancePath: "/age",
-    schemaPath: "#/properties/age/type"
+    schemaPath: "#/properties/age/type",
   } as unknown as ErrorObject;
-  
+
   expect(isRequiredError(requiredError)).toBe(true);
   expect(isRequiredError(typeError)).toBe(false);
 });
 
 test("validateAllowingMissingRequired ignores required errors but catches type errors", () => {
   const ajv = createAjv();
-  
-  const resultMissingRequired = validateAllowingMissingRequired<Person>(
-    ajv,
-    personSchema,
-    { name: "Ada" }
-  );
+
+  const resultMissingRequired = validateAllowingMissingRequired<Person>(ajv, personSchema, {
+    name: "Ada",
+  });
   expect(resultMissingRequired.valid).toBe(true);
   if (resultMissingRequired.valid) {
     expect(resultMissingRequired.data.name).toBe("Ada");
   }
-  
-  const resultTypeError = validateAllowingMissingRequired<Person>(
-    ajv,
-    personSchema,
-    { name: "Ada", age: "thirty-three" }
-  );
+
+  const resultTypeError = validateAllowingMissingRequired<Person>(ajv, personSchema, {
+    name: "Ada",
+    age: "thirty-three",
+  });
   expect(resultTypeError.valid).toBe(false);
   if (!resultTypeError.valid) {
-    expect(resultTypeError.errors.some(e => e.keyword === "type")).toBe(true);
+    expect(resultTypeError.errors.some((e) => e.keyword === "type")).toBe(true);
   }
-  
-  const resultValid = validateAllowingMissingRequired<Person>(
-    ajv,
-    personSchema,
-    { name: "Ada", age: 33 }
-  );
+
+  const resultValid = validateAllowingMissingRequired<Person>(ajv, personSchema, {
+    name: "Ada",
+    age: 33,
+  });
   expect(resultValid.valid).toBe(true);
   if (resultValid.valid) {
     expect(resultValid.data.name).toBe("Ada");
@@ -169,34 +171,26 @@ test("validateAllowingMissingRequired ignores required errors but catches type e
 
 test("validateAllowingMissingRequired handles format errors", () => {
   const ajv = createAjv();
-  
-  const result = validateAllowingMissingRequired<NestedSchema>(
-    ajv,
-    nestedSchema,
-    {
-      user: { name: "Ada", email: "not-an-email" },
-      items: ["a", "b"]
-    }
-  );
-  
+
+  const result = validateAllowingMissingRequired<NestedSchema>(ajv, nestedSchema, {
+    user: { name: "Ada", email: "not-an-email" },
+    items: ["a", "b"],
+  });
+
   expect(result.valid).toBe(false);
   if (!result.valid) {
-    expect(result.errors.some(e => e.keyword === "format")).toBe(true);
+    expect(result.errors.some((e) => e.keyword === "format")).toBe(true);
   }
 });
 
 test("validateAllowingMissingRequired handles nested required field errors", () => {
   const ajv = createAjv();
-  
-  const result = validateAllowingMissingRequired<NestedSchema>(
-    ajv,
-    nestedSchema,
-    {
-      user: { name: "Ada" },
-      items: ["a"]
-    }
-  );
-  
+
+  const result = validateAllowingMissingRequired<NestedSchema>(ajv, nestedSchema, {
+    user: { name: "Ada" },
+    items: ["a"],
+  });
+
   expect(result.valid).toBe(true);
   if (result.valid) {
     expect(result.data.user.name).toBe("Ada");

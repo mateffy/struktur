@@ -37,7 +37,7 @@ describe("HTTP API - OpenAPI Documentation", () => {
   test("GET /openapi.json returns valid OpenAPI spec", async () => {
     const response = await fetch(`${baseUrl}/openapi.json`);
     expect(response.status).toBe(200);
-    
+
     const data = await response.json();
     expect(data).toHaveProperty("openapi");
     expect(data).toHaveProperty("info");
@@ -48,7 +48,7 @@ describe("HTTP API - OpenAPI Documentation", () => {
   test("OpenAPI spec has correct API info", async () => {
     const response = await fetch(`${baseUrl}/openapi.json`);
     const data = await response.json();
-    
+
     expect(data.info.title).toBe("Struktur HTTP API");
     expect(data.info.version).toBe("1.2.1");
     expect(data.info.description).toContain("Struktur");
@@ -57,7 +57,7 @@ describe("HTTP API - OpenAPI Documentation", () => {
   test("OpenAPI spec has all endpoints documented", async () => {
     const response = await fetch(`${baseUrl}/openapi.json`);
     const data = await response.json();
-    
+
     expect(data.paths).toHaveProperty("/");
     expect(data.paths).toHaveProperty("/parse");
     expect(data.paths).toHaveProperty("/extract");
@@ -67,7 +67,7 @@ describe("HTTP API - OpenAPI Documentation", () => {
   test("OpenAPI spec has correct tags", async () => {
     const response = await fetch(`${baseUrl}/openapi.json`);
     const data = await response.json();
-    
+
     expect(data.tags).toBeDefined();
     const tagNames = data.tags.map((t: any) => t.name);
     expect(tagNames).toContain("Info");
@@ -78,7 +78,7 @@ describe("HTTP API - OpenAPI Documentation", () => {
   test("OpenAPI spec documents GET / endpoint", async () => {
     const response = await fetch(`${baseUrl}/openapi.json`);
     const data = await response.json();
-    
+
     const getEndpoint = data.paths["/"].get;
     expect(getEndpoint).toBeDefined();
     expect(getEndpoint.tags).toContain("Info");
@@ -89,7 +89,7 @@ describe("HTTP API - OpenAPI Documentation", () => {
   test("OpenAPI spec documents POST /parse endpoint", async () => {
     const response = await fetch(`${baseUrl}/openapi.json`);
     const data = await response.json();
-    
+
     const parseEndpoint = data.paths["/parse"].post;
     expect(parseEndpoint).toBeDefined();
     expect(parseEndpoint.tags).toContain("Parse");
@@ -102,7 +102,7 @@ describe("HTTP API - OpenAPI Documentation", () => {
   test("OpenAPI spec documents POST /extract endpoint", async () => {
     const response = await fetch(`${baseUrl}/openapi.json`);
     const data = await response.json();
-    
+
     const extractEndpoint = data.paths["/extract"].post;
     expect(extractEndpoint).toBeDefined();
     expect(extractEndpoint.tags).toContain("Extract");
@@ -115,7 +115,7 @@ describe("HTTP API - OpenAPI Documentation", () => {
   test("OpenAPI spec includes Artifact schema", async () => {
     const response = await fetch(`${baseUrl}/openapi.json`);
     const data = await response.json();
-    
+
     expect(data.components).toBeDefined();
     expect(data.components.schemas).toBeDefined();
     expect(data.components.schemas.Artifact).toBeDefined();
@@ -126,7 +126,7 @@ describe("HTTP API - OpenAPI Documentation", () => {
   test("OpenAPI spec includes request/response schemas", async () => {
     const response = await fetch(`${baseUrl}/openapi.json`);
     const data = await response.json();
-    
+
     expect(data.components.schemas.ParseRequest).toBeDefined();
     expect(data.components.schemas.ExtractRequest).toBeDefined();
     expect(data.components.schemas.ArtifactsResponse).toBeDefined();
@@ -137,7 +137,7 @@ describe("HTTP API - OpenAPI Documentation", () => {
   test("Artifact schema has correct structure", async () => {
     const response = await fetch(`${baseUrl}/openapi.json`);
     const data = await response.json();
-    
+
     const artifactSchema = data.components.schemas.Artifact;
     expect(artifactSchema.type).toBe("object");
     expect(artifactSchema.properties).toHaveProperty("id");
@@ -149,7 +149,7 @@ describe("HTTP API - OpenAPI Documentation", () => {
   test("Media schema has correct structure", async () => {
     const response = await fetch(`${baseUrl}/openapi.json`);
     const data = await response.json();
-    
+
     const mediaSchema = data.components.schemas.Media;
     expect(mediaSchema.type).toBe("object");
     expect(mediaSchema.properties).toHaveProperty("type");
@@ -162,7 +162,7 @@ describe("HTTP API - OpenAPI Documentation", () => {
   test("ExtractRequest schema includes all strategies", async () => {
     const response = await fetch(`${baseUrl}/openapi.json`);
     const data = await response.json();
-    
+
     const requestSchema = data.components.schemas.ExtractRequest;
     const strategyEnum = requestSchema.properties.strategy.enum;
     expect(strategyEnum).toContain("simple");
@@ -174,7 +174,7 @@ describe("HTTP API - OpenAPI Documentation", () => {
   test("OpenAPI spec has servers defined", async () => {
     const response = await fetch(`${baseUrl}/openapi.json`);
     const data = await response.json();
-    
+
     expect(data.servers).toBeDefined();
     expect(data.servers.length).toBeGreaterThan(0);
     expect(data.servers[0].url).toContain("localhost");
@@ -300,7 +300,7 @@ describe("HTTP API - Parse Endpoint", () => {
     expect(data).toHaveProperty("artifacts");
     expect(Array.isArray(data.artifacts)).toBe(true);
     expect(data.artifacts.length).toBeGreaterThan(0);
-    
+
     const artifact = data.artifacts[0];
     expect(artifact).toHaveProperty("id");
     expect(artifact).toHaveProperty("type");
@@ -368,7 +368,7 @@ describe("HTTP API - Parse Endpoint", () => {
       method: "POST",
       body: formData,
     });
-    
+
     expect(response.status).toBe(400);
   });
 
@@ -378,7 +378,7 @@ describe("HTTP API - Parse Endpoint", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ file: "test" }),
     });
-    
+
     expect(response.status).toBe(400);
   });
 });
@@ -509,7 +509,10 @@ describe("HTTP API - Extract Endpoint (JSON)", () => {
 
   test("POST /extract with invalid schema JSON returns 400", async () => {
     const formData = new FormData();
-    formData.append("artifacts", JSON.stringify([{ id: "test", type: "text", contents: [{ text: "test" }] }]));
+    formData.append(
+      "artifacts",
+      JSON.stringify([{ id: "test", type: "text", contents: [{ text: "test" }] }]),
+    );
     formData.append("model", "openai/gpt-4");
     formData.append("schema", "invalid json");
 
@@ -523,7 +526,10 @@ describe("HTTP API - Extract Endpoint (JSON)", () => {
 
   test("POST /extract with fields shorthand instead of schema", async () => {
     const formData = new FormData();
-    formData.append("artifacts", JSON.stringify([{ id: "test", type: "text", contents: [{ text: "test" }] }]));
+    formData.append(
+      "artifacts",
+      JSON.stringify([{ id: "test", type: "text", contents: [{ text: "test" }] }]),
+    );
     formData.append("model", "openai/gpt-4");
     formData.append("fields", "name,email,phone");
 
@@ -538,7 +544,10 @@ describe("HTTP API - Extract Endpoint (JSON)", () => {
 
   test("POST /extract with chunkSize parameter", async () => {
     const formData = new FormData();
-    formData.append("artifacts", JSON.stringify([{ id: "test", type: "text", contents: [{ text: "test" }] }]));
+    formData.append(
+      "artifacts",
+      JSON.stringify([{ id: "test", type: "text", contents: [{ text: "test" }] }]),
+    );
     formData.append("model", "openai/gpt-4");
     formData.append("schema", JSON.stringify({ type: "object" }));
     formData.append("chunkSize", "5000");
@@ -554,7 +563,10 @@ describe("HTTP API - Extract Endpoint (JSON)", () => {
 
   test("POST /extract with strict validation parameter", async () => {
     const formData = new FormData();
-    formData.append("artifacts", JSON.stringify([{ id: "test", type: "text", contents: [{ text: "test" }] }]));
+    formData.append(
+      "artifacts",
+      JSON.stringify([{ id: "test", type: "text", contents: [{ text: "test" }] }]),
+    );
     formData.append("model", "openai/gpt-4");
     formData.append("schema", JSON.stringify({ type: "object" }));
     formData.append("strict", "true");
@@ -586,13 +598,16 @@ describe("HTTP API - Extract with File Upload", () => {
     const file = new File(["John Doe works at Acme Corp"], "resume.txt", { type: "text/plain" });
     formData.append("file", file);
     formData.append("model", "openai/gpt-4");
-    formData.append("schema", JSON.stringify({
-      type: "object",
-      properties: {
-        name: { type: "string" },
-        company: { type: "string" }
-      }
-    }));
+    formData.append(
+      "schema",
+      JSON.stringify({
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          company: { type: "string" },
+        },
+      }),
+    );
     formData.append("images", "false");
     formData.append("screenshots", "false");
 
@@ -689,13 +704,13 @@ describe("HTTP API - Artifact Serialization", () => {
     const data = await response.json();
     expect(data).toHaveProperty("artifacts");
     expect(Array.isArray(data.artifacts)).toBe(true);
-    
+
     for (const artifact of data.artifacts) {
       expect(artifact).toHaveProperty("id");
       expect(artifact).toHaveProperty("type");
       expect(artifact).toHaveProperty("contents");
       expect(Array.isArray(artifact.contents)).toBe(true);
-      
+
       for (const content of artifact.contents) {
         if (content.text !== undefined) {
           expect(typeof content.text).toBe("string");
@@ -725,7 +740,7 @@ describe("HTTP API - Artifact Serialization", () => {
 
     expect(response.status).toBe(200);
     const data = await response.json();
-    
+
     for (const artifact of data.artifacts) {
       if (artifact.metadata) {
         expect(typeof artifact.metadata).toBe("object");
@@ -748,7 +763,7 @@ describe("HTTP API - Artifact Serialization", () => {
     const data = await response.json();
     expect(data).toHaveProperty("artifacts");
     expect(data.artifacts.length).toBeGreaterThan(0);
-    
+
     let totalText = "";
     for (const artifact of data.artifacts) {
       for (const content of artifact.contents) {

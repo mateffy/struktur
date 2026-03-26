@@ -8,7 +8,13 @@ import {
   resolveAlias,
   listStoredProviders,
 } from "@struktur/sdk";
-import type { NpmParserDef, ParsersConfig, AnyJSONSchema, Artifact, NpmParserEntry } from "@struktur/sdk";
+import type {
+  NpmParserDef,
+  ParsersConfig,
+  AnyJSONSchema,
+  Artifact,
+  NpmParserEntry,
+} from "@struktur/sdk";
 import { readFile } from "node:fs/promises";
 import { Buffer } from "node:buffer";
 
@@ -212,7 +218,9 @@ export const resolveDefaultModelSpec = async () => {
   const providers = await listStoredProviders();
   const firstProvider = providers[0]?.provider;
   if (!firstProvider) {
-    throw new UserError("No model specified and no providers are configured.\n\nUse --model <provider/model> to specify a model, or configure a provider with:\n  struktur config providers add <provider> --token <token>");
+    throw new UserError(
+      "No model specified and no providers are configured.\n\nUse --model <provider/model> to specify a model, or configure a provider with:\n  struktur config providers add <provider> --token <token>",
+    );
   }
 
   const cheapest = await resolveCheapestModel(firstProvider);
@@ -231,7 +239,9 @@ export const resolveExplicitModelSpec = async (spec: string): Promise<string> =>
 const ensureSingleInput = (inputs: Array<string | boolean | undefined>) => {
   const count = inputs.filter((value) => value !== undefined && value !== false).length;
   if (count !== 1) {
-    throw new UserError("Specify exactly one input source: --input, --text, --stdin, --artifact, or --artifact-json");
+    throw new UserError(
+      "Specify exactly one input source: --input, --text, --stdin, --artifact, or --artifact-json",
+    );
   }
 };
 
@@ -252,9 +262,7 @@ export const loadSchema = async (
   );
 
   if (defined.length > 1) {
-    throw new UserError(
-      "Specify exactly one schema source: --schema, --schema-json, or --fields",
-    );
+    throw new UserError("Specify exactly one schema source: --schema, --schema-json, or --fields");
   }
 
   if (typeof fields === "string" && fields.trim()) {
@@ -277,7 +285,7 @@ export const loadSchema = async (
 
 export const loadArtifactsFromOptions = async (
   options: Record<string, string | boolean | undefined>,
-  deps?: { readStdinText?: () => Promise<string>; stdinIsTTY?: boolean }
+  deps?: { readStdinText?: () => Promise<string>; stdinIsTTY?: boolean },
 ): Promise<Artifact[]> => {
   const input = options.input;
   const text = options.text;
@@ -375,11 +383,11 @@ export const loadArtifactsFromOptions = async (
 
     return parse(
       { kind: "buffer", buffer: stdinBuffer, mimeType },
-      { 
-        parserConfig: effectiveParsers, 
+      {
+        parserConfig: effectiveParsers,
         includeImages: images,
         screenshots,
-      }
+      },
     );
   }
 
@@ -399,7 +407,7 @@ export const loadArtifactsFromOptions = async (
       // Read first 512 bytes for magic byte detection
       let headerBuffer: Buffer | undefined;
       try {
-        const fd = await import("node:fs/promises").then(fs => fs.open(input, "r"));
+        const fd = await import("node:fs/promises").then((fs) => fs.open(input, "r"));
         const buffer = Buffer.alloc(512);
         await fd.read(buffer, 0, 512, 0);
         await fd.close();
@@ -420,7 +428,10 @@ export const loadArtifactsFromOptions = async (
       });
 
       if (parserOverride && detectedMime) {
-        parsersConfig = { ...parsersConfig, [detectedMime]: { type: "npm", package: parserOverride } };
+        parsersConfig = {
+          ...parsersConfig,
+          [detectedMime]: { type: "npm", package: parserOverride },
+        };
       }
 
       effectiveParsers = Object.keys(parsersConfig).length > 0 ? parsersConfig : undefined;
@@ -434,19 +445,21 @@ export const loadArtifactsFromOptions = async (
 
     if (!noParse && !mimeOverride && detectedMime === null) {
       throw new UserError(
-        `Cannot detect MIME type for file "${input}". Use --mime to specify the type.`
+        `Cannot detect MIME type for file "${input}". Use --mime to specify the type.`,
       );
     }
 
     return parse(
       { kind: "file", path: input, mimeType: detectedMime ?? undefined },
-      { 
-        parserConfig: effectiveParsers, 
+      {
+        parserConfig: effectiveParsers,
         includeImages: images,
         screenshots,
-      }
+      },
     );
   }
 
-  throw new UserError("No input provided. Use --input, --text, --stdin, --artifact, or --artifact-json");
+  throw new UserError(
+    "No input provided. Use --input, --text, --stdin, --artifact, or --artifact-json",
+  );
 };

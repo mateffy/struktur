@@ -7,11 +7,13 @@ import { rm, writeFile } from "node:fs/promises";
 
 // command-file: echo a serialized artifact JSON
 const makeArtifactJson = () => {
-  const artifact = JSON.stringify([{
-    id: "test-1",
-    type: "text",
-    contents: [{ text: "parsed text" }],
-  }]);
+  const artifact = JSON.stringify([
+    {
+      id: "test-1",
+      type: "text",
+      contents: [{ text: "parsed text" }],
+    },
+  ]);
   return artifact;
 };
 
@@ -36,7 +38,10 @@ test("command-stdin runner pipes buffer to stdin and parses output", async () =>
 test("command-file runner interpolates FILE_PATH and parses output", async () => {
   const artifactJson = makeArtifactJson();
   // Write a script that outputs the artifact JSON
-  const tmpScript = path.join(os.tmpdir(), `struktur-test-${Math.random().toString(16).slice(2)}.sh`);
+  const tmpScript = path.join(
+    os.tmpdir(),
+    `struktur-test-${Math.random().toString(16).slice(2)}.sh`,
+  );
   await writeFile(tmpScript, `#!/bin/sh\necho '${artifactJson}'`, { mode: 0o755 });
 
   try {
@@ -59,7 +64,10 @@ test("command-file runner interpolates FILE_PATH and parses output", async () =>
 
 test("command-file runner writes temp file for buffer input", async () => {
   const artifactJson = makeArtifactJson();
-  const tmpScript = path.join(os.tmpdir(), `struktur-test-${Math.random().toString(16).slice(2)}.sh`);
+  const tmpScript = path.join(
+    os.tmpdir(),
+    `struktur-test-${Math.random().toString(16).slice(2)}.sh`,
+  );
   await writeFile(tmpScript, `#!/bin/sh\necho '${artifactJson}'`, { mode: 0o755 });
 
   try {

@@ -61,11 +61,26 @@ export interface TelemetryAdapter {
     parentSpan?: { id: string; traceId: string };
     attributes?: Record<string, unknown>;
     startTime?: number;
-  }): { id: string; traceId: string; name: string; kind: string; startTime: number; parentId?: string };
-  endSpan(span: { id: string }, result?: { status: "ok" | "error"; error?: Error; output?: unknown; latencyMs?: number }): void;
+  }): {
+    id: string;
+    traceId: string;
+    name: string;
+    kind: string;
+    startTime: number;
+    parentId?: string;
+  };
+  endSpan(
+    span: { id: string },
+    result?: { status: "ok" | "error"; error?: Error; output?: unknown; latencyMs?: number },
+  ): void;
   recordEvent(span: { id: string }, event: unknown): void;
   setAttributes(span: { id: string }, attributes: Record<string, unknown>): void;
-  setContext(context: { sessionId?: string; userId?: string; metadata?: Record<string, unknown>; tags?: string[] }): void;
+  setContext(context: {
+    sessionId?: string;
+    userId?: string;
+    metadata?: Record<string, unknown>;
+    tags?: string[];
+  }): void;
 }
 
 export type StepInfo = {
@@ -91,46 +106,50 @@ export type TokenUsageInfo = Usage & {
 };
 
 export type RetryInfo = {
-	attempt: number;
-	maxAttempts: number;
-	reason?: string;
+  attempt: number;
+  maxAttempts: number;
+  reason?: string;
 };
 
 export type AgentToolStartInfo = {
-	toolName: string;
-	toolCallId: string;
-	args: Record<string, unknown>;
+  toolName: string;
+  toolCallId: string;
+  args: Record<string, unknown>;
 };
 
 export type AgentToolEndInfo = {
-	toolCallId: string;
-	result?: Record<string, unknown>;
-	error?: string;
+  toolCallId: string;
+  result?: Record<string, unknown>;
+  error?: string;
 };
 
 export type AgentMessageInfo = {
-	content: string;
-	role?: "assistant" | "user";
+  content: string;
+  role?: "assistant" | "user";
 };
 
 export type AgentReasoningInfo = {
-	thought: string;
+  thought: string;
 };
 
 export type AgentEvents = {
-	onAgentToolStart?: (info: AgentToolStartInfo) => void | Promise<void>;
-	onAgentToolEnd?: (info: AgentToolEndInfo) => void | Promise<void>;
-	onAgentMessage?: (info: AgentMessageInfo) => void | Promise<void>;
-	onAgentReasoning?: (info: AgentReasoningInfo) => void | Promise<void>;
-	onVisionStatus?: (info: { enabled: boolean; provider: string; modelId: string }) => void | Promise<void>;
+  onAgentToolStart?: (info: AgentToolStartInfo) => void | Promise<void>;
+  onAgentToolEnd?: (info: AgentToolEndInfo) => void | Promise<void>;
+  onAgentMessage?: (info: AgentMessageInfo) => void | Promise<void>;
+  onAgentReasoning?: (info: AgentReasoningInfo) => void | Promise<void>;
+  onVisionStatus?: (info: {
+    enabled: boolean;
+    provider: string;
+    modelId: string;
+  }) => void | Promise<void>;
 };
 
 export type ExtractionEvents = {
-	onStep?: (info: StepInfo) => void | Promise<void>;
-	onMessage?: (info: MessageInfo) => void | Promise<void>;
-	onProgress?: (info: ProgressInfo) => void | Promise<void>;
-	onTokenUsage?: (info: TokenUsageInfo) => void | Promise<void>;
-	onRetry?: (info: RetryInfo) => void | Promise<void>;
+  onStep?: (info: StepInfo) => void | Promise<void>;
+  onMessage?: (info: MessageInfo) => void | Promise<void>;
+  onProgress?: (info: ProgressInfo) => void | Promise<void>;
+  onTokenUsage?: (info: TokenUsageInfo) => void | Promise<void>;
+  onRetry?: (info: RetryInfo) => void | Promise<void>;
 } & AgentEvents;
 
 export type AnyJSONSchema = Record<string, unknown>;
@@ -166,7 +185,7 @@ export type ExtractionOptions<T> = {
    * Import from `@struktur/telemetry` package and pass the adapter here.
    */
   telemetry?: TelemetryAdapter | null;
-}
+};
 
 export interface ExtractionStrategy<T> {
   name: string;

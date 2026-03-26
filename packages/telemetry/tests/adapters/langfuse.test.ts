@@ -3,14 +3,8 @@
  */
 
 import { test, expect, describe } from "bun:test";
-import { 
-  LangfuseAdapter,
-  createLangfuseAdapter,
-} from "../../src/adapters/langfuse/index.js";
-import type {
-  SpanContext,
-  LangfuseConfig,
-} from "../../src/types.js";
+import { LangfuseAdapter, createLangfuseAdapter } from "../../src/adapters/langfuse/index.js";
+import type { SpanContext, LangfuseConfig } from "../../src/types.js";
 
 describe("LangfuseAdapter", () => {
   test("should have correct name and version", () => {
@@ -18,7 +12,7 @@ describe("LangfuseAdapter", () => {
       publicKey: "pk-test",
       secretKey: "sk-test",
     });
-    
+
     expect(adapter.name).toBe("langfuse");
     expect(adapter.version).toBe("1.0.0");
   });
@@ -28,7 +22,7 @@ describe("LangfuseAdapter", () => {
       publicKey: "pk-test",
       secretKey: "sk-test",
     });
-    
+
     expect(adapter).toBeDefined();
   });
 
@@ -39,9 +33,9 @@ describe("LangfuseAdapter", () => {
       baseUrl: "https://cloud.langfuse.com",
       projectName: "my-project",
     };
-    
+
     const adapter = createLangfuseAdapter(config);
-    
+
     expect(adapter).toBeDefined();
     expect(adapter.name).toBe("langfuse");
   });
@@ -51,12 +45,12 @@ describe("LangfuseAdapter", () => {
       publicKey: "pk-test",
       secretKey: "sk-test",
     });
-    
+
     const context: SpanContext = {
       name: "test-span",
       kind: "CHAIN",
     };
-    
+
     expect(() => adapter.startSpan(context)).toThrow("not initialized");
   });
 
@@ -65,9 +59,9 @@ describe("LangfuseAdapter", () => {
       publicKey: "pk-test",
       secretKey: "sk-test",
     });
-    
+
     const kinds = ["CHAIN", "LLM", "TOOL", "AGENT", "RETRIEVER"] as const;
-    
+
     for (const _kind of kinds) {
       expect(adapter).toBeDefined();
     }
@@ -80,9 +74,9 @@ describe("LangfuseAdapter config", () => {
       publicKey: "pk-lf-123",
       secretKey: "sk-lf-456",
     };
-    
+
     const adapter = createLangfuseAdapter(config);
-    
+
     expect(adapter).toBeDefined();
   });
 
@@ -93,9 +87,9 @@ describe("LangfuseAdapter config", () => {
       baseUrl: "https://us.cloud.langfuse.com",
       projectName: "test-project",
     };
-    
+
     const adapter = createLangfuseAdapter(config);
-    
+
     expect(adapter).toBeDefined();
   });
 });
@@ -106,7 +100,7 @@ describe("LangfuseAdapter interface", () => {
       publicKey: "pk-test",
       secretKey: "sk-test",
     });
-    
+
     expect(typeof adapter.initialize).toBe("function");
     expect(typeof adapter.shutdown).toBe("function");
     expect(typeof adapter.startSpan).toBe("function");

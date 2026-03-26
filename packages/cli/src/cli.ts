@@ -81,14 +81,7 @@ import {
 } from "./cli/shared";
 import pkg from "../package.json" with { type: "json" };
 
-const supportedProviders = [
-  "openai",
-  "anthropic",
-  "google",
-  "opencode",
-  "openrouter",
-  "ollama",
-];
+const supportedProviders = ["openai", "anthropic", "google", "opencode", "openrouter", "ollama"];
 
 const isBrokenPipe = (error: unknown) => {
   if (!error || typeof error !== "object") {
@@ -115,7 +108,7 @@ const writeOutput = async (target: string | undefined, data: string) => {
 
 const generateArtifactViewerHtml = (artifacts: SerializedArtifact[], version: string): string => {
   const artifactsJson = JSON.stringify(artifacts, null, 2);
-  
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1087,7 +1080,7 @@ const createStrategy = (
       const modelId = modelParts.join("/");
       if (!provider || !modelId) {
         throw new UserError(
-          `Agent strategy requires --model in format 'provider/model'. Got: ${modelSpec}`
+          `Agent strategy requires --model in format 'provider/model'. Got: ${modelSpec}`,
         );
       }
       return agent({
@@ -1098,7 +1091,9 @@ const createStrategy = (
       });
     }
     default:
-      throw new UserError(`Unsupported strategy: ${name}. Available strategies: simple, parallel, sequential, parallelAutoMerge, sequentialAutoMerge, doublePass, doublePassAutoMerge, agent`);
+      throw new UserError(
+        `Unsupported strategy: ${name}. Available strategies: simple, parallel, sequential, parallelAutoMerge, sequentialAutoMerge, doublePass, doublePassAutoMerge, agent`,
+      );
   }
 };
 
@@ -1118,9 +1113,7 @@ const readTokenInput = async (
   const hasTokenStdin = tokenStdin === true;
 
   if (hasToken && hasTokenStdin) {
-    throw new UserError(
-      "Specify exactly one token source: --token or --token-stdin",
-    );
+    throw new UserError("Specify exactly one token source: --token or --token-stdin");
   }
 
   if (!hasToken && !hasTokenStdin) {
@@ -1147,23 +1140,29 @@ const createSpinner = () => {
   });
 };
 
-type LocalStepInfo = { label: string; step: number; total?: number; detail?: string; timestamp: number };
+type LocalStepInfo = {
+  label: string;
+  step: number;
+  total?: number;
+  detail?: string;
+  timestamp: number;
+};
 
 // Strict log format: icon  toollabel  detaillog
 // Using unicode characters (not emojis) for icons
 const TOOL_ICONS: Record<string, string> = {
-  "thinking": "▸",    // Model thinking
-  "read": "◈",        // Read file
-  "bash": "◆",        // Bash command
-  "grep": "◉",        // Grep search
-  "find": "◊",        // Find files
-  "ls": "◇",          // List directory
-  "set_output": "◐",  // Set output data
-  "update_output": "◑", // Update output data
-  "finish": "◒",      // Finish extraction
-  "fail": "◓",        // Fail extraction
-  "agent": "◈",       // Agent lifecycle
-  "default": "•",
+  thinking: "▸", // Model thinking
+  read: "◈", // Read file
+  bash: "◆", // Bash command
+  grep: "◉", // Grep search
+  find: "◊", // Find files
+  ls: "◇", // List directory
+  set_output: "◐", // Set output data
+  update_output: "◑", // Update output data
+  finish: "◒", // Finish extraction
+  fail: "◓", // Fail extraction
+  agent: "◈", // Agent lifecycle
+  default: "•",
 };
 
 function getToolIcon(label: string): string {
@@ -1196,7 +1195,7 @@ class AgentTUI {
     if (process.stderr.isTTY) {
       this.spinner = yoctoSpinner({ text: "Initializing...", color: "cyan" });
     }
-    process.stderr.on('resize', () => {
+    process.stderr.on("resize", () => {
       this.maxWidth = process.stderr.columns || 80;
     });
   }
@@ -1254,18 +1253,18 @@ class AgentTUI {
     const icon = getToolIcon(step.label);
     const label = this.formatLabel(step.label);
     const detail = step.detail || "";
-    
+
     // Build line: icon label  detail (no indent)
     let line = `${icon} ${label}`;
     if (detail) {
       line += `  ${detail}`;
     }
-    
+
     // Truncate to fit terminal
     if (line.length > this.maxWidth - 2) {
       line = line.slice(0, this.maxWidth - 5) + "...";
     }
-    
+
     return line;
   }
 
@@ -1290,11 +1289,7 @@ class AgentTUI {
   }
 }
 
-const formatStepMessage = (
-  label: string | undefined,
-  step: number,
-  total?: number,
-): string => {
+const formatStepMessage = (label: string | undefined, step: number, total?: number): string => {
   if (!label) {
     return total ? `Step ${step}/${total}` : "Processing...";
   }
@@ -1309,7 +1304,7 @@ const formatStepMessage = (
   if (label === "dedupe") {
     return "Removing duplicates...";
   }
-  
+
   // Agent strategy lifecycle labels
   if (label === "agent_explore") {
     return "Agent exploring...";
@@ -1326,7 +1321,7 @@ const formatStepMessage = (
   if (label === "agent_complete") {
     return "Agent completing...";
   }
-  
+
   // Agent strategy tool labels (already formatted nicely by AgentStrategy)
   if (label.startsWith("Read ")) {
     return label;
@@ -1343,7 +1338,7 @@ const formatStepMessage = (
   if (label.startsWith("List ")) {
     return label;
   }
-  
+
   if (label.startsWith("batch ")) {
     const match = label.match(/batch (\d+)\/(\d+)/);
     if (match) {
@@ -1370,24 +1365,24 @@ const formatStepMessage = (
     }
     return label;
   }
-  
+
   // Agent thinking/streaming
   if (label.startsWith("→ ")) {
     const thought = label.slice(2); // Remove "→ " prefix
     return thought.length > 60 ? thought.slice(0, 57) + "..." : thought;
   }
-  
+
   // Agent output data updates
   if (label.startsWith("Output: ")) {
     const data = label.slice(8); // Remove "Output: " prefix
-    return `Output: ${data.slice(0, 60)}${data.length > 60 ? '...' : ''}`;
+    return `Output: ${data.slice(0, 60)}${data.length > 60 ? "..." : ""}`;
   }
-  
+
   if (label.startsWith("Updated: ")) {
     const changes = label.slice(9); // Remove "Updated: " prefix
-    return `Updated: ${changes.slice(0, 60)}${changes.length > 60 ? '...' : ''}`;
+    return `Updated: ${changes.slice(0, 60)}${changes.length > 60 ? "..." : ""}`;
   }
-  
+
   return `${label.charAt(0).toUpperCase()}${label.slice(1)}...`;
 };
 
@@ -1535,8 +1530,7 @@ const modelsUseCommand = defineCommand({
   args: {
     model: {
       type: "positional",
-      description:
-        "Alias or provider/model string (e.g. fast, openai/gpt-4.1-mini)",
+      description: "Alias or provider/model string (e.g. fast, openai/gpt-4.1-mini)",
       required: true,
     },
   },
@@ -1596,8 +1590,7 @@ const providersAddCommand = defineCommand({
   args: {
     provider: {
       type: "positional",
-      description:
-        "Provider ID (openai, anthropic, google, opencode, openrouter, ollama)",
+      description: "Provider ID (openai, anthropic, google, opencode, openrouter, ollama)",
       required: true,
     },
     token: {
@@ -1631,7 +1624,11 @@ const providersAddCommand = defineCommand({
     let stored: string | undefined;
     if (args.provider === "ollama") {
       const storage = parseStorage(args.storage);
-      stored = await setProviderToken(args.provider, token ?? "http://localhost:11434/api", storage);
+      stored = await setProviderToken(
+        args.provider,
+        token ?? "http://localhost:11434/api",
+        storage,
+      );
     } else {
       const storage = parseStorage(args.storage);
       stored = await setProviderToken(args.provider, token!, storage);
@@ -1643,11 +1640,7 @@ const providersAddCommand = defineCommand({
       defaultModel = await setDefaultModel(`${args.provider}/${cheapest}`);
     }
 
-    const json = JSON.stringify(
-      { provider: args.provider, stored, defaultModel },
-      null,
-      2,
-    );
+    const json = JSON.stringify({ provider: args.provider, stored, defaultModel }, null, 2);
     await writeOutput("-", json);
   },
 });
@@ -1717,16 +1710,10 @@ const utilsVerifyArtifactCommand = defineCommand({
       process.exit(1);
     }
 
-    const raw = useStdin
-      ? await readStdinText()
-      : await readFile(args.input!, "utf-8");
+    const raw = useStdin ? await readStdinText() : await readFile(args.input!, "utf-8");
     const parsed = JSON.parse(raw) as unknown;
     const artifacts = validateSerializedArtifacts(parsed);
-    const json = JSON.stringify(
-      { valid: true, artifacts: artifacts.length },
-      null,
-      2,
-    );
+    const json = JSON.stringify({ valid: true, artifacts: artifacts.length }, null, 2);
     await writeOutput("-", json);
   },
 });
@@ -1776,8 +1763,7 @@ const extractCommand = defineCommand({
     },
     model: {
       type: "string",
-      description:
-        "Model identifier (e.g., openai/gpt-5, anthropic/claude-sonnet-4-20250514)",
+      description: "Model identifier (e.g., openai/gpt-5, anthropic/claude-sonnet-4-20250514)",
       alias: "m",
     },
     output: {
@@ -1881,12 +1867,7 @@ const extractCommand = defineCommand({
 
     debug.schemaLoaded({
       source:
-        args.schema ??
-        (args["schema-json"]
-          ? "json-string"
-          : args.fields
-            ? "fields"
-            : "unknown"),
+        args.schema ?? (args["schema-json"] ? "json-string" : args.fields ? "fields" : "unknown"),
       schemaSize:
         schemaResult.kind === "schema"
           ? JSON.stringify(schemaResult.schema).length
@@ -1913,10 +1894,7 @@ const extractCommand = defineCommand({
       contentCount: a.contents.length,
       tokens: a.tokens,
     }));
-    const totalTokens = artifactSummaries.reduce(
-      (sum, a) => sum + (a.tokens ?? 0),
-      0,
-    );
+    const totalTokens = artifactSummaries.reduce((sum, a) => sum + (a.tokens ?? 0), 0);
 
     // Count total images across all artifacts
     let totalImages = 0;
@@ -1950,14 +1928,18 @@ const extractCommand = defineCommand({
 
     const maxSteps = parseInt(args["max-steps"] as string, 10) || 50;
     const maxIterations = parseInt(args["max-iterations"] as string, 10) || 1;
-    const strategy = createStrategy(args.strategy, model, modelSpec as string, { chunkSize, maxSteps, maxIterations });
+    const strategy = createStrategy(args.strategy, model, modelSpec as string, {
+      chunkSize,
+      maxSteps,
+      maxIterations,
+    });
     debug.strategyCreated({
       strategy: args.strategy,
       config: { chunkSize, maxSteps, maxIterations, model: JSON.stringify(model) },
     });
 
     const spinner = isDebug ? null : createSpinner();
-    const agentTUI = (!isDebug && args.strategy === "agent") ? new AgentTUI() : null;
+    const agentTUI = !isDebug && args.strategy === "agent" ? new AgentTUI() : null;
     let currentStepLabel: string | undefined;
 
     if (spinner && !agentTUI) {
@@ -1973,7 +1955,7 @@ const extractCommand = defineCommand({
           currentStepLabel = info.label;
         }
         // Skip lifecycle events in TUI - only show meaningful steps
-        const skipLabels = ['start', 'agent_explore', 'agent_init'];
+        const skipLabels = ["start", "agent_explore", "agent_init"];
         if (info.label && skipLabels.includes(info.label)) {
           return;
         }
@@ -1999,10 +1981,7 @@ const extractCommand = defineCommand({
       onRetry: async (info) => {
         if (agentTUI) {
           const baseMessage = currentStepLabel
-            ? formatStepMessage(currentStepLabel, 0, undefined).replace(
-                /\.+$/,
-                "",
-              )
+            ? formatStepMessage(currentStepLabel, 0, undefined).replace(/\.+$/, "")
             : "Extracting data";
           agentTUI.updateStep({
             label: `${baseMessage} (retry ${info.attempt}/${info.maxAttempts})...`,
@@ -2010,10 +1989,7 @@ const extractCommand = defineCommand({
           });
         } else if (spinner) {
           const baseMessage = currentStepLabel
-            ? formatStepMessage(currentStepLabel, 0, undefined).replace(
-                /\.+$/,
-                "",
-              )
+            ? formatStepMessage(currentStepLabel, 0, undefined).replace(/\.+$/, "")
             : "Extracting data";
           spinner.text = `${baseMessage} (retry ${info.attempt}/${info.maxAttempts})...`;
         }
@@ -2028,32 +2004,48 @@ const extractCommand = defineCommand({
         // Choose creative unicode icon based on tool name (geometric dingbats, no emojis) with colors
         const iconColored = (() => {
           switch (info.toolName) {
-            case 'read': return kleur.cyan('❐');      // Cyan for reading
-            case 'bash': return kleur.yellow('➙');    // Yellow for commands
-            case 'grep': return kleur.magenta('✧');   // Magenta for searching
-            case 'find': return kleur.blue('❖');      // Blue for discovery
-            case 'ls': return kleur.white('☰');       // White for listing
-            case 'tree': return kleur.green('❡');     // Green for tree
-            case 'view_image': return kleur.magenta('◴'); // Magenta for images
-            case 'set_output_data': return kleur.green('✏'); // Green for save
-            case 'update_output_data': return kleur.yellow('✏'); // Yellow for update
-            case 'finish': return kleur.green('✓');   // Green for success
-            case 'fail': return kleur.red('✗');       // Red for error
-            default: return kleur.gray('▸');          // Gray for default
+            case "read":
+              return kleur.cyan("❐"); // Cyan for reading
+            case "bash":
+              return kleur.yellow("➙"); // Yellow for commands
+            case "grep":
+              return kleur.magenta("✧"); // Magenta for searching
+            case "find":
+              return kleur.blue("❖"); // Blue for discovery
+            case "ls":
+              return kleur.white("☰"); // White for listing
+            case "tree":
+              return kleur.green("❡"); // Green for tree
+            case "view_image":
+              return kleur.magenta("◴"); // Magenta for images
+            case "set_output_data":
+              return kleur.green("✏"); // Green for save
+            case "update_output_data":
+              return kleur.yellow("✏"); // Yellow for update
+            case "finish":
+              return kleur.green("✓"); // Green for success
+            case "fail":
+              return kleur.red("✗"); // Red for error
+            default:
+              return kleur.gray("▸"); // Gray for default
           }
         })();
-        
+
         // Format input params with gray names and white values
-        const paramsColored = info.args ? Object.entries(info.args).map(([k, v]) => {
-          const val = typeof v === 'string' ? v : JSON.stringify(v);
-          const truncated = val.length > 30 ? val.slice(0, 30) + '…' : val;
-          // Gray param name, white value
-          return kleur.gray(`${k}=`) + kleur.white(truncated);
-        }).join(kleur.gray(', ')) : '';
-        
+        const paramsColored = info.args
+          ? Object.entries(info.args)
+              .map(([k, v]) => {
+                const val = typeof v === "string" ? v : JSON.stringify(v);
+                const truncated = val.length > 30 ? val.slice(0, 30) + "…" : val;
+                // Gray param name, white value
+                return kleur.gray(`${k}=`) + kleur.white(truncated);
+              })
+              .join(kleur.gray(", "))
+          : "";
+
         // Build line: colored icon + white tool name + colored params (no tool ID)
         const toolNameColored = kleur.white(info.toolName);
-        console.log(`${iconColored} ${toolNameColored}${paramsColored ? ' ' + paramsColored : ''}`);
+        console.log(`${iconColored} ${toolNameColored}${paramsColored ? " " + paramsColored : ""}`);
       },
       onAgentToolEnd: async (info) => {
         const resultText = info.result?.text || "done";
@@ -2065,29 +2057,25 @@ const extractCommand = defineCommand({
         // Show thinking output in gray, truncated to one line
         let thought = info.thought || "";
         // Convert to string if it's an object/array
-        if (typeof thought !== 'string') {
+        if (typeof thought !== "string") {
           thought = JSON.stringify(thought);
         }
         // Skip empty or array-like strings
-        if (!thought || thought === '[]' || thought === '{}' || thought.trim().length === 0) {
+        if (!thought || thought === "[]" || thought === "{}" || thought.trim().length === 0) {
           return;
         }
         // Clean up: remove newlines and extra spaces, truncate to ~100 chars
-        const cleaned = thought
-          .replace(/\n/g, ' ')
-          .replace(/\s+/g, ' ')
-          .trim()
-          .slice(0, 100);
+        const cleaned = thought.replace(/\n/g, " ").replace(/\s+/g, " ").trim().slice(0, 100);
         if (cleaned) {
-          const truncated = thought.length > 100 ? cleaned + '…' : cleaned;
+          const truncated = thought.length > 100 ? cleaned + "…" : cleaned;
           console.log(kleur.gray(`  💭 ${truncated}`));
         }
       },
       onVisionStatus: async (info) => {
         visionStatus = info.enabled;
         // Print compact environment description with detected vision status
-        const visionText = visionStatus ? '✓' : '✗';
-        const envDesc = `${artifacts.length} artifact${artifacts.length !== 1 ? 's' : ''} • ${totalImages} image${totalImages !== 1 ? 's' : ''} • vision: ${visionText}`;
+        const visionText = visionStatus ? "✓" : "✗";
+        const envDesc = `${artifacts.length} artifact${artifacts.length !== 1 ? "s" : ""} • ${totalImages} image${totalImages !== 1 ? "s" : ""} • vision: ${visionText}`;
         console.log(kleur.gray(envDesc));
       },
     };
@@ -2096,11 +2084,11 @@ const extractCommand = defineCommand({
       // Initialize telemetry if configured
       let telemetry = null;
       const telemetryConfig = await getTelemetryConfig();
-      
+
       if (telemetryConfig?.enabled) {
         try {
           const { createTelemetry } = await import("@struktur/telemetry");
-          
+
           telemetry = await createTelemetry({
             provider: telemetryConfig.provider,
             config: {
@@ -2113,7 +2101,10 @@ const extractCommand = defineCommand({
             },
           });
         } catch (error) {
-          console.error("Failed to initialize telemetry, continuing without it:", (error as Error).message);
+          console.error(
+            "Failed to initialize telemetry, continuing without it:",
+            (error as Error).message,
+          );
         }
       }
 
@@ -2139,12 +2130,9 @@ const extractCommand = defineCommand({
         const { SchemaValidationError } = await import("@struktur/sdk");
         const isSchemaError =
           result.error instanceof SchemaValidationError ||
-          (result.error.name === "SchemaValidationError" &&
-            "errors" in result.error);
+          (result.error.name === "SchemaValidationError" && "errors" in result.error);
         if (isSchemaError) {
-          const schemaError = result.error as InstanceType<
-            typeof SchemaValidationError
-          >;
+          const schemaError = result.error as InstanceType<typeof SchemaValidationError>;
           const errorDetails = JSON.stringify(schemaError.errors, null, 2);
           throw new UserError(`Schema validation failed:\n${errorDetails}`);
         }
@@ -2268,7 +2256,7 @@ const parseCommand = defineCommand({
         mimeType = "text/plain";
       } else {
         throw new UserError(
-          `Cannot detect MIME type for file "${args.input}". Use --mime to specify the type.`
+          `Cannot detect MIME type for file "${args.input}". Use --mime to specify the type.`,
         );
       }
     }
@@ -2299,34 +2287,44 @@ const parseCommand = defineCommand({
       artifacts = await runParser(parserDef, { kind: "buffer", buffer }, mimeType);
     } else if (mimeType === "application/pdf") {
       const { parsePdf } = await import("@struktur/sdk");
-      const screenshotScale = args["screenshot-scale"] ? parseFloat(args["screenshot-scale"]) : undefined;
-      const screenshotWidth = args["screenshot-width"] ? parseInt(args["screenshot-width"], 10) : undefined;
-      artifacts = [await parsePdf(buffer, {
-        includeImages: args.images === true,
-        screenshots: args.screenshots === true,
-        screenshotScale,
-        screenshotWidth,
-      })];
+      const screenshotScale = args["screenshot-scale"]
+        ? parseFloat(args["screenshot-scale"])
+        : undefined;
+      const screenshotWidth = args["screenshot-width"]
+        ? parseInt(args["screenshot-width"], 10)
+        : undefined;
+      artifacts = [
+        await parsePdf(buffer, {
+          includeImages: args.images === true,
+          screenshots: args.screenshots === true,
+          screenshotScale,
+          screenshotWidth,
+        }),
+      ];
     } else if (mimeType.startsWith("text/")) {
       const { splitTextIntoContents } = await import("@struktur/sdk");
       const text = buffer.toString();
       const contents = splitTextIntoContents(text);
-      artifacts = [{
-        id: `artifact-${crypto.randomUUID()}`,
-        type: "text" as const,
-        raw: async () => buffer,
-        contents,
-      }];
+      artifacts = [
+        {
+          id: `artifact-${crypto.randomUUID()}`,
+          type: "text" as const,
+          raw: async () => buffer,
+          contents,
+        },
+      ];
     } else if (mimeType.startsWith("image/")) {
-      artifacts = [{
-        id: `artifact-${crypto.randomUUID()}`,
-        type: "image" as const,
-        raw: async () => buffer,
-        contents: [{ media: [{ type: "image" as const, contents: buffer }] }],
-      }];
+      artifacts = [
+        {
+          id: `artifact-${crypto.randomUUID()}`,
+          type: "image" as const,
+          raw: async () => buffer,
+          contents: [{ media: [{ type: "image" as const, contents: buffer }] }],
+        },
+      ];
     } else {
       throw new UserError(
-        `No parser configured for MIME type "${mimeType}". Use --parser to specify an npm parser package or configure one with: struktur config parsers add --mime ${mimeType} ...`
+        `No parser configured for MIME type "${mimeType}". Use --parser to specify an npm parser package or configure one with: struktur config parsers add --mime ${mimeType} ...`,
       );
     }
 
@@ -2429,12 +2427,10 @@ const configParsersAddCommand = defineCommand({
   },
   async run({ args }) {
     const sources = [args.npm, args["file-command"], args["stdin-command"]].filter(
-      (v) => v !== undefined && v !== ""
+      (v) => v !== undefined && v !== "",
     );
     if (sources.length !== 1) {
-      throw new UserError(
-        "Specify exactly one of: --npm, --file-command, or --stdin-command"
-      );
+      throw new UserError("Specify exactly one of: --npm, --file-command, or --stdin-command");
     }
 
     let parserDef;
@@ -2443,7 +2439,7 @@ const configParsersAddCommand = defineCommand({
     } else if (args["file-command"]) {
       if (!args["file-command"].includes("FILE_PATH")) {
         throw new UserError(
-          `--file-command must contain FILE_PATH placeholder. Got: "${args["file-command"]}"`
+          `--file-command must contain FILE_PATH placeholder. Got: "${args["file-command"]}"`,
         );
       }
       parserDef = { type: "command-file" as const, command: args["file-command"] };
@@ -2682,10 +2678,8 @@ const utilsArtifactViewerCommand = defineCommand({
       process.exit(1);
     }
 
-    const raw = useStdin
-      ? await readStdinText()
-      : await readFile(args.input!, "utf-8");
-    
+    const raw = useStdin ? await readStdinText() : await readFile(args.input!, "utf-8");
+
     const parsed = JSON.parse(raw) as unknown;
     const artifacts = validateSerializedArtifacts(parsed);
 
@@ -2735,12 +2729,12 @@ runMain(main).catch(async (error) => {
   }
 
   const message = error instanceof Error ? error.message : String(error);
-  
+
   if (error instanceof UserError) {
     process.stderr.write(`error: ${message}\n`);
   } else {
     process.stderr.write(`${message}\n`);
   }
-  
+
   process.exit(1);
 });

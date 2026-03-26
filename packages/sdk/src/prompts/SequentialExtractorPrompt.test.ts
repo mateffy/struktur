@@ -14,8 +14,8 @@ const artifacts: Artifact[] = [
 test("buildSequentialPrompt embeds previous data", () => {
   const { system, user } = buildSequentialPrompt(
     artifacts,
-    "{\"type\":\"object\"}",
-    "{\"existing\":true}"
+    '{"type":"object"}',
+    '{"existing":true}',
   );
 
   expect(system).toContain("JSON schema");

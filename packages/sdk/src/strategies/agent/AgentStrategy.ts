@@ -1,8 +1,4 @@
-import type {
-  ExtractionOptions,
-  ExtractionResult,
-  ExtractionStrategy,
-} from "../../types";
+import type { ExtractionOptions, ExtractionResult, ExtractionStrategy } from "../../types";
 import type { createDebugLogger } from "../../debug/logger";
 import { resolveModel, type AiSdkModel } from "../../llm/resolveModel";
 import { generateText } from "ai";
@@ -23,7 +19,13 @@ export type AgentStrategyConfig = {
   vision?: boolean; // Enable image viewing for vision-capable models
 };
 
-const defaultSystemPrompt = (schema: string, outputInstructions?: string, carriedData?: any, fileTree?: string, manifestContent?: string) => {
+const defaultSystemPrompt = (
+  schema: string,
+  outputInstructions?: string,
+  carriedData?: any,
+  fileTree?: string,
+  manifestContent?: string,
+) => {
   const carriedContext = carriedData
     ? `\n## Previously Extracted Data (carry forward)\nThe following data was already extracted in previous iterations. Preserve and extend it:\n${JSON.stringify(carriedData, null, 2)}\n\nIMPORTANT: Start by setting this data with set_output_data, then continue extracting remaining fields.`
     : "";
@@ -105,13 +107,19 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
         "agent.max_steps": maxSteps,
         "agent.max_iterations": maxIterations,
         "agent.model": this.config.model
-          ? typeof this.config.model === "string" ? this.config.model : "custom"
+          ? typeof this.config.model === "string"
+            ? this.config.model
+            : "custom"
           : `${this.config.provider}/${this.config.modelId}`,
         "agent.artifacts.count": options.artifacts.length,
       },
     });
 
-    await options.events?.onStep?.({ step: 1, total: this.getEstimatedSteps(), label: "agent_explore" });
+    await options.events?.onStep?.({
+      step: 1,
+      total: this.getEstimatedSteps(),
+      label: "agent_explore",
+    });
 
     const filesystem = createVirtualFilesystem(options.artifacts);
     const files: Record<string, string> = {
@@ -129,26 +137,28 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
     const buildFileTree = async (): Promise<string> => {
       // Get root directory contents
       const rootResult = await bash.exec("ls -la /");
-      const rootLines = rootResult.stdout.split('\n').filter((l: string) => 
-        l && !l.startsWith('total') && !l.endsWith('.') && !l.endsWith('..')
-      );
-      
+      const rootLines = rootResult.stdout
+        .split("\n")
+        .filter(
+          (l: string) => l && !l.startsWith("total") && !l.endsWith(".") && !l.endsWith(".."),
+        );
+
       let tree = "/\n";
-      
+
       for (const line of rootLines) {
         const parts = line.split(/\s+/);
         const name = parts[parts.length - 1];
         if (!name) continue;
-        
-        const isDir = line.startsWith('d');
-        
+
+        const isDir = line.startsWith("d");
+
         if (name === "images" && isDir) {
           // Handle images directory specially - show max 10 images
           const imgResult = await bash.exec("ls /images/");
-          const images = imgResult.stdout.split('\n').filter((i: string) => i.trim());
+          const images = imgResult.stdout.split("\n").filter((i: string) => i.trim());
           const totalImages = images.length;
           const shownImages = images.slice(0, 10);
-          
+
           tree += `├── images/ (${totalImages > 10 ? `showing 10 of ${totalImages}` : totalImages} files)\n`;
           for (let i = 0; i < shownImages.length; i++) {
             const img = shownImages[i];
@@ -162,7 +172,7 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
           tree += `├── ${name}${isDir ? "/" : ""}\n`;
         }
       }
-      
+
       return tree;
     };
 
@@ -172,7 +182,11 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
     const callId = `agent_${Date.now()}`;
     debug?.llmCallStart({
       callId,
-      model: this.config.model ? (typeof this.config.model === "string" ? this.config.model : "custom") : "default",
+      model: this.config.model
+        ? typeof this.config.model === "string"
+          ? this.config.model
+          : "custom"
+        : "default",
       schemaName: "extract",
       systemLength: 0,
       userLength: 0,
@@ -183,14 +197,21 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
     let aiModel: AiSdkModel;
 
     if (this.config.model) {
-      aiModel = typeof this.config.model === "string" ? await resolveModel(this.config.model) : this.config.model;
+      aiModel =
+        typeof this.config.model === "string"
+          ? await resolveModel(this.config.model)
+          : this.config.model;
     } else if (this.config.provider && this.config.modelId) {
       aiModel = await resolveModel(`${this.config.provider}/${this.config.modelId}`);
     } else {
       throw new Error("Model not configured.");
     }
 
-    await options.events?.onStep?.({ step: 2, total: this.getEstimatedSteps(), label: "agent_init" });
+    await options.events?.onStep?.({
+      step: 2,
+      total: this.getEstimatedSteps(),
+      label: "agent_init",
+    });
 
     const deepMerge = (target: any, source: any): any => {
       const output = Object.assign({}, target);
@@ -219,7 +240,9 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
       try {
         if (this.config.provider === "openrouter") {
           // Use OpenRouter API for OpenRouter models
-          const response = await fetch(`https://openrouter.ai/api/v1/models/${this.config.modelId}`);
+          const response = await fetch(
+            `https://openrouter.ai/api/v1/models/${this.config.modelId}`,
+          );
           if (response.ok) {
             const modelData: any = await response.json();
             const inputModalities = modelData?.data?.architecture?.input_modalities || [];
@@ -227,14 +250,14 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
           }
         } else {
           // Use models.dev for other providers
-          const response = await fetch('https://models.dev/api.json');
+          const response = await fetch("https://models.dev/api.json");
           if (response.ok) {
             const allModels: any = await response.json();
             const providerData = allModels[this.config.provider];
             if (providerData?.models) {
               const modelData = providerData.models[this.config.modelId];
               if (modelData?.modalities?.input) {
-                visionEnabled = modelData.modalities.input.includes('image');
+                visionEnabled = modelData.modalities.input.includes("image");
               }
             }
           }
@@ -243,66 +266,101 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
         // Fall back to false if API fails
       }
     }
-    
+
     // Emit vision status for CLI to display
-    await options.events?.onVisionStatus?.({ 
-      enabled: visionEnabled, 
-      provider: this.config.provider || 'unknown', 
-      modelId: this.config.modelId || 'unknown' 
+    await options.events?.onVisionStatus?.({
+      enabled: visionEnabled,
+      provider: this.config.provider || "unknown",
+      modelId: this.config.modelId || "unknown",
     });
-    
+
     const tools = (_iteration: number): any => ({
       bash: {
-        name: "bash", description: "Execute bash commands",
+        name: "bash",
+        description: "Execute bash commands",
         parameters: z.object({ command: z.string() }),
         execute: async (params: any) => {
           const result = await bash.exec(params.command);
-          return { content: [{ type: "text", text: result.exitCode === 0 ? result.stdout : `Error: ${result.stderr}` }] };
+          return {
+            content: [
+              {
+                type: "text",
+                text: result.exitCode === 0 ? result.stdout : `Error: ${result.stderr}`,
+              },
+            ],
+          };
         },
       },
       read: {
-        name: "read", description: "Read file contents. Default: 200 lines. Max: 1000 lines per read.",
-        parameters: z.object({ 
-          file_path: z.string().describe("The absolute path to the file to read"), 
-          offset: z.number().min(1).default(1).optional().describe("Line number to start from (1-indexed)"), 
-          limit: z.number().min(1).max(1000).default(200).optional().describe("Number of lines to read (max 1000, default 200)")
+        name: "read",
+        description: "Read file contents. Default: 200 lines. Max: 1000 lines per read.",
+        parameters: z.object({
+          file_path: z.string().describe("The absolute path to the file to read"),
+          offset: z
+            .number()
+            .min(1)
+            .default(1)
+            .optional()
+            .describe("Line number to start from (1-indexed)"),
+          limit: z
+            .number()
+            .min(1)
+            .max(1000)
+            .default(200)
+            .optional()
+            .describe("Number of lines to read (max 1000, default 200)"),
         }),
         execute: async (params: any) => {
           // Handle both file_path and path (some models send path instead)
           const filePath = params.file_path || params.path;
           if (!filePath) {
-            return { content: [{ type: "text", text: "Error: No file path provided (expected 'file_path')" }] };
+            return {
+              content: [
+                { type: "text", text: "Error: No file path provided (expected 'file_path')" },
+              ],
+            };
           }
-          
+
           // Use zod defaults/validation from schema
           const limit = Math.min(params.limit || 200, 1000);
           const startLine = params.offset || 1;
           const endLine = startLine + limit - 1;
-          
+
           const cmd = `sed -n '${startLine},${endLine}p' "${filePath}"`;
           const result = await bash.exec(cmd);
           return { content: [{ type: "text", text: result.stdout || result.stderr }] };
         },
       },
       grep: {
-        name: "grep", description: "Search for patterns",
-        parameters: z.object({ pattern: z.string(), path: z.string(), options: z.string().optional() }),
+        name: "grep",
+        description: "Search for patterns",
+        parameters: z.object({
+          pattern: z.string(),
+          path: z.string(),
+          options: z.string().optional(),
+        }),
         execute: async (params: any) => {
-          const result = await bash.exec(`grep ${params.options || ""} "${params.pattern}" "${params.path}"`);
+          const result = await bash.exec(
+            `grep ${params.options || ""} "${params.pattern}" "${params.path}"`,
+          );
           return { content: [{ type: "text", text: result.stdout || "(no matches)" }] };
         },
       },
       find: {
-        name: "find", description: "Find files",
+        name: "find",
+        description: "Find files",
         parameters: z.object({ path: z.string(), name: z.string().optional() }),
         execute: async (params: any) => {
-          const cmd = params.name ? `find "${params.path}" -type f -name "${params.name}"` : `find "${params.path}" -type f`;
+          const cmd = params.name
+            ? `find "${params.path}" -type f -name "${params.name}"`
+            : `find "${params.path}" -type f`;
           const result = await bash.exec(cmd);
           return { content: [{ type: "text", text: result.stdout || "(no files)" }] };
         },
       },
       ls: {
-        name: "ls", description: "List directory",
+        name: "ls",
+        description: "List directory",
         parameters: z.object({ path: z.string(), recursive: z.boolean().optional() }),
         execute: async (params: any) => {
           const cmd = params.recursive ? `ls -laR "${params.path}"` : `ls -la "${params.path}"`;
@@ -311,35 +369,40 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
         },
       },
       tree: {
-        name: "tree", description: "Display directory tree structure",
+        name: "tree",
+        description: "Display directory tree structure",
         parameters: z.object({ path: z.string(), depth: z.number().optional() }),
         execute: async (params: any) => {
           const targetPath = params.path || "/";
           const maxDepth = params.depth || 3;
-          
+
           // Build tree structure using bash commands
           const buildTree = async (dir: string, depth: number, prefix: string): Promise<string> => {
             if (depth > maxDepth) return "";
-            
+
             // Get directory contents
             const lsResult = await bash.exec(`ls -la "${dir}"`);
-            const lines = lsResult.stdout.split('\n').filter((l: string) => l && !l.startsWith('total') && !l.endsWith('.') && !l.endsWith('..'));
-            
+            const lines = lsResult.stdout
+              .split("\n")
+              .filter(
+                (l: string) => l && !l.startsWith("total") && !l.endsWith(".") && !l.endsWith(".."),
+              );
+
             let output = "";
             for (let i = 0; i < lines.length; i++) {
               const line: string | undefined = lines[i];
               if (!line) continue;
-              
+
               const isLast = i === lines.length - 1;
               const parts = line.split(/\s+/);
               const name: string | undefined = parts[parts.length - 1];
               if (!name) continue;
-              
-              const isDir = line.startsWith('d');
-              
+
+              const isDir = line.startsWith("d");
+
               const connector = isLast ? "└── " : "├── ";
               output += `${prefix}${connector}${name}${isDir ? "/" : ""}\n`;
-              
+
               if (isDir && depth < maxDepth) {
                 const subDir = dir === "/" ? `/${name}` : `${dir}/${name}`;
                 const subPrefix = prefix + (isLast ? "    " : "│   ");
@@ -348,22 +411,28 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
             }
             return output;
           };
-          
+
           const treeOutput = await buildTree(targetPath, 1, "");
           return { content: [{ type: "text", text: treeOutput || `${targetPath}\n(empty)` }] };
         },
       },
       view_image: {
-        name: "view_image", description: visionEnabled ? "View an image" : "View image metadata (no vision support)",
+        name: "view_image",
+        description: visionEnabled ? "View an image" : "View image metadata (no vision support)",
         parameters: z.object({ image_path: z.string() }),
         execute: async (params: any) => {
           const imageData = filesystem.getImageByPath?.(params.image_path);
           if (!imageData) return { content: [{ type: "text", text: "Image not found" }] };
-          
+
           if (visionEnabled) {
             // Return actual image data for vision-capable models
             const fmt = params.image_path.endsWith(".png") ? "image/png" : "image/jpeg";
-            return { content: [{ type: "text", text: `[Image: ${params.image_path}]` }, { type: "image", data: imageData, mimeType: fmt }] };
+            return {
+              content: [
+                { type: "text", text: `[Image: ${params.image_path}]` },
+                { type: "image", data: imageData, mimeType: fmt },
+              ],
+            };
           } else {
             // Return placeholder for non-vision models to avoid context bloat
             return { content: [{ type: "text", text: `[Image: ${params.image_path}]` }] };
@@ -371,7 +440,8 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
         },
       },
       set_output_data: {
-        name: "set_output_data", description: "Set output data",
+        name: "set_output_data",
+        description: "Set output data",
         parameters: z.object({ data: z.any() }),
         execute: async (params: any) => {
           currentOutput = params.data;
@@ -379,25 +449,30 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
         },
       },
       update_output_data: {
-        name: "update_output_data", description: "Update output data",
+        name: "update_output_data",
+        description: "Update output data",
         parameters: z.object({ changes: z.record(z.string(), z.any()) }),
         execute: async (params: any) => {
-          if (currentOutput === null) return { content: [{ type: "text", text: "Error: Use set_output_data first" }] };
+          if (currentOutput === null)
+            return { content: [{ type: "text", text: "Error: Use set_output_data first" }] };
           currentOutput = deepMerge(currentOutput, params.changes);
           return { content: [{ type: "text", text: "Output updated" }] };
         },
       },
       finish: {
-        name: "finish", description: "Complete extraction",
+        name: "finish",
+        description: "Complete extraction",
         parameters: z.object({}),
         execute: async () => {
-          if (currentOutput === null) return { content: [{ type: "text", text: "Error: No data" }] };
+          if (currentOutput === null)
+            return { content: [{ type: "text", text: "Error: No data" }] };
           isComplete = true;
           return { content: [{ type: "text", text: "Complete" }] };
         },
       },
       fail: {
-        name: "fail", description: "Mark as failed",
+        name: "fail",
+        description: "Mark as failed",
         parameters: z.object({ reason: z.string() }),
         execute: async (params: any) => {
           extractionFailed = true;
@@ -416,7 +491,15 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
         label: `iteration_${iterationCount}`,
       });
 
-      const systemPrompt = this.config.systemPrompt ?? defaultSystemPrompt(schema, this.config.outputInstructions, currentOutput, fileTree, manifestContent);
+      const systemPrompt =
+        this.config.systemPrompt ??
+        defaultSystemPrompt(
+          schema,
+          this.config.outputInstructions,
+          currentOutput,
+          fileTree,
+          manifestContent,
+        );
 
       debug?.promptSystem({ callId, system: systemPrompt });
 
@@ -448,35 +531,38 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
             const toolCallId = toolCall?.toolCallId;
             const output = params.output;
             const error = params.error;
-            
+
             // Extract text from tool result
             let resultText: string;
             if (error) {
               resultText = `Error: ${error.message}`;
-            } else if (typeof output === 'string') {
+            } else if (typeof output === "string") {
               resultText = output;
             } else if (output?.content?.[0]?.text) {
               resultText = output.content[0].text;
-            } else if (output?.content?.[0]?.type === 'text') {
+            } else if (output?.content?.[0]?.type === "text") {
               resultText = output.content[0].text;
             } else {
               resultText = JSON.stringify(output).slice(0, 200);
             }
-            
+
             await options.events?.onAgentToolEnd?.({
               toolCallId: toolCallId as string,
               result: { text: resultText } as any,
             });
-            
+
             // Check for finish/fail tools - only succeed if no error and output indicates success
             if (toolName === "finish" && !error && resultText === "Complete") {
               isComplete = true;
             }
-            if (toolName === "fail" || (toolName === "finish" && resultText === "Error: No data")) { 
-              extractionFailed = true; 
-              failureReason = toolName === "fail" 
-                ? (typeof output === 'object' && output?.reason ? output.reason : 'Unknown error')
-                : 'finish called without setting output data first';
+            if (toolName === "fail" || (toolName === "finish" && resultText === "Error: No data")) {
+              extractionFailed = true;
+              failureReason =
+                toolName === "fail"
+                  ? typeof output === "object" && output?.reason
+                    ? output.reason
+                    : "Unknown error"
+                  : "finish called without setting output data first";
             }
           },
         });
@@ -485,7 +571,7 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
 
         // Emit thinking/reasoning if available (skip empty arrays/strings)
         const reasoningText = result.reasoning || result.text;
-        if (reasoningText && reasoningText.length > 0 && typeof reasoningText === 'string') {
+        if (reasoningText && reasoningText.length > 0 && typeof reasoningText === "string") {
           await options.events?.onAgentReasoning?.({ thought: reasoningText });
         }
 
@@ -498,7 +584,7 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
       }
 
       await options.events?.onStep?.({
-        step: (iterationCount) * maxSteps,
+        step: iterationCount * maxSteps,
         total: this.getEstimatedSteps(),
         label: `iteration_${iterationCount}_complete`,
       });
@@ -517,10 +603,22 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
       throw new Error("Agent did not produce any output data.");
     }
 
-    debug?.llmCallComplete({ callId, success: true, inputTokens: 0, outputTokens: 0, totalTokens: 0, durationMs });
-    await options.events?.onStep?.({ step: this.getEstimatedSteps(), total: this.getEstimatedSteps(), label: "extract" });
+    debug?.llmCallComplete({
+      callId,
+      success: true,
+      inputTokens: 0,
+      outputTokens: 0,
+      totalTokens: 0,
+      durationMs,
+    });
+    await options.events?.onStep?.({
+      step: this.getEstimatedSteps(),
+      total: this.getEstimatedSteps(),
+      label: "extract",
+    });
 
-    if (agentSpan && telemetry) telemetry.endSpan(agentSpan, { status: "ok", output: extractedData });
+    if (agentSpan && telemetry)
+      telemetry.endSpan(agentSpan, { status: "ok", output: extractedData });
 
     return { data: extractedData, usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 } };
   }

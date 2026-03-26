@@ -66,7 +66,8 @@ describe("createVirtualFilesystem", () => {
 
   test("getImageByPath retrieves image data", () => {
     // Use PNG base64 signature
-    const pngBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+    const pngBase64 =
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
     const artifacts: Artifact[] = [
       {
         id: "doc-1",
@@ -96,7 +97,7 @@ describe("createVirtualFilesystem", () => {
     // Use base64 signatures for different formats
     const jpegBase64 = "/9j/somejpegdata";
     const pngBase64 = "iVBORw0KGgoAAAANSU";
-    
+
     const artifacts: Artifact[] = [
       {
         id: "my-document",

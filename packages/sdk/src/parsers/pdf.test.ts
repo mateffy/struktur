@@ -347,10 +347,12 @@ test("parsePdf correctly differentiates embedded images and screenshots on the s
   const artifact = await parsePdf(makeBuffer(), { screenshots: true });
 
   expect(artifact.contents[0]?.media).toHaveLength(2);
-  
-  const embeddedImage = artifact.contents[0]?.media?.find(img => img.imageType === "embedded");
-  const screenshotImage = artifact.contents[0]?.media?.find(img => img.imageType === "screenshot");
-  
+
+  const embeddedImage = artifact.contents[0]?.media?.find((img) => img.imageType === "embedded");
+  const screenshotImage = artifact.contents[0]?.media?.find(
+    (img) => img.imageType === "screenshot",
+  );
+
   expect(embeddedImage).toBeDefined();
   expect(embeddedImage?.base64).toBe("embedded789");
   expect(screenshotImage).toBeDefined();

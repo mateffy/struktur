@@ -88,11 +88,7 @@ test("countArtifactTokens sums multiple contents", () => {
     id: "a1",
     type: "text",
     raw: async () => Buffer.from(""),
-    contents: [
-      { text: "abcd" },
-      { text: "efgh" },
-      { media: [{ type: "image" }] },
-    ],
+    contents: [{ text: "abcd" }, { text: "efgh" }, { media: [{ type: "image" }] }],
   };
 
   const tokens = countArtifactTokens(artifact);
@@ -104,10 +100,7 @@ test("countArtifactTokens with custom options", () => {
     id: "a1",
     type: "text",
     raw: async () => Buffer.from(""),
-    contents: [
-      { text: "abcdefgh" },
-      { media: [{ type: "image" }] },
-    ],
+    contents: [{ text: "abcdefgh" }, { media: [{ type: "image" }] }],
   };
 
   const tokens = countArtifactTokens(artifact, {

@@ -114,13 +114,7 @@ const readKeychainToken = async (provider: string) => {
 };
 
 const deleteKeychainToken = async (provider: string) => {
-  await runSecurity([
-    "delete-generic-password",
-    "-a",
-    provider,
-    "-s",
-    keychainService(),
-  ]);
+  await runSecurity(["delete-generic-password", "-a", provider, "-s", keychainService()]);
 };
 
 export const listStoredProviders = async () => {
@@ -134,7 +128,7 @@ export const listStoredProviders = async () => {
 export const setProviderToken = async (
   provider: string,
   token: string,
-  storage: TokenStorageType = "auto"
+  storage: TokenStorageType = "auto",
 ) => {
   const store = await readTokenStore();
   let resolvedStorage: TokenEntry["storage"] = "file";

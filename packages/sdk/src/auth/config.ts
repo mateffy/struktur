@@ -123,7 +123,7 @@ export const getParser = async (mimeType: string): Promise<ParserDef | undefined
 export const setParser = async (mimeType: string, def: ParserDef): Promise<void> => {
   if (def.type === "command-file" && !def.command.includes("FILE_PATH")) {
     throw new Error(
-      `command-file parser must contain FILE_PATH placeholder in the command string. Got: "${def.command}"`
+      `command-file parser must contain FILE_PATH placeholder in the command string. Got: "${def.command}"`,
     );
   }
   const store = await readConfigStore();
@@ -157,7 +157,7 @@ export const setTelemetryConfig = async (config: TelemetryConfig): Promise<void>
 
 export const enableTelemetry = async (
   provider: string,
-  options: Omit<TelemetryConfig, "enabled" | "provider">
+  options: Omit<TelemetryConfig, "enabled" | "provider">,
 ): Promise<void> => {
   const store = await readConfigStore();
   store.telemetry = {

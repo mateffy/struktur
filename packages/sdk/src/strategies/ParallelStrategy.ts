@@ -2,12 +2,7 @@ import type { ExtractionResult, ExtractionStrategy } from "../types";
 import type { ExtractionOptions } from "../types";
 import { buildExtractorPrompt } from "../prompts/ExtractorPrompt";
 import { buildParallelMergerPrompt } from "../prompts/ParallelMergerPrompt";
-import {
-  extractWithPrompt,
-  getBatches,
-  mergeUsage,
-  serializeSchema,
-} from "./utils";
+import { extractWithPrompt, getBatches, mergeUsage, serializeSchema } from "./utils";
 import { runConcurrently } from "./concurrency";
 import { runWithRetries } from "../llm/RetryingRunner";
 
@@ -41,7 +36,7 @@ export class ParallelStrategy<T> implements ExtractionStrategy<T> {
   async run(options: ExtractionOptions<T>): Promise<ExtractionResult<T>> {
     const debug = options.debug;
     const { telemetry } = options;
-    
+
     // Create strategy-level span
     const strategySpan = telemetry?.startSpan({
       name: "strategy.parallel",
@@ -53,7 +48,7 @@ export class ParallelStrategy<T> implements ExtractionStrategy<T> {
         "strategy.concurrency": this.config.concurrency,
       },
     });
-    
+
     const batches = getBatches(
       options.artifacts,
       {
@@ -83,11 +78,7 @@ export class ParallelStrategy<T> implements ExtractionStrategy<T> {
     });
 
     const tasks = batches.map((batch, index) => async () => {
-      const prompt = buildExtractorPrompt(
-        batch,
-        schema,
-        this.config.outputInstructions,
-      );
+      const prompt = buildExtractorPrompt(batch, schema, this.config.outputInstructions);
       const result = await extractWithPrompt<T>({
         model: this.config.model,
         schema: options.schema,
@@ -121,17 +112,14 @@ export class ParallelStrategy<T> implements ExtractionStrategy<T> {
       return result;
     });
 
-    const results = await runConcurrently(
-      tasks,
-      this.config.concurrency ?? batches.length,
-    );
+    const results = await runConcurrently(tasks, this.config.concurrency ?? batches.length);
 
     debug?.mergeStart({
       mergeId: "parallel_merge",
       inputCount: results.length,
       strategy: this.name,
     });
-    
+
     // Create merge span
     const mergeSpan = telemetry?.startSpan({
       name: "struktur.merge",
@@ -175,7 +163,7 @@ export class ParallelStrategy<T> implements ExtractionStrategy<T> {
       strategy: this.name,
     });
     debug?.mergeComplete({ mergeId: "parallel_merge", success: true });
-    
+
     // End merge span
     if (mergeSpan && telemetry) {
       telemetry.recordEvent(mergeSpan, {
@@ -189,7 +177,7 @@ export class ParallelStrategy<T> implements ExtractionStrategy<T> {
         output: merged.data,
       });
     }
-    
+
     // End strategy span
     telemetry?.endSpan(strategySpan!, {
       status: "ok",

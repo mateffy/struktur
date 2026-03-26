@@ -3,12 +3,7 @@ import type { ExtractionOptions } from "../types";
 import { buildExtractorPrompt } from "../prompts/ExtractorPrompt";
 import { buildParallelMergerPrompt } from "../prompts/ParallelMergerPrompt";
 import { buildSequentialPrompt } from "../prompts/SequentialExtractorPrompt";
-import {
-  extractWithPrompt,
-  getBatches,
-  mergeUsage,
-  serializeSchema,
-} from "./utils";
+import { extractWithPrompt, getBatches, mergeUsage, serializeSchema } from "./utils";
 import { runConcurrently } from "./concurrency";
 import { runWithRetries } from "../llm/RetryingRunner";
 
@@ -42,7 +37,7 @@ export class DoublePassStrategy<T> implements ExtractionStrategy<T> {
   async run(options: ExtractionOptions<T>): Promise<ExtractionResult<T>> {
     const debug = options.debug;
     const { telemetry } = options;
-    
+
     // Create strategy-level span
     const strategySpan = telemetry?.startSpan({
       name: "strategy.double-pass",
@@ -54,7 +49,7 @@ export class DoublePassStrategy<T> implements ExtractionStrategy<T> {
         "strategy.concurrency": this.config.concurrency,
       },
     });
-    
+
     const batches = getBatches(
       options.artifacts,
       {
@@ -69,7 +64,7 @@ export class DoublePassStrategy<T> implements ExtractionStrategy<T> {
     const schema = serializeSchema(options.schema);
     const totalSteps = this.getEstimatedSteps(options.artifacts);
     let step = 1;
-    
+
     // Create pass 1 span
     const pass1Span = telemetry?.startSpan({
       name: "struktur.pass_1",
@@ -82,11 +77,7 @@ export class DoublePassStrategy<T> implements ExtractionStrategy<T> {
     });
 
     const tasks = batches.map((batch, index) => async () => {
-      const prompt = buildExtractorPrompt(
-        batch,
-        schema,
-        this.config.outputInstructions,
-      );
+      const prompt = buildExtractorPrompt(batch, schema, this.config.outputInstructions);
       const result = await extractWithPrompt<T>({
         model: this.config.model,
         schema: options.schema,
@@ -116,17 +107,14 @@ export class DoublePassStrategy<T> implements ExtractionStrategy<T> {
       return result;
     });
 
-    const results = await runConcurrently(
-      tasks,
-      this.config.concurrency ?? batches.length,
-    );
+    const results = await runConcurrently(tasks, this.config.concurrency ?? batches.length);
 
     debug?.mergeStart({
       mergeId: "double_pass_1_merge",
       inputCount: results.length,
       strategy: this.name,
     });
-    
+
     // Create pass 1 merge span
     const pass1MergeSpan = telemetry?.startSpan({
       name: "struktur.pass_1_merge",
@@ -170,7 +158,7 @@ export class DoublePassStrategy<T> implements ExtractionStrategy<T> {
       strategy: this.name,
     });
     debug?.mergeComplete({ mergeId: "double_pass_1_merge", success: true });
-    
+
     // End pass 1 merge span
     if (pass1MergeSpan && telemetry) {
       telemetry.recordEvent(pass1MergeSpan, {
@@ -184,13 +172,13 @@ export class DoublePassStrategy<T> implements ExtractionStrategy<T> {
         output: merged.data,
       });
     }
-    
+
     // End pass 1 span
     telemetry?.endSpan(pass1Span!, {
       status: "ok",
       output: merged.data,
     });
-    
+
     // Create pass 2 span
     const pass2Span = telemetry?.startSpan({
       name: "struktur.pass_2",
@@ -244,13 +232,13 @@ export class DoublePassStrategy<T> implements ExtractionStrategy<T> {
         strategy: this.name,
       });
     }
-    
+
     // End pass 2 span
     telemetry?.endSpan(pass2Span!, {
       status: "ok",
       output: currentData,
     });
-    
+
     // End strategy span
     telemetry?.endSpan(strategySpan!, {
       status: "ok",

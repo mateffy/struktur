@@ -6,10 +6,7 @@ import { promisify } from "node:util";
 import type { Artifact } from "../types";
 import type { ParserDef, ParserInput } from "./types";
 import type { NpmParserModule } from "./npm";
-import {
-  hydrateSerializedArtifacts,
-  validateSerializedArtifacts,
-} from "../artifacts/input";
+import { hydrateSerializedArtifacts, validateSerializedArtifacts } from "../artifacts/input";
 
 const execAsync = promisify(exec);
 
@@ -19,7 +16,9 @@ const parseCommandOutput = (stdout: string): Artifact[] => {
     parsed = JSON.parse(stdout);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`Parser command produced invalid JSON: ${message}\nOutput: ${stdout.slice(0, 200)}`);
+    throw new Error(
+      `Parser command produced invalid JSON: ${message}\nOutput: ${stdout.slice(0, 200)}`,
+    );
   }
   const serialized = validateSerializedArtifacts(parsed);
   return hydrateSerializedArtifacts(serialized);
@@ -39,9 +38,7 @@ const spawnAndCapture = async (command: string, stdinBuffer?: Buffer): Promise<s
   } catch (error) {
     if (error instanceof Error && "stderr" in error) {
       const stderr = (error as { stderr: string }).stderr;
-      throw new Error(
-        `Parser command failed: ${command}\nStderr: ${stderr?.slice(0, 500) ?? ""}`
-      );
+      throw new Error(`Parser command failed: ${command}\nStderr: ${stderr?.slice(0, 500) ?? ""}`);
     }
     throw error;
   }
@@ -58,9 +55,7 @@ const runNpmParser = async (
   const hasParseStream = typeof mod.parseStream === "function";
 
   if (!hasParseFile && !hasParseStream) {
-    throw new Error(
-      `npm parser package "${pkg}" exports neither parseFile nor parseStream`
-    );
+    throw new Error(`npm parser package "${pkg}" exports neither parseFile nor parseStream`);
   }
 
   if (input.kind === "file") {
@@ -98,10 +93,7 @@ const runNpmParser = async (
   }
 };
 
-const runCommandFileParser = async (
-  command: string,
-  input: ParserInput,
-): Promise<Artifact[]> => {
+const runCommandFileParser = async (command: string, input: ParserInput): Promise<Artifact[]> => {
   let filePath: string;
   let tempFile: string | null = null;
 
@@ -125,10 +117,7 @@ const runCommandFileParser = async (
   }
 };
 
-const runCommandStdinParser = async (
-  command: string,
-  input: ParserInput,
-): Promise<Artifact[]> => {
+const runCommandStdinParser = async (command: string, input: ParserInput): Promise<Artifact[]> => {
   let buffer: Buffer;
 
   if (input.kind === "file") {

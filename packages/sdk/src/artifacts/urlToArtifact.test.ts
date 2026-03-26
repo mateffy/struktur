@@ -10,7 +10,7 @@ test("urlToArtifact fetches and builds artifact", async () => {
         type: "pdf",
         contents: [{ text: "hello" }],
       }),
-      { status: 200 }
+      { status: 200 },
     )) as unknown as typeof fetch;
 
   const artifact = await urlToArtifact("https://example.com/artifact");

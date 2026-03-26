@@ -25,9 +25,7 @@ try {
 
 if (tagExists) {
   console.error(`Error: Tag ${tag} already exists.`);
-  console.error(
-    "Did you forget to run 'bun run version:<patch|minor|major>' first?",
-  );
+  console.error("Did you forget to run 'bun run version:<patch|minor|major>' first?");
   process.exit(1);
 }
 
@@ -37,9 +35,7 @@ await $`bun install`;
 try {
   const status = await $`git status --porcelain`.quiet();
   if (status.stdout.toString().trim()) {
-    console.error(
-      "Error: You have uncommitted changes. Please commit or stash them first.",
-    );
+    console.error("Error: You have uncommitted changes. Please commit or stash them first.");
     process.exit(1);
   }
 } catch {
@@ -52,9 +48,7 @@ try {
   await $`gh --version`.quiet();
   ghAvailable = true;
 } catch {
-  console.warn(
-    "Warning: GitHub CLI (gh) not found. Skipping GitHub release creation.",
-  );
+  console.warn("Warning: GitHub CLI (gh) not found. Skipping GitHub release creation.");
 }
 
 // Create git tag
@@ -104,6 +98,4 @@ console.log(`\n✓ Successfully published version ${version}!`);
 console.log(`  - npm: @struktur/telemetry@${version}`);
 console.log(`  - npm: @struktur/sdk@${version}`);
 console.log(`  - npm: @struktur/cli@${version}`);
-console.log(
-  `  - GitHub: https://github.com/mateffy/struktur/releases/tag/${tag}`,
-);
+console.log(`  - GitHub: https://github.com/mateffy/struktur/releases/tag/${tag}`);

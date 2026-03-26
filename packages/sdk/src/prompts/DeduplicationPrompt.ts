@@ -1,7 +1,7 @@
 export const buildDeduplicationPrompt = (
   schema: string,
   data: unknown,
-  _exampleKeys: string[] = ["items.3", "items.5"]
+  _exampleKeys: string[] = ["items.3", "items.5"],
 ) => {
   const system = `You are a deduplication engine. Identify duplicate entries in structured data.
 

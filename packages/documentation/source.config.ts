@@ -1,7 +1,7 @@
-import { defineConfig, defineDocs } from 'fumadocs-mdx/config';
+import { defineConfig, defineDocs } from "fumadocs-mdx/config";
 
 export const docs = defineDocs({
-  dir: 'content/docs',
+  dir: "content/docs",
   docs: {
     postprocess: {
       includeProcessedMarkdown: true,
@@ -10,7 +10,7 @@ export const docs = defineDocs({
 });
 
 export const blog = defineDocs({
-  dir: 'content/blog',
+  dir: "content/blog",
   docs: {
     postprocess: {
       includeProcessedMarkdown: true,
@@ -19,7 +19,7 @@ export const blog = defineDocs({
 });
 
 export const compare = defineDocs({
-  dir: 'content/compare',
+  dir: "content/compare",
   docs: {
     postprocess: {
       includeProcessedMarkdown: true,

@@ -11,11 +11,18 @@ test("verify-artifact command validates artifact JSON", async () => {
   const inputPath = makeTempPath("artifact");
   await Bun.write(
     inputPath,
-    JSON.stringify({ id: "a1", type: "text", contents: [{ text: "hello" }] })
+    JSON.stringify({ id: "a1", type: "text", contents: [{ text: "hello" }] }),
   );
 
   const result = Bun.spawnSync({
-    cmd: [process.execPath, join(import.meta.dir, "cli.ts"), "utils", "verify-artifact", "--input", inputPath],
+    cmd: [
+      process.execPath,
+      join(import.meta.dir, "cli.ts"),
+      "utils",
+      "verify-artifact",
+      "--input",
+      inputPath,
+    ],
     stdout: "pipe",
     stderr: "pipe",
   });
@@ -48,9 +55,7 @@ const readHeader = (headers: unknown, name: string): string | null => {
     if (direct) {
       return direct;
     }
-    const lower = Object.entries(record).find(
-      ([key]) => key.toLowerCase() === name.toLowerCase(),
-    );
+    const lower = Object.entries(record).find(([key]) => key.toLowerCase() === name.toLowerCase());
     return lower ? lower[1] : null;
   }
   return null;

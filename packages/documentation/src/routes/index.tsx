@@ -1,6 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { LogoAnimation } from "@/components/LogoAnimation";
-import { Copy, FileText, AlignLeft, Image, Braces, Zap, Layers, CheckCircle, Code, FileImage } from "lucide-react";
+import {
+  Copy,
+  FileText,
+  AlignLeft,
+  Image,
+  Braces,
+  Zap,
+  Layers,
+  CheckCircle,
+  Code,
+  FileImage,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 export const Route = createFileRoute("/")({
@@ -12,7 +23,8 @@ export const Route = createFileRoute("/")({
       },
       {
         name: "description",
-        content: "All-in-one tool for structured data extraction. Turn documents into validated JSON with AI. CLI and SDK for TypeScript.",
+        content:
+          "All-in-one tool for structured data extraction. Turn documents into validated JSON with AI. CLI and SDK for TypeScript.",
       },
       {
         property: "og:title",
@@ -20,7 +32,8 @@ export const Route = createFileRoute("/")({
       },
       {
         property: "og:description",
-        content: "All-in-one tool for structured data extraction. Turn documents into validated JSON with AI.",
+        content:
+          "All-in-one tool for structured data extraction. Turn documents into validated JSON with AI.",
       },
       {
         property: "og:type",
@@ -44,16 +57,15 @@ export const Route = createFileRoute("/")({
       },
       {
         name: "twitter:description",
-        content: "All-in-one tool for structured data extraction. Turn documents into validated JSON with AI.",
+        content:
+          "All-in-one tool for structured data extraction. Turn documents into validated JSON with AI.",
       },
       {
         name: "twitter:image",
         content: "https://struktur.sh/og.webp",
       },
     ],
-    links: [
-      { rel: "canonical", href: "https://struktur.sh" },
-    ],
+    links: [{ rel: "canonical", href: "https://struktur.sh" }],
   }),
 });
 
@@ -248,8 +260,7 @@ const EXAMPLES: Example[] = [
         <div>{"{"}</div>
         <div style={{ paddingLeft: "20px" }}>
           <div>
-            <span style={{ color: "#7a5c3a" }}>"invoice_nr"</span>:{" "}
-            <span>"INV-123"</span>,
+            <span style={{ color: "#7a5c3a" }}>"invoice_nr"</span>: <span>"INV-123"</span>,
           </div>
           <div>
             <span style={{ color: "#7a5c3a" }}>"customer"</span>:{" "}
@@ -258,8 +269,7 @@ const EXAMPLES: Example[] = [
             <span style={{ color: "#bba88a" }}>{"}"}</span>,
           </div>
           <div>
-            <span style={{ color: "#7a5c3a" }}>"grand_total"</span>:{" "}
-            <span>1283.21</span>
+            <span style={{ color: "#7a5c3a" }}>"grand_total"</span>: <span>1283.21</span>
           </div>
         </div>
         <div>{"}"}</div>
@@ -267,15 +277,13 @@ const EXAMPLES: Example[] = [
     ),
   },
   {
-    command:
-      'struktur extract --input resume.pdf --fields "name:string,skills:array{string}"',
+    command: 'struktur extract --input resume.pdf --fields "name:string,skills:array{string}"',
     output: (
       <>
         <div>{"{"}</div>
         <div style={{ paddingLeft: "20px" }}>
           <div>
-            <span style={{ color: "#7a5c3a" }}>"name"</span>:{" "}
-            <span>"Jane Smith"</span>,
+            <span style={{ color: "#7a5c3a" }}>"name"</span>: <span>"Jane Smith"</span>,
           </div>
           <div>
             <span style={{ color: "#7a5c3a" }}>"skills"</span>:{" "}
@@ -293,12 +301,10 @@ const EXAMPLES: Example[] = [
         <div>{"{"}</div>
         <div style={{ paddingLeft: "20px" }}>
           <div>
-            <span style={{ color: "#7a5c3a" }}>"title"</span>:{" "}
-            <span>"Wireless Headphones"</span>,
+            <span style={{ color: "#7a5c3a" }}>"title"</span>: <span>"Wireless Headphones"</span>,
           </div>
           <div>
-            <span style={{ color: "#7a5c3a" }}>"price"</span>:{" "}
-            <span>299.99</span>,
+            <span style={{ color: "#7a5c3a" }}>"price"</span>: <span>299.99</span>,
           </div>
           <div>
             <span style={{ color: "#7a5c3a" }}>"in_stock"</span>:{" "}
@@ -341,12 +347,10 @@ const EXAMPLES: Example[] = [
             <span>["Acme Corp", "Beta Ltd"]</span>,
           </div>
           <div>
-            <span style={{ color: "#7a5c3a" }}>"start_date"</span>:{" "}
-            <span>"2026-01-15"</span>,
+            <span style={{ color: "#7a5c3a" }}>"start_date"</span>: <span>"2026-01-15"</span>,
           </div>
           <div>
-            <span style={{ color: "#7a5c3a" }}>"value"</span>:{" "}
-            <span>48000</span>
+            <span style={{ color: "#7a5c3a" }}>"value"</span>: <span>48000</span>
           </div>
         </div>
         <div>{"}"}</div>
@@ -472,9 +476,10 @@ function TerminalDemo() {
                 marginLeft: "1px",
                 marginBottom: "1px",
                 verticalAlign: "text-bottom",
-                animation: phase === "typing"
-                  ? "terminal-cursor-solid 0.05s step-end infinite"
-                  : "terminal-cursor-blink 1.2s step-end infinite",
+                animation:
+                  phase === "typing"
+                    ? "terminal-cursor-solid 0.05s step-end infinite"
+                    : "terminal-cursor-blink 1.2s step-end infinite",
               }}
             />
           )}
@@ -553,12 +558,8 @@ function Home() {
               fontFamily: "Inter, sans-serif",
               fontWeight: 500,
             }}
-            onMouseOver={(e) =>
-              ((e.target as HTMLAnchorElement).style.color = "#2d1b0e")
-            }
-            onMouseOut={(e) =>
-              ((e.target as HTMLAnchorElement).style.color = "#7a5c3a")
-            }
+            onMouseOver={(e) => ((e.target as HTMLAnchorElement).style.color = "#2d1b0e")}
+            onMouseOut={(e) => ((e.target as HTMLAnchorElement).style.color = "#7a5c3a")}
           >
             {link.label}
           </a>
@@ -574,10 +575,7 @@ function Home() {
             paddingBottom: "80px",
           }}
         >
-          <LogoAnimation
-            size={200}
-            className="hero-image"
-          />
+          <LogoAnimation size={200} className="hero-image" />
           <div style={{ paddingTop: "8px" }} className="w-full">
             <div
               style={{
@@ -659,10 +657,7 @@ function Home() {
             Installation & Quickstart
           </h2>
           <Card>
-            <CommandRow
-              label="Install globally"
-              command="npm install -g @struktur/cli"
-            />
+            <CommandRow label="Install globally" command="npm install -g @struktur/cli" />
             <CommandRow
               label="Store your API key and set a default model in one step"
               command='struktur config providers add openai --token "sk-..." --default'
@@ -721,7 +716,7 @@ function Home() {
           <div className="feature-grid-1-1">
             <FeatureCard
               label="Built-in file parsing"
-              description="Pass a PDF, image, or text file — Struktur makes it LLM-ready before extraction, including embedded images and full-page &quot;screenshots&quot;. Add your own parser easily."
+              description='Pass a PDF, image, or text file — Struktur makes it LLM-ready before extraction, including embedded images and full-page "screenshots". Add your own parser easily.'
               icon={<FileText size={20} />}
             />
             <FeatureCard
@@ -774,10 +769,7 @@ function Home() {
                 { step: "Extract", sub: "Your chosen strategy", arrow: "→" },
                 { step: "Structured Data", sub: "JSON in your schema", arrow: null },
               ].map(({ step, sub, arrow }) => (
-                <div
-                  key={step}
-                  style={{ display: "flex", alignItems: "center", gap: "12px" }}
-                >
+                <div key={step} style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                   <div
                     style={{
                       backgroundColor: "#e5dccf",
@@ -841,9 +833,8 @@ function Home() {
               >
                 Artifact format
               </a>
-              , which is then given to the extraction strategy
-              you picked. Here the data is chunked and given to the LLM, which
-              extracts data in your schema and automatically retries on
+              , which is then given to the extraction strategy you picked. Here the data is chunked
+              and given to the LLM, which extracts data in your schema and automatically retries on
               validation errors.
             </p>
             <a
@@ -885,10 +876,9 @@ function Home() {
                 fontFamily: "Inter, sans-serif",
               }}
             >
-              Struktur's parser layer converts files into Artifacts before
-              extraction. PDF, plain text, and images work out of the box.
-              Register custom parsers for any MIME type using an npm package or
-              a shell command.
+              Struktur's parser layer converts files into Artifacts before extraction. PDF, plain
+              text, and images work out of the box. Register custom parsers for any MIME type using
+              an npm package or a shell command.
             </p>
 
             {/* Built-in vs custom split */}
@@ -914,10 +904,22 @@ function Home() {
                   Built-in Parsers
                 </div>
                 {[
-                  { mime: "application/pdf", note: "text + images per page", icon: <FileText size={13} /> },
-                  { mime: "text/*", note: "split into content slices", icon: <AlignLeft size={13} /> },
+                  {
+                    mime: "application/pdf",
+                    note: "text + images per page",
+                    icon: <FileText size={13} />,
+                  },
+                  {
+                    mime: "text/*",
+                    note: "split into content slices",
+                    icon: <AlignLeft size={13} />,
+                  },
                   { mime: "image/*", note: "passed as media artifact", icon: <Image size={13} /> },
-                  { mime: "application/json", note: "treated as text unless it's valid Artifact data", icon: <Braces size={13} /> },
+                  {
+                    mime: "application/json",
+                    note: "treated as text unless it's valid Artifact data",
+                    icon: <Braces size={13} />,
+                  },
                 ].map(({ mime, note, icon }) => (
                   <div
                     key={mime}
@@ -1018,8 +1020,7 @@ function Home() {
                     </div>
                     <div
                       style={{
-                        fontFamily:
-                          "ui-monospace, SFMono-Regular, Menlo, monospace",
+                        fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
                         fontSize: "11px",
                         color: "#3d2b15",
                       }}
@@ -1043,15 +1044,23 @@ function Home() {
                 marginBottom: "16px",
               }}
             >
-              <div style={{ color: "#a0926f", fontSize: "11px", marginBottom: "6px", fontFamily: "Inter, sans-serif" }}>Register a Word document parser</div>
+              <div
+                style={{
+                  color: "#a0926f",
+                  fontSize: "11px",
+                  marginBottom: "6px",
+                  fontFamily: "Inter, sans-serif",
+                }}
+              >
+                Register a Word document parser
+              </div>
               <div>
-                <span style={{ color: "#a0926f" }}>$</span>{" "}
-                struktur config parsers add \
+                <span style={{ color: "#a0926f" }}>$</span> struktur config parsers add \
               </div>
+              <div style={{ paddingLeft: "16px" }}>--mime application/msword \</div>
               <div style={{ paddingLeft: "16px" }}>
-                --mime application/msword \
+                --file-command <span style={{ color: "#7a5c3a" }}>"markitdown FILE_PATH"</span>
               </div>
-              <div style={{ paddingLeft: "16px" }}>--file-command <span style={{ color: "#7a5c3a" }}>"markitdown FILE_PATH"</span></div>
             </div>
 
             <a
@@ -1084,10 +1093,7 @@ function Home() {
             Integrate into your application using the TypeScript SDK
           </h2>
           <Card>
-            <CommandRow
-              label="Install the SDK"
-              command="npm install @struktur/sdk"
-            />
+            <CommandRow label="Install the SDK" command="npm install @struktur/sdk" />
             <div
               style={{
                 fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
@@ -1101,14 +1107,12 @@ function Home() {
               }}
             >
               <div>
-                <span style={{ color: "#a0926f" }}>import</span>{" "}
-                {"{ extract, simple, parse }"}{" "}
+                <span style={{ color: "#a0926f" }}>import</span> {"{ extract, simple, parse }"}{" "}
                 <span style={{ color: "#a0926f" }}>from</span>{" "}
                 <span style={{ color: "#7a5c3a" }}>'@struktur/sdk'</span>;
               </div>
               <div>
-                <span style={{ color: "#a0926f" }}>import</span>{" "}
-                {"{ openai }"}{" "}
+                <span style={{ color: "#a0926f" }}>import</span> {"{ openai }"}{" "}
                 <span style={{ color: "#a0926f" }}>from</span>{" "}
                 <span style={{ color: "#7a5c3a" }}>'@ai-sdk/openai'</span>;
               </div>
@@ -1121,7 +1125,11 @@ function Home() {
                 <span style={{ fontWeight: 600 }}>parse(</span>
               </div>
               <div style={{ paddingLeft: "16px" }}>
-                {"{ kind: "}<span style={{ color: "#7a5c3a" }}>'buffer'</span>{", buffer, mimeType: "}<span style={{ color: "#7a5c3a" }}>'application/pdf'</span>{" },"}
+                {"{ kind: "}
+                <span style={{ color: "#7a5c3a" }}>'buffer'</span>
+                {", buffer, mimeType: "}
+                <span style={{ color: "#7a5c3a" }}>'application/pdf'</span>
+                {" },"}
               </div>
               <div style={{ paddingLeft: "16px" }}>{"{ includeImages: true }"}</div>
               <div>
@@ -1137,32 +1145,28 @@ function Home() {
                 {"{"}
               </div>
               <div style={{ paddingLeft: "16px" }}>artifacts,</div>
-              <div style={{ paddingLeft: "16px" }}>
-                schema: {"{"}
-              </div>
+              <div style={{ paddingLeft: "16px" }}>schema: {"{"}</div>
               <div style={{ paddingLeft: "32px" }}>
                 <span style={{ color: "#7a5c3a" }}>type</span>:{" "}
                 <span style={{ color: "#7a5c3a" }}>'object'</span>,
               </div>
               <div style={{ paddingLeft: "32px" }}>
-                properties: {"{"}{" "}
-                invoice_nr: {"{ "} <span style={{ color: "#7a5c3a" }}>type</span>:{" "}
-                <span style={{ color: "#7a5c3a" }}>'string'</span> {" }"},{" "}
-                total: {"{ "} <span style={{ color: "#7a5c3a" }}>type</span>:{" "}
-                <span style={{ color: "#7a5c3a" }}>'number'</span> {" }"}{" "}
-                {"}"}
+                properties: {"{"} invoice_nr: {"{ "} <span style={{ color: "#7a5c3a" }}>type</span>:{" "}
+                <span style={{ color: "#7a5c3a" }}>'string'</span> {" }"}, total: {"{ "}{" "}
+                <span style={{ color: "#7a5c3a" }}>type</span>:{" "}
+                <span style={{ color: "#7a5c3a" }}>'number'</span> {" }"} {"}"}
               </div>
               <div style={{ paddingLeft: "16px" }}>{"}"},</div>
               <div style={{ paddingLeft: "16px" }}>
-                strategy:{" "}
-                <span style={{ fontWeight: 600 }}>simple(</span>
+                strategy: <span style={{ fontWeight: 600 }}>simple(</span>
                 {"{ model: openai("}
                 <span style={{ color: "#7a5c3a" }}>'gpt-4o-mini'</span>
                 {") }"}
                 <span style={{ fontWeight: 600 }}>)</span>,
               </div>
               <div>
-                {"}"}<span style={{ fontWeight: 600 }}>)</span>;
+                {"}"}
+                <span style={{ fontWeight: 600 }}>)</span>;
               </div>
               <div style={{ marginTop: "8px", color: "#a0926f" }}>
                 {"// result.data is fully typed from your schema"}
@@ -1215,10 +1219,7 @@ function Home() {
                   Quickstart
                 </h3>
                 <div style={{ marginBottom: "20px" }}>
-                  <CommandRow
-                    label="Install globally"
-                    command="npm install -g @struktur/cli"
-                  />
+                  <CommandRow label="Install globally" command="npm install -g @struktur/cli" />
                   <CommandRow
                     label="Extract data from any file"
                     command='struktur --input invoice.pdf --fields "total:number"'
@@ -1260,7 +1261,8 @@ function Home() {
                     lineHeight: 1.6,
                   }}
                 >
-                  Explore extraction strategies, parser configuration, SDK integration, and advanced features.
+                  Explore extraction strategies, parser configuration, SDK integration, and advanced
+                  features.
                 </p>
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                   <a
@@ -1339,14 +1341,28 @@ function Home() {
 
           <div className="opacity-80">
             <a href="https://smollaunch.com" target="_blank" rel="noopener">
-              <img src="https://smollaunch.com/badges/featured.svg" alt="Featured on Smol Launch" loading="lazy" width="250" height="60" />
+              <img
+                src="https://smollaunch.com/badges/featured.svg"
+                alt="Featured on Smol Launch"
+                loading="lazy"
+                width="250"
+                height="60"
+              />
             </a>
-            <a href="https://ufind.best/products/struktur?utm_source=ufind.best" target="_blank" rel="noopener"><img src="https://ufind.best/badges/ufind-best-badge-light.svg" alt="Featured on ufind.best" width="150" /></a>
+            <a
+              href="https://ufind.best/products/struktur?utm_source=ufind.best"
+              target="_blank"
+              rel="noopener"
+            >
+              <img
+                src="https://ufind.best/badges/ufind-best-badge-light.svg"
+                alt="Featured on ufind.best"
+                width="150"
+              />
+            </a>
           </div>
         </div>
-        <nav
-          className="footer-nav"
-        >
+        <nav className="footer-nav">
           {[
             { label: "Documentation", href: "/docs" },
             { label: "Blog", href: "/blog" },
@@ -1371,7 +1387,6 @@ function Home() {
               {link.label}
             </a>
           ))}
-
         </nav>
       </footer>
     </div>

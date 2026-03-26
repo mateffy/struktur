@@ -21,7 +21,7 @@ const makeArtifact = (id: string, text: string): Artifact => ({
 });
 
 test("serializeSchema returns JSON", () => {
-  expect(serializeSchema({ ok: true })).toBe("{\"ok\":true}");
+  expect(serializeSchema({ ok: true })).toBe('{"ok":true}');
 });
 
 test("mergeUsage sums token usage", () => {

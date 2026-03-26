@@ -20,8 +20,8 @@ export const createDebugLogger = (enabled: boolean) => {
       log({ type: "schema_loaded", ...data });
     },
 
-    artifactsLoaded: (data: { 
-      count: number; 
+    artifactsLoaded: (data: {
+      count: number;
       artifacts: Array<{ id: string; type: string; contentCount: number; tokens?: number }>;
       totalTokens: number;
       totalImages: number;
@@ -38,9 +38,9 @@ export const createDebugLogger = (enabled: boolean) => {
     },
 
     // Chunking
-    chunkingStart: (data: { 
-      artifactId: string; 
-      totalTokens: number; 
+    chunkingStart: (data: {
+      artifactId: string;
+      totalTokens: number;
       maxTokens: number;
       maxImages?: number;
     }) => {
@@ -58,11 +58,7 @@ export const createDebugLogger = (enabled: boolean) => {
       log({ type: "chunking_split", ...data });
     },
 
-    chunkingResult: (data: {
-      artifactId: string;
-      chunksCreated: number;
-      chunkSizes: number[];
-    }) => {
+    chunkingResult: (data: { artifactId: string; chunksCreated: number; chunkSizes: number[] }) => {
       log({ type: "chunking_result", ...data });
     },
 
@@ -94,7 +90,11 @@ export const createDebugLogger = (enabled: boolean) => {
     },
 
     // Strategy execution
-    strategyRunStart: (data: { strategy: string; estimatedSteps: number; artifactCount: number }) => {
+    strategyRunStart: (data: {
+      strategy: string;
+      estimatedSteps: number;
+      artifactCount: number;
+    }) => {
       log({ type: "strategy_run_start", ...data });
     },
 
@@ -136,7 +136,12 @@ export const createDebugLogger = (enabled: boolean) => {
     },
 
     // Validation
-    validationStart: (data: { callId: string; attempt: number; maxAttempts: number; strict: boolean }) => {
+    validationStart: (data: {
+      callId: string;
+      attempt: number;
+      maxAttempts: number;
+      strict: boolean;
+    }) => {
       log({ type: "validation_start", ...data });
     },
 

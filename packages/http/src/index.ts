@@ -47,169 +47,191 @@ const env: Env = {
 // Zod Schemas
 // ============================================================================
 
-const MediaSchema = z.object({
-  type: z.literal("image"),
-  url: z.string().optional(),
-  base64: z.string().optional(),
-  text: z.string().optional(),
-  width: z.number().optional(),
-  height: z.number().optional(),
-  imageType: z.string().optional(),
-}).openapi("Media", {
-  description: "Media object representing an image",
-  example: {
-    type: "image",
-    url: "https://example.com/image.png",
-    width: 800,
-    height: 600,
-  },
-});
-
-const ArtifactContentSchema = z.object({
-  page: z.number().optional(),
-  text: z.string().optional(),
-  media: z.array(MediaSchema).optional(),
-}).openapi("ArtifactContent", {
-  description: "Content of an artifact",
-  example: {
-    page: 1,
-    text: "Content text here...",
-  },
-});
-
-const ArtifactSchema = z.object({
-  id: z.string(),
-  type: z.string(),
-  contents: z.array(ArtifactContentSchema),
-  metadata: z.record(z.unknown()).optional(),
-}).openapi("Artifact", {
-  description: "An artifact containing parsed content",
-  example: {
-    id: "art-123",
-    type: "text",
-    contents: [{ text: "Hello world" }],
-    metadata: { filename: "document.txt" },
-  },
-});
-
-const ArtifactsResponseSchema = z.object({
-  artifacts: z.array(ArtifactSchema),
-}).openapi("ArtifactsResponse", {
-  description: "Response containing parsed artifacts",
-  example: {
-    artifacts: [
-      {
-        id: "art-123",
-        type: "text",
-        contents: [{ text: "Hello world" }],
-      },
-    ],
-  },
-});
-
-const ParseRequestSchema = z.object({
-  file: z.instanceof(File),
-  images: z.enum(["true", "false"]).optional(),
-  screenshots: z.enum(["true", "false"]).optional(),
-  screenshotScale: z.string().optional(),
-  screenshotWidth: z.string().optional(),
-}).openapi("ParseRequest", {
-  description: "Request to parse a file into artifacts",
-});
-
-const ExtractRequestSchema = z.object({
-  artifacts: z.array(ArtifactSchema).optional(),
-  schema: z.record(z.unknown()).optional(),
-  fields: z.string().optional(),
-  model: z.string(),
-  strategy: z.enum([
-    "simple",
-    "parallel",
-    "sequential",
-    "parallelAutoMerge",
-    "sequentialAutoMerge",
-    "doublePass",
-    "doublePassAutoMerge",
-    "agent",
-  ]).optional(),
-  chunkSize: z.number().optional(),
-  maxSteps: z.number().optional(),
-  strict: z.boolean().optional(),
-}).openapi("ExtractRequest", {
-  description: "Request to extract structured data from artifacts",
-  example: {
-    artifacts: [
-      {
-        id: "art-1",
-        type: "text",
-        contents: [{ text: "John Doe works at Acme Corp" }],
-      },
-    ],
-    schema: {
-      type: "object",
-      properties: {
-        name: { type: "string" },
-        company: { type: "string" },
-      },
+const MediaSchema = z
+  .object({
+    type: z.literal("image"),
+    url: z.string().optional(),
+    base64: z.string().optional(),
+    text: z.string().optional(),
+    width: z.number().optional(),
+    height: z.number().optional(),
+    imageType: z.string().optional(),
+  })
+  .openapi("Media", {
+    description: "Media object representing an image",
+    example: {
+      type: "image",
+      url: "https://example.com/image.png",
+      width: 800,
+      height: 600,
     },
-    model: "openai/gpt-4",
-    strategy: "simple",
-  },
-});
+  });
 
-const UsageSchema = z.object({
-  inputTokens: z.number(),
-  outputTokens: z.number(),
-  totalTokens: z.number(),
-}).openapi("Usage", {
-  description: "Token usage information",
-  example: {
-    inputTokens: 100,
-    outputTokens: 50,
-    totalTokens: 150,
-  },
-});
+const ArtifactContentSchema = z
+  .object({
+    page: z.number().optional(),
+    text: z.string().optional(),
+    media: z.array(MediaSchema).optional(),
+  })
+  .openapi("ArtifactContent", {
+    description: "Content of an artifact",
+    example: {
+      page: 1,
+      text: "Content text here...",
+    },
+  });
 
-const ExtractResponseSchema = z.object({
-  data: z.unknown(),
-  usage: UsageSchema,
-  error: z.string().optional(),
-}).openapi("ExtractResponse", {
-  description: "Extraction result",
-  example: {
-    data: { name: "John Doe", company: "Acme Corp" },
-    usage: {
+const ArtifactSchema = z
+  .object({
+    id: z.string(),
+    type: z.string(),
+    contents: z.array(ArtifactContentSchema),
+    metadata: z.record(z.unknown()).optional(),
+  })
+  .openapi("Artifact", {
+    description: "An artifact containing parsed content",
+    example: {
+      id: "art-123",
+      type: "text",
+      contents: [{ text: "Hello world" }],
+      metadata: { filename: "document.txt" },
+    },
+  });
+
+const ArtifactsResponseSchema = z
+  .object({
+    artifacts: z.array(ArtifactSchema),
+  })
+  .openapi("ArtifactsResponse", {
+    description: "Response containing parsed artifacts",
+    example: {
+      artifacts: [
+        {
+          id: "art-123",
+          type: "text",
+          contents: [{ text: "Hello world" }],
+        },
+      ],
+    },
+  });
+
+const ParseRequestSchema = z
+  .object({
+    file: z.instanceof(File),
+    images: z.enum(["true", "false"]).optional(),
+    screenshots: z.enum(["true", "false"]).optional(),
+    screenshotScale: z.string().optional(),
+    screenshotWidth: z.string().optional(),
+  })
+  .openapi("ParseRequest", {
+    description: "Request to parse a file into artifacts",
+  });
+
+const ExtractRequestSchema = z
+  .object({
+    artifacts: z.array(ArtifactSchema).optional(),
+    schema: z.record(z.unknown()).optional(),
+    fields: z.string().optional(),
+    model: z.string(),
+    strategy: z
+      .enum([
+        "simple",
+        "parallel",
+        "sequential",
+        "parallelAutoMerge",
+        "sequentialAutoMerge",
+        "doublePass",
+        "doublePassAutoMerge",
+        "agent",
+      ])
+      .optional(),
+    chunkSize: z.number().optional(),
+    maxSteps: z.number().optional(),
+    strict: z.boolean().optional(),
+  })
+  .openapi("ExtractRequest", {
+    description: "Request to extract structured data from artifacts",
+    example: {
+      artifacts: [
+        {
+          id: "art-1",
+          type: "text",
+          contents: [{ text: "John Doe works at Acme Corp" }],
+        },
+      ],
+      schema: {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          company: { type: "string" },
+        },
+      },
+      model: "openai/gpt-4",
+      strategy: "simple",
+    },
+  });
+
+const UsageSchema = z
+  .object({
+    inputTokens: z.number(),
+    outputTokens: z.number(),
+    totalTokens: z.number(),
+  })
+  .openapi("Usage", {
+    description: "Token usage information",
+    example: {
       inputTokens: 100,
       outputTokens: 50,
       totalTokens: 150,
     },
-  },
-});
+  });
 
-const ErrorResponseSchema = z.object({
-  message: z.string(),
-}).openapi("ErrorResponse", {
-  description: "Error response",
-  example: {
-    message: "Invalid request",
-  },
-});
-
-const APIInfoSchema = z.object({
-  name: z.string(),
-  version: z.string(),
-  endpoints: z.record(z.string()),
-}).openapi("APIInfo", {
-  description: "API information",
-  example: {
-    name: "struktur-http",
-    version: "1.2.1",
-    endpoints: {
-      "POST /parse": "Parse uploaded files into artifact JSON",
-      "POST /extract": "Extract structured data from documents or artifact JSON",
+const ExtractResponseSchema = z
+  .object({
+    data: z.unknown(),
+    usage: UsageSchema,
+    error: z.string().optional(),
+  })
+  .openapi("ExtractResponse", {
+    description: "Extraction result",
+    example: {
+      data: { name: "John Doe", company: "Acme Corp" },
+      usage: {
+        inputTokens: 100,
+        outputTokens: 50,
+        totalTokens: 150,
+      },
     },
-  },
-});
+  });
+
+const ErrorResponseSchema = z
+  .object({
+    message: z.string(),
+  })
+  .openapi("ErrorResponse", {
+    description: "Error response",
+    example: {
+      message: "Invalid request",
+    },
+  });
+
+const APIInfoSchema = z
+  .object({
+    name: z.string(),
+    version: z.string(),
+    endpoints: z.record(z.string()),
+  })
+  .openapi("APIInfo", {
+    description: "API information",
+    example: {
+      name: "struktur-http",
+      version: "1.2.1",
+      endpoints: {
+        "POST /parse": "Parse uploaded files into artifact JSON",
+        "POST /extract": "Extract structured data from documents or artifact JSON",
+      },
+    },
+  });
 
 // ============================================================================
 // App Setup
@@ -232,7 +254,9 @@ const authMiddleware = async (c: any, next: () => Promise<void>) => {
 
   const [scheme, token] = authHeader.split(" ");
   if (scheme?.toLowerCase() !== "bearer" || !token) {
-    throw new HTTPException(401, { message: "Invalid Authorization header format. Use: Bearer <token>" });
+    throw new HTTPException(401, {
+      message: "Invalid Authorization header format. Use: Bearer <token>",
+    });
   }
 
   if (token !== apiKey) {
@@ -266,14 +290,17 @@ const indexRoute = createRoute({
 });
 
 app.openapi(indexRoute, (c) => {
-  return c.json({
-    name: "struktur-http",
-    version: "1.2.1",
-    endpoints: {
-      "POST /parse": "Parse uploaded files into artifact JSON",
-      "POST /extract": "Extract structured data from documents or artifact JSON",
+  return c.json(
+    {
+      name: "struktur-http",
+      version: "1.2.1",
+      endpoints: {
+        "POST /parse": "Parse uploaded files into artifact JSON",
+        "POST /extract": "Extract structured data from documents or artifact JSON",
+      },
     },
-  }, 200);
+    200,
+  );
 });
 
 // ============================================================================
@@ -326,24 +353,26 @@ const serializeArtifacts = (artifacts: Artifact[]): SerializedArtifact[] => {
   return artifacts.map((a) => ({
     id: a.id,
     type: a.type,
-    contents: a.contents.map((c): SerializedArtifactContent => ({
-      ...(c.page !== undefined ? { page: c.page } : {}),
-      ...(c.text !== undefined ? { text: c.text } : {}),
-      ...(c.media
-        ? {
-            media: c.media.map((m) => ({
-              type: "image" as const,
-              ...(m.url ? { url: m.url } : {}),
-              ...(m.base64 ? { base64: m.base64 } : {}),
-              ...(m.contents ? { base64: m.contents.toString("base64") } : {}),
-              ...(m.text ? { text: m.text } : {}),
-              ...(m.width !== undefined ? { width: m.width } : {}),
-              ...(m.height !== undefined ? { height: m.height } : {}),
-              ...(m.imageType ? { imageType: m.imageType } : {}),
-            })),
-          }
-        : {}),
-    })),
+    contents: a.contents.map(
+      (c): SerializedArtifactContent => ({
+        ...(c.page !== undefined ? { page: c.page } : {}),
+        ...(c.text !== undefined ? { text: c.text } : {}),
+        ...(c.media
+          ? {
+              media: c.media.map((m) => ({
+                type: "image" as const,
+                ...(m.url ? { url: m.url } : {}),
+                ...(m.base64 ? { base64: m.base64 } : {}),
+                ...(m.contents ? { base64: m.contents.toString("base64") } : {}),
+                ...(m.text ? { text: m.text } : {}),
+                ...(m.width !== undefined ? { width: m.width } : {}),
+                ...(m.height !== undefined ? { height: m.height } : {}),
+                ...(m.imageType ? { imageType: m.imageType } : {}),
+              })),
+            }
+          : {}),
+      }),
+    ),
     ...(a.metadata ? { metadata: a.metadata } : {}),
   }));
 };
@@ -361,11 +390,11 @@ app.openapi(parseRoute, async (c) => {
 
   const images = formData.get("images") === "true";
   const screenshots = formData.get("screenshots") === "true";
-  const screenshotScale = formData.get("screenshotScale") 
-    ? parseFloat(formData.get("screenshotScale") as string) 
+  const screenshotScale = formData.get("screenshotScale")
+    ? parseFloat(formData.get("screenshotScale") as string)
     : undefined;
-  const screenshotWidth = formData.get("screenshotWidth") 
-    ? parseInt(formData.get("screenshotWidth") as string, 10) 
+  const screenshotWidth = formData.get("screenshotWidth")
+    ? parseInt(formData.get("screenshotWidth") as string, 10)
     : undefined;
 
   try {
@@ -376,7 +405,7 @@ app.openapi(parseRoute, async (c) => {
         screenshots,
         screenshotScale,
         screenshotWidth,
-      }
+      },
     );
 
     const serialized = serializeArtifacts(artifacts);
@@ -438,7 +467,9 @@ const resolveModelForEnv = async (model: string) => {
   const modelName = rest.join("/");
 
   if (!provider || !modelName) {
-    throw new Error(`Invalid model format: ${model}. Expected format: provider/model (e.g., openai/gpt-4)`);
+    throw new Error(
+      `Invalid model format: ${model}. Expected format: provider/model (e.g., openai/gpt-4)`,
+    );
   }
 
   if (provider === "openai" && !process.env.OPENAI_API_KEY && env.OPENAI_API_KEY) {
@@ -463,7 +494,7 @@ const resolveModelForEnv = async (model: string) => {
 const createStrategy = (
   name: string,
   model: unknown,
-  options?: { chunkSize?: number; maxSteps?: number; modelSpec?: string }
+  options?: { chunkSize?: number; maxSteps?: number; modelSpec?: string },
 ): ExtractionStrategy<unknown> => {
   const chunkSize = options?.chunkSize ?? 10000;
 
@@ -497,7 +528,7 @@ const createStrategy = (
     }
     default:
       throw new Error(
-        `Unsupported strategy: ${name}. Available: simple, parallel, sequential, parallelAutoMerge, sequentialAutoMerge, doublePass, doublePassAutoMerge, agent`
+        `Unsupported strategy: ${name}. Available: simple, parallel, sequential, parallelAutoMerge, sequentialAutoMerge, doublePass, doublePassAutoMerge, agent`,
       );
   }
 };
@@ -536,11 +567,14 @@ app.openapi(extractJsonRoute, async (c) => {
       strict: body.strict,
     });
 
-    return c.json({
-      data: result.data,
-      usage: result.usage,
-      error: result.error?.message || undefined,
-    }, 200);
+    return c.json(
+      {
+        data: result.data,
+        usage: result.usage,
+        error: result.error?.message || undefined,
+      },
+      200,
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     throw new HTTPException(500, { message: `Extraction error: ${message}` });
@@ -553,7 +587,7 @@ app.openapi(extractJsonRoute, async (c) => {
 
 app.use("/extract", async (c, next) => {
   const contentType = c.req.header("Content-Type") || "";
-  
+
   if (contentType.includes("multipart/form-data")) {
     // Handle form data
     const formData = await c.req.formData();
@@ -586,7 +620,7 @@ app.use("/extract", async (c, next) => {
       try {
         const parsedArtifacts = await parse(
           { kind: "buffer", buffer, mimeType },
-          { includeImages: images, screenshots }
+          { includeImages: images, screenshots },
         );
         artifacts = serializeArtifacts(parsedArtifacts);
       } catch (error) {
@@ -633,11 +667,14 @@ app.use("/extract", async (c, next) => {
         strict,
       });
 
-      return c.json({
-        data: result.data,
-        usage: result.usage,
-        error: result.error?.message || undefined,
-      }, 200);
+      return c.json(
+        {
+          data: result.data,
+          usage: result.usage,
+          error: result.error?.message || undefined,
+        },
+        200,
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       throw new HTTPException(500, { message: `Extraction error: ${message}` });
@@ -656,7 +693,8 @@ app.doc("/openapi.json", {
   info: {
     title: "Struktur HTTP API",
     version: "1.2.1",
-    description: "HTTP API for running Struktur headlessly. Parse files into artifacts and extract structured data using LLMs.",
+    description:
+      "HTTP API for running Struktur headlessly. Parse files into artifacts and extract structured data using LLMs.",
   },
   servers: [
     {

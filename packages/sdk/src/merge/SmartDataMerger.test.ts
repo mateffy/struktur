@@ -11,10 +11,7 @@ test("SmartDataMerger concatenates arrays and preserves scalars", () => {
   };
 
   const merger = new SmartDataMerger(schema);
-  const result = merger.merge(
-    { items: [1], title: "A" },
-    { items: [2], title: "" }
-  );
+  const result = merger.merge({ items: [1], title: "A" }, { items: [2], title: "" });
 
   expect(result.items).toEqual([1, 2]);
   expect(result.title).toBe("A");
@@ -37,7 +34,7 @@ test("SmartDataMerger merges nested objects", () => {
   const merger = new SmartDataMerger(schema);
   const result = merger.merge(
     { user: { name: "Alice" } },
-    { user: { email: "alice@example.com" } }
+    { user: { email: "alice@example.com" } },
   );
 
   expect(result.user).toEqual({ name: "Alice", email: "alice@example.com" });
@@ -53,10 +50,7 @@ test("SmartDataMerger prefers new scalar values when not empty", () => {
   };
 
   const merger = new SmartDataMerger(schema);
-  const result = merger.merge(
-    { title: "Old", count: 1 },
-    { title: "New", count: 2 }
-  );
+  const result = merger.merge({ title: "Old", count: 1 }, { title: "New", count: 2 });
 
   expect(result.title).toBe("New");
   expect(result.count).toBe(2);
@@ -155,10 +149,7 @@ test("SmartDataMerger preserves properties not in schema", () => {
   };
 
   const merger = new SmartDataMerger(schema);
-  const result = merger.merge(
-    { title: "A", extra: "preserved" },
-    { title: "B" }
-  );
+  const result = merger.merge({ title: "A", extra: "preserved" }, { title: "B" });
 
   expect(result.title).toBe("B");
   expect(result.extra).toBe("preserved");

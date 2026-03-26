@@ -78,13 +78,13 @@ export async function parsePdf(
         scale?: number;
         desiredWidth?: number;
       } = { imageBuffer: false, imageDataUrl: true };
-      
+
       if (options.screenshotWidth !== undefined) {
         screenshotParams.desiredWidth = options.screenshotWidth;
       } else {
         screenshotParams.scale = options.screenshotScale ?? 1.5;
       }
-      
+
       screenshotResult = await parser.getScreenshot(screenshotParams);
     } catch {
       // Screenshot rendering is optional — continue without screenshots if it fails
@@ -139,10 +139,7 @@ export async function parsePdf(
 
   if (textResult.pages.length > 0) {
     // Collect all page numbers that have text or images
-    const allPageNums = new Set<number>([
-      ...pageTextMap.keys(),
-      ...pageImageMap.keys(),
-    ]);
+    const allPageNums = new Set<number>([...pageTextMap.keys(), ...pageImageMap.keys()]);
 
     contents = Array.from(allPageNums)
       .sort((a, b) => a - b)
@@ -158,9 +155,7 @@ export async function parsePdf(
     // Fallback: no per-page info — use full concatenated text
     const entry: ArtifactContent = { text: textResult.text };
     // Attach any images from the first page if available
-    const firstPageImages = pageImageMap.size > 0
-      ? pageImageMap.values().next().value
-      : undefined;
+    const firstPageImages = pageImageMap.size > 0 ? pageImageMap.values().next().value : undefined;
     if (firstPageImages) entry.media = firstPageImages;
     contents = [entry];
   }

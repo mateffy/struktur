@@ -14,7 +14,7 @@ const schema: JSONSchemaType<Output> = {
 test("runWithRetries emits onRetry event when retrying", async () => {
   let calls = 0;
   const retryEvents: Array<{ attempt: number; maxAttempts: number; reason?: string }> = [];
-  
+
   const result = await runWithRetries<Output>({
     model: {},
     schema,
@@ -76,7 +76,7 @@ test("runWithRetries retries on validation error", async () => {
 
 test("runWithRetries with strict=false retries on missing required fields until max attempts", async () => {
   let calls = 0;
-  
+
   await expect(
     runWithRetries<Output>({
       model: {},
@@ -92,15 +92,15 @@ test("runWithRetries with strict=false retries on missing required fields until 
           usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
         };
       },
-    })
+    }),
   ).rejects.toThrow();
-  
+
   expect(calls).toBe(2);
 });
 
 test("runWithRetries with strict=true validates required fields on every attempt", async () => {
   let calls = 0;
-  
+
   await expect(
     runWithRetries<Output>({
       model: {},
@@ -116,9 +116,9 @@ test("runWithRetries with strict=true validates required fields on every attempt
           usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
         };
       },
-    })
+    }),
   ).rejects.toThrow();
-  
+
   expect(calls).toBe(2);
 });
 
@@ -151,7 +151,7 @@ test("runWithRetries with strict=false still validates type errors", async () =>
 
 test("runWithRetries enforces strict validation on final attempt even with strict=false", async () => {
   let calls = 0;
-  
+
   await expect(
     runWithRetries<Output>({
       model: {},
@@ -167,8 +167,8 @@ test("runWithRetries enforces strict validation on final attempt even with stric
           usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
         };
       },
-    })
+    }),
   ).rejects.toThrow();
-  
+
   expect(calls).toBe(2);
 });

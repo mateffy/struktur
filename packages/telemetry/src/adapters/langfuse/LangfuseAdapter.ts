@@ -1,6 +1,6 @@
 /**
  * Langfuse telemetry adapter
- * 
+ *
  * Implements TelemetryAdapter for Langfuse using their OpenTelemetry SDK.
  */
 
@@ -118,9 +118,8 @@ export class LangfuseAdapter implements TelemetryAdapter {
 
       if (result.output !== undefined) {
         try {
-          const outputStr = typeof result.output === "string"
-            ? result.output
-            : JSON.stringify(result.output);
+          const outputStr =
+            typeof result.output === "string" ? result.output : JSON.stringify(result.output);
           otelSpan.setAttribute("output", outputStr);
         } catch {
           otelSpan.setAttribute("output", "[object]");
@@ -200,7 +199,7 @@ export class LangfuseAdapter implements TelemetryAdapter {
 
     if (event.output) {
       attrs.output = event.output.content;
-      
+
       if (event.output.usage) {
         attrs["usage.input"] = event.output.usage.input;
         attrs["usage.output"] = event.output.usage.output;
@@ -308,7 +307,7 @@ export class LangfuseAdapter implements TelemetryAdapter {
 
 /**
  * Create a Langfuse telemetry adapter
- * 
+ *
  * @param config - Langfuse configuration
  * @returns Langfuse telemetry adapter
  */

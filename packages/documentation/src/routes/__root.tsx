@@ -1,9 +1,4 @@
-import {
-  createRootRoute,
-  HeadContent,
-  Outlet,
-  Scripts,
-} from "@tanstack/react-router";
+import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
 import * as React from "react";
 import "@/styles/app.css";
 import { RootProvider } from "fumadocs-ui/provider/tanstack";
@@ -25,7 +20,8 @@ export const Route = createRootRoute({
       },
       {
         name: "description",
-        content: "All-in-one tool for structured data extraction. Turn documents into validated JSON with AI.",
+        content:
+          "All-in-one tool for structured data extraction. Turn documents into validated JSON with AI.",
       },
       {
         name: "google-site-verification",
@@ -37,7 +33,8 @@ export const Route = createRootRoute({
       },
       {
         property: "og:description",
-        content: "All-in-one tool for structured data extraction. Turn documents into validated JSON with AI.",
+        content:
+          "All-in-one tool for structured data extraction. Turn documents into validated JSON with AI.",
       },
       {
         property: "og:type",
@@ -61,16 +58,15 @@ export const Route = createRootRoute({
       },
       {
         name: "twitter:description",
-        content: "All-in-one tool for structured data extraction. Turn documents into validated JSON with AI.",
+        content:
+          "All-in-one tool for structured data extraction. Turn documents into validated JSON with AI.",
       },
       {
         name: "twitter:image",
         content: "https://struktur.sh/og.webp",
       },
     ],
-    links: [
-      { rel: "icon", type: "image/png", href: "/struktur-icon.png" },
-    ],
+    links: [{ rel: "icon", type: "image/png", href: "/struktur-icon.png" }],
   }),
   component: RootComponent,
 });
@@ -88,7 +84,8 @@ function RootDocument({ children }: { children: React.ReactNode }) {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     name: "Struktur",
-    description: "All-in-one tool for structured data extraction. Turn documents into validated JSON with AI.",
+    description:
+      "All-in-one tool for structured data extraction. Turn documents into validated JSON with AI.",
     applicationCategory: "DeveloperApplication",
     operatingSystem: "Any",
     offers: {
@@ -117,25 +114,29 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       name: "Lukas Mateffy",
       url: "https://mateffy.org",
     },
-    sameAs: [
-      "https://github.com/mateffy/struktur",
-    ],
+    sameAs: ["https://github.com/mateffy/struktur"],
   };
 
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
-        <script defer data-domain="struktur.sh" src="https://plausible.claw.events/js/script.file-downloads.hash.outbound-links.js" />
-        <script dangerouslySetInnerHTML={{
-          __html: `window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }`
-        }} />
-        <script 
-          type="application/ld+json" 
+        <script
+          defer
+          data-domain="struktur.sh"
+          src="https://plausible.claw.events/js/script.file-downloads.hash.outbound-links.js"
+        />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }`,
+          }}
+        />
+        <script
+          type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareSchema) }}
         />
-        <script 
-          type="application/ld+json" 
+        <script
+          type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
         />
       </head>

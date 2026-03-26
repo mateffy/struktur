@@ -1,35 +1,21 @@
-"use client"
+"use client";
 
-import { useEffect, useRef, useState } from "react"
-import { Card } from "@/components/ui/card"
-import { Tool, type ToolPart } from "@/components/ui/tool"
-import {
-  Message,
-} from "@/components/ui/message"
+import { useEffect, useRef, useState } from "react";
+import { Card } from "@/components/ui/card";
+import { Tool, type ToolPart } from "@/components/ui/tool";
+import { Message } from "@/components/ui/message";
 import {
   ChainOfThought,
   ChainOfThoughtStep,
   ChainOfThoughtTrigger,
   ChainOfThoughtContent,
   ChainOfThoughtItem,
-} from "@/components/ui/chain-of-thought"
-import {
-  Steps,
-  StepsItem,
-  StepsTrigger,
-  StepsContent,
-} from "@/components/ui/steps"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import {
-  ChevronDown,
-  Loader2,
-  Sparkles,
-  CheckCircle2,
-  Trash2,
-  Bot,
-} from "lucide-react"
-import { cn } from "@/lib/utils"
+} from "@/components/ui/chain-of-thought";
+import { Steps, StepsItem, StepsTrigger, StepsContent } from "@/components/ui/steps";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { ChevronDown, Loader2, Sparkles, CheckCircle2, Trash2, Bot } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 // Agent activity types
 export type AgentActivityType =
@@ -39,97 +25,86 @@ export type AgentActivityType =
   | "step"
   | "reasoning"
   | "complete"
-  | "error"
+  | "error";
 
 export type ToolActivity = {
-  id: string
-  type: "tool"
-  toolName: string
-  toolCallId: string
-  args: Record<string, unknown>
-  result?: Record<string, unknown>
-  error?: string
-  startTime: Date
-  endTime?: Date
-  state: "input-streaming" | "input-available" | "output-available" | "output-error"
-}
+  id: string;
+  type: "tool";
+  toolName: string;
+  toolCallId: string;
+  args: Record<string, unknown>;
+  result?: Record<string, unknown>;
+  error?: string;
+  startTime: Date;
+  endTime?: Date;
+  state: "input-streaming" | "input-available" | "output-available" | "output-error";
+};
 
 export type MessageActivity = {
-  id: string
-  type: "message"
-  content: string
-  timestamp: Date
-  isStreaming?: boolean
-}
+  id: string;
+  type: "message";
+  content: string;
+  timestamp: Date;
+  isStreaming?: boolean;
+};
 
 export type ReasoningActivity = {
-  id: string
-  type: "reasoning"
-  thought: string
-  timestamp: Date
-}
+  id: string;
+  type: "reasoning";
+  thought: string;
+  timestamp: Date;
+};
 
 export type StepActivity = {
-  id: string
-  type: "step"
-  label: string
-  step: number
-  total?: number
-  timestamp: Date
-}
+  id: string;
+  type: "step";
+  label: string;
+  step: number;
+  total?: number;
+  timestamp: Date;
+};
 
-export type AgentActivity =
-  | ToolActivity
-  | MessageActivity
-  | ReasoningActivity
-  | StepActivity
+export type AgentActivity = ToolActivity | MessageActivity | ReasoningActivity | StepActivity;
 
 export type AgentViewerProps = {
-  activities: AgentActivity[]
-  isRunning: boolean
-  onClear?: () => void
-  className?: string
-}
+  activities: AgentActivity[];
+  isRunning: boolean;
+  onClear?: () => void;
+  className?: string;
+};
 
-export function AgentViewer({
-  activities,
-  isRunning,
-  onClear,
-  className,
-}: AgentViewerProps) {
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const [shouldAutoScroll, setShouldAutoScroll] = useState(true)
+export function AgentViewer({ activities, isRunning, onClear, className }: AgentViewerProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
 
   // Auto-scroll to bottom when new activities arrive
   useEffect(() => {
     if (shouldAutoScroll && scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activities, shouldAutoScroll])
+  }, [activities, shouldAutoScroll]);
 
   // Handle scroll events to pause auto-scroll if user scrolls up
   const handleScroll = () => {
     if (scrollRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = scrollRef.current
-      const isAtBottom = scrollHeight - scrollTop - clientHeight < 50
-      setShouldAutoScroll(isAtBottom)
+      const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+      const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
+      setShouldAutoScroll(isAtBottom);
     }
-  }
+  };
 
   // Scroll to bottom button handler
   const scrollToBottom = () => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-      setShouldAutoScroll(true)
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      setShouldAutoScroll(true);
     }
-  }
+  };
 
   // Get current step
-  const stepActivities = activities.filter(
-    (a): a is StepActivity => a.type === "step"
-  )
-  const currentStep = stepActivities[stepActivities.length - 1]
+  const stepActivities = activities.filter((a): a is StepActivity => a.type === "step");
+  const currentStep = stepActivities[stepActivities.length - 1];
 
   // Convert ToolActivity to ToolPart
   const getToolPart = (activity: ToolActivity): ToolPart => {
@@ -140,8 +115,8 @@ export function AgentViewer({
       output: activity.result,
       toolCallId: activity.toolCallId,
       errorText: activity.error,
-    }
-  }
+    };
+  };
 
   return (
     <Card className={cn("flex flex-col h-full border-[#d4c8b8] bg-[#f5efe6]", className)}>
@@ -162,15 +137,9 @@ export function AgentViewer({
             )}
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-[#2d1b0e]">
-              Agent Activity
-            </h3>
+            <h3 className="text-sm font-semibold text-[#2d1b0e]">Agent Activity</h3>
             <p className="text-xs text-[#a0926f]">
-              {isRunning
-                ? "Processing..."
-                : activities.length > 0
-                ? "Complete"
-                : "Ready"}
+              {isRunning ? "Processing..." : activities.length > 0 ? "Complete" : "Ready"}
             </p>
           </div>
         </div>
@@ -212,26 +181,20 @@ export function AgentViewer({
       )}
 
       {/* Activity Stream */}
-      <div
-        className="flex-1 p-4 overflow-y-auto"
-        onScroll={handleScroll}
-        ref={scrollRef}
-      >
+      <div className="flex-1 p-4 overflow-y-auto" onScroll={handleScroll} ref={scrollRef}>
         <div className="space-y-4">
           {/* No Activities State */}
           {activities.length === 0 && !isRunning && (
             <div className="flex flex-col items-center justify-center h-full py-12 text-[#a0926f]">
               <Bot className="h-12 w-12 mb-3 opacity-50" />
               <p className="text-sm font-medium">No agent activity yet</p>
-              <p className="text-xs mt-1">
-                Start an extraction to see the agent in action
-              </p>
+              <p className="text-xs mt-1">Start an extraction to see the agent in action</p>
             </div>
           )}
 
           {/* Activities */}
           {activities.map((activity, index) => {
-            const isLast = index === activities.length - 1
+            const isLast = index === activities.length - 1;
 
             switch (activity.type) {
               case "message":
@@ -265,7 +228,7 @@ export function AgentViewer({
                       </div>
                     </div>
                   </Message>
-                )
+                );
 
               case "tool":
                 return (
@@ -276,13 +239,15 @@ export function AgentViewer({
                       className="border-[#d4c8b8] bg-[#ede5d8]"
                     />
                   </div>
-                )
+                );
 
               case "reasoning":
                 return (
                   <ChainOfThought key={activity.id} className="ml-11">
                     <ChainOfThoughtStep isLast={isLast}>
-                      <ChainOfThoughtTrigger leftIcon={<Sparkles className="h-3 w-3 text-[#7a5c3a]" />}>
+                      <ChainOfThoughtTrigger
+                        leftIcon={<Sparkles className="h-3 w-3 text-[#7a5c3a]" />}
+                      >
                         <span className="text-xs text-[#7a5c3a]">Reasoning</span>
                       </ChainOfThoughtTrigger>
                       <ChainOfThoughtContent>
@@ -292,7 +257,7 @@ export function AgentViewer({
                       </ChainOfThoughtContent>
                     </ChainOfThoughtStep>
                   </ChainOfThought>
-                )
+                );
 
               case "step":
                 return (
@@ -317,10 +282,10 @@ export function AgentViewer({
                       </StepsContent>
                     </StepsItem>
                   </Steps>
-                )
+                );
 
               default:
-                return null
+                return null;
             }
           })}
         </div>
@@ -341,78 +306,75 @@ export function AgentViewer({
         </div>
       )}
     </Card>
-  )
+  );
 }
 
 export type AgentActivityPayload =
   | {
-      type: "tool_start"
-      toolName: string
-      toolCallId: string
-      args: Record<string, unknown>
+      type: "tool_start";
+      toolName: string;
+      toolCallId: string;
+      args: Record<string, unknown>;
     }
   | {
-      type: "tool_end"
-      toolCallId: string
-      result?: Record<string, unknown>
-      error?: string
+      type: "tool_end";
+      toolCallId: string;
+      result?: Record<string, unknown>;
+      error?: string;
     }
   | {
-      type: "message_delta"
-      content: string
+      type: "message_delta";
+      content: string;
     }
   | {
-      type: "step"
-      label: string
-      step: number
-      total?: number
+      type: "step";
+      label: string;
+      step: number;
+      total?: number;
     }
   | {
-      type: "reasoning"
-      thought: string
+      type: "reasoning";
+      thought: string;
     }
   | {
-      type: "complete"
+      type: "complete";
     }
   | {
-      type: "error"
-      message: string
-    }
+      type: "error";
+      message: string;
+    };
 
 // Hook to manage agent activities
 export function useAgentActivities() {
-  const [activities, setActivities] = useState<AgentActivity[]>([])
-  const [isRunning, setIsRunning] = useState(false)
-  const currentMessageRef = useRef<string>("")
+  const [activities, setActivities] = useState<AgentActivity[]>([]);
+  const [isRunning, setIsRunning] = useState(false);
+  const currentMessageRef = useRef<string>("");
 
   const clearActivities = () => {
-    setActivities([])
-    currentMessageRef.current = ""
-  }
+    setActivities([]);
+    currentMessageRef.current = "";
+  };
 
   const startAgent = () => {
-    setIsRunning(true)
-    clearActivities()
-  }
+    setIsRunning(true);
+    clearActivities();
+  };
 
   const endAgent = () => {
-    setIsRunning(false)
+    setIsRunning(false);
     // Finalize any streaming message
     setActivities((prev) => {
-      const last = prev[prev.length - 1]
+      const last = prev[prev.length - 1];
       if (last?.type === "message" && last.isStreaming) {
-        return [
-          ...prev.slice(0, -1),
-          { ...last, isStreaming: false },
-        ]
+        return [...prev.slice(0, -1), { ...last, isStreaming: false }];
       }
-      return prev
-    })
-  }
+      return prev;
+    });
+  };
 
   const addActivity = (payload: AgentActivityPayload) => {
-    const id = crypto.randomUUID()
-    const timestamp = new Date()
+    const id = crypto.randomUUID();
+    const timestamp = new Date();
 
     switch (payload.type) {
       case "tool_start":
@@ -427,18 +389,17 @@ export function useAgentActivities() {
             startTime: timestamp,
             state: "input-available",
           },
-        ])
-        break
+        ]);
+        break;
 
       case "tool_end":
         setActivities((prev) => {
           const index = prev.findIndex(
-            (a): a is ToolActivity =>
-              a.type === "tool" && a.toolCallId === payload.toolCallId
-          )
-          if (index === -1) return prev
+            (a): a is ToolActivity => a.type === "tool" && a.toolCallId === payload.toolCallId,
+          );
+          if (index === -1) return prev;
 
-          const tool = prev[index] as ToolActivity
+          const tool = prev[index] as ToolActivity;
           return [
             ...prev.slice(0, index),
             {
@@ -449,19 +410,16 @@ export function useAgentActivities() {
               endTime: timestamp,
             },
             ...prev.slice(index + 1),
-          ]
-        })
-        break
+          ];
+        });
+        break;
 
       case "message_delta":
-        currentMessageRef.current += payload.content
+        currentMessageRef.current += payload.content;
         setActivities((prev) => {
-          const last = prev[prev.length - 1]
+          const last = prev[prev.length - 1];
           if (last?.type === "message" && last.isStreaming) {
-            return [
-              ...prev.slice(0, -1),
-              { ...last, content: currentMessageRef.current },
-            ]
+            return [...prev.slice(0, -1), { ...last, content: currentMessageRef.current }];
           }
           return [
             ...prev,
@@ -472,9 +430,9 @@ export function useAgentActivities() {
               timestamp,
               isStreaming: true,
             },
-          ]
-        })
-        break
+          ];
+        });
+        break;
 
       case "step":
         setActivities((prev) => [
@@ -487,8 +445,8 @@ export function useAgentActivities() {
             total: payload.total,
             timestamp,
           },
-        ])
-        break
+        ]);
+        break;
 
       case "reasoning":
         setActivities((prev) => [
@@ -499,12 +457,12 @@ export function useAgentActivities() {
             thought: payload.thought,
             timestamp,
           },
-        ])
-        break
+        ]);
+        break;
 
       case "complete":
-        endAgent()
-        break
+        endAgent();
+        break;
 
       case "error":
         setActivities((prev) => [
@@ -516,11 +474,11 @@ export function useAgentActivities() {
             timestamp,
             isStreaming: false,
           },
-        ])
-        endAgent()
-        break
+        ]);
+        endAgent();
+        break;
     }
-  }
+  };
 
   return {
     activities,
@@ -529,5 +487,5 @@ export function useAgentActivities() {
     startAgent,
     endAgent,
     addActivity,
-  }
+  };
 }

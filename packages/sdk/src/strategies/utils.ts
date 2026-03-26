@@ -15,7 +15,7 @@ export const mergeUsage = (usages: Usage[]) => {
       outputTokens: acc.outputTokens + usage.outputTokens,
       totalTokens: acc.totalTokens + usage.totalTokens,
     }),
-    { inputTokens: 0, outputTokens: 0, totalTokens: 0 }
+    { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
   );
 };
 
@@ -24,7 +24,14 @@ export const getBatches = (
   options: BatchOptions,
   debug?: DebugLogger,
   telemetry?: TelemetryAdapter,
-  parentSpan?: { id: string; traceId: string; name: string; kind: string; startTime: number; parentId?: string }
+  parentSpan?: {
+    id: string;
+    traceId: string;
+    name: string;
+    kind: string;
+    startTime: number;
+    parentId?: string;
+  },
 ) => {
   // Create chunking span if telemetry is enabled
   const chunkingSpan = telemetry?.startSpan({
@@ -37,9 +44,9 @@ export const getBatches = (
       "chunking.max_images": options.maxImages,
     },
   });
-  
+
   const batches = batchArtifacts(artifacts, { ...options, debug });
-  
+
   // Record chunking results
   if (chunkingSpan && telemetry) {
     batches.forEach((batch, index) => {
@@ -48,17 +55,19 @@ export const getBatches = (
         chunkIndex: index,
         totalChunks: batches.length,
         tokens: batch.reduce((sum, a) => sum + (a.tokens || 0), 0),
-        images: batch.reduce((sum, a) => 
-          sum + (a.contents?.flatMap((c) => c.media || []).length || 0), 0),
+        images: batch.reduce(
+          (sum, a) => sum + (a.contents?.flatMap((c) => c.media || []).length || 0),
+          0,
+        ),
       });
     });
-    
+
     telemetry.endSpan(chunkingSpan, {
       status: "ok",
       output: { batchCount: batches.length },
     });
   }
-  
+
   return batches;
 };
 
@@ -74,7 +83,14 @@ export const extractWithPrompt = async <T>(options: {
   debug?: DebugLogger;
   callId?: string;
   telemetry?: TelemetryAdapter;
-  parentSpan?: { id: string; traceId: string; name: string; kind: string; startTime: number; parentId?: string };
+  parentSpan?: {
+    id: string;
+    traceId: string;
+    name: string;
+    kind: string;
+    startTime: number;
+    parentId?: string;
+  };
 }) => {
   const userContent = buildUserContent(options.user, options.artifacts);
   const result = await runWithRetries<T>({

@@ -6,28 +6,28 @@
  * Set STRUKTUR_USE_GLOBAL_PROVIDERS=true to enable global provider keys
  */
 export function useGlobalProviders(): boolean {
-	const envValue = process.env.STRUKTUR_USE_GLOBAL_PROVIDERS;
-	return envValue === "true" || envValue === "1";
+  const envValue = process.env.STRUKTUR_USE_GLOBAL_PROVIDERS;
+  return envValue === "true" || envValue === "1";
 }
 
 /**
  * Get the environment variable name for a provider
  */
 export function getProviderEnvVar(provider: string): string | undefined {
-	switch (provider) {
-		case "openai":
-			return "OPENAI_API_KEY";
-		case "anthropic":
-			return "ANTHROPIC_API_KEY";
-		case "google":
-			return "GOOGLE_GENERATIVE_AI_API_KEY";
-		case "opencode":
-			return "OPENCODE_API_KEY";
-		case "openrouter":
-			return "OPENROUTER_API_KEY";
-		default:
-			return undefined;
-	}
+  switch (provider) {
+    case "openai":
+      return "OPENAI_API_KEY";
+    case "anthropic":
+      return "ANTHROPIC_API_KEY";
+    case "google":
+      return "GOOGLE_GENERATIVE_AI_API_KEY";
+    case "opencode":
+      return "OPENCODE_API_KEY";
+    case "openrouter":
+      return "OPENROUTER_API_KEY";
+    default:
+      return undefined;
+  }
 }
 
 /**
@@ -35,26 +35,26 @@ export function getProviderEnvVar(provider: string): string | undefined {
  * Only returns true if STRUKTUR_USE_GLOBAL_PROVIDERS is enabled
  */
 export function hasGlobalProviderKey(provider: string): boolean {
-	if (!useGlobalProviders()) {
-		return false;
-	}
+  if (!useGlobalProviders()) {
+    return false;
+  }
 
-	const envVar = getProviderEnvVar(provider);
-	if (!envVar) {
-		return false;
-	}
+  const envVar = getProviderEnvVar(provider);
+  if (!envVar) {
+    return false;
+  }
 
-	return !!process.env[envVar];
+  return !!process.env[envVar];
 }
 
 /**
  * Get available providers that have global keys configured
  */
 export function getAvailableGlobalProviders(): string[] {
-	if (!useGlobalProviders()) {
-		return [];
-	}
+  if (!useGlobalProviders()) {
+    return [];
+  }
 
-	const providers = ["openai", "anthropic", "google", "opencode", "openrouter"];
-	return providers.filter((p) => hasGlobalProviderKey(p));
+  const providers = ["openai", "anthropic", "google", "opencode", "openrouter"];
+  return providers.filter((p) => hasGlobalProviderKey(p));
 }

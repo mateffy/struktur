@@ -7,7 +7,8 @@ describe("Image Format Detection", () => {
   });
 
   test("detects PNG from base64 signature", () => {
-    const pngBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+    const pngBase64 =
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
     expect(pngBase64.startsWith("iVBOR")).toBe(true);
   });
 
@@ -32,19 +33,29 @@ describe("Image Format Detection", () => {
 describe("Artifact Name Sanitization", () => {
   test("replaces spaces with dashes", () => {
     const name = "My Document";
-    const sanitized = name.replace(/[^a-zA-Z0-9]/g, "-").replace(/-+/g, "-").toLowerCase();
+    const sanitized = name
+      .replace(/[^a-zA-Z0-9]/g, "-")
+      .replace(/-+/g, "-")
+      .toLowerCase();
     expect(sanitized).toBe("my-document");
   });
 
   test("removes special characters", () => {
     const name = "doc@file#1.pdf";
-    const sanitized = name.replace(/[^a-zA-Z0-9]/g, "-").replace(/-+/g, "-").toLowerCase();
+    const sanitized = name
+      .replace(/[^a-zA-Z0-9]/g, "-")
+      .replace(/-+/g, "-")
+      .toLowerCase();
     expect(sanitized).toBe("doc-file-1-pdf");
   });
 
   test("handles multiple dashes", () => {
     const name = "doc---file";
-    const sanitized = name.replace(/[^a-zA-Z0-9]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").toLowerCase();
+    const sanitized = name
+      .replace(/[^a-zA-Z0-9]/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "")
+      .toLowerCase();
     expect(sanitized).toBe("doc-file");
   });
 });

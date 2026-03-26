@@ -26,7 +26,7 @@ export class SimpleStrategy<T> implements ExtractionStrategy<T> {
   async run(options: ExtractionOptions<T>): Promise<ExtractionResult<T>> {
     const debug = options.debug;
     const telemetry = options.telemetry ?? undefined;
-    
+
     // Create strategy-level span
     const strategySpan = telemetry?.startSpan({
       name: "strategy.simple",
@@ -36,7 +36,7 @@ export class SimpleStrategy<T> implements ExtractionStrategy<T> {
         "strategy.artifacts.count": options.artifacts.length,
       },
     });
-    
+
     const schema = serializeSchema(options.schema);
     const { system, user } = buildExtractorPrompt(
       options.artifacts,

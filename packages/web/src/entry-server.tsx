@@ -1,7 +1,7 @@
 import {
-	createMemoryHistory,
-	createRouter as createTanStackRouter,
-	RouterProvider,
+  createMemoryHistory,
+  createRouter as createTanStackRouter,
+  RouterProvider,
 } from "@tanstack/react-router";
 import { renderToString } from "react-dom/server";
 import { getContext } from "./integrations/tanstack-query/root-provider";
@@ -9,26 +9,26 @@ import { routeTree } from "./routeTree.gen";
 import "./styles.css";
 
 export async function render(url: string) {
-	console.log("Rendering URL:", url);
+  console.log("Rendering URL:", url);
 
-	const router = createTanStackRouter({
-		routeTree,
-		history: createMemoryHistory({
-			initialEntries: [url],
-		}),
-		context: getContext(),
-		scrollRestoration: true,
-		defaultPreload: "intent",
-		defaultPreloadStaleTime: 0,
-	});
+  const router = createTanStackRouter({
+    routeTree,
+    history: createMemoryHistory({
+      initialEntries: [url],
+    }),
+    context: getContext(),
+    scrollRestoration: true,
+    defaultPreload: "intent",
+    defaultPreloadStaleTime: 0,
+  });
 
-	console.log("Router state before load:", router.state);
-	await router.load();
-	console.log("Router state after load:", router.state);
+  console.log("Router state before load:", router.state);
+  await router.load();
+  console.log("Router state after load:", router.state);
 
-	const html = renderToString(<RouterProvider router={router} />);
+  const html = renderToString(<RouterProvider router={router} />);
 
-	const head = "";
+  const head = "";
 
-	return { html, head };
+  return { html, head };
 }

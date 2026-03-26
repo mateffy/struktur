@@ -10,10 +10,7 @@ const makeArtifact = (id: string, text: string): Artifact => ({
 });
 
 test("batchArtifacts respects maxTokens", () => {
-  const artifacts = [
-    makeArtifact("a1", "abcdefgh"),
-    makeArtifact("a2", "abcdefgh"),
-  ];
+  const artifacts = [makeArtifact("a1", "abcdefgh"), makeArtifact("a2", "abcdefgh")];
 
   const batches = batchArtifacts(artifacts, { maxTokens: 2 });
   expect(batches.length).toBe(2);

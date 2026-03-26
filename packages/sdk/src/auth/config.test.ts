@@ -2,12 +2,7 @@ import { test, expect } from "bun:test";
 import path from "node:path";
 import os from "node:os";
 import { rm } from "node:fs/promises";
-import {
-  listParsers,
-  getParser,
-  setParser,
-  deleteParser,
-} from "./config";
+import { listParsers, getParser, setParser, deleteParser } from "./config";
 
 const makeTempDir = () => {
   const suffix = Math.random().toString(16).slice(2);
@@ -64,7 +59,7 @@ test("setParser rejects command-file without FILE_PATH placeholder", async () =>
 
   try {
     await expect(
-      setParser("application/pdf", { type: "command-file", command: "my-cmd --input" })
+      setParser("application/pdf", { type: "command-file", command: "my-cmd --input" }),
     ).rejects.toThrow("FILE_PATH");
   } finally {
     delete process.env.STRUKTUR_CONFIG_DIR;

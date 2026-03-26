@@ -3,9 +3,9 @@ import addFormats from "ajv-formats";
 
 export type ValidationErrors = ErrorObject[];
 
-export type ValidationMode = 'strict' | 'lenient';
+export type ValidationMode = "strict" | "lenient";
 
-export type ValidationResult<T> = 
+export type ValidationResult<T> =
   | { valid: true; data: T }
   | { valid: false; errors: ErrorObject[] };
 
@@ -28,22 +28,18 @@ export const createAjv = () => {
     allowUnionTypes: true,
   });
   addFormats(ajv);
-  
+
   ajv.addFormat("artifact-id", {
     type: "string",
     validate: (data: string) => ARTIFACT_ID_PATTERN.test(data),
   });
-  
+
   return ajv;
 };
 
 export type SchemaInput<T> = JSONSchemaType<T> | AnySchema;
 
-export const validateOrThrow = <T>(
-  ajv: Ajv,
-  schema: SchemaInput<T>,
-  data: unknown
-): T => {
+export const validateOrThrow = <T>(ajv: Ajv, schema: SchemaInput<T>, data: unknown): T => {
   const validate = ajv.compile<T>(schema);
   const valid = validate(data);
 
@@ -64,7 +60,7 @@ export const validateAllowingMissingRequired = <T>(
   ajv: Ajv,
   schema: SchemaInput<T>,
   data: unknown,
-  isFinalAttempt: boolean = true
+  isFinalAttempt: boolean = true,
 ): ValidationResult<T> => {
   const validate = ajv.compile<T>(schema);
   const valid = validate(data);

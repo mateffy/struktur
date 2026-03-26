@@ -2,18 +2,10 @@ import type { ExtractionResult, ExtractionStrategy } from "../types";
 import type { ExtractionOptions } from "../types";
 import { buildExtractorPrompt } from "../prompts/ExtractorPrompt";
 import { buildDeduplicationPrompt } from "../prompts/DeduplicationPrompt";
-import {
-  extractWithPrompt,
-  getBatches,
-  mergeUsage,
-  serializeSchema,
-} from "./utils";
+import { extractWithPrompt, getBatches, mergeUsage, serializeSchema } from "./utils";
 import { runConcurrently } from "./concurrency";
 import { SmartDataMerger } from "../merge/SmartDataMerger";
-import {
-  findExactDuplicatesWithHashing,
-  deduplicateByIndices,
-} from "../merge/Deduplicator";
+import { findExactDuplicatesWithHashing, deduplicateByIndices } from "../merge/Deduplicator";
 import { runWithRetries } from "../llm/RetryingRunner";
 
 export type ParallelAutoMergeStrategyConfig = {
@@ -84,7 +76,7 @@ export class ParallelAutoMergeStrategy<T> implements ExtractionStrategy<T> {
   async run(options: ExtractionOptions<T>): Promise<ExtractionResult<T>> {
     const debug = options.debug;
     const { telemetry } = options;
-    
+
     // Create strategy-level span
     const strategySpan = telemetry?.startSpan({
       name: "strategy.parallel-auto-merge",
@@ -96,7 +88,7 @@ export class ParallelAutoMergeStrategy<T> implements ExtractionStrategy<T> {
         "strategy.concurrency": this.config.concurrency,
       },
     });
-    
+
     const batches = getBatches(
       options.artifacts,
       {
@@ -113,11 +105,7 @@ export class ParallelAutoMergeStrategy<T> implements ExtractionStrategy<T> {
     let step = 1;
 
     const tasks = batches.map((batch, index) => async () => {
-      const prompt = buildExtractorPrompt(
-        batch,
-        schema,
-        this.config.outputInstructions,
-      );
+      const prompt = buildExtractorPrompt(batch, schema, this.config.outputInstructions);
       const result = await extractWithPrompt<T>({
         model: this.config.model,
         schema: options.schema,
@@ -147,14 +135,9 @@ export class ParallelAutoMergeStrategy<T> implements ExtractionStrategy<T> {
       return result;
     });
 
-    const results = await runConcurrently(
-      tasks,
-      this.config.concurrency ?? batches.length,
-    );
+    const results = await runConcurrently(tasks, this.config.concurrency ?? batches.length);
 
-    const merger = new SmartDataMerger(
-      options.schema as Record<string, unknown>,
-    );
+    const merger = new SmartDataMerger(options.schema as Record<string, unknown>);
     let merged = {} as Record<string, unknown>;
 
     debug?.mergeStart({
@@ -162,7 +145,7 @@ export class ParallelAutoMergeStrategy<T> implements ExtractionStrategy<T> {
       inputCount: results.length,
       strategy: this.name,
     });
-    
+
     // Create smart merge span
     const mergeSpan = telemetry?.startSpan({
       name: "struktur.smart_merge",
@@ -183,9 +166,7 @@ export class ParallelAutoMergeStrategy<T> implements ExtractionStrategy<T> {
         const leftArray = Array.isArray(merged[key])
           ? (merged[key] as unknown[]).length
           : undefined;
-        const rightArray = Array.isArray(
-          (result.data as Record<string, unknown>)[key],
-        )
+        const rightArray = Array.isArray((result.data as Record<string, unknown>)[key])
           ? ((result.data as Record<string, unknown>)[key] as unknown[]).length
           : undefined;
 
@@ -196,7 +177,7 @@ export class ParallelAutoMergeStrategy<T> implements ExtractionStrategy<T> {
           leftCount: leftArray,
           rightCount: rightArray,
         });
-        
+
         // Record merge event in telemetry
         if (mergeSpan && telemetry) {
           telemetry.recordEvent(mergeSpan, {
@@ -213,7 +194,7 @@ export class ParallelAutoMergeStrategy<T> implements ExtractionStrategy<T> {
       mergeId: "parallel_auto_smart_merge",
       success: true,
     });
-    
+
     // End merge span
     if (mergeSpan && telemetry) {
       telemetry.endSpan(mergeSpan, {
@@ -223,7 +204,7 @@ export class ParallelAutoMergeStrategy<T> implements ExtractionStrategy<T> {
     }
 
     merged = dedupeArrays(merged);
-    
+
     // Create exact dedupe span
     const exactDedupeSpan = telemetry?.startSpan({
       name: "struktur.exact_dedupe",
@@ -233,7 +214,7 @@ export class ParallelAutoMergeStrategy<T> implements ExtractionStrategy<T> {
         "dedupe.method": "exact_hashing",
       },
     });
-    
+
     // End exact dedupe span
     if (exactDedupeSpan && telemetry) {
       telemetry.recordEvent(exactDedupeSpan, {
@@ -254,7 +235,7 @@ export class ParallelAutoMergeStrategy<T> implements ExtractionStrategy<T> {
       dedupeId: "parallel_auto_dedupe",
       itemCount: Object.keys(merged).length,
     });
-    
+
     // Create LLM dedupe span
     const llmDedupeSpan = telemetry?.startSpan({
       name: "struktur.llm_dedupe",
@@ -302,7 +283,7 @@ export class ParallelAutoMergeStrategy<T> implements ExtractionStrategy<T> {
       duplicatesFound: dedupeResponse.data.keys.length,
       itemsRemoved: dedupeResponse.data.keys.length,
     });
-    
+
     // End LLM dedupe span
     if (llmDedupeSpan && telemetry) {
       telemetry.recordEvent(llmDedupeSpan, {
@@ -331,9 +312,7 @@ export class ParallelAutoMergeStrategy<T> implements ExtractionStrategy<T> {
   }
 }
 
-export const parallelAutoMerge = <T>(
-  config: ParallelAutoMergeStrategyConfig,
-) => {
+export const parallelAutoMerge = <T>(config: ParallelAutoMergeStrategyConfig) => {
   return new ParallelAutoMergeStrategy<T>(config);
 };
 

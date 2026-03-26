@@ -1,12 +1,7 @@
 import type { ExtractionResult, ExtractionStrategy } from "../types";
 import type { ExtractionOptions } from "../types";
 import { buildSequentialPrompt } from "../prompts/SequentialExtractorPrompt";
-import {
-  extractWithPrompt,
-  getBatches,
-  mergeUsage,
-  serializeSchema,
-} from "./utils";
+import { extractWithPrompt, getBatches, mergeUsage, serializeSchema } from "./utils";
 import { runWithRetries } from "../llm/RetryingRunner";
 
 export type SequentialStrategyConfig = {
@@ -37,7 +32,7 @@ export class SequentialStrategy<T> implements ExtractionStrategy<T> {
   async run(options: ExtractionOptions<T>): Promise<ExtractionResult<T>> {
     const debug = options.debug;
     const { telemetry } = options;
-    
+
     // Create strategy-level span
     const strategySpan = telemetry?.startSpan({
       name: "strategy.sequential",
@@ -48,7 +43,7 @@ export class SequentialStrategy<T> implements ExtractionStrategy<T> {
         "strategy.chunk_size": this.config.chunkSize,
       },
     });
-    
+
     const batches = getBatches(
       options.artifacts,
       {

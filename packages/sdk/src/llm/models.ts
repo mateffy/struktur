@@ -145,7 +145,14 @@ const cheapestModelPreferences: Record<string, string[]> = {
   openai: ["gpt-4.1-nano", "gpt-4.1-mini", "gpt-4o-mini", "gpt-4o"],
   anthropic: ["claude-3-5-haiku", "claude-3-haiku"],
   google: ["gemini-1.5-flash-8b", "gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"],
-  opencode: ["gpt-5-nano", "claude-haiku-3.5", "gemini-3-flash", "kimi-k2-free", "glm-5-free", "minimax-m2.5-free"],
+  opencode: [
+    "gpt-5-nano",
+    "claude-haiku-3.5",
+    "gemini-3-flash",
+    "kimi-k2-free",
+    "glm-5-free",
+    "minimax-m2.5-free",
+  ],
   openrouter: ["openai/gpt-4o-mini", "anthropic/claude-3.5-haiku", "google/gemini-flash-1.5"],
   ollama: ["llama3.2:1b", "llama3.2:3b", "phi3:mini", "gemma2:2b"],
 };

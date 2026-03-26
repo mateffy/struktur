@@ -1,9 +1,9 @@
 /**
  * Struktur Desktop App - Production Webview Entry
- * 
+ *
  * This file is only used in production builds.
  * In development, the app loads directly from http://localhost:3030
- * 
+ *
  * TODO: Replace this with the production build of @struktur/web
  */
 

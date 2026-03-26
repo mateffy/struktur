@@ -91,16 +91,14 @@ export type VirtualFilesystemResult = {
   getImageByPath: (path: string) => string | undefined;
 };
 
-export const createVirtualFilesystem = (
-  artifacts: Artifact[]
-): VirtualFilesystemResult => {
+export const createVirtualFilesystem = (artifacts: Artifact[]): VirtualFilesystemResult => {
   const virtualFiles = new Map<string, string>();
 
   // Transform artifacts, extracting base64 images to virtual files
   const transformedArtifacts: TransformedArtifact[] = artifacts.map((artifact) => {
     // Create a sanitized base name from artifact id
     const artifactName = sanitizeArtifactName(artifact.id);
-    
+
     return {
       id: artifact.id,
       type: artifact.type,
@@ -108,7 +106,7 @@ export const createVirtualFilesystem = (
       tokens: artifact.tokens,
       contents: artifact.contents.map((content: ArtifactContent, _contentIndex: number) => {
         const pageNumber = content.page;
-        
+
         return {
           page: content.page,
           text: content.text,
@@ -117,7 +115,7 @@ export const createVirtualFilesystem = (
             if (media.base64 && media.base64.length > 0) {
               // Detect image format from base64
               const extension = detectImageFormat(media.base64);
-              
+
               // Create descriptive filename
               let virtualPath: string;
               if (pageNumber !== undefined) {
@@ -127,10 +125,10 @@ export const createVirtualFilesystem = (
                 // No page number, just use artifact name and image index
                 virtualPath = `/images/${artifactName}-image-${mediaIndex}.${extension}`;
               }
-              
+
               // Store the base64 content in the virtual filesystem
               virtualFiles.set(virtualPath, media.base64);
-              
+
               return {
                 type: media.type,
                 url: media.url,
@@ -144,7 +142,7 @@ export const createVirtualFilesystem = (
                 originalBase64: `[BASE64: ${media.base64.length} chars]`, // For debugging
               };
             }
-            
+
             // No base64, just return the media as-is
             return {
               type: media.type,
@@ -199,10 +197,10 @@ export const createVirtualFilesystem = (
 
 // Legacy export for backward compatibility
 export const serializeArtifactsToFilesystem = (
-  artifacts: Artifact[]
-): { 
-  "/artifact.json": string; 
-  "/manifest.json": string 
+  artifacts: Artifact[],
+): {
+  "/artifact.json": string;
+  "/manifest.json": string;
 } => {
   const result = createVirtualFilesystem(artifacts);
   return {

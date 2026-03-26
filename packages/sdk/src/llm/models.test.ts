@@ -83,11 +83,7 @@ test("pickCheapestModel handles unknown provider", () => {
 
 test("parseOllamaModels returns model names", () => {
   const models = __testing__.parseOllamaModels({
-    models: [
-      { name: "llama3.2:3b" },
-      { name: "phi3:mini" },
-      { name: "gemma2:2b" },
-    ],
+    models: [{ name: "llama3.2:3b" }, { name: "phi3:mini" }, { name: "gemma2:2b" }],
   });
   expect(models).toEqual(["llama3.2:3b", "phi3:mini", "gemma2:2b"]);
 });

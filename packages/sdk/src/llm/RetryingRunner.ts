@@ -29,12 +29,19 @@ export type RetryOptions<T> = {
   /**
    * Parent span for creating hierarchical traces
    */
-  parentSpan?: { id: string; traceId: string; name: string; kind: string; startTime: number; parentId?: string };
+  parentSpan?: {
+    id: string;
+    traceId: string;
+    name: string;
+    kind: string;
+    startTime: number;
+    parentId?: string;
+  };
 };
 
 export const runWithRetries = async <T>(options: RetryOptions<T>) => {
   const { telemetry, parentSpan } = options;
-  
+
   // Start validation/retry span if telemetry is enabled
   const retrySpan = telemetry?.startSpan({
     name: "struktur.validation_retry",
@@ -50,9 +57,7 @@ export const runWithRetries = async <T>(options: RetryOptions<T>) => {
   const maxAttempts = options.maxAttempts ?? 3;
   const messages: ModelMessage[] = [{ role: "user", content: options.user }];
   const debug = options.debug;
-  const callId =
-    options.callId ??
-    `call_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+  const callId = options.callId ?? `call_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
 
   let usage: Usage = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
   let lastError: Error | undefined;
@@ -60,9 +65,7 @@ export const runWithRetries = async <T>(options: RetryOptions<T>) => {
   // Log LLM call start
   const systemLength = options.system.length;
   const userLength =
-    typeof options.user === "string"
-      ? options.user.length
-      : JSON.stringify(options.user).length;
+    typeof options.user === "string" ? options.user.length : JSON.stringify(options.user).length;
 
   debug?.llmCallStart({
     callId,
@@ -112,11 +115,7 @@ export const runWithRetries = async <T>(options: RetryOptions<T>) => {
 
     try {
       if (useStrictValidation) {
-        const validated = validateOrThrow<T>(
-          ajv,
-          options.schema as never,
-          result.data,
-        );
+        const validated = validateOrThrow<T>(ajv, options.schema as never, result.data);
 
         debug?.validationSuccess({ callId, attempt });
         debug?.llmCallComplete({
@@ -187,10 +186,7 @@ export const runWithRetries = async <T>(options: RetryOptions<T>) => {
           return { data: validationResult.data, usage };
         }
 
-        throw new SchemaValidationError(
-          "Schema validation failed",
-          validationResult.errors,
-        );
+        throw new SchemaValidationError("Schema validation failed", validationResult.errors);
       }
     } catch (error) {
       lastError = error as Error;

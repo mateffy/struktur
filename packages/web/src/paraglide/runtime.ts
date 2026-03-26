@@ -6,7 +6,7 @@ let locale = "en";
 export const getLocale = () => locale;
 
 export const setLocale = (newLocale: string) => {
-	locale = newLocale;
+  locale = newLocale;
 };
 
 export const locales = ["en"];

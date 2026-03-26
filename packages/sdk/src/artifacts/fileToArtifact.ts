@@ -22,7 +22,7 @@ const bufferToImageArtifact = (buffer: Buffer): Artifact => ({
 
 export const fileToArtifact = async (
   buffer: Buffer,
-  options: FileToArtifactOptions
+  options: FileToArtifactOptions,
 ): Promise<Artifact> => {
   const providers = options.providers ?? defaultArtifactProviders;
   const provider = providers[options.mimeType];
@@ -38,7 +38,5 @@ export const fileToArtifact = async (
     return bufferToImageArtifact(buffer);
   }
 
-  throw new Error(
-    `No artifact provider registered for ${options.mimeType}`
-  );
+  throw new Error(`No artifact provider registered for ${options.mimeType}`);
 };

@@ -3,7 +3,7 @@
  */
 
 import { test, expect, describe } from "bun:test";
-import { 
+import {
   NoopTelemetryAdapter,
   type SpanContext,
   type SpanResult,
@@ -18,7 +18,7 @@ import {
 describe("NoopTelemetryAdapter", () => {
   test("should create noop adapter", () => {
     const adapter = new NoopTelemetryAdapter();
-    
+
     expect(adapter.name).toBe("noop");
     expect(adapter.version).toBe("1.0.0");
   });
@@ -35,15 +35,15 @@ describe("NoopTelemetryAdapter", () => {
 
   test("should create spans", () => {
     const adapter = new NoopTelemetryAdapter();
-    
+
     const context: SpanContext = {
       name: "test-span",
       kind: "CHAIN",
       attributes: { test: true },
     };
-    
+
     const span = adapter.startSpan(context);
-    
+
     expect(span.id).toBeDefined();
     expect(span.name).toBe("test-span");
     expect(span.kind).toBe("CHAIN");
@@ -53,22 +53,22 @@ describe("NoopTelemetryAdapter", () => {
 
   test("should create child spans", () => {
     const adapter = new NoopTelemetryAdapter();
-    
+
     const parentContext: SpanContext = {
       name: "parent",
       kind: "CHAIN",
     };
-    
+
     const parentSpan = adapter.startSpan(parentContext);
-    
+
     const childContext: SpanContext = {
       name: "child",
       kind: "LLM",
       parentSpan,
     };
-    
+
     const childSpan = adapter.startSpan(childContext);
-    
+
     expect(childSpan.parentId).toBe(parentSpan.id);
     // Noop adapter creates new traceIds for each span
     expect(childSpan).toBeDefined();
@@ -77,29 +77,29 @@ describe("NoopTelemetryAdapter", () => {
 
   test("should end spans without error", () => {
     const adapter = new NoopTelemetryAdapter();
-    
+
     const span = adapter.startSpan({
       name: "test",
       kind: "CHAIN",
     });
-    
+
     const result: SpanResult = {
       status: "ok",
       output: { data: "test" },
       latencyMs: 100,
     };
-    
+
     expect(() => adapter.endSpan(span, result)).not.toThrow();
   });
 
   test("should record events without error", () => {
     const adapter = new NoopTelemetryAdapter();
-    
+
     const span = adapter.startSpan({
       name: "test",
       kind: "LLM",
     });
-    
+
     const event: LLMCallEvent = {
       type: "llm_call",
       model: "gpt-4o",
@@ -115,60 +115,58 @@ describe("NoopTelemetryAdapter", () => {
       },
       latencyMs: 250,
     };
-    
+
     expect(() => adapter.recordEvent(span, event)).not.toThrow();
   });
 
   test("should set attributes without error", () => {
     const adapter = new NoopTelemetryAdapter();
-    
+
     const span = adapter.startSpan({
       name: "test",
       kind: "CHAIN",
     });
-    
-    expect(() => 
-      adapter.setAttributes(span, { key: "value", num: 42 })
-    ).not.toThrow();
+
+    expect(() => adapter.setAttributes(span, { key: "value", num: 42 })).not.toThrow();
   });
 
   test("should set context without error", () => {
     const adapter = new NoopTelemetryAdapter();
-    
-    expect(() => 
+
+    expect(() =>
       adapter.setContext({
         sessionId: "session-123",
         userId: "user-456",
         metadata: { source: "test" },
         tags: ["test", "unit"],
-      })
+      }),
     ).not.toThrow();
   });
 
   test("should handle error results", () => {
     const adapter = new NoopTelemetryAdapter();
-    
+
     const span = adapter.startSpan({
       name: "test",
       kind: "LLM",
     });
-    
+
     const result: SpanResult = {
       status: "error",
       error: new Error("Test error"),
     };
-    
+
     expect(() => adapter.endSpan(span, result)).not.toThrow();
   });
 
   test("should handle all event types", () => {
     const adapter = new NoopTelemetryAdapter();
-    
+
     const span = adapter.startSpan({
       name: "test",
       kind: "CHAIN",
     });
-    
+
     // LLM call event
     const llmEvent: LLMCallEvent = {
       type: "llm_call",
@@ -183,9 +181,9 @@ describe("NoopTelemetryAdapter", () => {
       },
       latencyMs: 100,
     };
-    
+
     expect(() => adapter.recordEvent(span, llmEvent)).not.toThrow();
-    
+
     // Validation event
     const validationEvent: ValidationEvent = {
       type: "validation",
@@ -196,9 +194,9 @@ describe("NoopTelemetryAdapter", () => {
       success: true,
       latencyMs: 50,
     };
-    
+
     expect(() => adapter.recordEvent(span, validationEvent)).not.toThrow();
-    
+
     // Chunk event
     const chunkEvent: ChunkEvent = {
       type: "chunk",
@@ -207,9 +205,9 @@ describe("NoopTelemetryAdapter", () => {
       tokens: 1000,
       images: 2,
     };
-    
+
     expect(() => adapter.recordEvent(span, chunkEvent)).not.toThrow();
-    
+
     // Tool call event
     const toolEvent: ToolCallEvent = {
       type: "tool_call",
@@ -218,9 +216,9 @@ describe("NoopTelemetryAdapter", () => {
       result: "file contents",
       latencyMs: 25,
     };
-    
+
     expect(() => adapter.recordEvent(span, toolEvent)).not.toThrow();
-    
+
     // Merge event
     const mergeEvent: MergeEvent = {
       type: "merge",
@@ -229,9 +227,9 @@ describe("NoopTelemetryAdapter", () => {
       outputCount: 4,
       deduped: 1,
     };
-    
+
     expect(() => adapter.recordEvent(span, mergeEvent)).not.toThrow();
-    
+
     // Parse event
     const parseEvent: ParseEvent = {
       type: "parse",
@@ -242,7 +240,7 @@ describe("NoopTelemetryAdapter", () => {
       outputImages: 0,
       latencyMs: 200,
     };
-    
+
     expect(() => adapter.recordEvent(span, parseEvent)).not.toThrow();
   });
 });

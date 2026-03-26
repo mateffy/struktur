@@ -2,7 +2,6 @@ import { test, expect, describe } from "bun:test";
 import { agent } from "./AgentStrategy";
 
 describe("Agent Strategy Provider/Model Integration", () => {
-
   test("correctly parses provider/model spec format", () => {
     const testCases = [
       {

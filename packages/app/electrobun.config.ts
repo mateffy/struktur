@@ -6,11 +6,11 @@ export default {
     identifier: "com.struktur.app",
     version: "1.0.0",
   },
-  
+
   runtime: {
     exitOnLastWindowClosed: true,
   },
-  
+
   build: {
     bun: {
       entrypoint: "src/bun/index.ts",

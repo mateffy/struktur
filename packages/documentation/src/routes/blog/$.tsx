@@ -1,37 +1,39 @@
-import { createFileRoute, Link, notFound } from '@tanstack/react-router';
-import { DocsLayout } from 'fumadocs-ui/layouts/docs';
-import { createServerFn } from '@tanstack/react-start';
-import { blogSource } from '@/lib/blog-source';
-import browserCollections from 'fumadocs-mdx:collections/browser';
-import { DocsBody, DocsDescription, DocsPage, DocsTitle } from 'fumadocs-ui/layouts/docs/page';
-import defaultMdxComponents from 'fumadocs-ui/mdx';
-import * as TabsComponents from 'fumadocs-ui/components/tabs';
-import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
-import { Step, Steps } from 'fumadocs-ui/components/steps';
-import { File, Folder, Files } from 'fumadocs-ui/components/files';
-import { TypeTable } from 'fumadocs-ui/components/type-table';
-import { baseOptions, gitConfig } from '@/lib/layout.shared';
-import { staticFunctionMiddleware } from '@tanstack/start-static-server-functions';
-import { useFumadocsLoader } from 'fumadocs-core/source/client';
-import { Suspense } from 'react';
-import { LLMCopyButton, ViewOptions } from '@/components/ai/page-actions';
-import { SchemaViewer } from '@/components/SchemaViewer';
+import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { DocsLayout } from "fumadocs-ui/layouts/docs";
+import { createServerFn } from "@tanstack/react-start";
+import { blogSource } from "@/lib/blog-source";
+import browserCollections from "fumadocs-mdx:collections/browser";
+import { DocsBody, DocsDescription, DocsPage, DocsTitle } from "fumadocs-ui/layouts/docs/page";
+import defaultMdxComponents from "fumadocs-ui/mdx";
+import * as TabsComponents from "fumadocs-ui/components/tabs";
+import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
+import { Step, Steps } from "fumadocs-ui/components/steps";
+import { File, Folder, Files } from "fumadocs-ui/components/files";
+import { TypeTable } from "fumadocs-ui/components/type-table";
+import { baseOptions, gitConfig } from "@/lib/layout.shared";
+import { staticFunctionMiddleware } from "@tanstack/start-static-server-functions";
+import { useFumadocsLoader } from "fumadocs-core/source/client";
+import { Suspense } from "react";
+import { LLMCopyButton, ViewOptions } from "@/components/ai/page-actions";
+import { SchemaViewer } from "@/components/SchemaViewer";
 
-export const Route = createFileRoute('/blog/$')({
+export const Route = createFileRoute("/blog/$")({
   component: Page,
   loader: async ({ params }) => {
-    const slugs = params._splat?.split('/') ?? [];
+    const slugs = params._splat?.split("/") ?? [];
     const data = await loader({ data: slugs });
     await clientLoader.preload(data.path);
     return data;
   },
   head: ({ loaderData }) => {
     const { slugs } = loaderData ?? {};
-    const title = slugs && slugs.length > 0 
-      ? `${slugs.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')} - Struktur`
-      : 'Blog - Struktur';
-    const description = 'Technical articles about structured data extraction, LLM agents, and document processing.';
-    
+    const title =
+      slugs && slugs.length > 0
+        ? `${slugs.map((s) => s.charAt(0).toUpperCase() + s.slice(1)).join(" ")} - Struktur`
+        : "Blog - Struktur";
+    const description =
+      "Technical articles about structured data extraction, LLM agents, and document processing.";
+
     return {
       meta: [
         { title },
@@ -39,22 +41,20 @@ export const Route = createFileRoute('/blog/$')({
         { property: "og:title", content: title },
         { property: "og:description", content: description },
         { property: "og:type", content: "article" },
-        { property: "og:url", content: `https://struktur.sh/blog/${slugs?.join('/') ?? ''}` },
+        { property: "og:url", content: `https://struktur.sh/blog/${slugs?.join("/") ?? ""}` },
         { property: "og:image", content: "https://struktur.sh/og.webp" },
         { name: "twitter:card", content: "summary_large_image" },
         { name: "twitter:title", content: title },
         { name: "twitter:description", content: description },
         { name: "twitter:image", content: "https://struktur.sh/og.webp" },
       ],
-      links: [
-        { rel: "canonical", href: `https://struktur.sh/blog/${slugs?.join('/') ?? ''}` },
-      ],
+      links: [{ rel: "canonical", href: `https://struktur.sh/blog/${slugs?.join("/") ?? ""}` }],
     };
   },
 });
 
 const loader = createServerFn({
-  method: 'GET',
+  method: "GET",
 })
   .inputValidator((slugs: string[]) => slugs)
   .middleware([staticFunctionMiddleware])
@@ -109,7 +109,7 @@ const clientLoader = browserCollections.blog.createClientLoader({
 
 function Page() {
   const { pageTree, slugs, path } = useFumadocsLoader(Route.useLoaderData());
-  const markdownUrl = `/llms/blog/${slugs.length > 0 ? `${slugs.join('/')}.md` : 'index.md'}`;
+  const markdownUrl = `/llms/blog/${slugs.length > 0 ? `${slugs.join("/")}.md` : "index.md"}`;
 
   return (
     <DocsLayout {...baseOptions()} tree={pageTree}>

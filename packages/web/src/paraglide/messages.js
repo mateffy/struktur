@@ -4,54 +4,54 @@
 import { getLocale } from "./runtime.js";
 
 export const messages = {
-	"extract.title": (_params = {}) => {
-		const locale = getLocale();
-		if (locale === "en") return "Extract";
-		return "Extract";
-	},
-	"extract.description": (_params = {}) => {
-		const locale = getLocale();
-		if (locale === "en") return "Extract structured data from documents";
-		return "Extract structured data from documents";
-	},
-	"extract.upload": (_params = {}) => {
-		const locale = getLocale();
-		if (locale === "en") return "Upload files";
-		return "Upload files";
-	},
-	"extract.parse": (_params = {}) => {
-		const locale = getLocale();
-		if (locale === "en") return "Parse Only";
-		return "Parse Only";
-	},
-	"extract.extract": (_params = {}) => {
-		const locale = getLocale();
-		if (locale === "en") return "Extract";
-		return "Extract";
-	},
-	"extract.schema": (_params = {}) => {
-		const locale = getLocale();
-		if (locale === "en") return "Schema";
-		return "Schema";
-	},
-	"extract.settings": (_params = {}) => {
-		const locale = getLocale();
-		if (locale === "en") return "Settings";
-		return "Settings";
-	},
-	"extract.progress": (_params = {}) => {
-		const locale = getLocale();
-		if (locale === "en") return "Progress";
-		return "Progress";
-	},
-	"extract.jsonOutput": (_params = {}) => {
-		const locale = getLocale();
-		if (locale === "en") return "JSON Output";
-		return "JSON Output";
-	},
-	"extract.formatted": (_params = {}) => {
-		const locale = getLocale();
-		if (locale === "en") return "Formatted";
-		return "Formatted";
-	},
+  "extract.title": (_params = {}) => {
+    const locale = getLocale();
+    if (locale === "en") return "Extract";
+    return "Extract";
+  },
+  "extract.description": (_params = {}) => {
+    const locale = getLocale();
+    if (locale === "en") return "Extract structured data from documents";
+    return "Extract structured data from documents";
+  },
+  "extract.upload": (_params = {}) => {
+    const locale = getLocale();
+    if (locale === "en") return "Upload files";
+    return "Upload files";
+  },
+  "extract.parse": (_params = {}) => {
+    const locale = getLocale();
+    if (locale === "en") return "Parse Only";
+    return "Parse Only";
+  },
+  "extract.extract": (_params = {}) => {
+    const locale = getLocale();
+    if (locale === "en") return "Extract";
+    return "Extract";
+  },
+  "extract.schema": (_params = {}) => {
+    const locale = getLocale();
+    if (locale === "en") return "Schema";
+    return "Schema";
+  },
+  "extract.settings": (_params = {}) => {
+    const locale = getLocale();
+    if (locale === "en") return "Settings";
+    return "Settings";
+  },
+  "extract.progress": (_params = {}) => {
+    const locale = getLocale();
+    if (locale === "en") return "Progress";
+    return "Progress";
+  },
+  "extract.jsonOutput": (_params = {}) => {
+    const locale = getLocale();
+    if (locale === "en") return "JSON Output";
+    return "JSON Output";
+  },
+  "extract.formatted": (_params = {}) => {
+    const locale = getLocale();
+    if (locale === "en") return "Formatted";
+    return "Formatted";
+  },
 };

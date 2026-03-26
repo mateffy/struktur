@@ -33,14 +33,14 @@ export type ArtifactInputParser = {
   canParse: (input: ArtifactInput) => boolean;
   parse: (
     input: ArtifactInput,
-    options?: { 
-      providers?: ArtifactProviders; 
-      parsers?: ParsersConfig; 
+    options?: {
+      providers?: ArtifactProviders;
+      parsers?: ParsersConfig;
       includeImages?: boolean;
       screenshots?: boolean;
       screenshotScale?: number;
       screenshotWidth?: number;
-    }
+    },
   ) => Promise<Artifact[]>;
 };
 
@@ -87,10 +87,7 @@ const serializedArtifactSchema = {
 };
 
 const serializedArtifactsSchema = {
-  anyOf: [
-    serializedArtifactSchema,
-    { type: "array", items: serializedArtifactSchema },
-  ],
+  anyOf: [serializedArtifactSchema, { type: "array", items: serializedArtifactSchema }],
 };
 
 const inputParsers: ArtifactInputParser[] = [];
@@ -105,11 +102,7 @@ export const clearArtifactInputParsers = () => {
 
 export const validateSerializedArtifacts = (data: unknown): SerializedArtifact[] => {
   const ajv = createAjv();
-  const parsed = validateOrThrow<SerializedArtifacts>(
-    ajv,
-    serializedArtifactsSchema,
-    data
-  );
+  const parsed = validateOrThrow<SerializedArtifacts>(ajv, serializedArtifactsSchema, data);
   return Array.isArray(parsed) ? parsed : [parsed];
 };
 
@@ -197,7 +190,7 @@ const parseBufferInput = async (
     } catch {
       // If no custom parser is configured for application/json, throw clear error
       throw new Error(
-        "Input is JSON but not in SerializedArtifact format. To parse arbitrary JSON files, configure a parser: struktur config parsers add --mime application/json ..."
+        "Input is JSON but not in SerializedArtifact format. To parse arbitrary JSON files, configure a parser: struktur config parsers add --mime application/json ...",
       );
     }
   }
@@ -205,11 +198,11 @@ const parseBufferInput = async (
   // 3. Built-in PDF → pdf artifact
   if (mimeType === "application/pdf") {
     const { parsePdf } = await import("../parsers/pdf");
-    const pdfOptions: ParsePdfOptions = { 
-      includeImages, 
-      screenshots, 
-      screenshotScale, 
-      screenshotWidth 
+    const pdfOptions: ParsePdfOptions = {
+      includeImages,
+      screenshots,
+      screenshotScale,
+      screenshotWidth,
     };
     return [await parsePdf(buffer, pdfOptions)];
   }
@@ -258,7 +251,10 @@ const fileParser: ArtifactInputParser = {
     if (input.kind !== "file") {
       return [];
     }
-    const mimeType = input.mimeType ?? (await detectMimeType({ filePath: input.path })) ?? "application/octet-stream";
+    const mimeType =
+      input.mimeType ??
+      (await detectMimeType({ filePath: input.path })) ??
+      "application/octet-stream";
 
     // JSON auto-detection: if MIME type is application/json, first try to validate as SerializedArtifact[]
     if (mimeType === "application/json") {
@@ -276,18 +272,18 @@ const fileParser: ArtifactInputParser = {
           }
         }
         throw new Error(
-          `File "${input.path}" is JSON but not in SerializedArtifact format. To parse arbitrary JSON files, configure a parser: struktur config parsers add --mime application/json ...`
+          `File "${input.path}" is JSON but not in SerializedArtifact format. To parse arbitrary JSON files, configure a parser: struktur config parsers add --mime application/json ...`,
         );
       }
     }
 
     const buffer = await readFile(input.path);
     return parseBufferInput(
-      buffer, 
-      mimeType, 
-      input.id, 
-      options?.providers, 
-      options?.parsers, 
+      buffer,
+      mimeType,
+      input.id,
+      options?.providers,
+      options?.parsers,
       options?.includeImages,
       options?.screenshots,
       options?.screenshotScale,
@@ -319,34 +315,32 @@ const bufferParser: ArtifactInputParser = {
 
 export const parse = async (
   input: ArtifactInput,
-  options?: { 
-    parsers?: ArtifactInputParser[]; 
-    providers?: ArtifactProviders; 
-    parserConfig?: ParsersConfig; 
+  options?: {
+    parsers?: ArtifactInputParser[];
+    providers?: ArtifactProviders;
+    parserConfig?: ParsersConfig;
     includeImages?: boolean;
     screenshots?: boolean;
     screenshotScale?: number;
     screenshotWidth?: number;
-  }
+  },
 ): Promise<Artifact[]> => {
-  const parsers =
-    options?.parsers ??
-    [
-      ...inputParsers,
-      artifactJsonParser,
-      textParser,
-      fileParser,
-      bufferParser,
-    ];
+  const parsers = options?.parsers ?? [
+    ...inputParsers,
+    artifactJsonParser,
+    textParser,
+    fileParser,
+    bufferParser,
+  ];
   const parser = parsers.find((candidate) => candidate.canParse(input));
 
   if (!parser) {
     throw new Error(`No artifact input parser available for ${input.kind}`);
   }
 
-  return parser.parse(input, { 
-    providers: options?.providers, 
-    parsers: options?.parserConfig, 
+  return parser.parse(input, {
+    providers: options?.providers,
+    parsers: options?.parserConfig,
     includeImages: options?.includeImages,
     screenshots: options?.screenshots,
     screenshotScale: options?.screenshotScale,

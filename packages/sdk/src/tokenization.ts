@@ -20,18 +20,12 @@ export const estimateTextTokens = (text: string, options?: TokenCountOptions) =>
   return Math.ceil(text.length / textTokenRatio);
 };
 
-export const estimateImageTokens = (
-  _image: ArtifactImage,
-  options?: TokenCountOptions
-) => {
+export const estimateImageTokens = (_image: ArtifactImage, options?: TokenCountOptions) => {
   const { defaultImageTokens } = mergeOptions(options);
   return defaultImageTokens;
 };
 
-export const countContentTokens = (
-  content: ArtifactContent,
-  options?: TokenCountOptions
-) => {
+export const countContentTokens = (content: ArtifactContent, options?: TokenCountOptions) => {
   let tokens = 0;
 
   if (content.text) {
@@ -50,17 +44,14 @@ export const countContentTokens = (
   return tokens;
 };
 
-export const countArtifactTokens = (
-  artifact: Artifact,
-  options?: TokenCountOptions
-) => {
+export const countArtifactTokens = (artifact: Artifact, options?: TokenCountOptions) => {
   if (typeof artifact.tokens === "number") {
     return artifact.tokens;
   }
 
   return artifact.contents.reduce(
     (total, content) => total + countContentTokens(content, options),
-    0
+    0,
   );
 };
 

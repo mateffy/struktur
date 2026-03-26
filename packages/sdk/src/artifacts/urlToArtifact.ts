@@ -12,8 +12,6 @@ export const urlToArtifact = async (url: string): Promise<Artifact> => {
 
   return {
     ...data,
-    raw:
-      data.raw ??
-      (async () => Buffer.from(JSON.stringify(data.contents ?? []))),
+    raw: data.raw ?? (async () => Buffer.from(JSON.stringify(data.contents ?? []))),
   };
 };

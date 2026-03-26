@@ -19,7 +19,7 @@ const makeArtifactFile = async () => {
   const path = makeTempPath("artifact", ".json");
   await writeFile(
     path,
-    JSON.stringify([{ id: "a1", type: "text", contents: [{ text: "hello" }] }])
+    JSON.stringify([{ id: "a1", type: "text", contents: [{ text: "hello" }] }]),
   );
   return path;
 };
@@ -40,7 +40,7 @@ test("--mime override is respected for file inputs", async () => {
   try {
     const artifacts = await loadArtifactsFromOptions(
       { input: path, mime: "text/csv" },
-      noStdinDeps
+      noStdinDeps,
     );
     expect(artifacts).toHaveLength(1);
     expect(artifacts[0]?.type).toBe("text");
@@ -57,7 +57,7 @@ test("--mime override skips magic-byte and extension detection", async () => {
   try {
     const artifacts = await loadArtifactsFromOptions(
       { input: path, mime: "text/plain" },
-      noStdinDeps
+      noStdinDeps,
     );
     expect(artifacts).toHaveLength(1);
     expect(artifacts[0]?.type).toBe("text");
@@ -73,7 +73,7 @@ test("--no-parse causes a text file to be read as text artifact", async () => {
   try {
     const artifacts = await loadArtifactsFromOptions(
       { input: path, "no-parse": true },
-      noStdinDeps
+      noStdinDeps,
     );
     expect(artifacts).toHaveLength(1);
     expect(artifacts[0]?.type).toBe("text");
@@ -89,7 +89,7 @@ test("--no-parse with --mime still applies the mime type for built-in handling",
   try {
     const artifacts = await loadArtifactsFromOptions(
       { input: path, "no-parse": true, mime: "text/markdown" },
-      noStdinDeps
+      noStdinDeps,
     );
     // text/* falls through to text artifact even with --no-parse
     expect(artifacts).toHaveLength(1);
@@ -104,10 +104,7 @@ test("--no-parse with --mime still applies the mime type for built-in handling",
 test("JSON file that is valid SerializedArtifact[] is hydrated directly", async () => {
   const path = await makeArtifactFile();
   try {
-    const artifacts = await loadArtifactsFromOptions(
-      { input: path },
-      noStdinDeps
-    );
+    const artifacts = await loadArtifactsFromOptions({ input: path }, noStdinDeps);
     expect(artifacts).toHaveLength(1);
     expect(artifacts[0]?.id).toBe("a1");
     expect(artifacts[0]?.type).toBe("text");
@@ -125,7 +122,7 @@ test("stdin without --mime falls back to text/plain", async () => {
     {
       readStdinText: () => Promise.resolve(stdinText),
       stdinIsTTY: false,
-    }
+    },
   );
   expect(artifacts).toHaveLength(1);
   expect(artifacts[0]?.type).toBe("text");
@@ -140,7 +137,7 @@ test("stdin with --mime text/plain produces a text artifact", async () => {
     {
       readStdinText: () => Promise.resolve(stdinText),
       stdinIsTTY: false,
-    }
+    },
   );
   expect(artifacts).toHaveLength(1);
   expect(artifacts[0]?.type).toBe("text");
@@ -155,7 +152,7 @@ test("stdin with --no-parse still produces a text artifact", async () => {
     {
       readStdinText: () => Promise.resolve(stdinText),
       stdinIsTTY: false,
-    }
+    },
   );
   expect(artifacts).toHaveLength(1);
   expect(artifacts[0]?.type).toBe("text");
@@ -169,7 +166,7 @@ test("--no-images is accepted without error for text file inputs", async () => {
   try {
     const artifacts = await loadArtifactsFromOptions(
       { input: path, "no-images": true },
-      noStdinDeps
+      noStdinDeps,
     );
     expect(artifacts).toHaveLength(1);
     expect(artifacts[0]?.type).toBe("text");
@@ -185,7 +182,7 @@ test("--no-images is accepted without error for stdin text inputs", async () => 
     {
       readStdinText: () => Promise.resolve(stdinText),
       stdinIsTTY: false,
-    }
+    },
   );
   expect(artifacts).toHaveLength(1);
   expect(artifacts[0]?.type).toBe("text");
@@ -195,14 +192,14 @@ test("--no-images is accepted without error for stdin text inputs", async () => 
 
 test("stdin with valid artifact JSON is parsed as artifact", async () => {
   const artifactJson = JSON.stringify([
-    { id: "test-artifact", type: "text", contents: [{ text: "hello from artifact" }] }
+    { id: "test-artifact", type: "text", contents: [{ text: "hello from artifact" }] },
   ]);
   const artifacts = await loadArtifactsFromOptions(
     { stdin: true },
     {
       readStdinText: () => Promise.resolve(artifactJson),
       stdinIsTTY: false,
-    }
+    },
   );
   expect(artifacts).toHaveLength(1);
   expect(artifacts[0]?.id).toBe("test-artifact");
@@ -216,7 +213,7 @@ test("stdin with invalid JSON falls back to text parsing", async () => {
     {
       readStdinText: () => Promise.resolve(stdinText),
       stdinIsTTY: false,
-    }
+    },
   );
   expect(artifacts).toHaveLength(1);
   expect(artifacts[0]?.type).toBe("text");

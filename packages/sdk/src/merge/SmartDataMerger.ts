@@ -21,8 +21,7 @@ export class SmartDataMerger {
   merge(currentData: Record<string, unknown>, newData: Record<string, unknown>) {
     const merged: Record<string, unknown> = { ...currentData };
     const properties =
-      (this.schema as { properties?: Record<string, Record<string, unknown>> })
-        .properties ?? {};
+      (this.schema as { properties?: Record<string, Record<string, unknown>> }).properties ?? {};
 
     for (const [key, propSchema] of Object.entries(properties)) {
       const currentValue = currentData[key];

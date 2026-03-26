@@ -1,9 +1,5 @@
 import { test, expect, describe } from "bun:test";
-import {
-  parseFieldsString,
-  buildSchemaFromParsedFields,
-  buildSchemaFromFields,
-} from "./fields";
+import { parseFieldsString, buildSchemaFromParsedFields, buildSchemaFromFields } from "./fields";
 
 // ---------------------------------------------------------------------------
 // parseFieldsString — scalars (positive)
@@ -11,9 +7,7 @@ import {
 
 describe("parseFieldsString — scalars", () => {
   test("single field defaults to string", () => {
-    expect(parseFieldsString("title")).toEqual([
-      { name: "title", kind: "scalar", type: "string" },
-    ]);
+    expect(parseFieldsString("title")).toEqual([{ name: "title", kind: "scalar", type: "string" }]);
   });
 
   test("two fields without types", () => {
@@ -87,10 +81,10 @@ describe("parseFieldsString — scalars", () => {
 
   test("many fields, all untyped", () => {
     expect(parseFieldsString("id,name,email,phone,address")).toEqual([
-      { name: "id",      kind: "scalar", type: "string" },
-      { name: "name",    kind: "scalar", type: "string" },
-      { name: "email",   kind: "scalar", type: "string" },
-      { name: "phone",   kind: "scalar", type: "string" },
+      { name: "id", kind: "scalar", type: "string" },
+      { name: "name", kind: "scalar", type: "string" },
+      { name: "email", kind: "scalar", type: "string" },
+      { name: "phone", kind: "scalar", type: "string" },
       { name: "address", kind: "scalar", type: "string" },
     ]);
   });
@@ -133,9 +127,7 @@ describe("parseFieldsString — scalar errors", () => {
 
   test("trailing comma is silently ignored", () => {
     // The brace-depth splitter drops empty trailing tokens — same as most CLIs.
-    expect(parseFieldsString("foo,")).toEqual([
-      { name: "foo", kind: "scalar", type: "string" },
-    ]);
+    expect(parseFieldsString("foo,")).toEqual([{ name: "foo", kind: "scalar", type: "string" }]);
   });
 
   test("consecutive commas — empty field name between them", () => {
@@ -182,7 +174,7 @@ describe("parseFieldsString — enums", () => {
 
   test("enum field preceded by plain field", () => {
     expect(parseFieldsString("name, status:enum{active|inactive}")).toEqual([
-      { name: "name",   kind: "scalar", type: "string" },
+      { name: "name", kind: "scalar", type: "string" },
       { name: "status", kind: "enum", values: ["active", "inactive"] },
     ]);
   });
@@ -190,14 +182,14 @@ describe("parseFieldsString — enums", () => {
   test("enum field followed by plain field", () => {
     expect(parseFieldsString("status:enum{a|b}, title")).toEqual([
       { name: "status", kind: "enum", values: ["a", "b"] },
-      { name: "title",  kind: "scalar", type: "string" },
+      { name: "title", kind: "scalar", type: "string" },
     ]);
   });
 
   test("enum sandwiched between other fields", () => {
     expect(parseFieldsString("id, role:enum{admin|user|guest}, name")).toEqual([
-      { name: "id",   kind: "scalar", type: "string" },
-      { name: "role", kind: "enum",   values: ["admin", "user", "guest"] },
+      { name: "id", kind: "scalar", type: "string" },
+      { name: "role", kind: "enum", values: ["admin", "user", "guest"] },
       { name: "name", kind: "scalar", type: "string" },
     ]);
   });
@@ -299,14 +291,14 @@ describe("parseFieldsString — arrays", () => {
 
   test("array preceded by plain field (user example)", () => {
     expect(parseFieldsString("name, addresses:array{string}")).toEqual([
-      { name: "name",      kind: "scalar", type: "string" },
-      { name: "addresses", kind: "array",  items: "string" },
+      { name: "name", kind: "scalar", type: "string" },
+      { name: "addresses", kind: "array", items: "string" },
     ]);
   });
 
   test("array followed by plain field", () => {
     expect(parseFieldsString("tags:array{string}, title")).toEqual([
-      { name: "tags",  kind: "array",  items: "string" },
+      { name: "tags", kind: "array", items: "string" },
       { name: "title", kind: "scalar", type: "string" },
     ]);
   });
@@ -360,9 +352,9 @@ describe("parseFieldsString — structural errors", () => {
 
 describe("buildSchemaFromParsedFields", () => {
   test("single string field", () => {
-    expect(buildSchemaFromParsedFields([
-      { name: "title", kind: "scalar", type: "string" },
-    ])).toEqual({
+    expect(
+      buildSchemaFromParsedFields([{ name: "title", kind: "scalar", type: "string" }]),
+    ).toEqual({
       type: "object",
       properties: { title: { type: "string" } },
       required: ["title"],
@@ -371,10 +363,12 @@ describe("buildSchemaFromParsedFields", () => {
   });
 
   test("two scalar fields", () => {
-    expect(buildSchemaFromParsedFields([
-      { name: "title", kind: "scalar", type: "string" },
-      { name: "price", kind: "scalar", type: "number" },
-    ])).toEqual({
+    expect(
+      buildSchemaFromParsedFields([
+        { name: "title", kind: "scalar", type: "string" },
+        { name: "price", kind: "scalar", type: "number" },
+      ]),
+    ).toEqual({
       type: "object",
       properties: {
         title: { type: "string" },
@@ -386,9 +380,11 @@ describe("buildSchemaFromParsedFields", () => {
   });
 
   test("enum field produces string type with enum array", () => {
-    expect(buildSchemaFromParsedFields([
-      { name: "status", kind: "enum", values: ["draft", "published"] },
-    ])).toEqual({
+    expect(
+      buildSchemaFromParsedFields([
+        { name: "status", kind: "enum", values: ["draft", "published"] },
+      ]),
+    ).toEqual({
       type: "object",
       properties: {
         status: { type: "string", enum: ["draft", "published"] },
@@ -399,29 +395,31 @@ describe("buildSchemaFromParsedFields", () => {
   });
 
   test("array field produces array type with items", () => {
-    expect(buildSchemaFromParsedFields([
-      { name: "tags", kind: "array", items: "string" },
-    ])).toEqual({
-      type: "object",
-      properties: {
-        tags: { type: "array", items: { type: "string" } },
+    expect(buildSchemaFromParsedFields([{ name: "tags", kind: "array", items: "string" }])).toEqual(
+      {
+        type: "object",
+        properties: {
+          tags: { type: "array", items: { type: "string" } },
+        },
+        required: ["tags"],
+        additionalProperties: false,
       },
-      required: ["tags"],
-      additionalProperties: false,
-    });
+    );
   });
 
   test("all three kinds together", () => {
-    expect(buildSchemaFromParsedFields([
-      { name: "title",  kind: "scalar", type: "string" },
-      { name: "status", kind: "enum",   values: ["a", "b"] },
-      { name: "tags",   kind: "array",  items: "string" },
-    ])).toEqual({
+    expect(
+      buildSchemaFromParsedFields([
+        { name: "title", kind: "scalar", type: "string" },
+        { name: "status", kind: "enum", values: ["a", "b"] },
+        { name: "tags", kind: "array", items: "string" },
+      ]),
+    ).toEqual({
       type: "object",
       properties: {
-        title:  { type: "string" },
+        title: { type: "string" },
         status: { type: "string", enum: ["a", "b"] },
-        tags:   { type: "array", items: { type: "string" } },
+        tags: { type: "array", items: { type: "string" } },
       },
       required: ["title", "status", "tags"],
       additionalProperties: false,
@@ -429,9 +427,7 @@ describe("buildSchemaFromParsedFields", () => {
   });
 
   test("int field produces integer type with multipleOf:1", () => {
-    expect(buildSchemaFromParsedFields([
-      { name: "count", kind: "scalar", type: "int" },
-    ])).toEqual({
+    expect(buildSchemaFromParsedFields([{ name: "count", kind: "scalar", type: "int" }])).toEqual({
       type: "object",
       properties: { count: { type: "integer", multipleOf: 1 } },
       required: ["count"],
@@ -440,9 +436,9 @@ describe("buildSchemaFromParsedFields", () => {
   });
 
   test("float field produces plain number type (no multipleOf)", () => {
-    expect(buildSchemaFromParsedFields([
-      { name: "ratio", kind: "scalar", type: "number" },
-    ])).toEqual({
+    expect(
+      buildSchemaFromParsedFields([{ name: "ratio", kind: "scalar", type: "number" }]),
+    ).toEqual({
       type: "object",
       properties: { ratio: { type: "number" } },
       required: ["ratio"],
@@ -451,9 +447,7 @@ describe("buildSchemaFromParsedFields", () => {
   });
 
   test("array of int items produces integer items with multipleOf:1", () => {
-    expect(buildSchemaFromParsedFields([
-      { name: "ids", kind: "array", items: "int" },
-    ])).toEqual({
+    expect(buildSchemaFromParsedFields([{ name: "ids", kind: "array", items: "int" }])).toEqual({
       type: "object",
       properties: { ids: { type: "array", items: { type: "integer", multipleOf: 1 } } },
       required: ["ids"],
@@ -485,7 +479,7 @@ describe("buildSchemaFromFields", () => {
     expect(buildSchemaFromFields("title,description")).toEqual({
       type: "object",
       properties: {
-        title:       { type: "string" },
+        title: { type: "string" },
         description: { type: "string" },
       },
       required: ["title", "description"],
@@ -510,7 +504,7 @@ describe("buildSchemaFromFields", () => {
       type: "object",
       properties: {
         name: { type: "string" },
-        wtf:  { type: "string", enum: ["abc", "def", "123"] },
+        wtf: { type: "string", enum: ["abc", "def", "123"] },
       },
       required: ["name", "wtf"],
       additionalProperties: false,
@@ -521,7 +515,7 @@ describe("buildSchemaFromFields", () => {
     expect(buildSchemaFromFields("name,addresses:array{string}")).toEqual({
       type: "object",
       properties: {
-        name:      { type: "string" },
+        name: { type: "string" },
         addresses: { type: "array", items: { type: "string" } },
       },
       required: ["name", "addresses"],
@@ -533,7 +527,7 @@ describe("buildSchemaFromFields", () => {
     expect(buildSchemaFromFields("name,authors:array")).toEqual({
       type: "object",
       properties: {
-        name:    { type: "string" },
+        name: { type: "string" },
         authors: { type: "array", items: { type: "string" } },
       },
       required: ["name", "authors"],
@@ -542,15 +536,15 @@ describe("buildSchemaFromFields", () => {
   });
 
   test("all four types in one string", () => {
-    expect(buildSchemaFromFields(
-      "title, price:number, status:enum{a|b}, tags:array{string}",
-    )).toEqual({
+    expect(
+      buildSchemaFromFields("title, price:number, status:enum{a|b}, tags:array{string}"),
+    ).toEqual({
       type: "object",
       properties: {
-        title:  { type: "string" },
-        price:  { type: "number" },
+        title: { type: "string" },
+        price: { type: "number" },
         status: { type: "string", enum: ["a", "b"] },
-        tags:   { type: "array", items: { type: "string" } },
+        tags: { type: "array", items: { type: "string" } },
       },
       required: ["title", "price", "status", "tags"],
       additionalProperties: false,
@@ -558,16 +552,18 @@ describe("buildSchemaFromFields", () => {
   });
 
   test("realistic product schema", () => {
-    expect(buildSchemaFromFields(
-      "id, name, price:number, in_stock:boolean, tags:array{string}, condition:enum{new|used|refurbished}",
-    )).toEqual({
+    expect(
+      buildSchemaFromFields(
+        "id, name, price:number, in_stock:boolean, tags:array{string}, condition:enum{new|used|refurbished}",
+      ),
+    ).toEqual({
       type: "object",
       properties: {
-        id:        { type: "string" },
-        name:      { type: "string" },
-        price:     { type: "number" },
-        in_stock:  { type: "boolean" },
-        tags:      { type: "array", items: { type: "string" } },
+        id: { type: "string" },
+        name: { type: "string" },
+        price: { type: "number" },
+        in_stock: { type: "boolean" },
+        tags: { type: "array", items: { type: "string" } },
         condition: { type: "string", enum: ["new", "used", "refurbished"] },
       },
       required: ["id", "name", "price", "in_stock", "tags", "condition"],
@@ -576,16 +572,18 @@ describe("buildSchemaFromFields", () => {
   });
 
   test("realistic article schema", () => {
-    expect(buildSchemaFromFields(
-      "title, author, word_count:integer, published:boolean, status:enum{draft|review|published}",
-    )).toEqual({
+    expect(
+      buildSchemaFromFields(
+        "title, author, word_count:integer, published:boolean, status:enum{draft|review|published}",
+      ),
+    ).toEqual({
       type: "object",
       properties: {
-        title:      { type: "string" },
-        author:     { type: "string" },
+        title: { type: "string" },
+        author: { type: "string" },
         word_count: { type: "integer" },
-        published:  { type: "boolean" },
-        status:     { type: "string", enum: ["draft", "review", "published"] },
+        published: { type: "boolean" },
+        status: { type: "string", enum: ["draft", "review", "published"] },
       },
       required: ["title", "author", "word_count", "published", "status"],
       additionalProperties: false,

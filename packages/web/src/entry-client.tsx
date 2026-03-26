@@ -5,7 +5,4 @@ import "./styles.css";
 
 const router = getRouter();
 
-hydrateRoot(
-	document.getElementById("app")!,
-	<RouterProvider router={router} />,
-);
+hydrateRoot(document.getElementById("app")!, <RouterProvider router={router} />);

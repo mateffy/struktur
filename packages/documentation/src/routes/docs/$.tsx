@@ -1,37 +1,39 @@
-import { createFileRoute, Link, notFound } from '@tanstack/react-router';
-import { DocsLayout } from 'fumadocs-ui/layouts/docs';
-import { createServerFn } from '@tanstack/react-start';
-import { source } from '@/lib/source';
-import browserCollections from 'fumadocs-mdx:collections/browser';
-import { DocsBody, DocsDescription, DocsPage, DocsTitle } from 'fumadocs-ui/layouts/docs/page';
-import defaultMdxComponents from 'fumadocs-ui/mdx';
-import * as TabsComponents from 'fumadocs-ui/components/tabs';
-import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
-import { Step, Steps } from 'fumadocs-ui/components/steps';
-import { File, Folder, Files } from 'fumadocs-ui/components/files';
-import { TypeTable } from 'fumadocs-ui/components/type-table';
-import { baseOptions, gitConfig } from '@/lib/layout.shared';
-import { staticFunctionMiddleware } from '@tanstack/start-static-server-functions';
-import { useFumadocsLoader } from 'fumadocs-core/source/client';
-import { Suspense } from 'react';
-import { LLMCopyButton, ViewOptions } from '@/components/ai/page-actions';
-import { SchemaViewer } from '@/components/SchemaViewer';
+import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { DocsLayout } from "fumadocs-ui/layouts/docs";
+import { createServerFn } from "@tanstack/react-start";
+import { source } from "@/lib/source";
+import browserCollections from "fumadocs-mdx:collections/browser";
+import { DocsBody, DocsDescription, DocsPage, DocsTitle } from "fumadocs-ui/layouts/docs/page";
+import defaultMdxComponents from "fumadocs-ui/mdx";
+import * as TabsComponents from "fumadocs-ui/components/tabs";
+import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
+import { Step, Steps } from "fumadocs-ui/components/steps";
+import { File, Folder, Files } from "fumadocs-ui/components/files";
+import { TypeTable } from "fumadocs-ui/components/type-table";
+import { baseOptions, gitConfig } from "@/lib/layout.shared";
+import { staticFunctionMiddleware } from "@tanstack/start-static-server-functions";
+import { useFumadocsLoader } from "fumadocs-core/source/client";
+import { Suspense } from "react";
+import { LLMCopyButton, ViewOptions } from "@/components/ai/page-actions";
+import { SchemaViewer } from "@/components/SchemaViewer";
 
-export const Route = createFileRoute('/docs/$')({
+export const Route = createFileRoute("/docs/$")({
   component: Page,
   loader: async ({ params }) => {
-    const slugs = params._splat?.split('/') ?? [];
+    const slugs = params._splat?.split("/") ?? [];
     const data = await loader({ data: slugs });
     await clientLoader.preload(data.path);
     return data;
   },
   head: ({ loaderData }) => {
     const { slugs } = loaderData ?? {};
-    const title = slugs && slugs.length > 0 
-      ? `${slugs.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')} - Struktur`
-      : 'Documentation - Struktur';
-    const description = 'Struktur documentation: structured data extraction with AI. CLI and SDK for TypeScript.';
-    
+    const title =
+      slugs && slugs.length > 0
+        ? `${slugs.map((s) => s.charAt(0).toUpperCase() + s.slice(1)).join(" ")} - Struktur`
+        : "Documentation - Struktur";
+    const description =
+      "Struktur documentation: structured data extraction with AI. CLI and SDK for TypeScript.";
+
     return {
       meta: [
         {
@@ -55,7 +57,7 @@ export const Route = createFileRoute('/docs/$')({
         },
         {
           property: "og:url",
-          content: `https://struktur.sh/docs/${slugs?.join('/') ?? ''}`,
+          content: `https://struktur.sh/docs/${slugs?.join("/") ?? ""}`,
         },
         {
           property: "og:image",
@@ -78,15 +80,13 @@ export const Route = createFileRoute('/docs/$')({
           content: "https://struktur.sh/og.webp",
         },
       ],
-      links: [
-        { rel: "canonical", href: `https://struktur.sh/docs/${slugs?.join('/') ?? ''}` },
-      ],
+      links: [{ rel: "canonical", href: `https://struktur.sh/docs/${slugs?.join("/") ?? ""}` }],
     };
   },
 });
 
 const loader = createServerFn({
-  method: 'GET',
+  method: "GET",
 })
   .inputValidator((slugs: string[]) => slugs)
   .middleware([staticFunctionMiddleware])
@@ -148,7 +148,7 @@ const clientLoader = browserCollections.docs.createClientLoader({
 
 function Page() {
   const { pageTree, slugs, path } = useFumadocsLoader(Route.useLoaderData());
-  const markdownUrl = `/llms/docs/${slugs.length > 0 ? `${slugs.join('/')}.md` : 'index.md'}`;
+  const markdownUrl = `/llms/docs/${slugs.length > 0 ? `${slugs.join("/")}.md` : "index.md"}`;
 
   return (
     <DocsLayout {...baseOptions()} tree={pageTree}>

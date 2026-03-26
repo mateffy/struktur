@@ -24,6 +24,4 @@ export type ParserDef = NpmParserDef | CommandFileDef | CommandStdinDef | Inline
 
 export type ParsersConfig = Record<string, ParserDef>; // keyed by MIME type
 
-export type ParserInput =
-  | { kind: "file"; path: string }
-  | { kind: "buffer"; buffer: Buffer };
+export type ParserInput = { kind: "file"; path: string } | { kind: "buffer"; buffer: Buffer };

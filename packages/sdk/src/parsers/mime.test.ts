@@ -33,9 +33,15 @@ test("detectMimeType detects GIF from magic bytes", async () => {
 test("detectMimeType detects WebP from magic bytes", async () => {
   const webpHeader = Buffer.alloc(12);
   // RIFF at offset 0
-  webpHeader[0] = 0x52; webpHeader[1] = 0x49; webpHeader[2] = 0x46; webpHeader[3] = 0x46;
+  webpHeader[0] = 0x52;
+  webpHeader[1] = 0x49;
+  webpHeader[2] = 0x46;
+  webpHeader[3] = 0x46;
   // WEBP at offset 8
-  webpHeader[8] = 0x57; webpHeader[9] = 0x45; webpHeader[10] = 0x42; webpHeader[11] = 0x50;
+  webpHeader[8] = 0x57;
+  webpHeader[9] = 0x45;
+  webpHeader[10] = 0x42;
+  webpHeader[11] = 0x50;
   const result = await detectMimeType({ buffer: webpHeader });
   expect(result).toBe("image/webp");
 });

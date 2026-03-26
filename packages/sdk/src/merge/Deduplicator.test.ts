@@ -57,9 +57,21 @@ test("fnv1a32: returns unsigned 32-bit integer", () => {
 
 test("fnv1a32: collision resistance for similar strings", () => {
   const strings = [
-    "item1", "item2", "item3", "item4", "item5",
-    "item6", "item7", "item8", "item9", "item10",
-    "Item1", "ITEM1", "itemA", "itemB", "itemC",
+    "item1",
+    "item2",
+    "item3",
+    "item4",
+    "item5",
+    "item6",
+    "item7",
+    "item8",
+    "item9",
+    "item10",
+    "Item1",
+    "ITEM1",
+    "itemA",
+    "itemB",
+    "itemC",
   ];
   const hashes = strings.map(fnv1a32);
   const uniqueHashes = new Set(hashes);

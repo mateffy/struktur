@@ -1,18 +1,18 @@
 /**
  * @struktur/telemetry
- * 
+ *
  * Telemetry and observability for Struktur structured data extraction.
  * Supports multiple providers including Phoenix (Arize) and Langfuse.
- * 
+ *
  * @example
  * ```typescript
  * import { createPhoenixTelemetry } from "@struktur/telemetry";
- * 
+ *
  * const telemetry = await createPhoenixTelemetry({
  *   projectName: "my-app",
  *   url: "http://localhost:6006",
  * });
- * 
+ *
  * await extract({ artifacts, schema, telemetry });
  * ```
  */

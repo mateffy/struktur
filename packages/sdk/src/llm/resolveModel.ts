@@ -12,7 +12,9 @@ export const resolveModel = async (model: string): Promise<AiSdkModel> => {
   const modelName = rest.join("/");
 
   if (!provider || !modelName) {
-    throw new Error(`Invalid model format: ${model}. Expected format: provider/model (e.g., openai/gpt-4)`);
+    throw new Error(
+      `Invalid model format: ${model}. Expected format: provider/model (e.g., openai/gpt-4)`,
+    );
   }
 
   if (provider !== "ollama") {
@@ -45,9 +47,11 @@ export const resolveModel = async (model: string): Promise<AiSdkModel> => {
         apiKey = await resolveProviderToken("opencode");
       }
       if (!apiKey) {
-        throw new Error("OpenCode API key is required. Set OPENCODE_API_KEY environment variable or run 'struktur auth set --provider opencode --token <token>'");
+        throw new Error(
+          "OpenCode API key is required. Set OPENCODE_API_KEY environment variable or run 'struktur auth set --provider opencode --token <token>'",
+        );
       }
-      
+
       if (modelName.startsWith("claude-")) {
         const { createAnthropic } = await import("@ai-sdk/anthropic");
         return createAnthropic({
@@ -73,9 +77,9 @@ export const resolveModel = async (model: string): Promise<AiSdkModel> => {
       const hashIndex = modelName.indexOf("#");
       const actualModelName = hashIndex >= 0 ? modelName.slice(0, hashIndex) : modelName;
       const preferredProvider = hashIndex >= 0 ? modelName.slice(hashIndex + 1) : undefined;
-      
+
       const modelInstance = openrouter(actualModelName);
-      
+
       if (preferredProvider) {
         Object.defineProperty(modelInstance, "__openrouter_provider", {
           value: preferredProvider,
@@ -84,7 +88,7 @@ export const resolveModel = async (model: string): Promise<AiSdkModel> => {
           configurable: false,
         });
       }
-      
+
       return modelInstance;
     }
     case "ollama": {
@@ -94,6 +98,8 @@ export const resolveModel = async (model: string): Promise<AiSdkModel> => {
       return ollama(modelName);
     }
     default:
-      throw new Error(`Unsupported model provider: ${provider}. Supported providers: openai, anthropic, google, opencode, openrouter, ollama`);
+      throw new Error(
+        `Unsupported model provider: ${provider}. Supported providers: openai, anthropic, google, opencode, openrouter, ollama`,
+      );
   }
 };

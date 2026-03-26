@@ -1,8 +1,7 @@
 import { BrowserWindow } from "electrobun/bun";
 
 // Determine if we're in development mode
-const isDev = process.env.NODE_ENV === "development" || 
-              process.env.ELECTROBUN_BUILD_ENV === "dev";
+const isDev = process.env.NODE_ENV === "development" || process.env.ELECTROBUN_BUILD_ENV === "dev";
 
 // Web dev server URL - add desktop mode query param for the web UI
 const WEB_DEV_URL = "http://localhost:3030?desktop=true";

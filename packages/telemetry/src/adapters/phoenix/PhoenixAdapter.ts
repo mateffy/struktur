@@ -1,6 +1,6 @@
 /**
  * Phoenix (Arize) telemetry adapter
- * 
+ *
  * Implements TelemetryAdapter for Phoenix using OpenTelemetry and
  * OpenInference semantic conventions.
  */
@@ -83,7 +83,7 @@ export class PhoenixAdapter implements TelemetryAdapter {
     }
 
     const tracer = this.otelApi.trace.getTracer("struktur");
-    
+
     const spanKind = context.kind;
     const otelSpan = tracer.startSpan(context.name, {
       attributes: {
@@ -119,9 +119,8 @@ export class PhoenixAdapter implements TelemetryAdapter {
 
       if (result.output !== undefined) {
         try {
-          const outputStr = typeof result.output === "string" 
-            ? result.output 
-            : JSON.stringify(result.output);
+          const outputStr =
+            typeof result.output === "string" ? result.output : JSON.stringify(result.output);
           otelSpan.setAttribute("output.value", outputStr);
         } catch {
           otelSpan.setAttribute("output.value", "[object]");
@@ -233,7 +232,10 @@ export class PhoenixAdapter implements TelemetryAdapter {
     span.setAttributes(attrs);
   }
 
-  private setTokenUsageAttrs(attrs: Record<string, string | number | boolean>, usage: TokenUsage): void {
+  private setTokenUsageAttrs(
+    attrs: Record<string, string | number | boolean>,
+    usage: TokenUsage,
+  ): void {
     attrs["llm.token_count.prompt"] = usage.input;
     attrs["llm.token_count.completion"] = usage.output;
     attrs["llm.token_count.total"] = usage.total;
@@ -320,14 +322,14 @@ export class PhoenixAdapter implements TelemetryAdapter {
       "parse.input_size": event.inputSize,
       "parse.output_tokens": event.outputTokens,
       "parse.output_images": event.outputImages,
-      "latency_ms": event.latencyMs,
+      latency_ms: event.latencyMs,
     });
   }
 }
 
 /**
  * Create a Phoenix telemetry adapter
- * 
+ *
  * @param config - Phoenix configuration
  * @returns Phoenix telemetry adapter
  */

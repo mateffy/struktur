@@ -58,7 +58,7 @@ const SCALAR_TYPES: ReadonlySet<string> = new Set([
 
 /** Maps alias → canonical type accepted by this parser. */
 const SCALAR_ALIASES: Readonly<Record<string, ScalarFieldType>> = {
-  bool:  "boolean",
+  bool: "boolean",
   float: "number",
   // Note: "int" stays as "int" (not aliased to "integer") so the schema
   // builder can emit the extra multipleOf:1 constraint.
@@ -72,10 +72,7 @@ const SCALAR_ALIASES: Readonly<Record<string, ScalarFieldType>> = {
  * Extract the content inside `prefix{...}` from a raw type string.
  * Returns `null` if the pattern doesn't match.
  */
-const extractBraces = (
-  rawType: string,
-  prefix: string,
-): string | null => {
+const extractBraces = (rawType: string, prefix: string): string | null => {
   if (!rawType.startsWith(prefix + "{") || !rawType.endsWith("}")) {
     return null;
   }
@@ -117,15 +114,17 @@ const parseField = (token: string): ParsedField => {
   }
   if (!rawType) {
     throw new Error(
-      `Empty type after colon for field "${name}". ` +
-        `Omit the colon or specify a type.`,
+      `Empty type after colon for field "${name}". ` + `Omit the colon or specify a type.`,
     );
   }
 
   // enum{a|b|c}
   const enumContent = extractBraces(rawType, "enum");
   if (enumContent !== null) {
-    const values = enumContent.split("|").map((v) => v.trim()).filter(Boolean);
+    const values = enumContent
+      .split("|")
+      .map((v) => v.trim())
+      .filter(Boolean);
     if (values.length < 2) {
       throw new Error(
         `enum for field "${name}" must have at least two values separated by "|", got: "${enumContent}".`,
@@ -139,9 +138,7 @@ const parseField = (token: string): ParsedField => {
   if (arrayContent !== null) {
     const itemType = arrayContent.trim();
     if (!itemType) {
-      throw new Error(
-        `array for field "${name}" requires an item type, e.g. array{string}.`,
-      );
+      throw new Error(`array for field "${name}" requires an item type, e.g. array{string}.`);
     }
     return { name, kind: "array", items: parseScalarType(itemType, name) };
   }
@@ -184,10 +181,18 @@ export const parseFieldsString = (fields: string): ParsedField[] => {
   let depth = 0;
   let current = "";
   for (const ch of fields) {
-    if (ch === "{") { depth++; current += ch; }
-    else if (ch === "}") { depth--; current += ch; }
-    else if (ch === "," && depth === 0) { tokens.push(current); current = ""; }
-    else { current += ch; }
+    if (ch === "{") {
+      depth++;
+      current += ch;
+    } else if (ch === "}") {
+      depth--;
+      current += ch;
+    } else if (ch === "," && depth === 0) {
+      tokens.push(current);
+      current = "";
+    } else {
+      current += ch;
+    }
   }
   if (current) tokens.push(current);
 
@@ -202,9 +207,7 @@ export const parseFieldsString = (fields: string): ParsedField[] => {
  * Build a minimal JSON Schema `object` from a parsed fields array.
  * All fields are required; additionalProperties is false.
  */
-export const buildSchemaFromParsedFields = (
-  fields: ParsedField[],
-): AnyJSONSchema => {
+export const buildSchemaFromParsedFields = (fields: ParsedField[]): AnyJSONSchema => {
   if (fields.length === 0) {
     throw new Error("Cannot build a schema from an empty fields list.");
   }
@@ -214,14 +217,16 @@ export const buildSchemaFromParsedFields = (
 
   for (const field of fields) {
     if (field.kind === "scalar") {
-      properties[field.name] = field.type === "int"
-        ? { type: "integer", multipleOf: 1 }
-        : { type: field.type };
+      properties[field.name] =
+        field.type === "int" ? { type: "integer", multipleOf: 1 } : { type: field.type };
     } else if (field.kind === "enum") {
       properties[field.name] = { type: "string", enum: field.values };
     } else {
       // array
-      properties[field.name] = { type: "array", items: field.items === "int" ? { type: "integer", multipleOf: 1 } : { type: field.items } };
+      properties[field.name] = {
+        type: "array",
+        items: field.items === "int" ? { type: "integer", multipleOf: 1 } : { type: field.items },
+      };
     }
     required.push(field.name);
   }

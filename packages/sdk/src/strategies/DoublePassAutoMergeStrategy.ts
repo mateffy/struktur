@@ -3,17 +3,9 @@ import type { ExtractionOptions } from "../types";
 import { buildExtractorPrompt } from "../prompts/ExtractorPrompt";
 import { buildDeduplicationPrompt } from "../prompts/DeduplicationPrompt";
 import { buildSequentialPrompt } from "../prompts/SequentialExtractorPrompt";
-import {
-  extractWithPrompt,
-  getBatches,
-  mergeUsage,
-  serializeSchema,
-} from "./utils";
+import { extractWithPrompt, getBatches, mergeUsage, serializeSchema } from "./utils";
 import { SmartDataMerger } from "../merge/SmartDataMerger";
-import {
-  findExactDuplicatesWithHashing,
-  deduplicateByIndices,
-} from "../merge/Deduplicator";
+import { findExactDuplicatesWithHashing, deduplicateByIndices } from "../merge/Deduplicator";
 import { runConcurrently } from "./concurrency";
 import { runWithRetries } from "../llm/RetryingRunner";
 
@@ -85,7 +77,7 @@ export class DoublePassAutoMergeStrategy<T> implements ExtractionStrategy<T> {
   async run(options: ExtractionOptions<T>): Promise<ExtractionResult<T>> {
     const debug = options.debug;
     const { telemetry } = options;
-    
+
     // Create strategy-level span
     const strategySpan = telemetry?.startSpan({
       name: "strategy.double-pass-auto-merge",
@@ -97,7 +89,7 @@ export class DoublePassAutoMergeStrategy<T> implements ExtractionStrategy<T> {
         "strategy.concurrency": this.config.concurrency,
       },
     });
-    
+
     const batches = getBatches(
       options.artifacts,
       {
@@ -112,7 +104,7 @@ export class DoublePassAutoMergeStrategy<T> implements ExtractionStrategy<T> {
     const schema = serializeSchema(options.schema);
     const totalSteps = this.getEstimatedSteps(options.artifacts);
     let step = 1;
-    
+
     // Create pass 1 span
     const pass1Span = telemetry?.startSpan({
       name: "struktur.pass_1",
@@ -125,11 +117,7 @@ export class DoublePassAutoMergeStrategy<T> implements ExtractionStrategy<T> {
     });
 
     const tasks = batches.map((batch, index) => async () => {
-      const prompt = buildExtractorPrompt(
-        batch,
-        schema,
-        this.config.outputInstructions,
-      );
+      const prompt = buildExtractorPrompt(batch, schema, this.config.outputInstructions);
       const result = await extractWithPrompt<T>({
         model: this.config.model,
         schema: options.schema,
@@ -159,14 +147,9 @@ export class DoublePassAutoMergeStrategy<T> implements ExtractionStrategy<T> {
       return result;
     });
 
-    const results = await runConcurrently(
-      tasks,
-      this.config.concurrency ?? batches.length,
-    );
+    const results = await runConcurrently(tasks, this.config.concurrency ?? batches.length);
 
-    const merger = new SmartDataMerger(
-      options.schema as Record<string, unknown>,
-    );
+    const merger = new SmartDataMerger(options.schema as Record<string, unknown>);
     let merged = {} as Record<string, unknown>;
 
     debug?.mergeStart({
@@ -174,7 +157,7 @@ export class DoublePassAutoMergeStrategy<T> implements ExtractionStrategy<T> {
       inputCount: results.length,
       strategy: this.name,
     });
-    
+
     // Create smart merge span
     const mergeSpan = telemetry?.startSpan({
       name: "struktur.smart_merge",
@@ -195,9 +178,7 @@ export class DoublePassAutoMergeStrategy<T> implements ExtractionStrategy<T> {
         const leftArray = Array.isArray(merged[key])
           ? (merged[key] as unknown[]).length
           : undefined;
-        const rightArray = Array.isArray(
-          (result.data as Record<string, unknown>)[key],
-        )
+        const rightArray = Array.isArray((result.data as Record<string, unknown>)[key])
           ? ((result.data as Record<string, unknown>)[key] as unknown[]).length
           : undefined;
 
@@ -208,7 +189,7 @@ export class DoublePassAutoMergeStrategy<T> implements ExtractionStrategy<T> {
           leftCount: leftArray,
           rightCount: rightArray,
         });
-        
+
         // Record merge event in telemetry
         if (mergeSpan && telemetry) {
           telemetry.recordEvent(mergeSpan, {
@@ -222,7 +203,7 @@ export class DoublePassAutoMergeStrategy<T> implements ExtractionStrategy<T> {
     }
 
     debug?.mergeComplete({ mergeId: "double_pass_auto_merge", success: true });
-    
+
     // End merge span
     if (mergeSpan && telemetry) {
       telemetry.endSpan(mergeSpan, {
@@ -232,7 +213,7 @@ export class DoublePassAutoMergeStrategy<T> implements ExtractionStrategy<T> {
     }
 
     merged = dedupeArrays(merged);
-    
+
     // Create exact dedupe span
     const exactDedupeSpan = telemetry?.startSpan({
       name: "struktur.exact_dedupe",
@@ -242,7 +223,7 @@ export class DoublePassAutoMergeStrategy<T> implements ExtractionStrategy<T> {
         "dedupe.method": "exact_hashing",
       },
     });
-    
+
     // End exact dedupe span
     if (exactDedupeSpan && telemetry) {
       telemetry.recordEvent(exactDedupeSpan, {
@@ -263,7 +244,7 @@ export class DoublePassAutoMergeStrategy<T> implements ExtractionStrategy<T> {
       dedupeId: "double_pass_auto_dedupe",
       itemCount: Object.keys(merged).length,
     });
-    
+
     // Create LLM dedupe span
     const llmDedupeSpan = telemetry?.startSpan({
       name: "struktur.llm_dedupe",
@@ -311,7 +292,7 @@ export class DoublePassAutoMergeStrategy<T> implements ExtractionStrategy<T> {
       duplicatesFound: dedupeResponse.data.keys.length,
       itemsRemoved: dedupeResponse.data.keys.length,
     });
-    
+
     // End LLM dedupe span
     if (llmDedupeSpan && telemetry) {
       telemetry.recordEvent(llmDedupeSpan, {
@@ -326,7 +307,7 @@ export class DoublePassAutoMergeStrategy<T> implements ExtractionStrategy<T> {
         output: deduped,
       });
     }
-    
+
     // End pass 1 span
     telemetry?.endSpan(pass1Span!, {
       status: "ok",
@@ -335,7 +316,7 @@ export class DoublePassAutoMergeStrategy<T> implements ExtractionStrategy<T> {
 
     let currentData = deduped as T;
     const usages = [...results.map((r) => r.usage), dedupeResponse.usage];
-    
+
     // Create pass 2 span
     const pass2Span = telemetry?.startSpan({
       name: "struktur.pass_2",
@@ -386,13 +367,13 @@ export class DoublePassAutoMergeStrategy<T> implements ExtractionStrategy<T> {
         strategy: this.name,
       });
     }
-    
+
     // End pass 2 span
     telemetry?.endSpan(pass2Span!, {
       status: "ok",
       output: currentData,
     });
-    
+
     // End strategy span
     telemetry?.endSpan(strategySpan!, {
       status: "ok",
@@ -403,8 +384,6 @@ export class DoublePassAutoMergeStrategy<T> implements ExtractionStrategy<T> {
   }
 }
 
-export const doublePassAutoMerge = <T>(
-  config: DoublePassAutoMergeStrategyConfig,
-) => {
+export const doublePassAutoMerge = <T>(config: DoublePassAutoMergeStrategyConfig) => {
   return new DoublePassAutoMergeStrategy<T>(config);
 };

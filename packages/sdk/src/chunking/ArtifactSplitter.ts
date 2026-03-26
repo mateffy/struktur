@@ -18,7 +18,7 @@ const splitTextIntoChunks = (
   maxTokens: number,
   options?: TokenCountOptions,
   debug?: DebugLogger,
-  artifactId?: string
+  artifactId?: string,
 ): ArtifactContent[] => {
   if (!content.text) {
     return [content];
@@ -57,10 +57,7 @@ const splitTextIntoChunks = (
   return chunks;
 };
 
-export const splitArtifact = (
-  artifact: Artifact,
-  options: SplitOptions
-): Artifact[] => {
+export const splitArtifact = (artifact: Artifact, options: SplitOptions): Artifact[] => {
   const { maxTokens, maxImages, debug } = options;
   const splitContents: ArtifactContent[] = [];
 
@@ -86,8 +83,7 @@ export const splitArtifact = (
     const contentTokens = countContentTokens(content, options);
     const contentImages = content.media?.length ?? 0;
 
-    const exceedsTokens =
-      currentContents.length > 0 && currentTokens + contentTokens > maxTokens;
+    const exceedsTokens = currentContents.length > 0 && currentTokens + contentTokens > maxTokens;
     const exceedsImages =
       maxImages !== undefined &&
       currentContents.length > 0 &&
@@ -105,7 +101,7 @@ export const splitArtifact = (
           chunkSize: maxTokens,
         });
       }
-      
+
       chunks.push({
         ...artifact,
         id: `${artifact.id}:part:${chunks.length + 1}`,
@@ -143,7 +139,7 @@ export const splitArtifact = (
   debug?.chunkingResult({
     artifactId: artifact.id,
     chunksCreated: chunks.length,
-    chunkSizes: chunks.map(c => c.tokens ?? 0),
+    chunkSizes: chunks.map((c) => c.tokens ?? 0),
   });
 
   return chunks;

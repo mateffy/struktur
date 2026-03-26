@@ -4,12 +4,6 @@
 // We need dist/strategies.d.ts to match the flat JS entrypoint.
 import { writeFileSync } from "node:fs";
 
-writeFileSync(
-  "dist/strategies.d.ts",
-  'export * from "./strategies/index";\n',
-);
+writeFileSync("dist/strategies.d.ts", 'export * from "./strategies/index";\n');
 
-writeFileSync(
-  "dist/parsers.d.ts",
-  'export * from "./parsers/index";\n',
-);
+writeFileSync("dist/parsers.d.ts", 'export * from "./parsers/index";\n');

@@ -27,11 +27,11 @@ test("formatArtifactsXml escapes text and builds image refs", () => {
 
   const result = formatArtifactsXml(artifacts);
   const expected = [
-    "<artifact id=\"a&amp;&lt;&gt;&quot;&apos;\" type=\"text\">",
-    "  <text page=\"2\">Hello &amp; &lt;world&gt; &quot;quote&quot; &apos;apostrophe&apos;</text>",
-    "  <image ref=\"https://example.com/image.png\" page=\"1\" />",
-    "  <image ref=\"artifact:a&amp;&lt;&gt;&quot;&apos;/images/image2.png\" page=\"1\" />",
-    "  <image ref=\"artifact:a&amp;&lt;&gt;&quot;&apos;/images/image3.bin\" page=\"1\" />",
+    '<artifact id="a&amp;&lt;&gt;&quot;&apos;" type="text">',
+    '  <text page="2">Hello &amp; &lt;world&gt; &quot;quote&quot; &apos;apostrophe&apos;</text>',
+    '  <image ref="https://example.com/image.png" page="1" />',
+    '  <image ref="artifact:a&amp;&lt;&gt;&quot;&apos;/images/image2.png" page="1" />',
+    '  <image ref="artifact:a&amp;&lt;&gt;&quot;&apos;/images/image3.bin" page="1" />',
     "</artifact>",
   ].join("\n");
 

@@ -199,7 +199,8 @@ test("generateStructured shows friendly error when model doesn't support images"
   calls.length = 0;
   generateTextImpl = async () => {
     throw {
-      responseBody: '{"error":{"message":"No endpoints found that support image input","code":404}}',
+      responseBody:
+        '{"error":{"message":"No endpoints found that support image input","code":404}}',
       statusCode: 404,
     };
   };
@@ -210,7 +211,10 @@ test("generateStructured shows friendly error when model doesn't support images"
         model: { modelId: "meta-llama/llama-3.1-8b-instruct" },
         schema: { type: "object" },
         system: "sys",
-        user: [{ type: "text", text: "prompt" }, { type: "image", image: "base64data" }],
+        user: [
+          { type: "text", text: "prompt" },
+          { type: "image", image: "base64data" },
+        ],
       }),
   ).toThrow(
     'Model "meta-llama/llama-3.1-8b-instruct" does not support image input. Please use a model that supports images (e.g., gpt-4o, claude-3-5-sonnet, gemini-1.5-pro) or remove the --images and --screenshots flags.',
@@ -388,7 +392,5 @@ test("generateStructured shows generic provider error message", async () => {
         system: "sys",
         user: "prompt",
       }),
-  ).toThrow(
-    'Provider error for model "gpt-3.5-turbo": Context length exceeded',
-  );
+  ).toThrow('Provider error for model "gpt-3.5-turbo": Context length exceeded');
 });

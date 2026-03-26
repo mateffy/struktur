@@ -1,7 +1,4 @@
-export const buildParallelMergerPrompt = (
-  schema: string,
-  dataList: unknown[]
-) => {
+export const buildParallelMergerPrompt = (schema: string, dataList: unknown[]) => {
   const jsonObjects = dataList
     .filter((item) => item !== null && item !== undefined)
     .map((item) => JSON.stringify(item))

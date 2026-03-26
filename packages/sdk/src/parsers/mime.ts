@@ -21,8 +21,7 @@ const MAGIC_BYTES: Array<{ mimeType: string; bytes: number[]; offset?: number }>
 // WebP has RIFF at offset 0 and WEBP at offset 8
 const isWebP = (header: Uint8Array): boolean => {
   if (header.length < 12) return false;
-  const riff =
-    header[0] === 0x52 && header[1] === 0x49 && header[2] === 0x46 && header[3] === 0x46;
+  const riff = header[0] === 0x52 && header[1] === 0x49 && header[2] === 0x46 && header[3] === 0x46;
   const webp =
     header[8] === 0x57 && header[9] === 0x45 && header[10] === 0x42 && header[11] === 0x50;
   return riff && webp;
@@ -63,12 +62,9 @@ const EXTENSION_MIME_MAP: Record<string, string> = {
   ".xml": "application/xml",
   ".yaml": "application/yaml",
   ".yml": "application/yaml",
-  ".docx":
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  ".xlsx":
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  ".pptx":
-    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
   ".mp4": "video/mp4",
   ".mp3": "audio/mpeg",
   ".wav": "audio/wav",
@@ -112,7 +108,7 @@ export async function detectMimeType(options: {
     if (npmParsers && npmParsers.length > 0) {
       for (const entry of npmParsers) {
         try {
-          const mod = await import(entry.def.package) as {
+          const mod = (await import(entry.def.package)) as {
             detectFileType?: (header: Uint8Array) => boolean;
           };
           if (typeof mod.detectFileType === "function" && mod.detectFileType(header)) {

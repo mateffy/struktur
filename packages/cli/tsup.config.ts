@@ -12,10 +12,7 @@ export default defineConfig({
   splitting: false,
   sourcemap: true,
   clean: true,
-  external: [
-    "@struktur/sdk",
-    "@struktur/telemetry",
-  ],
+  external: ["@struktur/sdk", "@struktur/telemetry"],
   banner: {
     js: "#!/usr/bin/env node",
   },

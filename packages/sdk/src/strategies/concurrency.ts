@@ -1,6 +1,6 @@
 export const runConcurrently = async <T>(
   tasks: Array<() => Promise<T>>,
-  concurrency: number
+  concurrency: number,
 ): Promise<T[]> => {
   const results: T[] = [];
 
