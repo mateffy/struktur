@@ -8,7 +8,7 @@ const isDev = process.env.NODE_ENV === "development" ||
 const WEB_DEV_URL = "http://localhost:3030?desktop=true";
 
 // Create the main window with transparent title bar
-const win = new BrowserWindow({
+const _win = new BrowserWindow({
   title: "Struktur",
   url: isDev ? WEB_DEV_URL : "views://main/index.html",
   frame: {

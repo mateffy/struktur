@@ -1,9 +1,7 @@
 import type {
-  Artifact,
   ExtractionOptions,
   ExtractionResult,
   ExtractionStrategy,
-  Usage,
 } from "../../types";
 import type { createDebugLogger } from "../../debug/logger";
 import { resolveModel, type AiSdkModel } from "../../llm/resolveModel";
@@ -241,7 +239,7 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
             }
           }
         }
-      } catch (e) {
+      } catch {
         // Fall back to false if API fails
       }
     }
@@ -253,7 +251,7 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
       modelId: this.config.modelId || 'unknown' 
     });
     
-    const tools = (iteration: number): any => ({
+    const tools = (_iteration: number): any => ({
       bash: {
         name: "bash", description: "Execute bash commands",
         parameters: z.object({ command: z.string() }),

@@ -1,6 +1,5 @@
 import { test, expect } from "bun:test";
 import { agent, AgentStrategy } from "./AgentStrategy";
-import type { Artifact } from "../../types";
 
 // Mock model for testing
 const createMockModel = (response: string) => {

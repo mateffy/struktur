@@ -6,6 +6,7 @@ type GenerateTextParams = Parameters<typeof generateText>[0];
 type ModelType = GenerateTextParams extends { model: infer M } ? M : unknown;
 type MessageType = Array<ModelMessage>;
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export type StructuredRequest<T> = {
   model: ModelType | unknown;
   system: string;

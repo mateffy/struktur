@@ -176,9 +176,7 @@ export class ParallelAutoMergeStrategy<T> implements ExtractionStrategy<T> {
 
     for (let i = 0; i < results.length; i++) {
       const result = results[i]!;
-      const prevSize = Object.keys(merged).length;
       merged = merger.merge(merged, result.data as Record<string, unknown>);
-      const newSize = Object.keys(merged).length;
 
       // Log merge operation per field
       for (const key of Object.keys(result.data as Record<string, unknown>)) {

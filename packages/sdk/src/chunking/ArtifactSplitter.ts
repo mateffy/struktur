@@ -2,7 +2,6 @@ import type { Artifact, ArtifactContent } from "../types";
 import type { DebugLogger } from "../debug/logger";
 import {
   countContentTokens,
-  countArtifactImages,
   countArtifactTokens,
   estimateTextTokens,
   type TokenCountOptions,

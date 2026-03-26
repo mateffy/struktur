@@ -98,7 +98,8 @@ test("parse builds image artifacts", async () => {
   const media = artifacts[0]?.contents[0]?.media?.[0];
   expect(artifacts[0]?.type).toBe("image");
   expect(media?.type).toBe("image");
-  expect((media?.contents as Buffer).equals(buffer)).toBe(true);
+  expect(media?.contents).toBeDefined();
+  expect((media!.contents as Buffer).equals(buffer)).toBe(true);
 });
 
 test("parse uses parserConfig over providers", async () => {

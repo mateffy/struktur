@@ -13,10 +13,15 @@
     "version:patch": "bun scripts/version.ts patch",
     "version:minor": "bun scripts/version.ts minor",
     "version:major": "bun scripts/version.ts major",
-    "publish": "bun scripts/publish.ts"
+    "publish": "bun scripts/publish.ts",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check"
   },
   "devDependencies": {
     "@types/bun": "latest",
+    "eslint-plugin-unused-imports": "^4.4.1",
     "oxfmt": "^0.42.0",
     "oxlint": "^1.57.0"
   },

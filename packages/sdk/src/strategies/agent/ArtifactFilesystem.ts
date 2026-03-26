@@ -106,7 +106,7 @@ export const createVirtualFilesystem = (
       type: artifact.type,
       metadata: artifact.metadata,
       tokens: artifact.tokens,
-      contents: artifact.contents.map((content: ArtifactContent, contentIndex: number) => {
+      contents: artifact.contents.map((content: ArtifactContent, _contentIndex: number) => {
         const pageNumber = content.page;
         
         return {

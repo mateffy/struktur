@@ -13,13 +13,6 @@ import {
 } from "../../src/adapters/phoenix/index.js";
 import type {
   SpanContext,
-  SpanResult,
-  LLMCallEvent,
-  ValidationEvent,
-  ChunkEvent,
-  ToolCallEvent,
-  MergeEvent,
-  ParseEvent,
   PhoenixConfig,
 } from "../../src/types.js";
 
@@ -69,7 +62,7 @@ describe("PhoenixAdapter", () => {
     // Verify adapter is created for all span kinds
     const kinds = ["CHAIN", "LLM", "TOOL", "AGENT", "RETRIEVER", "EMBEDDING", "RERANKER"] as const;
     
-    for (const kind of kinds) {
+    for (const _kind of kinds) {
       expect(adapter).toBeDefined();
     }
   });

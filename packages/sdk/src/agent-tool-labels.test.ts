@@ -1,5 +1,5 @@
 import { test, expect, describe } from "bun:test";
-import { agent, AgentStrategy } from "@struktur/sdk";
+import { agent } from "@struktur/sdk";
 
 describe("Agent Strategy Tool Labels", () => {
   test("strategy creates properly configured agent", () => {

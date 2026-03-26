@@ -1,4 +1,4 @@
-import type { Artifact, ArtifactContent, ExtractionEvents, Usage, StepInfo, ProgressInfo, RetryInfo, TokenUsageInfo } from "../types";
+import type { StepInfo, ProgressInfo, RetryInfo, TokenUsageInfo } from "../types";
 
 export type DebugLogger = ReturnType<typeof createDebugLogger>;
 

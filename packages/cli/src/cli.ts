@@ -35,7 +35,6 @@ import {
   simple,
   agent,
   validateSerializedArtifacts,
-  hydrateSerializedArtifacts,
   detectMimeType,
   runParser,
   createDebugLogger,
@@ -69,7 +68,6 @@ import {
   getTelemetryConfig,
   enableTelemetry,
   disableTelemetry,
-  deleteTelemetryConfig,
 } from "@struktur/sdk";
 import type { TokenStorageType } from "@struktur/sdk";
 import {
@@ -2027,7 +2025,6 @@ const extractCommand = defineCommand({
         // Token usage tracked in result
       },
       onAgentToolStart: async (info) => {
-        const toolId = info.toolCallId || info.toolName || 'unknown';
         // Choose creative unicode icon based on tool name (geometric dingbats, no emojis) with colors
         const iconColored = (() => {
           switch (info.toolName) {

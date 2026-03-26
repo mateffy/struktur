@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { LogoAnimation } from "@/components/LogoAnimation";
-import { Copy, FileText, AlignLeft, Image, Braces, Zap, Layers, CheckCircle, Code, FileImage, Settings } from "lucide-react";
+import { Copy, FileText, AlignLeft, Image, Braces, Zap, Layers, CheckCircle, Code, FileImage } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 export const Route = createFileRoute("/")({

@@ -51,7 +51,7 @@ test("generateStructured maps prompt/completion token usage", async () => {
 test("generateStructured uses explicit messages and totals usage", async () => {
   calls.length = 0;
   const messages: ModelMessage[] = [{ role: "user", content: "custom" }];
-  generateTextImpl = async (params) => ({
+  generateTextImpl = async (_params) => ({
     output: { title: "ok" },
     usage: { inputTokens: 4, outputTokens: 6 },
   });

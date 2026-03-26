@@ -1,22 +1,16 @@
 import React, { useState, useCallback } from 'react';
 import { 
   ChevronDown, 
-  ChevronRight, 
   Type, 
   Hash, 
   ToggleLeft, 
-  Braces, 
   Brackets,
-  Asterisk,
   Mail,
   Calendar,
   Globe,
   Clock,
   Phone,
-  CreditCard,
   FileText,
-  Link,
-  AlertCircle,
   CheckCircle2,
   Info
 } from 'lucide-react';
@@ -180,13 +174,6 @@ const PropertyRow: React.FC<PropertyRowProps> = ({
   
   const toggleExpanded = useCallback(() => {
     if (hasChildren) {
-      setExpanded(prev => !prev);
-    }
-  }, [hasChildren]);
-  
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (hasChildren && (e.key === 'Enter' || e.key === ' ')) {
-      e.preventDefault();
       setExpanded(prev => !prev);
     }
   }, [hasChildren]);

@@ -1,16 +1,7 @@
 import { test, expect, describe } from "bun:test";
-import { agent, AgentStrategy } from "./AgentStrategy";
-import type { Artifact } from "../../types";
+import { agent } from "./AgentStrategy";
 
 describe("Agent Strategy Provider/Model Integration", () => {
-  const createMockArtifacts = (): Artifact[] => [
-    {
-      id: "test-doc",
-      type: "text",
-      contents: [{ text: "Test content" }],
-      raw: async () => Buffer.from("Test content"),
-    },
-  ];
 
   test("correctly parses provider/model spec format", () => {
     const testCases = [

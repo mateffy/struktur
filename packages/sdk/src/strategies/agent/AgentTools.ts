@@ -1,8 +1,8 @@
 import { Bash } from "just-bash";
 
 export const createVirtualFilesystemTools = (
-  bash: Bash,
-  getImageByPath?: (path: string) => string | undefined
+  _bash: Bash,
+  _getImageByPath?: (path: string) => string | undefined
 ) => {
   return {};
 };

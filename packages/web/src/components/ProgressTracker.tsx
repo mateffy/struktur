@@ -15,7 +15,7 @@ type ProgressTrackerProps = {
 	currentStep?: number;
 };
 
-export function ProgressTracker({ steps, currentStep }: ProgressTrackerProps) {
+export function ProgressTracker({ steps, currentStep: _currentStep }: ProgressTrackerProps) {
 	return (
 		<div className="space-y-3">
 			{steps.map((step, index) => {

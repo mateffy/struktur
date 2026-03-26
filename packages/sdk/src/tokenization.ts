@@ -12,7 +12,7 @@ const defaultOptions: Required<TokenCountOptions> = {
 
 const mergeOptions = (options?: TokenCountOptions) => ({
   ...defaultOptions,
-  ...(options ?? {}),
+  ...options,
 });
 
 export const estimateTextTokens = (text: string, options?: TokenCountOptions) => {
