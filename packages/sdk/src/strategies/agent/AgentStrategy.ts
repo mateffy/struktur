@@ -1,7 +1,7 @@
 import type { ExtractionOptions, ExtractionResult, ExtractionStrategy } from "../../types";
 import type { createDebugLogger } from "../../debug/logger";
 import { resolveModel, type AiSdkModel } from "../../llm/resolveModel";
-import { generateText } from "ai";
+import { generateText, tool } from "ai";
 import { Bash } from "just-bash";
 import { createVirtualFilesystem } from "./ArtifactFilesystem";
 import { z } from "zod";
@@ -275,11 +275,10 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
     });
 
     const tools = (_iteration: number): any => ({
-      bash: {
-        name: "bash",
+      bash: tool({
         description: "Execute bash commands",
-        parameters: z.object({ command: z.string() }),
-        execute: async (params: any) => {
+        inputSchema: z.object({ command: z.string() }),
+        execute: async (params: { command: string }) => {
           const result = await bash.exec(params.command);
           return {
             content: [
@@ -290,11 +289,10 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
             ],
           };
         },
-      },
-      read: {
-        name: "read",
+      }),
+      read: tool({
         description: "Read file contents. Default: 200 lines. Max: 1000 lines per read.",
-        parameters: z.object({
+        inputSchema: z.object({
           file_path: z.string().describe("The absolute path to the file to read"),
           offset: z
             .number()
@@ -310,9 +308,8 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
             .optional()
             .describe("Number of lines to read (max 1000, default 200)"),
         }),
-        execute: async (params: any) => {
-          // Handle both file_path and path (some models send path instead)
-          const filePath = params.file_path || params.path;
+        execute: async (params: { file_path: string; offset?: number; limit?: number }) => {
+          const filePath = params.file_path;
           if (!filePath) {
             return {
               content: [
@@ -321,58 +318,53 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
             };
           }
 
-          // Use zod defaults/validation from schema
-          const limit = Math.min(params.limit || 200, 1000);
-          const startLine = params.offset || 1;
+          const limit = Math.min(params.limit ?? 200, 1000);
+          const startLine = params.offset ?? 1;
           const endLine = startLine + limit - 1;
 
           const cmd = `sed -n '${startLine},${endLine}p' "${filePath}"`;
           const result = await bash.exec(cmd);
           return { content: [{ type: "text", text: result.stdout || result.stderr }] };
         },
-      },
-      grep: {
-        name: "grep",
+      }),
+      grep: tool({
         description: "Search for patterns",
-        parameters: z.object({
+        inputSchema: z.object({
           pattern: z.string(),
           path: z.string(),
           options: z.string().optional(),
         }),
-        execute: async (params: any) => {
+        execute: async (params: { pattern: string; path: string; options?: string }) => {
           const result = await bash.exec(
             `grep ${params.options || ""} "${params.pattern}" "${params.path}"`,
           );
           return { content: [{ type: "text", text: result.stdout || "(no matches)" }] };
         },
-      },
-      find: {
-        name: "find",
+      }),
+      find: tool({
         description: "Find files",
-        parameters: z.object({ path: z.string(), name: z.string().optional() }),
-        execute: async (params: any) => {
+        inputSchema: z.object({ path: z.string(), name: z.string().optional() }),
+        execute: async (params: { path: string; name?: string }) => {
           const cmd = params.name
             ? `find "${params.path}" -type f -name "${params.name}"`
             : `find "${params.path}" -type f`;
           const result = await bash.exec(cmd);
           return { content: [{ type: "text", text: result.stdout || "(no files)" }] };
         },
-      },
-      ls: {
-        name: "ls",
+      }),
+      ls: tool({
         description: "List directory",
-        parameters: z.object({ path: z.string(), recursive: z.boolean().optional() }),
-        execute: async (params: any) => {
+        inputSchema: z.object({ path: z.string(), recursive: z.boolean().optional() }),
+        execute: async (params: { path: string; recursive?: boolean }) => {
           const cmd = params.recursive ? `ls -laR "${params.path}"` : `ls -la "${params.path}"`;
           const result = await bash.exec(cmd);
           return { content: [{ type: "text", text: result.stdout || result.stderr }] };
         },
-      },
-      tree: {
-        name: "tree",
+      }),
+      tree: tool({
         description: "Display directory tree structure",
-        parameters: z.object({ path: z.string(), depth: z.number().optional() }),
-        execute: async (params: any) => {
+        inputSchema: z.object({ path: z.string(), depth: z.number().optional() }),
+        execute: async (params: { path: string; depth?: number }) => {
           const targetPath = params.path || "/";
           const maxDepth = params.depth || 3;
 
@@ -415,71 +407,90 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
           const treeOutput = await buildTree(targetPath, 1, "");
           return { content: [{ type: "text", text: treeOutput || `${targetPath}\n(empty)` }] };
         },
-      },
-      view_image: {
-        name: "view_image",
+      }),
+      view_image: tool({
         description: visionEnabled ? "View an image" : "View image metadata (no vision support)",
-        parameters: z.object({ image_path: z.string() }),
-        execute: async (params: any) => {
+        inputSchema: z.object({ image_path: z.string() }),
+        execute: async (params: { image_path: string }) => {
           const imageData = filesystem.getImageByPath?.(params.image_path);
-          if (!imageData) return { content: [{ type: "text", text: "Image not found" }] };
+          if (!imageData) return { notFound: true, path: params.image_path };
+
+          const fmt = params.image_path.endsWith(".png") ? "image/png" : "image/jpeg";
+          console.log(`[agent:VIEW_IMAGE] execute — path: ${params.image_path}, base64 length: ${imageData.length}, mimeType: ${fmt}, visionEnabled: ${visionEnabled}`);
+          return { imageData, mimeType: fmt, path: params.image_path };
+        },
+        toModelOutput: async ({ output }) => {
+          if ((output as any)?.notFound) {
+            console.log(`[agent:VIEW_IMAGE] toModelOutput — image not found: ${(output as any).path}`);
+            return {
+              type: "content" as const,
+              value: [{ type: "text" as const, text: `Image not found: ${(output as any).path}` }],
+            };
+          }
+
+          const { imageData, mimeType, path } = output as {
+            imageData: string;
+            mimeType: string;
+            path: string;
+          };
+
+          console.log(`[agent:VIEW_IMAGE] toModelOutput — visionEnabled: ${visionEnabled}, base64 length: ${imageData.length}, mimeType: ${mimeType}`);
 
           if (visionEnabled) {
-            // Return actual image data for vision-capable models
-            const fmt = params.image_path.endsWith(".png") ? "image/png" : "image/jpeg";
-            return {
-              content: [
-                { type: "text", text: `[Image: ${params.image_path}]` },
-                { type: "image", data: imageData, mimeType: fmt },
+            const result = {
+              type: "content" as const,
+              value: [
+                { type: "text" as const, text: `[Image: ${path}]` },
+                { type: "media" as const, data: imageData, mediaType: mimeType as "image/png" | "image/jpeg" },
               ],
             };
+            console.log(`[agent:VIEW_IMAGE] toModelOutput — returning media part, content value length: ${JSON.stringify(result.value).length}`);
+            return result;
           } else {
-            // Return placeholder for non-vision models to avoid context bloat
-            return { content: [{ type: "text", text: `[Image: ${params.image_path}]` }] };
+            return {
+              type: "content" as const,
+              value: [{ type: "text" as const, text: `[Image: ${path}]` }],
+            };
           }
         },
-      },
-      set_output_data: {
-        name: "set_output_data",
+      }),
+      set_output_data: tool({
         description: "Set output data",
-        parameters: z.object({ data: z.any() }),
+        inputSchema: z.object({ data: z.any() }) as any,
         execute: async (params: any) => {
           currentOutput = params.data;
           return { content: [{ type: "text", text: "Output set" }] };
         },
-      },
-      update_output_data: {
-        name: "update_output_data",
+      }),
+      update_output_data: tool({
         description: "Update output data",
-        parameters: z.object({ changes: z.record(z.string(), z.any()) }),
+        inputSchema: z.object({ changes: z.record(z.string(), z.any()) }) as any,
         execute: async (params: any) => {
           if (currentOutput === null)
             return { content: [{ type: "text", text: "Error: Use set_output_data first" }] };
           currentOutput = deepMerge(currentOutput, params.changes);
           return { content: [{ type: "text", text: "Output updated" }] };
         },
-      },
-      finish: {
-        name: "finish",
+      }),
+      finish: tool({
         description: "Complete extraction",
-        parameters: z.object({}),
+        inputSchema: z.object({}),
         execute: async () => {
           if (currentOutput === null)
             return { content: [{ type: "text", text: "Error: No data" }] };
           isComplete = true;
           return { content: [{ type: "text", text: "Complete" }] };
         },
-      },
-      fail: {
-        name: "fail",
+      }),
+      fail: tool({
         description: "Mark as failed",
-        parameters: z.object({ reason: z.string() }),
-        execute: async (params: any) => {
+        inputSchema: z.object({ reason: z.string() }),
+        execute: async (params: { reason: string }) => {
           extractionFailed = true;
           failureReason = params.reason;
           return { content: [{ type: "text", text: `Failed: ${params.reason}` }] };
         },
-      },
+      }),
     });
 
     for (let iter = 0; iter < maxIterations && !isComplete && !extractionFailed; iter++) {
@@ -511,7 +522,19 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
       let stepCount = 0;
       const iterMaxSteps = maxSteps;
 
+      const log = (msg: string, data?: unknown) => {
+        const ts = new Date().toISOString();
+        if (data !== undefined) {
+          console.log(`[agent:${ts}] ${msg}`, typeof data === "string" ? data : JSON.stringify(data).slice(0, 500));
+        } else {
+          console.log(`[agent:${ts}] ${msg}`);
+        }
+      };
+
       while (stepCount < iterMaxSteps && !isComplete && !extractionFailed) {
+        log(`step ${stepCount + 1}/${iterMaxSteps} — messages in history: ${messages.length}`);
+
+        const stepStart = Date.now();
         const result: any = await generateText({
           model: aiModel as any,
           system: systemPrompt,
@@ -519,10 +542,13 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
           tools: tools(iterationCount) as any,
           experimental_onToolCallStart: async (params: any) => {
             const toolCall = params.toolCall;
+            const toolName = toolCall?.toolName as string;
+            const args = toolCall?.input as Record<string, unknown>;
+            log(`tool_call_start: ${toolName}`, args);
             await options.events?.onAgentToolStart?.({
-              toolName: toolCall?.toolName as string,
+              toolName,
               toolCallId: toolCall?.toolCallId as string,
-              args: toolCall?.input as Record<string, unknown>,
+              args,
             });
           },
           experimental_onToolCallFinish: async (params: any) => {
@@ -531,6 +557,18 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
             const toolCallId = toolCall?.toolCallId;
             const output = params.output;
             const error = params.error;
+            const duration = params.durationMs;
+
+            if (toolName === "view_image") {
+              const imgData = output as any;
+              if (imgData?.imageData) {
+                log(`tool_call_finish: ${toolName} (${duration}ms) — image data length: ${imgData.imageData.length} chars, mimeType: ${imgData.mimeType}`);
+              } else {
+                log(`tool_call_finish: ${toolName} (${duration}ms) — ${error ? "ERROR: " + error.message : JSON.stringify(output).slice(0, 200)}`);
+              }
+            } else {
+              log(`tool_call_finish: ${toolName} (${duration}ms)`);
+            }
 
             // Extract text from tool result
             let resultText: string;
@@ -566,6 +604,9 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
             }
           },
         });
+
+        const stepDuration = Date.now() - stepStart;
+        log(`step ${stepCount + 1} complete (${stepDuration}ms) — toolCalls: ${result.toolCalls?.length || 0}, text: ${(result.text || "").slice(0, 100)}`);
 
         stepCount++;
 

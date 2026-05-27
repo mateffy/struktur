@@ -8,7 +8,7 @@ if (!["patch", "minor", "major"].includes(versionType)) {
   process.exit(1);
 }
 
-const packages = ["packages/sdk", "packages/cli", "packages/telemetry"];
+const packages = ["packages/fields", "packages/sdk", "packages/cli", "packages/telemetry"];
 
 for (const pkg of packages) {
   console.log(`Updating ${pkg}...`);

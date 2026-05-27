@@ -8,6 +8,7 @@ Struktur is a TypeScript library that reimplements LLM Magic for structured data
 
 This is a Bun multi-package monorepo with the following packages:
 
+- `packages/fields` (`@struktur/fields`): Standalone shorthand JSON Schema builder
 - `packages/sdk` (`@struktur/sdk`): Core SDK with extraction logic, strategies, types, and utilities
 - `packages/cli` (`@struktur/cli`): CLI tool that uses the SDK
 - `packages/documentation` (`@struktur/documentation`): Documentation site (private, not published)

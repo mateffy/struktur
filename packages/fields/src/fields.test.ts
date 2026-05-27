@@ -1,5 +1,5 @@
 import { test, expect, describe } from "bun:test";
-import { parseFieldsString, buildSchemaFromParsedFields, buildSchemaFromFields } from "./fields";
+import { parseFieldsString, buildSchemaFromParsedFields, buildSchemaFromFields } from "./index";
 
 // ---------------------------------------------------------------------------
 // parseFieldsString — scalars (positive)
@@ -595,85 +595,5 @@ describe("buildSchemaFromFields", () => {
       properties: { rating: { enum: unknown[] } };
     };
     expect(schema.properties.rating.enum).toEqual(["1", "2", "3", "4", "5"]);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// extract() mutual-exclusion guard
-// ---------------------------------------------------------------------------
-
-describe("extract() schema mutual exclusion", () => {
-  const mockStrategy = () => ({
-    name: "mock",
-    run: async () => ({
-      data: {},
-      usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
-    }),
-  });
-
-  test("error message tells you they are mutually exclusive", async () => {
-    const { extract } = await import("./extract");
-    const result = await extract({
-      artifacts: [],
-      schema: { type: "object", properties: {}, required: [] },
-      fields: "title",
-      strategy: mockStrategy(),
-    });
-    expect(result.error).toBeDefined();
-    expect(result.error?.message).toMatch(/mutually exclusive/);
-  });
-
-  test("error message when neither schema nor fields are provided", async () => {
-    const { extract } = await import("./extract");
-    const result = await extract({
-      artifacts: [],
-      strategy: mockStrategy(),
-    } as Parameters<typeof extract>[0]);
-    expect(result.error).toBeDefined();
-    expect(result.error?.message).toMatch(/schema definition is required/);
-    // Tells you what to use instead
-    expect(result.error?.message).toMatch(/`schema`/);
-    expect(result.error?.message).toMatch(/`fields`/);
-  });
-
-  test("succeeds with only schema", async () => {
-    const { extract } = await import("./extract");
-    const result = await extract({
-      artifacts: [],
-      schema: { type: "object", properties: {}, required: [] },
-      strategy: mockStrategy(),
-    });
-    expect(result.error).toBeUndefined();
-  });
-
-  test("succeeds with only fields string", async () => {
-    const { extract } = await import("./extract");
-    const result = await extract({
-      artifacts: [],
-      fields: "title",
-      strategy: mockStrategy(),
-    });
-    expect(result.error).toBeUndefined();
-  });
-
-  test("succeeds with fields including enum and array", async () => {
-    const { extract } = await import("./extract");
-    const result = await extract({
-      artifacts: [],
-      fields: "title, status:enum{a|b}, tags:array{string}",
-      strategy: mockStrategy(),
-    });
-    expect(result.error).toBeUndefined();
-  });
-
-  test("invalid fields string surfaces as error on result", async () => {
-    const { extract } = await import("./extract");
-    const result = await extract({
-      artifacts: [],
-      fields: "title:badtype",
-      strategy: mockStrategy(),
-    });
-    expect(result.error).toBeDefined();
-    expect(result.error?.message).toMatch(/Unknown type "badtype"/);
   });
 });

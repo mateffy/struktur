@@ -4,13 +4,67 @@ HTTP API server for running Struktur headlessly.
 
 ## Overview
 
-This package provides a simple HTTP API for parsing files and extracting structured data using Struktur. It runs on Bun with Hono.
+This package provides a simple HTTP API for parsing files and extracting structured data using Struktur. It runs on Bun with Hono and `hono-openapi` for auto-generated OpenAPI documentation.
+
+## File Structure
+
+```
+src/
+  index.ts              # Bun.serve() bootstrap
+  app.ts                # Hono app instance, middleware, route mounting
+  config.ts             # Environment variable loading
+  schemas.ts            # Zod schemas (Standard Schema compliant)
+  middleware/
+    auth.ts             # Bearer token auth with /openapi.json whitelist
+  routes/
+    info.ts             # GET /
+    parse.ts            # POST /parse
+    extract.ts          # POST /extract (dual-mode: JSON + multipart + form)
+    extract-stream.ts   # POST /extract/stream (SSE streaming extraction)
+    client.ts           # GET /client (Scalar API client UI)
+    debug.ts            # GET /debug (simple HTML upload/debug UI)
+  utils/
+    serialize.ts        # Artifact serialization helpers
+    extraction.ts       # Shared extraction primitives (parseExtractRequest, resolveModelForEnv, createStrategy)
+```
+
+## Quick Start
+
+```bash
+# Start the server (port 3031 by default)
+bun run start
+
+# Or with hot reload for development
+bun run dev
+
+# With auth enabled
+API_KEY=secret-key bun run start
+
+# With a specific provider key
+OPENAI_API_KEY=sk-... bun run start
+```
+
+## API Client UI
+
+Open `http://localhost:3031/client` in your browser for an interactive Scalar API client. The documentation is also available at `http://localhost:3031/openapi.json`.
 
 ## Endpoints
 
 ### `GET /`
 
 Returns API info and available endpoints.
+
+### `GET /client`
+
+Interactive Scalar API client UI (auto-generated from the OpenAPI spec). No auth required.
+
+### `GET /debug`
+
+Simple HTML debug page for uploading files and visualizing extraction output in real-time. Submits to `/extract/stream` and displays all SSE events plus the final pretty-printed JSON result. No auth required. Uses Tailwind CSS via CDN.
+
+### `GET /openapi.json`
+
+OpenAPI 3.1.0 specification. No auth required.
 
 ### `POST /parse`
 
@@ -61,6 +115,9 @@ Extract structured data from documents or artifact JSON.
 - `images` (optional): Extract embedded images (when using file)
 - `screenshots` (optional): Render page screenshots (when using file)
 
+**Request (application/x-www-form-urlencoded):**
+Same fields as multipart, but `artifacts` and `schema` must be JSON strings. No file upload support.
+
 **Response:**
 ```json
 {
@@ -71,6 +128,100 @@ Extract structured data from documents or artifact JSON.
     "totalTokens": 150
   }
 }
+```
+
+### `POST /extract/stream`
+
+Run extraction with real-time progress via Server-Sent Events (SSE). Accepts the same request formats as `POST /extract`.
+
+**Response:** `text/event-stream`
+
+Each event is a JSON object with a `type` field:
+
+| Event type | Description |
+|-----------|-------------|
+| `step` | Extraction step started/completed |
+| `progress` | Batch progress (current/total/percent) |
+| `message` | LLM message sent/received |
+| `tokenUsage` | Token usage update |
+| `retry` | Retry attempt |
+| `agent_tool_start` | Agent tool invocation started |
+| `agent_tool_end` | Agent tool invocation completed |
+| `agent_message` | Agent message |
+| `agent_reasoning` | Agent reasoning/thought |
+| `complete` | Final result with `data` and `usage` |
+| `error` | Error message |
+
+**Example (curl):**
+```bash
+curl -N -X POST http://localhost:3031/extract/stream \
+  -H "Content-Type: application/json" \
+  -d '{
+    "artifacts": [{"id":"1","type":"text","contents":[{"text":"test"}]}],
+    "schema": {"type":"object","properties":{"name":{"type":"string"}}},
+    "model": "openai/gpt-4o-mini"
+  }'
+```
+
+## Example Requests
+
+### Parse a file
+
+```bash
+curl -X POST http://localhost:3031/parse \
+  -F "file=@document.pdf" \
+  -F "images=true"
+```
+
+### Extract with JSON body (pre-parsed artifacts)
+
+```bash
+curl -X POST http://localhost:3031/extract \
+  -H "Content-Type: application/json" \
+  -d '{
+    "artifacts": [{"id":"1","type":"text","contents":[{"text":"John Doe works at Acme Corp"}]}],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "name": {"type": "string"},
+        "company": {"type": "string"}
+      }
+    },
+    "model": "openai/gpt-4o-mini",
+    "strategy": "simple"
+  }'
+```
+
+### Extract with file upload (parse + extract in one call)
+
+```bash
+curl -X POST http://localhost:3031/extract \
+  -F "file=@document.pdf" \
+  -F 'schema={"type":"object","properties":{"title":{"type":"string"}}}' \
+  -F "model=openai/gpt-4o-mini" \
+  -F "strategy=parallel" \
+  -F "chunkSize=5000"
+```
+
+### Stream extraction with SSE
+
+```bash
+curl -N -X POST http://localhost:3031/extract/stream \
+  -H "Content-Type: application/json" \
+  -d '{
+    "artifacts": [{"id":"1","type":"text","contents":[{"text":"test"}]}],
+    "schema": {"type":"object","properties":{"name":{"type":"string"}}},
+    "model": "openai/gpt-4o-mini"
+  }'
+```
+
+### With authentication enabled
+
+```bash
+curl -X POST http://localhost:3031/extract \
+  -H "Authorization: Bearer secret-key" \
+  -H "Content-Type: application/json" \
+  -d '{"artifacts": [...], "schema": {...}, "model": "openai/gpt-4o-mini"}'
 ```
 
 ## Authentication
@@ -93,11 +244,17 @@ Authorization: Bearer <api-key>
 ## Development
 
 ```bash
+# Install dependencies
+bun install
+
 # Start development server with hot reload
 bun run dev
 
 # Start production server
 bun run start
+
+# Run tests
+bun test
 ```
 
 ## Supported Strategies

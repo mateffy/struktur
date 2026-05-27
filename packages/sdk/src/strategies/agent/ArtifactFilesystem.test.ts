@@ -111,8 +111,8 @@ test("serializeArtifactsToFilesystem handles media with base64 by creating virtu
   expect(parsed[0].contents[0].media[0].virtualPath).toContain("my-document"); // sanitized name
   expect(parsed[0].contents[0].media[0].virtualPath).toContain("page-5"); // page number
   expect(parsed[0].contents[0].media[0].virtualPath).toContain(".jpg"); // JPEG extension
-  // originalBase64 should be present for debugging
-  expect(parsed[0].contents[0].media[0].originalBase64).toContain("BASE64");
+  // originalBase64 should NOT be present (context bloat)
+  expect(parsed[0].contents[0].media[0].originalBase64).toBeUndefined();
 });
 
 test("serializeArtifactsToFilesystem calculates total tokens", () => {

@@ -57,9 +57,7 @@ export type TransformedArtifact = {
       width?: number;
       height?: number;
       imageType?: string;
-      // Replaced base64 with virtual file path
       virtualPath?: string;
-      originalBase64?: string; // Kept for internal reference
     }>;
   }>;
 };
@@ -139,7 +137,6 @@ export const createVirtualFilesystem = (artifacts: Artifact[]): VirtualFilesyste
                 height: media.height,
                 imageType: media.imageType,
                 virtualPath: virtualPath,
-                originalBase64: `[BASE64: ${media.base64.length} chars]`, // For debugging
               };
             }
 

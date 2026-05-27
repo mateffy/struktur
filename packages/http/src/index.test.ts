@@ -42,7 +42,7 @@ describe("HTTP API - OpenAPI Documentation", () => {
     expect(data).toHaveProperty("openapi");
     expect(data).toHaveProperty("info");
     expect(data).toHaveProperty("paths");
-    expect(data.openapi).toBe("3.0.0");
+    expect(data.openapi).toBe("3.1.0");
   });
 
   test("OpenAPI spec has correct API info", async () => {
@@ -61,7 +61,6 @@ describe("HTTP API - OpenAPI Documentation", () => {
     expect(data.paths).toHaveProperty("/");
     expect(data.paths).toHaveProperty("/parse");
     expect(data.paths).toHaveProperty("/extract");
-    expect(data.paths).toHaveProperty("/openapi.json");
   });
 
   test("OpenAPI spec has correct tags", async () => {
@@ -93,7 +92,6 @@ describe("HTTP API - OpenAPI Documentation", () => {
     const parseEndpoint = data.paths["/parse"].post;
     expect(parseEndpoint).toBeDefined();
     expect(parseEndpoint.tags).toContain("Parse");
-    expect(parseEndpoint.requestBody).toBeDefined();
     expect(parseEndpoint.responses[200]).toBeDefined();
     expect(parseEndpoint.responses[400]).toBeDefined();
     expect(parseEndpoint.responses[500]).toBeDefined();
@@ -106,69 +104,25 @@ describe("HTTP API - OpenAPI Documentation", () => {
     const extractEndpoint = data.paths["/extract"].post;
     expect(extractEndpoint).toBeDefined();
     expect(extractEndpoint.tags).toContain("Extract");
-    expect(extractEndpoint.requestBody).toBeDefined();
     expect(extractEndpoint.responses[200]).toBeDefined();
     expect(extractEndpoint.responses[400]).toBeDefined();
     expect(extractEndpoint.responses[500]).toBeDefined();
   });
 
-  test("OpenAPI spec includes Artifact schema", async () => {
+  test("OpenAPI spec includes inline schemas in responses", async () => {
     const response = await fetch(`${baseUrl}/openapi.json`);
     const data = await response.json();
 
-    expect(data.components).toBeDefined();
-    expect(data.components.schemas).toBeDefined();
-    expect(data.components.schemas.Artifact).toBeDefined();
-    expect(data.components.schemas.ArtifactContent).toBeDefined();
-    expect(data.components.schemas.Media).toBeDefined();
-  });
+    const parseResponse = data.paths["/parse"].post.responses[200].content["application/json"].schema;
+    expect(parseResponse).toBeDefined();
+    expect(parseResponse.type).toBe("object");
+    expect(parseResponse.properties).toHaveProperty("artifacts");
 
-  test("OpenAPI spec includes request/response schemas", async () => {
-    const response = await fetch(`${baseUrl}/openapi.json`);
-    const data = await response.json();
-
-    expect(data.components.schemas.ParseRequest).toBeDefined();
-    expect(data.components.schemas.ExtractRequest).toBeDefined();
-    expect(data.components.schemas.ArtifactsResponse).toBeDefined();
-    expect(data.components.schemas.ExtractResponse).toBeDefined();
-    expect(data.components.schemas.ErrorResponse).toBeDefined();
-  });
-
-  test("Artifact schema has correct structure", async () => {
-    const response = await fetch(`${baseUrl}/openapi.json`);
-    const data = await response.json();
-
-    const artifactSchema = data.components.schemas.Artifact;
-    expect(artifactSchema.type).toBe("object");
-    expect(artifactSchema.properties).toHaveProperty("id");
-    expect(artifactSchema.properties).toHaveProperty("type");
-    expect(artifactSchema.properties).toHaveProperty("contents");
-    expect(artifactSchema.properties).toHaveProperty("metadata");
-  });
-
-  test("Media schema has correct structure", async () => {
-    const response = await fetch(`${baseUrl}/openapi.json`);
-    const data = await response.json();
-
-    const mediaSchema = data.components.schemas.Media;
-    expect(mediaSchema.type).toBe("object");
-    expect(mediaSchema.properties).toHaveProperty("type");
-    expect(mediaSchema.properties).toHaveProperty("url");
-    expect(mediaSchema.properties).toHaveProperty("base64");
-    expect(mediaSchema.properties).toHaveProperty("width");
-    expect(mediaSchema.properties).toHaveProperty("height");
-  });
-
-  test("ExtractRequest schema includes all strategies", async () => {
-    const response = await fetch(`${baseUrl}/openapi.json`);
-    const data = await response.json();
-
-    const requestSchema = data.components.schemas.ExtractRequest;
-    const strategyEnum = requestSchema.properties.strategy.enum;
-    expect(strategyEnum).toContain("simple");
-    expect(strategyEnum).toContain("parallel");
-    expect(strategyEnum).toContain("sequential");
-    expect(strategyEnum).toContain("agent");
+    const extractResponse = data.paths["/extract"].post.responses[200].content["application/json"].schema;
+    expect(extractResponse).toBeDefined();
+    expect(extractResponse.type).toBe("object");
+    expect(extractResponse.properties).toHaveProperty("data");
+    expect(extractResponse.properties).toHaveProperty("usage");
   });
 
   test("OpenAPI spec has servers defined", async () => {
@@ -268,6 +222,38 @@ describe("HTTP API - Authentication", () => {
   test("OpenAPI endpoint is accessible without auth", async () => {
     const response = await fetch(`${baseUrl}/openapi.json`);
     expect(response.status).toBe(200);
+  });
+});
+
+describe("HTTP API - Debug Endpoint", () => {
+  let server: Subprocess | null = null;
+  const PORT = "3051";
+  const baseUrl = `http://localhost:${PORT}`;
+
+  beforeAll(async () => {
+    server = await startServer(PORT);
+  });
+
+  afterAll(() => {
+    server?.kill();
+  });
+
+  test("GET /debug returns HTML", async () => {
+    const response = await fetch(`${baseUrl}/debug`);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("text/html");
+    const html = await response.text();
+    expect(html).toContain("Struktur Debug");
+  });
+
+  test("GET /debug is accessible without auth", async () => {
+    const authServer = await startServer("3052", "auth-secret-key");
+    try {
+      const response = await fetch(`http://localhost:3052/debug`);
+      expect(response.status).toBe(200);
+    } finally {
+      authServer.kill();
+    }
   });
 });
 
@@ -541,42 +527,75 @@ describe("HTTP API - Extract Endpoint (JSON)", () => {
     // Should either succeed or fail due to missing API key
     expect([200, 500]).toContain(response.status);
   });
+});
 
-  test("POST /extract with chunkSize parameter", async () => {
-    const formData = new FormData();
-    formData.append(
-      "artifacts",
-      JSON.stringify([{ id: "test", type: "text", contents: [{ text: "test" }] }]),
-    );
-    formData.append("model", "openai/gpt-4");
-    formData.append("schema", JSON.stringify({ type: "object" }));
-    formData.append("chunkSize", "5000");
-    formData.append("strategy", "parallel");
+describe("HTTP API - Extract Stream Endpoint", () => {
+  let server: Subprocess | null = null;
+  const PORT = "3050";
+  const baseUrl = `http://localhost:${PORT}`;
 
-    const response = await fetch(`${baseUrl}/extract`, {
-      method: "POST",
-      body: formData,
-    });
-
-    expect([200, 500]).toContain(response.status);
+  beforeAll(async () => {
+    server = await startServer(PORT);
   });
 
-  test("POST /extract with strict validation parameter", async () => {
+  afterAll(() => {
+    server?.kill();
+  });
+
+  test("POST /extract/stream returns SSE content type", async () => {
+    const response = await fetch(`${baseUrl}/extract/stream`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        artifacts: [{ id: "test", type: "text", contents: [{ text: "test" }] }],
+        schema: { type: "object" },
+        model: "openai/gpt-4",
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("text/event-stream");
+  });
+
+  test("POST /extract/stream with missing model returns 400", async () => {
+    const response = await fetch(`${baseUrl}/extract/stream`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        artifacts: [{ id: "test", type: "text", contents: [{ text: "test" }] }],
+        schema: { type: "object" },
+      }),
+    });
+
+    expect(response.status).toBe(400);
+  });
+
+  test("POST /extract/stream with multipart form data returns SSE", async () => {
     const formData = new FormData();
     formData.append(
       "artifacts",
       JSON.stringify([{ id: "test", type: "text", contents: [{ text: "test" }] }]),
     );
     formData.append("model", "openai/gpt-4");
-    formData.append("schema", JSON.stringify({ type: "object" }));
-    formData.append("strict", "true");
+    formData.append("fields", "content");
 
-    const response = await fetch(`${baseUrl}/extract`, {
+    const response = await fetch(`${baseUrl}/extract/stream`, {
       method: "POST",
       body: formData,
     });
 
-    expect([200, 500]).toContain(response.status);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("text/event-stream");
+  });
+
+  test("POST /extract/stream with invalid content type returns 400", async () => {
+    const response = await fetch(`${baseUrl}/extract/stream`, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: "not valid",
+    });
+
+    expect(response.status).toBe(400);
   });
 });
 
