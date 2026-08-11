@@ -1,0 +1,185 @@
+---
+title: Docker
+description: Run Struktur in a Docker container.
+---
+
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Struktur runs in Docker containers. Use Docker to run extractions in CI/CD pipelines or alongside applications that do not have Node.js installed.
+
+## Prerequisites
+
+- Docker Engine 24 or newer.
+- An API key for your LLM provider.
+
+## Dockerfile
+
+This Dockerfile uses two stages. The first stage installs the Struktur CLI. The second stage copies it into your application image.
+
+```dockerfile
+# syntax=docker/dockerfile:1
+
+# Stage 1: Install the Struktur CLI
+FROM node:22-bookworm-slim AS struktur
+
+RUN npm install -g @struktur/cli
+
+# Stage 2: Your application image
+FROM your-base-image
+
+# Copy Node.js and the CLI from the first stage
+COPY --from=struktur /usr/local/bin/node /usr/local/bin/node
+COPY --from=struktur /usr/local/lib/node_modules /usr/local/lib/node_modules
+COPY --from=struktur /usr/local/bin/struktur /usr/local/bin/struktur
+
+# Set the API key at runtime
+ENV OPENAI_API_KEY=""
+```
+
+<Callout type="info">
+  The second stage can use any base image that has a compatible C library. Examples: `php:8.3-cli`, `python:3.12-slim`, or `ubuntu:24.04`.
+</Callout>
+
+## PHP application
+
+For PHP applications that use the [PHP SDK](/docs/sdk/php), copy the CLI and install Composer dependencies:
+
+```dockerfile
+# syntax=docker/dockerfile:1
+
+FROM node:22-bookworm-slim AS struktur
+RUN npm install -g @struktur/cli
+
+FROM php:8.3-cli-bookworm
+
+# Install the Node.js runtime
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy the Struktur CLI
+COPY --from=struktur /usr/local/lib/node_modules /usr/local/lib/node_modules
+COPY --from=struktur /usr/local/bin/struktur /usr/local/bin/struktur
+
+# Install PHP dependencies
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-interaction
+COPY . .
+
+ENV OPENAI_API_KEY=""
+```
+
+## docker-compose.yml
+
+```yaml
+services:
+  app:
+    build: .
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    # Optional: mount a config directory for aliases and the default model
+    # volumes:
+    #   - ./config/struktur:/root/.config/struktur:ro
+```
+
+## Authentication
+
+Docker containers do not have macOS Keychain. Use environment variables to authenticate. Set one or more of these variables:
+
+| Variable | Provider |
+|----------|----------|
+| `OPENAI_API_KEY` | OpenAI |
+| `ANTHROPIC_API_KEY` | Anthropic |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Google |
+| `OPENCODE_API_KEY` | OpenCode |
+| `OPENROUTER_API_KEY` | OpenRouter |
+| `OLLAMA_BASE_URL` | Ollama |
+
+You can also mount a `tokens.json` file for authentication:
+
+```yaml
+volumes:
+  - ./tokens.json:/root/.config/struktur/tokens.json:ro
+```
+
+<Callout type="warn">
+  Do not put API keys in your Dockerfile. Use Docker secrets, an `.env` file, or a secrets manager.
+</Callout>
+
+## Set a default model
+
+Set the default model at build time:
+
+```dockerfile
+RUN struktur config models use openai/gpt-4o-mini
+```
+
+Or pass the model at runtime:
+
+```bash
+docker run --rm \
+  -e OPENAI_API_KEY=$OPENAI_API_KEY \
+  my-app \
+  struktur extract \
+    --model openai/gpt-4o-mini \
+    --input document.pdf \
+    --fields "title, date"
+```
+
+## Examples
+
+### Extract data from a PDF
+
+```bash
+docker run --rm \
+  -e OPENAI_API_KEY=$OPENAI_API_KEY \
+  -v $(pwd)/documents:/docs:ro \
+  my-app \
+  struktur extract \
+    --input /docs/invoice.pdf \
+    --model openai/gpt-4o-mini \
+    --fields "invoice_number, date, total, line_items"
+```
+
+### Parse a PDF into artifacts
+
+```bash
+docker run --rm \
+  -e OPENAI_API_KEY=$OPENAI_API_KEY \
+  -v $(pwd)/documents:/docs:ro \
+  my-app \
+  struktur parse --input /docs/report.pdf --output -
+```
+
+## Troubleshooting
+
+### "struktur: not found"
+
+Make sure that the CLI binary is copied correctly from the build stage. Check that `/usr/local/bin/struktur` exists:
+
+```bash
+docker run --rm --entrypoint ls my-app /usr/local/bin/struktur
+```
+
+### "exec format error"
+
+This error occurs on ARM64 machines (Apple Silicon) when the image targets x86. Use the `--platform` flag:
+
+```bash
+docker build --platform linux/amd64 -t my-app .
+```
+
+### Node.js fails to start
+
+Some slim base images do not include the C++ standard library. Install it:
+
+```dockerfile
+RUN apt-get update && apt-get install -y libstdc++6 && rm -rf /var/lib/apt/lists/*
+```
+
+## See also
+
+- [Installation & Setup](/docs/cli/installation) — all environment variables
+- [Config](/docs/cli/config) — provider and model management
+- [PHP SDK](/docs/sdk/php) — use Struktur from PHP

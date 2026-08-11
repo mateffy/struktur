@@ -4,6 +4,7 @@
     "installation",
     "extract",
     "parse",
-    "events"
+    "events",
+    "php"
   ]
 }
