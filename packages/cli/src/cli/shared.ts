@@ -7,6 +7,7 @@ import {
   listParsers,
   resolveAlias,
   listStoredProviders,
+  resolveProviderEnvVar,
 } from "@struktur/sdk";
 import type {
   NpmParserDef,
@@ -486,6 +487,46 @@ export type FormatParseOutputOptions = {
   format: "json" | "text";
   /** When true, include inline markdown images for media with base64 data. Default false. */
   includeImages?: boolean;
+};
+
+/**
+ * Parse a --token argument and set the corresponding environment variables.
+ * Accepts format: "provider=token" or "p1=t1,p2=t2" (comma-separated).
+ * Throws UserError on invalid format or unknown provider.
+ */
+export const applyCliTokens = (tokenArg: string | undefined): void => {
+  if (!tokenArg) return;
+
+  const pairs = tokenArg
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  for (const pair of pairs) {
+    const eq = pair.indexOf("=");
+    if (eq === -1) {
+      throw new UserError(
+        `Invalid --token format: "${pair}". Expected provider=token`,
+      );
+    }
+    const provider = pair.slice(0, eq).trim();
+    const token = pair.slice(eq + 1);
+
+    if (!provider || !token) {
+      throw new UserError(
+        `Invalid --token format: "${pair}". Expected provider=token`,
+      );
+    }
+
+    const envVar = resolveProviderEnvVar(provider);
+    if (!envVar) {
+      throw new UserError(
+        `Unknown provider: "${provider}". Supported: openai, anthropic, google, opencode, openrouter, ollama`,
+      );
+    }
+
+    process.env[envVar] = token;
+  }
 };
 
 export const formatParseOutput = (

@@ -85,6 +85,7 @@ import {
   readStdinBinary,
   resolveDefaultModelSpec,
   resolveExplicitModelSpec,
+  applyCliTokens,
   stdinConsumed,
   UserError,
   formatParseOutput,
@@ -1840,10 +1841,15 @@ const extractCommand = defineCommand({
       description: "Extract embedded images from documents (PDFs)",
       default: false,
     },
-    screenshots: {
+    "screenshots": {
       type: "boolean",
       description: "Render page screenshots and include them as images in the artifact output",
       default: false,
+    },
+    token: {
+      type: "string",
+      description:
+        "API token for a provider (format: provider=token). Comma-separate for multiple providers. Overrides stored tokens.",
     },
   },
   async run({ args }) {
@@ -1936,6 +1942,9 @@ const extractCommand = defineCommand({
       totalTokens,
       totalImages,
     });
+
+    // Apply --token overrides before model resolution
+    applyCliTokens(args.token as string | undefined);
 
     let modelSpec = args.model
       ? await resolveExplicitModelSpec(args.model)
@@ -2313,6 +2322,11 @@ const parseCommand = defineCommand({
         "PDF processor: pdf-parse (default), vlm, docling, liteparse, kreuzberg",
       valueHint: "pdf-parse|vlm|docling|liteparse|kreuzberg",
     },
+    token: {
+      type: "string",
+      description:
+        "API token for a provider (format: provider=token). Comma-separate for multiple providers. Overrides stored tokens.",
+    },
   },
   async run({ args }) {
     if (args.debug === true && args.format !== "json") {
@@ -2323,6 +2337,9 @@ const parseCommand = defineCommand({
     const useStdin = args.stdin === true;
     const isDebug = format === "debug";
     const debug = createDebugLogger(isDebug);
+
+    // Apply --token overrides before any processor runs
+    applyCliTokens(args.token as string | undefined);
 
     if (!args.input && !useStdin) {
       // No input source — show usage + error and exit 1

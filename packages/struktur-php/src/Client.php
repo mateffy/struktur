@@ -221,6 +221,8 @@ class Client
             $parts[] = '--stdin';
         }
 
+        $parts = $this->appendTokenArgs($parts, $request->tokens);
+
         return implode(' ', array_map('escapeshellarg', $parts));
     }
 
@@ -261,7 +263,31 @@ class Client
             $parts[] = '--stdin';
         }
 
+        $parts = $this->appendTokenArgs($parts, $request->tokens);
+
         return implode(' ', array_map('escapeshellarg', $parts));
+    }
+
+    /**
+     * @param list<string> $parts
+     * @param array<string, string>|null $tokens
+     * @return list<string>
+     */
+    private function appendTokenArgs(array $parts, ?array $tokens): array
+    {
+        if ($tokens === null || count($tokens) === 0) {
+            return $parts;
+        }
+
+        $tokenPairs = [];
+        foreach ($tokens as $provider => $token) {
+            $tokenPairs[] = $provider . '=' . $token;
+        }
+
+        $parts[] = '--token';
+        $parts[] = implode(',', $tokenPairs);
+
+        return $parts;
     }
 
     /**
