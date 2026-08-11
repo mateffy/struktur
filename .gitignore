@@ -1,5 +1,6 @@
 # dependencies
 node_modules
+vendor
 
 # pnpm
 .pnpm-store
@@ -32,6 +33,9 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .eslintcache
 .cache
 *.tsbuildinfo
+
+# PHP
+composer.lock
 
 # IntelliJ based IDEs
 .idea
