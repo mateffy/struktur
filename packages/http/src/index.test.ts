@@ -409,7 +409,7 @@ describe("HTTP API - Extract Endpoint (JSON)", () => {
   });
 
   test("POST /extract with invalid model format returns error", async () => {
-    const response = await fetch(`${baseUrl}/extract`, {
+    const response = await fetch(`${baseUrl}/extract?sse=false`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -423,7 +423,7 @@ describe("HTTP API - Extract Endpoint (JSON)", () => {
   });
 
   test("POST /extract with invalid provider returns error", async () => {
-    const response = await fetch(`${baseUrl}/extract`, {
+    const response = await fetch(`${baseUrl}/extract?sse=false`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -437,7 +437,7 @@ describe("HTTP API - Extract Endpoint (JSON)", () => {
   });
 
   test("POST /extract with unsupported strategy returns error", async () => {
-    const response = await fetch(`${baseUrl}/extract`, {
+    const response = await fetch(`${baseUrl}/extract?sse=false`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -463,7 +463,7 @@ describe("HTTP API - Extract Endpoint (JSON)", () => {
     ];
 
     for (const strategy of strategies) {
-      const response = await fetch(`${baseUrl}/extract`, {
+      const response = await fetch(`${baseUrl}/extract?sse=false`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -519,13 +519,79 @@ describe("HTTP API - Extract Endpoint (JSON)", () => {
     formData.append("model", "openai/gpt-4");
     formData.append("fields", "name,email,phone");
 
-    const response = await fetch(`${baseUrl}/extract`, {
+    const response = await fetch(`${baseUrl}/extract?sse=false`, {
       method: "POST",
       body: formData,
     });
 
     // Should either succeed or fail due to missing API key
     expect([200, 500]).toContain(response.status);
+  });
+});
+
+describe("HTTP API - Extract Endpoint SSE Default", () => {
+  let server: Subprocess | null = null;
+  const PORT = "3053";
+  const baseUrl = `http://localhost:${PORT}`;
+
+  beforeAll(async () => {
+    server = await startServer(PORT);
+  });
+
+  afterAll(() => {
+    server?.kill();
+  });
+
+  test("POST /extract returns SSE by default", async () => {
+    const response = await fetch(`${baseUrl}/extract`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        artifacts: [{ id: "test", type: "text", contents: [{ text: "test" }] }],
+        schema: { type: "object" },
+        model: "openai/gpt-4",
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("text/event-stream");
+  });
+
+  test("POST /extract?sse=false returns JSON", async () => {
+    const response = await fetch(`${baseUrl}/extract?sse=false`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        artifacts: [{ id: "test", type: "text", contents: [{ text: "test" }] }],
+        schema: { type: "object" },
+        model: "openai/gpt-4",
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("application/json");
+  });
+
+  test("POST /extract SSE stream contains error event for invalid model", async () => {
+    const response = await fetch(`${baseUrl}/extract`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        artifacts: [{ id: "test", type: "text", contents: [{ text: "test" }] }],
+        schema: { type: "object" },
+        model: "invalid-model-format",
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("text/event-stream");
+
+    const body = await response.text();
+    const lines = body.split("\n").filter((line) => line.startsWith("data:"));
+    const events = lines.map((line) => JSON.parse(line.replace("data: ", "")));
+    const errorEvent = events.find((e) => e.type === "error");
+    expect(errorEvent).toBeDefined();
+    expect(errorEvent.data.message).toContain("Invalid model format");
   });
 });
 
@@ -630,7 +696,7 @@ describe("HTTP API - Extract with File Upload", () => {
     formData.append("images", "false");
     formData.append("screenshots", "false");
 
-    const response = await fetch(`${baseUrl}/extract`, {
+    const response = await fetch(`${baseUrl}/extract?sse=false`, {
       method: "POST",
       body: formData,
     });
@@ -652,7 +718,7 @@ describe("HTTP API - Extract with File Upload", () => {
     formData.append("fields", "content");
     formData.append("images", "true");
 
-    const response = await fetch(`${baseUrl}/extract`, {
+    const response = await fetch(`${baseUrl}/extract?sse=false`, {
       method: "POST",
       body: formData,
     });

@@ -151,12 +151,19 @@ export async function parsePdf(
         if (media) entry.media = media;
         return entry;
       });
+  } else if (pageImageMap.size > 0) {
+    // No per-page text, but we have screenshots/images — create per-page entries
+    contents = Array.from(pageImageMap.keys())
+      .sort((a, b) => a - b)
+      .map((pageNum) => {
+        const entry: ArtifactContent = { page: pageNum, text: '' };
+        const media = pageImageMap.get(pageNum);
+        if (media) entry.media = media;
+        return entry;
+      });
   } else {
-    // Fallback: no per-page info — use full concatenated text
+    // Fallback: no per-page info and no images — use full concatenated text
     const entry: ArtifactContent = { text: textResult.text };
-    // Attach any images from the first page if available
-    const firstPageImages = pageImageMap.size > 0 ? pageImageMap.values().next().value : undefined;
-    if (firstPageImages) entry.media = firstPageImages;
     contents = [entry];
   }
 

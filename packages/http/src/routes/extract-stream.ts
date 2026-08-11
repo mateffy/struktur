@@ -1,31 +1,14 @@
 import { Hono } from "hono";
-import { HTTPException } from "hono/http-exception";
 import { describeRoute } from "hono-openapi";
-import { type Artifact, extract } from "@struktur/sdk";
 import { ExtractRequestSchema } from "../schemas";
 import {
-  createStrategy,
-  hydrateSerializedArtifacts,
   parseExtractRequest,
-  resolveModelForEnv,
+  createExtractionStream,
 } from "../utils/extraction";
 
 const app = new Hono();
 
 const extractJsonSchema = ExtractRequestSchema.toJSONSchema() as Record<string, unknown>;
-
-export type StreamEvent =
-  | { type: "step"; data: { step: number; total?: number; label?: string; detail?: string } }
-  | { type: "progress"; data: { current: number; total: number; percent?: number } }
-  | { type: "message"; data: { role: string; content: unknown } }
-  | { type: "tokenUsage"; data: { inputTokens: number; outputTokens: number; totalTokens: number; model?: string } }
-  | { type: "retry"; data: { attempt: number; maxAttempts: number; reason?: string } }
-  | { type: "agent_tool_start"; data: { toolName: string; toolCallId: string; args: Record<string, unknown> } }
-  | { type: "agent_tool_end"; data: { toolCallId: string; result?: Record<string, unknown>; error?: string } }
-  | { type: "agent_message"; data: { content: string; role?: string } }
-  | { type: "agent_reasoning"; data: { thought: string } }
-  | { type: "complete"; data: { data: unknown; usage: { inputTokens: number; outputTokens: number; totalTokens: number }; error?: string } }
-  | { type: "error"; data: { message: string } };
 
 app.post(
   "/extract/stream",
@@ -181,77 +164,7 @@ app.post(
   }),
   async (c) => {
     const params = await parseExtractRequest(c);
-
-    const stream = new ReadableStream({
-      async start(controller) {
-        const encoder = new TextEncoder();
-
-        const send = (event: StreamEvent) => {
-          const payload = `data: ${JSON.stringify(event)}\n\n`;
-          controller.enqueue(encoder.encode(payload));
-        };
-
-        // SSE keepalive: send comment pings every 5s to prevent connection timeout
-        const keepalive = setInterval(() => {
-          controller.enqueue(encoder.encode(":\n\n"));
-        }, 5000);
-
-        try {
-          const hydratedArtifacts: Artifact[] = hydrateSerializedArtifacts(params.artifacts);
-          const resolvedModel = await resolveModelForEnv(params.model);
-          const strat = createStrategy(params.strategy || "simple", resolvedModel, {
-            chunkSize: params.chunkSize,
-            maxSteps: params.maxSteps,
-            modelSpec: params.model,
-          });
-
-          const result = await extract({
-            artifacts: hydratedArtifacts,
-            ...(params.schema ? { schema: params.schema } : { fields: params.fields }),
-            strategy: strat,
-            strict: params.strict,
-            events: {
-              onStep: (info) => send({ type: "step", data: info }),
-              onProgress: (info) => send({ type: "progress", data: info }),
-              onMessage: (info) => send({ type: "message", data: info }),
-              onTokenUsage: (info) =>
-                send({
-                  type: "tokenUsage",
-                  data: {
-                    inputTokens: info.inputTokens,
-                    outputTokens: info.outputTokens,
-                    totalTokens: info.totalTokens,
-                    model: info.model,
-                  },
-                }),
-              onRetry: (info) => send({ type: "retry", data: info }),
-              onAgentToolStart: (info) => send({ type: "agent_tool_start", data: info }),
-              onAgentToolEnd: (info) => send({ type: "agent_tool_end", data: info }),
-              onAgentMessage: (info) => send({ type: "agent_message", data: info }),
-              onAgentReasoning: (info) => send({ type: "agent_reasoning", data: info }),
-            },
-          });
-
-          send({
-            type: "complete",
-            data: {
-              data: result.data,
-              usage: result.usage,
-              error: result.error?.message,
-            },
-          });
-        } catch (error) {
-          send({
-            type: "error",
-            data: { message: error instanceof Error ? error.message : String(error) },
-          });
-        } finally {
-          clearInterval(keepalive);
-          controller.close();
-        }
-      },
-    });
-
+    const stream = createExtractionStream(params);
     return new Response(stream, {
       headers: {
         "Content-Type": "text/event-stream",

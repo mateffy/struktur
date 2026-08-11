@@ -12,9 +12,26 @@ export default defineConfig({
   splitting: false,
   sourcemap: true,
   clean: true,
-  external: ["@struktur/sdk", "@struktur/telemetry"],
+  // Fully self-contained CLI: bundle @struktur/* workspace packages AND all
+  // npm deps (ai, zod, pdf-parse, …). Only native modules and the heavy
+  // optional processor deps stay external (lazy-loaded at runtime).
+  noExternal: [/^@struktur\//],
+  external: [
+    "@llamaindex/liteparse",
+    "@kreuzberg/node",
+    "@napi-rs/canvas",
+    "canvas",
+    "sharp",
+    "tesseract.js",
+    "@mongodb-js/zstd",
+    "@langfuse/otel",
+    "pdf-parse",
+  ],
   banner: {
-    js: "#!/usr/bin/env node",
+    // Aliased createRequire shim so bundled CJS deps can use dynamic require()
+    // inside the ESM bundle (aliased to avoid colliding with deps that also
+    // import createRequire themselves).
+    js: "#!/usr/bin/env node\nimport { createRequire as __cliCreateRequire } from 'module';\nconst require = __cliCreateRequire(import.meta.url);",
   },
   define: {
     __CLI_VERSION__: JSON.stringify(version),

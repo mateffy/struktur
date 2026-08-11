@@ -14,6 +14,7 @@ import type {
   AnyJSONSchema,
   Artifact,
   NpmParserEntry,
+  SerializedArtifact,
 } from "@struktur/sdk";
 import { readFile } from "node:fs/promises";
 import { Buffer } from "node:buffer";
@@ -60,6 +61,7 @@ export const usage = () => {
     "  --output <path|->        Output path or stdout (default: -)",
     "  --strategy <name>        Strategy name (simple|parallel|sequential|parallelAutoMerge|sequentialAutoMerge|doublePass|doublePassAutoMerge|agent, default: agent)",
     "  --chunk-size <number>    Token budget per batch for chunked strategies (default: 10000)",
+    "  --format <mode>          Output format: text (default TUI), json (NDJSON events on stderr), debug (verbose debug NDJSON)",
     "  --max-steps <number>        Maximum agent steps per iteration for agent strategy (default: 50)",
     "  --max-iterations <number>  Maximum iteration loops - restart with clean context and carry over extracted data (default: 1)",
     "",
@@ -144,6 +146,13 @@ export let stdinConsumed = false;
 export const readStdinText = async () => {
   stdinConsumed = true;
   return await new Response(process.stdin).text();
+};
+
+export const readStdinBinary = async (): Promise<Buffer> => {
+  stdinConsumed = true;
+  // Use Response API to read stdin as binary, avoiding text encoding corruption
+  const ab = await new Response(process.stdin).arrayBuffer();
+  return Buffer.from(ab);
 };
 
 export const readJsonFile = async (path: string) => {
@@ -285,7 +294,11 @@ export const loadSchema = async (
 
 export const loadArtifactsFromOptions = async (
   options: Record<string, string | boolean | undefined>,
-  deps?: { readStdinText?: () => Promise<string>; stdinIsTTY?: boolean },
+  deps?: {
+    readStdinText?: () => Promise<string>;
+    readStdinBinary?: () => Promise<Buffer>;
+    stdinIsTTY?: boolean;
+  },
 ): Promise<Artifact[]> => {
   const input = options.input;
   const text = options.text;
@@ -298,6 +311,7 @@ export const loadArtifactsFromOptions = async (
   const mimeOverride = typeof options.mime === "string" ? options.mime : undefined;
   const parserOverride = typeof options.parser === "string" ? options.parser : undefined;
   const readStdin = deps?.readStdinText ?? readStdinText;
+  const readStdinBin = deps?.readStdinBinary ?? readStdinBinary;
   const stdinIsTTY = deps?.stdinIsTTY ?? process.stdin.isTTY;
   const inferredStdin =
     !stdin && !input && !text && !artifactFile && !artifactJson && stdinIsTTY === false;
@@ -325,7 +339,7 @@ export const loadArtifactsFromOptions = async (
   }
 
   if (stdinRequested) {
-    const stdinBuffer = Buffer.from(await readStdin());
+    const stdinBuffer = Buffer.from(await readStdinBin());
 
     // Try to parse as artifact JSON first
     try {
@@ -462,4 +476,47 @@ export const loadArtifactsFromOptions = async (
   throw new UserError(
     "No input provided. Use --input, --text, --stdin, --artifact, or --artifact-json",
   );
+};
+
+// ---------------------------------------------------------------------------
+// formatParseOutput
+// ---------------------------------------------------------------------------
+
+export type FormatParseOutputOptions = {
+  format: "json" | "text";
+  /** When true, include inline markdown images for media with base64 data. Default false. */
+  includeImages?: boolean;
+};
+
+export const formatParseOutput = (
+  artifacts: SerializedArtifact[],
+  options: FormatParseOutputOptions,
+): string => {
+  if (options.format === "json") {
+    return JSON.stringify(artifacts, null, 2);
+  }
+
+  // Text mode: concatenate content text with --- separators
+  const blocks: string[] = [];
+
+  for (const artifact of artifacts) {
+    for (const content of artifact.contents) {
+      const lines: string[] = [];
+      if (content.text) {
+        lines.push(content.text);
+      }
+      if (options.includeImages && content.media) {
+        for (const img of content.media) {
+          if (img.base64) {
+            lines.push(`![](data:image/png;base64,${img.base64})`);
+          }
+        }
+      }
+      if (lines.length > 0) {
+        blocks.push(lines.join("\n\n"));
+      }
+    }
+  }
+
+  return blocks.join("\n\n---\n\n");
 };

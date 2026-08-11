@@ -1,4 +1,7 @@
-declare const __CLI_VERSION__: string;
+declare const __CLI_VERSION__: string | undefined;
+
+/** Version string — injected by tsup define at build time, falls back to '0.0.0-dev' when running source directly (e.g. tests). */
+const CLI_VERSION: string = (typeof __CLI_VERSION__ !== "undefined" && __CLI_VERSION__) || "0.0.0-dev";
 
 // Workaround for AI SDK timestamp parsing issue with certain providers
 // Some providers (e.g., opencode) return invalid timestamps that cause
@@ -70,14 +73,21 @@ import {
   disableTelemetry,
 } from "@struktur/sdk";
 import type { TokenStorageType } from "@struktur/sdk";
+
+// Pull in optional processor dependencies (liteparse, kreuzberg)
+// so they are available when --processor liteparse|kreuzberg is used.
+import "@struktur/processors";
+
 import {
   loadArtifactsFromOptions,
   loadSchema,
   readStdinText,
+  readStdinBinary,
   resolveDefaultModelSpec,
   resolveExplicitModelSpec,
   stdinConsumed,
   UserError,
+  formatParseOutput,
 } from "./cli/shared";
 import pkg from "../package.json" with { type: "json" };
 
@@ -1795,9 +1805,16 @@ const extractCommand = defineCommand({
       description: "Maximum iteration loops for agent strategy",
       default: "1",
     },
+    format: {
+      type: "string",
+      description:
+        "Output format mode: text (default TUI), json (NDJSON events on stderr), debug (verbose debug NDJSON)",
+      default: "text",
+      valueHint: "text|json|debug",
+    },
     debug: {
       type: "boolean",
-      description: "Enable verbose JSON debug logging to stderr",
+      description: "Enable verbose JSON debug logging to stderr (legacy alias for --format debug)",
       default: false,
     },
     strict: {
@@ -1830,7 +1847,12 @@ const extractCommand = defineCommand({
     },
   },
   async run({ args }) {
-    const isDebug = args.debug === true;
+    if (args.debug === true && args.format !== "text") {
+      throw new UserError("--debug and --format are mutually exclusive");
+    }
+
+    const format = args.debug === true ? "debug" : (args.format as string);
+    const isDebug = format === "debug";
     const debug = createDebugLogger(isDebug);
 
     // Log CLI initialization
@@ -1849,6 +1871,7 @@ const extractCommand = defineCommand({
         strategy: args.strategy,
         "chunk-size": args["chunk-size"],
         debug: args.debug,
+        format,
       },
     });
 
@@ -1938,8 +1961,9 @@ const extractCommand = defineCommand({
       config: { chunkSize, maxSteps, maxIterations, model: JSON.stringify(model) },
     });
 
-    const spinner = isDebug ? null : createSpinner();
-    const agentTUI = !isDebug && args.strategy === "agent" ? new AgentTUI() : null;
+    const showTui = format === "text";
+    const spinner = showTui ? createSpinner() : null;
+    const agentTUI = showTui && args.strategy === "agent" ? new AgentTUI() : null;
     let currentStepLabel: string | undefined;
 
     if (spinner && !agentTUI) {
@@ -1949,8 +1973,21 @@ const extractCommand = defineCommand({
       agentTUI.start();
     }
 
+    const emitEvent = (event: Record<string, unknown>) => {
+      if (format !== "json") return;
+      const line = JSON.stringify({ timestamp: Date.now(), ...event });
+      process.stderr.write(line + "\n");
+    };
+
     const events: ExtractionEvents = {
       onStep: async (info) => {
+        emitEvent({
+          event: "step",
+          step: info.step,
+          total: info.total,
+          label: info.label,
+          detail: info.detail,
+        });
         if (info.label) {
           currentStepLabel = info.label;
         }
@@ -1966,6 +2003,12 @@ const extractCommand = defineCommand({
         }
       },
       onProgress: async (info) => {
+        emitEvent({
+          event: "progress",
+          current: info.current,
+          total: info.total,
+          percent: info.percent,
+        });
         if (agentTUI && info.total > 0) {
           const percent = Math.round((info.current / info.total) * 100);
           agentTUI.updateStep({
@@ -1979,6 +2022,12 @@ const extractCommand = defineCommand({
         }
       },
       onRetry: async (info) => {
+        emitEvent({
+          event: "retry",
+          attempt: info.attempt,
+          maxAttempts: info.maxAttempts,
+          reason: info.reason,
+        });
         if (agentTUI) {
           const baseMessage = currentStepLabel
             ? formatStepMessage(currentStepLabel, 0, undefined).replace(/\.+$/, "")
@@ -1994,13 +2043,32 @@ const extractCommand = defineCommand({
           spinner.text = `${baseMessage} (retry ${info.attempt}/${info.maxAttempts})...`;
         }
       },
-      onMessage: async () => {
+      onMessage: async (info) => {
+        emitEvent({
+          event: "agent_message",
+          content: info.content,
+          role: info.role,
+        });
         // Messages are handled internally
       },
-      onTokenUsage: async () => {
+      onTokenUsage: async (info) => {
+        emitEvent({
+          event: "token_usage",
+          inputTokens: info.inputTokens,
+          outputTokens: info.outputTokens,
+          totalTokens: info.totalTokens,
+          model: info.model,
+        });
         // Token usage tracked in result
       },
       onAgentToolStart: async (info) => {
+        emitEvent({
+          event: "tool_start",
+          toolName: info.toolName,
+          toolCallId: info.toolCallId,
+          args: info.args,
+        });
+        if (!showTui) return;
         // Choose creative unicode icon based on tool name (geometric dingbats, no emojis) with colors
         const iconColored = (() => {
           switch (info.toolName) {
@@ -2048,12 +2116,24 @@ const extractCommand = defineCommand({
         console.log(`${iconColored} ${toolNameColored}${paramsColored ? " " + paramsColored : ""}`);
       },
       onAgentToolEnd: async (info) => {
+        emitEvent({
+          event: "tool_end",
+          toolCallId: info.toolCallId,
+          result: info.result,
+          error: info.error,
+        });
+        if (!showTui) return;
         const resultText = info.result?.text || "done";
         const truncated = resultText.length > 100 ? resultText.slice(0, 100) + "..." : resultText;
         // Gray output tree line
         console.log(kleur.gray(`└─> ${truncated}`));
       },
       onAgentReasoning: async (info) => {
+        emitEvent({
+          event: "agent_reasoning",
+          thought: info.thought,
+        });
+        if (!showTui) return;
         // Show thinking output in gray, truncated to one line
         let thought = info.thought || "";
         // Convert to string if it's an object/array
@@ -2072,7 +2152,14 @@ const extractCommand = defineCommand({
         }
       },
       onVisionStatus: async (info) => {
+        emitEvent({
+          event: "vision_status",
+          enabled: info.enabled,
+          provider: info.provider,
+          modelId: info.modelId,
+        });
         visionStatus = info.enabled;
+        if (!showTui) return;
         // Print compact environment description with detected vision status
         const visionText = visionStatus ? "✓" : "✗";
         const envDesc = `${artifacts.length} artifact${artifacts.length !== 1 ? "s" : ""} • ${totalImages} image${totalImages !== 1 ? "s" : ""} • vision: ${visionText}`;
@@ -2140,9 +2227,11 @@ const extractCommand = defineCommand({
       }
 
       const json = JSON.stringify(result.data, null, 2);
-      // Print result to stdout for visibility (in addition to file output if specified)
-      console.log(json);
       await writeOutput(args.output, json);
+      // When output is a file, also print to stdout so the user can see the result
+      if (args.output && args.output !== "-") {
+        console.log(json);
+      }
     } catch (error) {
       if (agentTUI) {
         agentTUI.clear();
@@ -2206,9 +2295,34 @@ const parseCommand = defineCommand({
       type: "string",
       description: "Target width in pixels for screenshots (overrides scale)",
     },
+    format: {
+      type: "string",
+      description:
+        "Output format mode: json (default), text (plain text from pages), debug (verbose debug NDJSON)",
+      default: "json",
+      valueHint: "json|text|debug",
+    },
+    debug: {
+      type: "boolean",
+      description: "Enable verbose JSON debug logging to stderr (legacy alias for --format debug)",
+      default: false,
+    },
+    processor: {
+      type: "string",
+      description:
+        "PDF processor: pdf-parse (default), vlm, docling, liteparse, kreuzberg",
+      valueHint: "pdf-parse|vlm|docling|liteparse|kreuzberg",
+    },
   },
   async run({ args }) {
+    if (args.debug === true && args.format !== "json") {
+      throw new UserError("--debug and --format are mutually exclusive");
+    }
+    const format = args.debug === true ? "debug" : (args.format as string);
+
     const useStdin = args.stdin === true;
+    const isDebug = format === "debug";
+    const debug = createDebugLogger(isDebug);
 
     if (!args.input && !useStdin) {
       // No input source — show usage + error and exit 1
@@ -2231,8 +2345,7 @@ const parseCommand = defineCommand({
     let filePath: string | undefined;
 
     if (useStdin) {
-      const text = await readStdinText();
-      buffer = Buffer.from(text);
+      buffer = Buffer.from(await readStdinBinary());
     } else {
       filePath = args.input!;
       buffer = await readFile(filePath);
@@ -2266,8 +2379,11 @@ const parseCommand = defineCommand({
       try {
         const parsed = JSON.parse(buffer.toString()) as unknown;
         const serialized = validateSerializedArtifacts(parsed);
-        const json = JSON.stringify(serialized, null, 2);
-        await writeOutput(args.output, json);
+        const output = formatParseOutput(serialized, {
+          format: format as "json" | "text",
+          includeImages: args.images === true,
+        });
+        await writeOutput(args.output, output);
         return;
       } catch {
         // Not valid artifact JSON — fall through to parser resolution
@@ -2286,21 +2402,42 @@ const parseCommand = defineCommand({
     if (parserDef) {
       artifacts = await runParser(parserDef, { kind: "buffer", buffer }, mimeType);
     } else if (mimeType === "application/pdf") {
-      const { parsePdf } = await import("@struktur/sdk");
+      const {
+        parsePdf,
+        getPdfProcessor,
+        listPdfProcessors,
+      } = await import("@struktur/sdk");
       const screenshotScale = args["screenshot-scale"]
         ? parseFloat(args["screenshot-scale"])
         : undefined;
       const screenshotWidth = args["screenshot-width"]
         ? parseInt(args["screenshot-width"], 10)
         : undefined;
-      artifacts = [
-        await parsePdf(buffer, {
-          includeImages: args.images === true,
-          screenshots: args.screenshots === true,
-          screenshotScale,
-          screenshotWidth,
-        }),
-      ];
+
+      const processorName = (args.processor as string | undefined) ?? "pdf-parse";
+      const processor = getPdfProcessor(processorName);
+      if (!processor) {
+        const available = listPdfProcessors().map((p) => p.name).join(", ");
+        throw new UserError(
+          `Unknown processor: "${processorName}". Available: ${available}`,
+        );
+      }
+
+      // For VLM processor, resolve the model from user's default config
+      let model: unknown;
+      if (processorName === "vlm") {
+        const { resolveModel } = await import("@struktur/sdk");
+        const modelSpec = await resolveDefaultModelSpec();
+        model = await resolveModel(modelSpec);
+      }
+
+      artifacts = await processor.parse(buffer, {
+        includeImages: args.images === true,
+        screenshots: args.screenshots === true,
+        screenshotScale,
+        screenshotWidth,
+        model,
+      });
     } else if (mimeType.startsWith("text/")) {
       const { splitTextIntoContents } = await import("@struktur/sdk");
       const text = buffer.toString();
@@ -2353,8 +2490,11 @@ const parseCommand = defineCommand({
       ...(a.metadata ? { metadata: a.metadata } : {}),
     }));
 
-    const json = JSON.stringify(serialized, null, 2);
-    await writeOutput(args.output, json);
+    const output = formatParseOutput(serialized, {
+      format: format as "json" | "text",
+      includeImages: args.images === true,
+    });
+    await writeOutput(args.output, output);
   },
 });
 
@@ -2705,7 +2845,7 @@ const utilsCommand = defineCommand({
 const main = defineCommand({
   meta: {
     name: "struktur",
-    version: __CLI_VERSION__,
+    version: CLI_VERSION,
     description: "Structured data extraction using LLMs",
   },
   subCommands: {

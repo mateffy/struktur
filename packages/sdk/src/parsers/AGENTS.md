@@ -2,6 +2,7 @@
 
 - Purpose: detect MIME types, run external/npm/command parsers, and provide built-in PDF support.
 - Key files: `types.ts`, `collect.ts`, `mime.ts`, `npm.ts`, `runner.ts`, `pdf.ts`, `index.ts`.
+- Subdirectory: `processors/` — pluggable PDF processor registry (see below).
 
 ## Types (`types.ts`)
 
@@ -56,3 +57,13 @@ with `page` numbers set. Returns an `Artifact` with `type: "pdf"`.
 - `ParsePdfOptions.screenshots` (default `false`): set to `true` to render page screenshots and include them as images. This is used by the `--screenshots` CLI flag.
 - `ParsePdfOptions.screenshotScale` (default `1.5`): scale factor for screenshot rendering. Higher values produce larger, higher-quality images.
 - `ParsePdfOptions.screenshotWidth`: target width in pixels for screenshots. If specified, takes precedence over `screenshotScale` and height is calculated to maintain aspect ratio.
+- When per-page text is unavailable but screenshots/images exist, per-page content entries are created from the image map instead of falling back to a single concatenated text entry.
+
+## PDF Processors (`processors/`)
+
+Pluggable registry of PDF processing backends, exported via `index.ts` and registered as a side effect of importing the SDK.
+
+- `types.ts` — `PdfProcessor` (`{ name, description, parse(buffer, options?) }`) and `PdfProcessorOptions`.
+- `registry.ts` — `registerPdfProcessor`, `getPdfProcessor`, `listPdfProcessors`.
+- Built-in processors: `pdf-parse` (default, wraps `pdf.ts`), `vlm` (vision-language model), `docling` (IBM Docling CLI), `liteparse` (`@llamaindex/liteparse`), `kreuzberg` (`@kreuzberg/node`).
+- Optional heavy deps (`@llamaindex/liteparse`, `@kreuzberg/node`) are `optionalDependencies` of the SDK, kept external in tsup, and lazy-loaded with clear install errors. The `@struktur/processors` package bundles them so CLI users get them without extra installs.

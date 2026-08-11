@@ -1,19 +1,18 @@
 {
   "name": "struktur-monorepo",
   "private": true,
-  "workspaces": [
-    "packages/*"
-  ],
+  "type": "module",
+  "packageManager": "pnpm@11.9.0",
   "scripts": {
     "test": "bun test",
-    "build": "bun run --filter '@struktur/fields' --filter '@struktur/sdk' --filter '@struktur/telemetry' --filter '@struktur/cli' build",
+    "build": "pnpm --filter @struktur/fields --filter @struktur/sdk --filter @struktur/telemetry --filter @struktur/cli build",
     "docs": "bun run docs:build && bun run docs:publish",
     "docs:build": "bun run --filter @struktur/documentation build",
     "docs:publish": "git add ./docs ./packages/documentation && git commit -m 'chore: update docs' && git push",
-    "version:patch": "bun scripts/version.ts patch",
-    "version:minor": "bun scripts/version.ts minor",
-    "version:major": "bun scripts/version.ts major",
-    "publish": "bun scripts/publish.ts",
+    "version:patch": "node scripts/version.ts patch",
+    "version:minor": "node scripts/version.ts minor",
+    "version:major": "node scripts/version.ts major",
+    "publish": "node scripts/publish.ts",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "fmt": "oxfmt",
@@ -31,6 +30,10 @@
   "dependencies": {
     "@mariozechner/pi-coding-agent": "^0.57.1",
     "@radix-ui/react-separator": "^1.1.8",
-    "@sinclair/typebox": "^0.34.48"
-  }
+    "@sinclair/typebox": "^0.34.48",
+    "@struktur/cli": "link:packages/cli"
+  },
+  "workspaces": [
+    "packages/*"
+  ]
 }

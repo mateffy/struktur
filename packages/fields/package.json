@@ -17,7 +17,7 @@
   "scripts": {
     "test": "bun test",
     "build": "tsup && tsc --project tsconfig.build.json",
-    "prepublishOnly": "bun run build"
+    "prepublishOnly": "pnpm run build"
   },
   "peerDependencies": {
     "typescript": "^5"

@@ -28,7 +28,7 @@
     "test": "bun test",
     "typecheck": "tsc --noEmit",
     "build": "tsup",
-    "prepublishOnly": "bun run build"
+    "prepublishOnly": "pnpm run build"
   },
   "dependencies": {},
   "optionalDependencies": {

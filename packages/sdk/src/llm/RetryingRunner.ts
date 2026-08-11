@@ -1,8 +1,6 @@
 import {
-  createAjv,
-  validateOrThrow,
+  createValidator,
   SchemaValidationError,
-  validateAllowingMissingRequired,
 } from "../validation/validator";
 import type { ModelMessage } from "ai";
 import type { ExtractionEvents, Usage, TelemetryAdapter } from "../types";
@@ -53,7 +51,7 @@ export const runWithRetries = async <T>(options: RetryOptions<T>) => {
     },
   });
 
-  const ajv = createAjv();
+  const validator = createValidator(options.schema);
   const maxAttempts = options.maxAttempts ?? 3;
   const messages: ModelMessage[] = [{ role: "user", content: options.user }];
   const debug = options.debug;
@@ -115,7 +113,7 @@ export const runWithRetries = async <T>(options: RetryOptions<T>) => {
 
     try {
       if (useStrictValidation) {
-        const validated = validateOrThrow<T>(ajv, options.schema as never, result.data);
+        const validated = validator.validateOrThrow<T>(result.data);
 
         debug?.validationSuccess({ callId, attempt });
         debug?.llmCallComplete({
@@ -147,9 +145,7 @@ export const runWithRetries = async <T>(options: RetryOptions<T>) => {
 
         return { data: validated, usage };
       } else {
-        const validationResult = validateAllowingMissingRequired<T>(
-          ajv,
-          options.schema as never,
+        const validationResult = validator.validateAllowingMissingRequired<T>(
           result.data,
           isFinalAttempt,
         );

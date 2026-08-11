@@ -14,4 +14,10 @@ export default defineConfig({
   splitting: false,
   sourcemap: true,
   clean: true,
+  // Keep optional processor deps as real dynamic imports — the adapters
+  // try/catch them and show clear install errors when missing.
+  external: [
+    "@llamaindex/liteparse",
+    "@kreuzberg/node",
+  ],
 });

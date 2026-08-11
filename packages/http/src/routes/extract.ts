@@ -8,6 +8,7 @@ import {
   hydrateSerializedArtifacts,
   parseExtractRequest,
   resolveModelForEnv,
+  createExtractionStream,
 } from "../utils/extraction";
 
 const app = new Hono();
@@ -24,6 +25,8 @@ app.post(
       "**JSON mode** — send `application/json` with pre-parsed `artifacts` and a `schema` or `fields` shorthand.\n" +
       "**Multipart mode** — send `multipart/form-data` with a `file` (parsed on-the-fly) plus extraction parameters.\n" +
       "**Form mode** — send `application/x-www-form-urlencoded` with pre-parsed `artifacts` and extraction parameters.\n\n" +
+      "By default, returns a `text/event-stream` of progress events via SSE. " +
+      "Disable streaming with `?sse=false` to receive a plain JSON response.\n\n" +
       "Available strategies: `simple`, `parallel`, `sequential`, `parallelAutoMerge`, `sequentialAutoMerge`, `doublePass`, `doublePassAutoMerge`, `agent`.",
     tags: ["Extract"],
     requestBody: {
@@ -153,8 +156,11 @@ app.post(
     },
     responses: {
       200: {
-        description: "Successfully extracted data",
+        description: "SSE stream of extraction events, or plain JSON when `?sse=false`",
         content: {
+          "text/event-stream": {
+            schema: { type: "string", description: "Server-Sent Events stream" },
+          },
           "application/json": {
             schema: resolver(ExtractResponseSchema),
           },
@@ -170,6 +176,18 @@ app.post(
   }),
   async (c) => {
     const params = await parseExtractRequest(c);
+    const sse = c.req.query("sse") !== "false";
+
+    if (sse) {
+      const stream = createExtractionStream(params);
+      return new Response(stream, {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+        },
+      });
+    }
 
     try {
       const hydratedArtifacts: Artifact[] = hydrateSerializedArtifacts(params.artifacts);

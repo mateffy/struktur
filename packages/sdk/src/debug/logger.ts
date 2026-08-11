@@ -212,5 +212,43 @@ export const createDebugLogger = (enabled: boolean) => {
     }) => {
       log({ type: "smart_merge_field", ...data });
     },
+
+    // Agent strategy internals
+    agentStepStart: (data: {
+      callId: string;
+      step: number;
+      maxSteps: number;
+      messagesInHistory: number;
+    }) => {
+      log({ type: "agent_step_start", ...data });
+    },
+
+    agentStepComplete: (data: {
+      callId: string;
+      step: number;
+      durationMs: number;
+      toolCalls: number;
+      textSnippet: string;
+    }) => {
+      log({ type: "agent_step_complete", ...data });
+    },
+
+    agentToolCallStart: (data: {
+      callId: string;
+      toolName: string;
+      args?: Record<string, unknown>;
+    }) => {
+      log({ type: "agent_tool_call_start", ...data });
+    },
+
+    agentToolCallFinish: (data: {
+      callId: string;
+      toolName: string;
+      durationMs?: number;
+      error?: string;
+      resultSnippet?: string;
+    }) => {
+      log({ type: "agent_tool_call_finish", ...data });
+    },
   };
 };

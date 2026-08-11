@@ -19,8 +19,8 @@ src/
   routes/
     info.ts             # GET /
     parse.ts            # POST /parse
-    extract.ts          # POST /extract (dual-mode: JSON + multipart + form)
-    extract-stream.ts   # POST /extract/stream (SSE streaming extraction)
+    extract.ts          # POST /extract (SSE by default, JSON with `?sse=false`; dual-mode: JSON + multipart + form)
+    extract-stream.ts   # POST /extract/stream (convenience alias, always SSE)
     client.ts           # GET /client (Scalar API client UI)
     debug.ts            # GET /debug (simple HTML upload/debug UI)
   utils/
@@ -90,6 +90,8 @@ Parse uploaded files into artifact JSON.
 
 Extract structured data from documents or artifact JSON.
 
+**Streaming behavior:** By default, returns SSE (`text/event-stream`). Disable streaming with `?sse=false` to get a plain JSON response.
+
 **Request (JSON):**
 ```json
 {
@@ -118,7 +120,9 @@ Extract structured data from documents or artifact JSON.
 **Request (application/x-www-form-urlencoded):**
 Same fields as multipart, but `artifacts` and `schema` must be JSON strings. No file upload support.
 
-**Response:**
+**Response (default SSE):** `text/event-stream` — see event types below.
+
+**Response (`?sse=false`):**
 ```json
 {
   "data": {...},
@@ -132,7 +136,7 @@ Same fields as multipart, but `artifacts` and `schema` must be JSON strings. No 
 
 ### `POST /extract/stream`
 
-Run extraction with real-time progress via Server-Sent Events (SSE). Accepts the same request formats as `POST /extract`.
+Convenience alias that always streams via SSE. Accepts the same request formats as `POST /extract`.
 
 **Response:** `text/event-stream`
 
@@ -154,7 +158,18 @@ Each event is a JSON object with a `type` field:
 
 **Example (curl):**
 ```bash
-curl -N -X POST http://localhost:3031/extract/stream \
+curl -N -X POST http://localhost:3031/extract \
+  -H "Content-Type: application/json" \
+  -d '{
+    "artifacts": [{"id":"1","type":"text","contents":[{"text":"test"}]}],
+    "schema": {"type":"object","properties":{"name":{"type":"string"}}},
+    "model": "openai/gpt-4o-mini"
+  }'
+```
+
+Disable SSE to get plain JSON:
+```bash
+curl -X POST "http://localhost:3031/extract?sse=false" \
   -H "Content-Type: application/json" \
   -d '{
     "artifacts": [{"id":"1","type":"text","contents":[{"text":"test"}]}],
@@ -203,10 +218,22 @@ curl -X POST http://localhost:3031/extract \
   -F "chunkSize=5000"
 ```
 
-### Stream extraction with SSE
+### Stream extraction with SSE (default)
 
 ```bash
-curl -N -X POST http://localhost:3031/extract/stream \
+curl -N -X POST http://localhost:3031/extract \
+  -H "Content-Type: application/json" \
+  -d '{
+    "artifacts": [{"id":"1","type":"text","contents":[{"text":"test"}]}],
+    "schema": {"type":"object","properties":{"name":{"type":"string"}}},
+    "model": "openai/gpt-4o-mini"
+  }'
+```
+
+### Extract with JSON response (disable SSE)
+
+```bash
+curl -X POST "http://localhost:3031/extract?sse=false" \
   -H "Content-Type: application/json" \
   -d '{
     "artifacts": [{"id":"1","type":"text","contents":[{"text":"test"}]}],

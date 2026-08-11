@@ -12,6 +12,8 @@ export type AgentStrategyConfig = {
   modelId?: string;
   maxSteps?: number;
   maxIterations?: number;
+  /** Max milliseconds per generateText step before timing out. Default: 5 minutes. */
+  stepTimeoutMs?: number;
   outputInstructions?: string;
   systemPrompt?: string;
   verbose?: boolean;
@@ -98,6 +100,7 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
     const { telemetry } = options;
     const maxSteps = this.config.maxSteps ?? 50;
     const maxIterations = this.config.maxIterations ?? 1;
+    const stepTimeoutMs = this.config.stepTimeoutMs ?? 5 * 60 * 1000; // 5 minutes per step
 
     const agentSpan = telemetry?.startSpan({
       name: "strategy.agent",
@@ -416,12 +419,15 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
           if (!imageData) return { notFound: true, path: params.image_path };
 
           const fmt = params.image_path.endsWith(".png") ? "image/png" : "image/jpeg";
-          console.log(`[agent:VIEW_IMAGE] execute — path: ${params.image_path}, base64 length: ${imageData.length}, mimeType: ${fmt}, visionEnabled: ${visionEnabled}`);
+          debug?.agentToolCallFinish({
+            callId,
+            toolName: "view_image",
+            resultSnippet: `path: ${params.image_path}, base64: ${imageData.length} chars, mimeType: ${fmt}, vision: ${visionEnabled}`,
+          });
           return { imageData, mimeType: fmt, path: params.image_path };
         },
         toModelOutput: async ({ output }) => {
           if ((output as any)?.notFound) {
-            console.log(`[agent:VIEW_IMAGE] toModelOutput — image not found: ${(output as any).path}`);
             return {
               type: "content" as const,
               value: [{ type: "text" as const, text: `Image not found: ${(output as any).path}` }],
@@ -434,18 +440,14 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
             path: string;
           };
 
-          console.log(`[agent:VIEW_IMAGE] toModelOutput — visionEnabled: ${visionEnabled}, base64 length: ${imageData.length}, mimeType: ${mimeType}`);
-
           if (visionEnabled) {
-            const result = {
+            return {
               type: "content" as const,
               value: [
                 { type: "text" as const, text: `[Image: ${path}]` },
                 { type: "media" as const, data: imageData, mediaType: mimeType as "image/png" | "image/jpeg" },
               ],
             };
-            console.log(`[agent:VIEW_IMAGE] toModelOutput — returning media part, content value length: ${JSON.stringify(result.value).length}`);
-            return result;
           } else {
             return {
               type: "content" as const,
@@ -522,53 +524,64 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
       let stepCount = 0;
       const iterMaxSteps = maxSteps;
 
-      const log = (msg: string, data?: unknown) => {
-        const ts = new Date().toISOString();
-        if (data !== undefined) {
-          console.log(`[agent:${ts}] ${msg}`, typeof data === "string" ? data : JSON.stringify(data).slice(0, 500));
-        } else {
-          console.log(`[agent:${ts}] ${msg}`);
-        }
-      };
+
 
       while (stepCount < iterMaxSteps && !isComplete && !extractionFailed) {
-        log(`step ${stepCount + 1}/${iterMaxSteps} — messages in history: ${messages.length}`);
+        const stepNumber = stepCount + 1;
+        debug?.agentStepStart({
+          callId,
+          step: stepNumber,
+          maxSteps: iterMaxSteps,
+          messagesInHistory: messages.length,
+        });
 
         const stepStart = Date.now();
-        const result: any = await generateText({
-          model: aiModel as any,
-          system: systemPrompt,
-          messages,
-          tools: tools(iterationCount) as any,
-          experimental_onToolCallStart: async (params: any) => {
-            const toolCall = params.toolCall;
-            const toolName = toolCall?.toolName as string;
-            const args = toolCall?.input as Record<string, unknown>;
-            log(`tool_call_start: ${toolName}`, args);
-            await options.events?.onAgentToolStart?.({
-              toolName,
-              toolCallId: toolCall?.toolCallId as string,
-              args,
-            });
-          },
-          experimental_onToolCallFinish: async (params: any) => {
-            const toolCall = params.toolCall;
-            const toolName = toolCall?.toolName;
-            const toolCallId = toolCall?.toolCallId;
-            const output = params.output;
-            const error = params.error;
-            const duration = params.durationMs;
+        const abortController = new AbortController();
+        const timeoutId = setTimeout(() => abortController.abort(
+          new Error(`Step ${stepNumber} timed out after ${stepTimeoutMs}ms`)
+        ), stepTimeoutMs);
 
-            if (toolName === "view_image") {
-              const imgData = output as any;
-              if (imgData?.imageData) {
-                log(`tool_call_finish: ${toolName} (${duration}ms) — image data length: ${imgData.imageData.length} chars, mimeType: ${imgData.mimeType}`);
-              } else {
-                log(`tool_call_finish: ${toolName} (${duration}ms) — ${error ? "ERROR: " + error.message : JSON.stringify(output).slice(0, 200)}`);
-              }
-            } else {
-              log(`tool_call_finish: ${toolName} (${duration}ms)`);
-            }
+        let result: any;
+        try {
+          result = await generateText({
+            model: aiModel as any,
+            system: systemPrompt,
+            messages,
+            tools: tools(iterationCount) as any,
+            abortSignal: abortController.signal,
+            experimental_onToolCallStart: async (params: any) => {
+              const toolCall = params.toolCall;
+              const toolName = toolCall?.toolName as string;
+              const args = toolCall?.input as Record<string, unknown>;
+              debug?.agentToolCallStart({
+                callId,
+                toolName,
+                args,
+              });
+              await options.events?.onAgentToolStart?.({
+                toolName,
+                toolCallId: toolCall?.toolCallId as string,
+                args,
+              });
+            },
+            experimental_onToolCallFinish: async (params: any) => {
+              const toolCall = params.toolCall;
+              const toolName = toolCall?.toolName;
+              const toolCallId = toolCall?.toolCallId;
+              const output = params.output;
+              const error = params.error;
+              const duration = params.durationMs;
+
+              debug?.agentToolCallFinish({
+                callId,
+                toolName: toolName ?? "unknown",
+                durationMs: duration,
+                error: error?.message,
+                resultSnippet:
+                  toolName === "view_image" && (output as any)?.imageData
+                    ? `image data: ${(output as any).imageData.length} chars`
+                    : undefined,
+              });
 
             // Extract text from tool result
             let resultText: string;
@@ -605,8 +618,18 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
           },
         });
 
+        } finally {
+          clearTimeout(timeoutId);
+        }
+
         const stepDuration = Date.now() - stepStart;
-        log(`step ${stepCount + 1} complete (${stepDuration}ms) — toolCalls: ${result.toolCalls?.length || 0}, text: ${(result.text || "").slice(0, 100)}`);
+        debug?.agentStepComplete({
+          callId,
+          step: stepNumber,
+          durationMs: stepDuration,
+          toolCalls: result.toolCalls?.length || 0,
+          textSnippet: (result.text || "").slice(0, 100),
+        });
 
         stepCount++;
 

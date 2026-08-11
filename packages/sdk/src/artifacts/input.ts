@@ -1,9 +1,9 @@
-import type { Artifact, ArtifactContent, ArtifactImage, ArtifactType } from "../types";
-import { createAjv, validateOrThrow } from "../validation/validator";
+import { z } from "zod";
+import type { Artifact, ArtifactContent, ArtifactImage } from "../types";
+import { SchemaValidationError } from "../validation/validator";
 import { defaultArtifactProviders, type ArtifactProviders } from "./providers";
 import type { ParsersConfig } from "../parsers/types";
 import { runParser } from "../parsers/runner";
-import type { ParsePdfOptions } from "../parsers/pdf";
 import { readFile } from "node:fs/promises";
 import { detectMimeType } from "../parsers/mime";
 
@@ -40,55 +40,53 @@ export type ArtifactInputParser = {
       screenshots?: boolean;
       screenshotScale?: number;
       screenshotWidth?: number;
+      processor?: string;
+      processorModel?: unknown;
     },
   ) => Promise<Artifact[]>;
 };
 
-const serializedArtifactImageSchema = {
-  type: "object",
-  required: ["type"],
-  properties: {
-    type: { const: "image" },
-    url: { type: "string", minLength: 1 },
-    base64: { type: "string", minLength: 1 },
-    text: { type: "string" },
-    x: { type: "number" },
-    y: { type: "number" },
-    width: { type: "number" },
-    height: { type: "number" },
-    imageType: { enum: ["embedded", "screenshot"] },
-  },
-  additionalProperties: false,
-  anyOf: [{ required: ["url"] }, { required: ["base64"] }],
-};
+// Native Zod schemas for internal artifact structure validation.
+// Defined directly (not via z.fromJSONSchema) for reliability and CF Workers compat.
 
-const serializedArtifactContentSchema = {
-  type: "object",
-  properties: {
-    page: { type: "number" },
-    text: { type: "string" },
-    media: { type: "array", items: serializedArtifactImageSchema },
-  },
-  additionalProperties: false,
-  anyOf: [{ required: ["text"] }, { required: ["media"] }],
-};
+const zSerializedArtifactImage = z
+  .object({
+    type: z.literal("image"),
+    url: z.string().min(1).optional(),
+    base64: z.string().min(1).optional(),
+    text: z.string().optional(),
+    x: z.number().optional(),
+    y: z.number().optional(),
+    width: z.number().optional(),
+    height: z.number().optional(),
+    imageType: z.enum(["embedded", "screenshot"]).optional(),
+  })
+  .refine((d) => d.url !== undefined || d.base64 !== undefined, {
+    message: "Artifact image must have either url or base64",
+  });
 
-const serializedArtifactSchema = {
-  type: "object",
-  required: ["id", "type", "contents"],
-  properties: {
-    id: { type: "string", minLength: 1 },
-    type: { enum: ["text", "image", "pdf", "file"] as ArtifactType[] },
-    contents: { type: "array", items: serializedArtifactContentSchema },
-    metadata: { type: "object", additionalProperties: true },
-    tokens: { type: "number" },
-  },
-  additionalProperties: false,
-};
+const zSerializedArtifactContent = z
+  .object({
+    page: z.number().optional(),
+    text: z.string().optional(),
+    media: z.array(zSerializedArtifactImage).optional(),
+  })
+  .refine((d) => d.text !== undefined || (d.media !== undefined && d.media.length > 0), {
+    message: "Artifact content must have text or media",
+  });
 
-const serializedArtifactsSchema = {
-  anyOf: [serializedArtifactSchema, { type: "array", items: serializedArtifactSchema }],
-};
+const zSerializedArtifact = z.object({
+  id: z.string().min(1),
+  type: z.enum(["text", "image", "pdf", "file"]),
+  contents: z.array(zSerializedArtifactContent),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+  tokens: z.number().optional(),
+});
+
+const zSerializedArtifacts = z.union([
+  zSerializedArtifact,
+  z.array(zSerializedArtifact),
+]);
 
 const inputParsers: ArtifactInputParser[] = [];
 
@@ -101,8 +99,12 @@ export const clearArtifactInputParsers = () => {
 };
 
 export const validateSerializedArtifacts = (data: unknown): SerializedArtifact[] => {
-  const ajv = createAjv();
-  const parsed = validateOrThrow<SerializedArtifacts>(ajv, serializedArtifactsSchema, data);
+  const result = zSerializedArtifacts.safeParse(data);
+  if (!result.success) {
+    const messages = result.error.issues.map((i) => i.message).join("; ");
+    throw new SchemaValidationError(`Invalid artifact JSON: ${messages}`, []);
+  }
+  const parsed = result.data as SerializedArtifacts;
   return Array.isArray(parsed) ? parsed : [parsed];
 };
 
@@ -164,6 +166,8 @@ const parseBufferInput = async (
   screenshots?: boolean,
   screenshotScale?: number,
   screenshotWidth?: number,
+  processor?: string,
+  processorModel?: unknown,
 ): Promise<Artifact[]> => {
   // Resolution order:
   // 1. parsers config (custom ParserDef) — if MIME type has a configured parser, use it
@@ -197,14 +201,15 @@ const parseBufferInput = async (
 
   // 3. Built-in PDF → pdf artifact
   if (mimeType === "application/pdf") {
-    const { parsePdf } = await import("../parsers/pdf");
-    const pdfOptions: ParsePdfOptions = {
+    const { getPdfProcessor, pdfParseProcessor } = await import("../parsers/processors");
+    const selected = getPdfProcessor(processor ?? "pdf-parse") ?? pdfParseProcessor;
+    return selected.parse(buffer, {
       includeImages,
       screenshots,
       screenshotScale,
       screenshotWidth,
-    };
-    return [await parsePdf(buffer, pdfOptions)];
+      model: processorModel,
+    });
   }
 
   // 4. Built-in text/* → text artifact
@@ -288,6 +293,8 @@ const fileParser: ArtifactInputParser = {
       options?.screenshots,
       options?.screenshotScale,
       options?.screenshotWidth,
+      options?.processor,
+      options?.processorModel,
     );
   },
 };
@@ -309,6 +316,8 @@ const bufferParser: ArtifactInputParser = {
       options?.screenshots,
       options?.screenshotScale,
       options?.screenshotWidth,
+      options?.processor,
+      options?.processorModel,
     );
   },
 };
@@ -323,6 +332,8 @@ export const parse = async (
     screenshots?: boolean;
     screenshotScale?: number;
     screenshotWidth?: number;
+    processor?: string;
+    processorModel?: unknown;
   },
 ): Promise<Artifact[]> => {
   const parsers = options?.parsers ?? [
@@ -345,5 +356,7 @@ export const parse = async (
     screenshots: options?.screenshots,
     screenshotScale: options?.screenshotScale,
     screenshotWidth: options?.screenshotWidth,
+    processor: options?.processor,
+    processorModel: options?.processorModel,
   });
 };

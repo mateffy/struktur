@@ -10,6 +10,7 @@ export type {
   Usage,
   AnyJSONSchema,
   TypedJSONSchema,
+  StandardSchema,
   // Agent event types
   AgentEvents,
   AgentToolStartInfo,
@@ -65,7 +66,19 @@ export { listAllProviderModels, listProviderModels, resolveCheapestModel } from 
 export { resolveModel } from "./llm/resolveModel";
 
 // Validation
-export { SchemaValidationError } from "./validation/validator";
+export { SchemaValidationError, isStandardSchema, toJsonSchema } from "./validation/validator";
+export type { ValidationIssue, ValidationResult } from "./validation/validator";
+
+// PDF Processors — imported at module level to trigger built-in registrations
+export type { PdfProcessor, PdfProcessorOptions } from "./parsers/processors/types";
+export {
+  registerPdfProcessor,
+  getPdfProcessor,
+  listPdfProcessors,
+} from "./parsers/processors/registry";
+
+// Side-effect import: registers all built-in processors into the registry
+import "./parsers/processors";
 
 // Auth (for CLI and SDK users who want to manage tokens)
 export {

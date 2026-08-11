@@ -1,5 +1,11 @@
-# dependencies (bun install)
+# dependencies
 node_modules
+
+# pnpm
+.pnpm-store
+
+# OCR runtime downloads (tesseract.js)
+*.traineddata
 
 # output
 out

@@ -24,7 +24,7 @@
   ],
   "scripts": {
     "build": "tsup && tsc --project tsconfig.build.json && node scripts/postbuild.mjs",
-    "prepublishOnly": "bun run build"
+    "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.0",
@@ -35,15 +35,17 @@
     "@sinclair/typebox": "^0.34.48",
     "@struktur/fields": "workspace:*",
     "ai": "^6.0.97",
-    "ajv": "^8.17.1",
-    "ajv-formats": "^3.0.1",
     "just-bash": "^2.11.15",
-"ollama-ai-provider-v2": "^3.5.0",
+    "ollama-ai-provider-v2": "^3.5.0",
     "pdf-parse": "^2.4.5",
-    "zod": "^3.25.76"
+    "zod": "^4.4.3"
   },
   "peerDependencies": {
     "typescript": "^5"
+  },
+  "optionalDependencies": {
+    "@llamaindex/liteparse": "^1",
+    "@kreuzberg/node": "^4"
   },
   "devDependencies": {
     "@types/bun": "latest",

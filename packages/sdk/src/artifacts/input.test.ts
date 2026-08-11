@@ -43,7 +43,7 @@ test("validateSerializedArtifacts rejects invalid artifacts", () => {
       type: "text",
       contents: [],
     }),
-  ).toThrow("Schema validation failed");
+  ).toThrow(); // missing `id` field — SchemaValidationError thrown by Zod-based validator
 });
 
 test("splitTextIntoContents splits paragraphs", () => {

@@ -1,5 +1,6 @@
 import { generateText, Output, jsonSchema, type ModelMessage } from "ai";
 import type { AnyJSONSchema, Usage, TelemetryAdapter } from "../types";
+import { isStandardSchema, toJsonSchema } from "../validation/validator";
 import type { UserContent } from "./message";
 
 type GenerateTextParams = Parameters<typeof generateText>[0];
@@ -38,13 +39,24 @@ export type StructuredResponse<T> = {
   usage: Usage;
 };
 
-const isZodSchema = (schema: unknown): schema is { safeParse: (data: unknown) => unknown } => {
-  return (
-    typeof schema === "object" &&
-    schema !== null &&
-    "safeParse" in schema &&
-    typeof (schema as { safeParse?: unknown }).safeParse === "function"
-  );
+/**
+ * Returns true for Zod v4 schemas (which the AI SDK natively understands).
+ * Detected via the Standard Schema vendor field.
+ */
+const isZodSchema = (schema: unknown): boolean =>
+  isStandardSchema(schema) &&
+  (schema as { "~standard": { vendor?: string } })["~standard"].vendor === "zod";
+
+/**
+ * Maps any schema type to what the AI SDK's Output.object() expects:
+ * - Zod schema       → passed through (AI SDK handles it natively)
+ * - Standard Schema  → JSON Schema extracted via toJsonSchema(), then wrapped
+ * - Plain object     → wrapped with jsonSchema()
+ */
+const toAiSdkSchema = (schema: unknown) => {
+  if (isZodSchema(schema)) return schema;
+  if (isStandardSchema(schema)) return jsonSchema(toJsonSchema(schema) as AnyJSONSchema);
+  return jsonSchema(schema as AnyJSONSchema);
 };
 
 export const generateStructured = async <T>(
@@ -65,9 +77,7 @@ export const generateStructured = async <T>(
 
   const startTime = Date.now();
 
-  const schema = isZodSchema(request.schema)
-    ? request.schema
-    : jsonSchema(request.schema as AnyJSONSchema);
+  const schema = toAiSdkSchema(request.schema);
 
   // Check for OpenRouter provider preference attached to the model
   const preferredProvider = (request.model as { __openrouter_provider?: string })

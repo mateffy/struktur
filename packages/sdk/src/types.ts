@@ -1,5 +1,5 @@
-import type { JSONSchemaType } from "ajv";
 import type { DebugLogger } from "./debug/logger";
+import type { StandardSchema } from "./validation/validator";
 
 export type ArtifactType = "text" | "image" | "pdf" | "file";
 
@@ -153,7 +153,15 @@ export type ExtractionEvents = {
 } & AgentEvents;
 
 export type AnyJSONSchema = Record<string, unknown>;
-export type TypedJSONSchema<T> = JSONSchemaType<T>;
+
+/**
+ * A plain JSON Schema object tagged with the expected TypeScript output type.
+ * For type-safe schema authoring, prefer Zod schemas — they give full inference
+ * without needing this type wrapper.
+ */
+export type TypedJSONSchema<T> = AnyJSONSchema & { readonly __inferredType?: T };
+
+export type { StandardSchema } from "./validation/validator";
 
 export type ProviderModelsResult = {
   provider: string;
@@ -168,7 +176,15 @@ export type ExtractionOptions<T> = {
    * JSON Schema for the extracted output.
    * Exactly one of `schema`, `fields`, or an inline schema via the CLI must be provided.
    */
-  schema?: TypedJSONSchema<T> | AnyJSONSchema;
+  /**
+   * Schema for the extracted output. Accepts:
+   * - A **Zod v4 schema** (recommended — gives type inference automatically)
+   * - Any **Standard Schema V1** implementation (Valibot, ArkType, …)
+   * - A plain **JSON Schema** object (use `TypedJSONSchema<T>` to tag it with a type)
+   *
+   * Mutually exclusive with `fields`.
+   */
+  schema?: TypedJSONSchema<T> | AnyJSONSchema | StandardSchema<unknown, T>;
   /**
    * Shorthand schema definition as a comma-separated string of `name` or `name:type` tokens.
    * E.g. `"title, price:number"`. Defaults to `string` when no type is specified.

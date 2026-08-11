@@ -3,8 +3,16 @@ import type { DebugLogger } from "../debug/logger";
 import { batchArtifacts, type BatchOptions } from "../chunking/ArtifactBatcher";
 import { buildUserContent } from "../llm/message";
 import { runWithRetries } from "../llm/RetryingRunner";
+import { isStandardSchema, toJsonSchema } from "../validation/validator";
 
-export const serializeSchema = (schema: unknown) => {
+/**
+ * Serializes any schema type to a JSON string for embedding in the LLM prompt.
+ * Standard Schema / Zod schemas are first converted to JSON Schema via toJsonSchema().
+ */
+export const serializeSchema = (schema: unknown): string => {
+  if (isStandardSchema(schema)) {
+    return JSON.stringify(toJsonSchema(schema));
+  }
   return JSON.stringify(schema);
 };
 
