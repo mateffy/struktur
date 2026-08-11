@@ -1,0 +1,28 @@
+name: Sync tag to struktur-php
+
+on:
+  push:
+    tags:
+      - "php-v*"
+
+jobs:
+  sync-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push tag to struktur-php mirror
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          # Strip the php- prefix for the mirror tag (php-v1.0.0 → v1.0.0)
+          MIRROR_TAG=${TAG_NAME#php-}
+
+          git remote add mirror https://x-access-token:${{ secrets.SPLIT_TOKEN }}@github.com/mateffy/struktur-php.git
+
+          # Push main from the subtree
+          git subtree push --prefix=packages/struktur-php mirror main
+
+          # Create the same tag in the mirror
+          git push mirror "$TAG_NAME:refs/tags/$MIRROR_TAG"

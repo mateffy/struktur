@@ -1,0 +1,21 @@
+name: Split struktur-php
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/struktur-php/**"
+
+jobs:
+  split:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push to struktur-php mirror
+        run: |
+          git subtree push --prefix=packages/struktur-php \
+            https://x-access-token:${{ secrets.SPLIT_TOKEN }}@github.com/mateffy/struktur-php.git \
+            main
