@@ -1,6 +1,7 @@
 import type { ExtractionOptions, ExtractionResult } from "./types";
 import { buildSchemaFromFields } from "./fields";
 import type { TelemetryAdapter } from "./types";
+import { emitStatus } from "./strategies/status";
 
 const emptyUsage = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
 
@@ -94,6 +95,8 @@ export const extract = async <T>(options: ExtractionOptions<T>): Promise<Extract
         error: (error as Error).message,
       });
 
+      emitStatus(options.events, { phase: "failed" });
+
       safeEndSpan(telemetry, rootSpan, {
         status: "error",
         error: error as Error,
@@ -116,6 +119,7 @@ export const extract = async <T>(options: ExtractionOptions<T>): Promise<Extract
     });
 
     await resolvedOptions.events?.onStep?.({ step: 1, total, label: "start" });
+    emitStatus(resolvedOptions.events, { phase: "starting" });
     debug?.step({
       step: 1,
       total,
@@ -129,6 +133,9 @@ export const extract = async <T>(options: ExtractionOptions<T>): Promise<Extract
       step: total ?? 1,
       total,
       label: "complete",
+    });
+    emitStatus(resolvedOptions.events, {
+      phase: result.error ? "failed" : "completed",
     });
     debug?.step({
       step: total ?? 1,
@@ -161,6 +168,8 @@ export const extract = async <T>(options: ExtractionOptions<T>): Promise<Extract
       totalTokens: 0,
       error: (error as Error).message,
     });
+
+    emitStatus(options.events, { phase: "failed" });
 
     safeEndSpan(telemetry, rootSpan, {
       status: "error",

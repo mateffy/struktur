@@ -224,6 +224,58 @@ describe('Client', function () {
 
             expect($cmd)->toContain(json_encode($schema));
         });
+
+        it('passes output instructions when provided', function () {
+            $client = new Client(binaryPath: 'struktur');
+            $request = new Dto\ExtractionRequest(
+                inputs: [Input::fromBytes('x')],
+                schema: [],
+                outputInstructions: 'Extrahiere auf Deutsch.',
+            );
+            $cmd = invokePrivateMethod($client, 'buildExtractCommand', [$request]);
+
+            expect($cmd)->toContain("'--instructions'");
+            expect($cmd)->toContain("'Extrahiere auf Deutsch.'");
+        });
+
+        it('omits instructions when null', function () {
+            $client = new Client(binaryPath: 'struktur');
+            $request = new Dto\ExtractionRequest(
+                inputs: [Input::fromBytes('x')],
+                schema: [],
+            );
+            $cmd = invokePrivateMethod($client, 'buildExtractCommand', [$request]);
+
+            expect($cmd)->not->toContain("'--instructions'");
+        });
+
+        it('passes reasoning effort and images output when provided', function () {
+            $client = new Client(binaryPath: 'struktur');
+            $request = new Dto\ExtractionRequest(
+                inputs: [Input::fromBytes('x')],
+                schema: [],
+                reasoningEffort: 'low',
+                imagesOutput: '/tmp/images.json',
+            );
+            $cmd = invokePrivateMethod($client, 'buildExtractCommand', [$request]);
+
+            expect($cmd)->toContain("'--reasoning-effort'");
+            expect($cmd)->toContain("'low'");
+            expect($cmd)->toContain("'--images-output'");
+            expect($cmd)->toContain("'/tmp/images.json'");
+        });
+
+        it('omits reasoning effort and images output when null', function () {
+            $client = new Client(binaryPath: 'struktur');
+            $request = new Dto\ExtractionRequest(
+                inputs: [Input::fromBytes('x')],
+                schema: [],
+            );
+            $cmd = invokePrivateMethod($client, 'buildExtractCommand', [$request]);
+
+            expect($cmd)->not->toContain("'--reasoning-effort'");
+            expect($cmd)->not->toContain("'--images-output'");
+        });
     });
 
     describe('extractFirstJsonObject', function () {

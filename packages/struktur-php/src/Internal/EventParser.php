@@ -68,6 +68,12 @@ class EventParser
                 timestamp: $timestamp,
             ),
             'finish' => new Event\FinishEvent(timestamp: $timestamp),
+            'status' => new Event\StatusEvent(
+                phase: $data['phase'] ?? 'extracting',
+                message: is_array($data['message'] ?? null) ? $data['message'] : null,
+                percent: isset($data['percent']) && is_numeric($data['percent']) ? (float) $data['percent'] : null,
+                timestamp: $timestamp,
+            ),
             'failure' => new Event\FailureEvent(
                 reason: $data['reason'] ?? '',
                 timestamp: $timestamp,

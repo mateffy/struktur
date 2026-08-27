@@ -6,6 +6,7 @@ import type { ModelMessage } from "ai";
 import type { ExtractionEvents, Usage, TelemetryAdapter } from "../types";
 import type { DebugLogger } from "../debug/logger";
 import { generateStructured } from "./LLMClient";
+import { emitStatus } from "../strategies/status";
 import type { UserContent } from "./message";
 
 export type RetryOptions<T> = {
@@ -81,6 +82,14 @@ export const runWithRetries = async <T>(options: RetryOptions<T>) => {
     const executor = options.execute ?? generateStructured;
     const isFinalAttempt = attempt === maxAttempts;
     const useStrictValidation = options.strict === true || isFinalAttempt;
+
+    emitStatus(options.events, {
+      phase: attempt > 1 ? "retrying" : "extracting",
+      message:
+        attempt > 1
+          ? { key: "retry_validation", params: { attempt, max: maxAttempts } }
+          : { key: "extracting_data" },
+    });
 
     debug?.validationStart({
       callId,

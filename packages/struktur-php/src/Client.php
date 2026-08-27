@@ -206,7 +206,18 @@ class Client
         // (the final result), not the first.
         $data = $this->extractLastJsonObject($stdout);
 
-        return new Dto\ExtractionResult(data: $data, usage: $usage, rawStdout: $stdout);
+        $images = null;
+        if ($request->imagesOutput !== null && is_file($request->imagesOutput)) {
+            $raw = file_get_contents($request->imagesOutput);
+            if ($raw !== false) {
+                $decoded = json_decode($raw, true);
+                if (is_array($decoded)) {
+                    $images = $decoded;
+                }
+            }
+        }
+
+        return new Dto\ExtractionResult(data: $data, usage: $usage, rawStdout: $stdout, images: $images);
     }
 
     private function buildParseCommand(Dto\ParseRequest $request): string
@@ -221,9 +232,9 @@ class Client
             $parts[] = '--stdin';
         }
 
-        $parts = $this->appendTokenArgs($parts, $request->tokens);
+        $envPrefix = $this->buildTokenEnvPrefix($request->tokens);
 
-        return implode(' ', array_map('escapeshellarg', $parts));
+        return $envPrefix . implode(' ', array_map('escapeshellarg', $parts));
     }
 
     private function buildExtractCommand(Dto\ExtractionRequest $request): string
@@ -256,6 +267,18 @@ class Client
             $parts[] = '--max-iterations';
             $parts[] = (string) $request->maxIterations;
         }
+        if ($request->outputInstructions !== null) {
+            $parts[] = '--instructions';
+            $parts[] = $request->outputInstructions;
+        }
+        if ($request->reasoningEffort !== null) {
+            $parts[] = '--reasoning-effort';
+            $parts[] = $request->reasoningEffort;
+        }
+        if ($request->imagesOutput !== null) {
+            $parts[] = '--images-output';
+            $parts[] = $request->imagesOutput;
+        }
         if ($input->path !== null) {
             $parts[] = '--input';
             $parts[] = $input->path;
@@ -263,31 +286,44 @@ class Client
             $parts[] = '--stdin';
         }
 
-        $parts = $this->appendTokenArgs($parts, $request->tokens);
+        $envPrefix = $this->buildTokenEnvPrefix($request->tokens);
 
-        return implode(' ', array_map('escapeshellarg', $parts));
+        return $envPrefix . implode(' ', array_map('escapeshellarg', $parts));
     }
 
+    private const TOKEN_ENV_MAP = [
+        'openai' => 'OPENAI_API_KEY',
+        'anthropic' => 'ANTHROPIC_API_KEY',
+        'google' => 'GOOGLE_GENERATIVE_AI_API_KEY',
+        'opencode' => 'OPENCODE_API_KEY',
+        'openrouter' => 'OPENROUTER_API_KEY',
+        'ollama' => 'OLLAMA_BASE_URL',
+    ];
+
     /**
-     * @param list<string> $parts
+     * Build environment variable prefix for the CLI command.
+     * Converts provider tokens to OPENAI_API_KEY=sk-xxx ANTHROPIC_API_KEY=sk-ant-xxx ...
+     *
      * @param array<string, string>|null $tokens
-     * @return list<string>
      */
-    private function appendTokenArgs(array $parts, ?array $tokens): array
+    private function buildTokenEnvPrefix(?array $tokens): string
     {
         if ($tokens === null || count($tokens) === 0) {
-            return $parts;
+            return '';
         }
 
-        $tokenPairs = [];
+        $prefix = '';
         foreach ($tokens as $provider => $token) {
-            $tokenPairs[] = $provider . '=' . $token;
+            $envVar = self::TOKEN_ENV_MAP[$provider] ?? null;
+            if ($envVar === null) {
+                throw new \InvalidArgumentException(
+                    "Unknown provider: {$provider}. Supported: " . implode(', ', array_keys(self::TOKEN_ENV_MAP))
+                );
+            }
+            $prefix .= $envVar . '=' . escapeshellarg($token) . ' ';
         }
 
-        $parts[] = '--token';
-        $parts[] = implode(',', $tokenPairs);
-
-        return $parts;
+        return $prefix;
     }
 
     /**

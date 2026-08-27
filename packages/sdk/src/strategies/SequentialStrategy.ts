@@ -3,6 +3,7 @@ import type { ExtractionOptions } from "../types";
 import { buildSequentialPrompt } from "../prompts/SequentialExtractorPrompt";
 import { extractWithPrompt, getBatches, mergeUsage, serializeSchema } from "./utils";
 import { runWithRetries } from "../llm/RetryingRunner";
+import { emitStatus, stepLabelToStatus } from "./status";
 
 export type SequentialStrategyConfig = {
   model: unknown;
@@ -67,6 +68,10 @@ export class SequentialStrategy<T> implements ExtractionStrategy<T> {
       total: totalSteps,
       label: batches.length > 1 ? `batch 1/${batches.length}` : "extract",
     });
+    emitStatus(
+      options.events,
+      stepLabelToStatus(batches.length > 1 ? `batch 1/${batches.length}` : "extract", step, totalSteps),
+    );
     debug?.step({
       step,
       total: totalSteps,
@@ -109,6 +114,10 @@ export class SequentialStrategy<T> implements ExtractionStrategy<T> {
           total: totalSteps,
           label: `batch ${index + 2}/${batches.length}`,
         });
+        emitStatus(
+          options.events,
+          stepLabelToStatus(`batch ${index + 2}/${batches.length}`, step, totalSteps),
+        );
         debug?.step({
           step,
           total: totalSteps,

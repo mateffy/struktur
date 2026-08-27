@@ -7,6 +7,8 @@ export type {
   ExtractionOptions,
   ExtractionResult,
   ExtractionStrategy,
+  StatusInfo,
+  StatusPhase,
   Usage,
   AnyJSONSchema,
   TypedJSONSchema,

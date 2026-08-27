@@ -6,6 +6,7 @@ import { extractWithPrompt, getBatches, mergeUsage, serializeSchema } from "./ut
 import { SmartDataMerger } from "../merge/SmartDataMerger";
 import { findExactDuplicatesWithHashing, deduplicateByIndices } from "../merge/Deduplicator";
 import { runWithRetries } from "../llm/RetryingRunner";
+import { emitStatus, stepLabelToStatus } from "./status";
 
 export type SequentialAutoMergeStrategyConfig = {
   model: unknown;
@@ -175,6 +176,10 @@ export class SequentialAutoMergeStrategy<T> implements ExtractionStrategy<T> {
         total: totalSteps,
         label: `batch ${index + 1}/${batches.length}`,
       });
+      emitStatus(
+        options.events,
+        stepLabelToStatus(`batch ${index + 1}/${batches.length}`, step, totalSteps),
+      );
       debug?.step({
         step,
         total: totalSteps,
@@ -256,6 +261,7 @@ export class SequentialAutoMergeStrategy<T> implements ExtractionStrategy<T> {
       total: totalSteps,
       label: "dedupe",
     });
+    emitStatus(options.events, stepLabelToStatus("dedupe", step, totalSteps));
     debug?.step({
       step,
       total: totalSteps,

@@ -127,6 +127,10 @@ export const createVirtualFilesystem = (artifacts: Artifact[]): VirtualFilesyste
               // Store the base64 content in the virtual filesystem
               virtualFiles.set(virtualPath, media.base64);
 
+              // Attach the path to the original media object so consumers can
+              // resolve references back to the base64 bytes after extraction.
+              media.virtualPath = virtualPath;
+
               return {
                 type: media.type,
                 url: media.url,

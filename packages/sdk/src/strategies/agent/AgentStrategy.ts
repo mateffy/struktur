@@ -1,9 +1,10 @@
-import type { ExtractionOptions, ExtractionResult, ExtractionStrategy } from "../../types";
+import type { ExtractionOptions, ExtractionResult, ExtractionStrategy, StatusInfo } from "../../types";
 import type { createDebugLogger } from "../../debug/logger";
 import { resolveModel, type AiSdkModel } from "../../llm/resolveModel";
 import { generateText, tool } from "ai";
 import { Bash } from "just-bash";
 import { createVirtualFilesystem } from "./ArtifactFilesystem";
+import { emitStatus } from "../status";
 import { z } from "zod";
 
 export type AgentStrategyConfig = {
@@ -19,6 +20,36 @@ export type AgentStrategyConfig = {
   verbose?: boolean;
   debug?: ReturnType<typeof createDebugLogger>;
   vision?: boolean; // Enable image viewing for vision-capable models
+  /**
+   * Reasoning effort for models that support it (OpenRouter reasoning models).
+   * "low" | "medium" | "high". Leave undefined to use the model's default.
+   */
+  reasoningEffort?: "low" | "medium" | "high";
+};
+
+const statusFromToolName = (toolName: string): StatusInfo => {
+  switch (toolName) {
+    case "read":
+      return { phase: "analyzing", message: { key: "reading" } };
+    case "view_image":
+      return { phase: "analyzing", message: { key: "viewing_image" } };
+    case "grep":
+    case "find":
+      return { phase: "analyzing", message: { key: "searching" } };
+    case "ls":
+    case "tree":
+    case "bash":
+      return { phase: "analyzing", message: { key: "exploring" } };
+    case "set_output_data":
+    case "update_output_data":
+      return { phase: "extracting", message: { key: "extracting_data" } };
+    case "finish":
+      return { phase: "extracting", message: { key: "finalizing" } };
+    case "fail":
+      return { phase: "failed" };
+    default:
+      return { phase: "extracting" };
+  }
 };
 
 const defaultSystemPrompt = (
@@ -66,6 +97,12 @@ ${fileTreeSection}${manifestSection}
 
 ### Reading Strategy
 ALWAYS use pagination (offset + limit) when reading large files. Start with offset=1, limit=200 and increment offset for subsequent reads. Never omit limit - it defaults to 200 lines. Adjust chunk size based on data type: ~100 lines for dense/structured data, ~300 for narrative text.
+
+## Efficient Exploration
+- All document content is already in /artifact.json (full text of every page) and /manifest.json (summary, shown above).
+- The file tree above already describes the complete filesystem — do NOT use ls, find, tree, grep, or bash to explore it.
+- Read /artifact.json directly and extract. Paginate (offset/limit) only if a read is truncated.
+- Use view_image only when the schema requires visual content (e.g. floorplans or photos).
 
 ## CRITICAL: Incremental Updates
 1. If data was already extracted in previous iterations, use set_output_data to preserve it
@@ -123,6 +160,7 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
       total: this.getEstimatedSteps(),
       label: "agent_explore",
     });
+    emitStatus(options.events, { phase: "analyzing", message: { key: "exploring" } });
 
     const filesystem = createVirtualFilesystem(options.artifacts);
     const files: Record<string, string> = {
@@ -215,6 +253,7 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
       total: this.getEstimatedSteps(),
       label: "agent_init",
     });
+    emitStatus(options.events, { phase: "analyzing", message: { key: "initializing" } });
 
     const deepMerge = (target: any, source: any): any => {
       const output = Object.assign({}, target);
@@ -503,6 +542,10 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
         total: this.getEstimatedSteps(),
         label: `iteration_${iterationCount}`,
       });
+      emitStatus(options.events, {
+        phase: "extracting",
+        message: { key: "iteration", params: { current: iterationCount } },
+      });
 
       const systemPrompt =
         this.config.systemPrompt ??
@@ -549,6 +592,15 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
             messages,
             tools: tools(iterationCount) as any,
             abortSignal: abortController.signal,
+            ...(this.config.provider === "openrouter" && this.config.reasoningEffort
+              ? {
+                  providerOptions: {
+                    openrouter: {
+                      reasoning: { effort: this.config.reasoningEffort },
+                    },
+                  },
+                }
+              : {}),
             experimental_onToolCallStart: async (params: any) => {
               const toolCall = params.toolCall;
               const toolName = toolCall?.toolName as string;
@@ -563,6 +615,7 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
                 toolCallId: toolCall?.toolCallId as string,
                 args,
               });
+              emitStatus(options.events, statusFromToolName(toolName));
             },
             experimental_onToolCallFinish: async (params: any) => {
               const toolCall = params.toolCall;
@@ -652,6 +705,7 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
         total: this.getEstimatedSteps(),
         label: `iteration_${iterationCount}_complete`,
       });
+      emitStatus(options.events, { phase: "extracting", message: { key: "extracting_data" } });
     }
 
     const durationMs = Date.now() - startTime;
@@ -680,11 +734,16 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
       total: this.getEstimatedSteps(),
       label: "extract",
     });
+    emitStatus(options.events, { phase: "extracting", message: { key: "finalizing" } });
 
     if (agentSpan && telemetry)
       telemetry.endSpan(agentSpan, { status: "ok", output: extractedData });
 
-    return { data: extractedData, usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 } };
+    return {
+      data: extractedData,
+      usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+      images: Object.fromEntries(filesystem.virtualFiles),
+    };
   }
 }
 

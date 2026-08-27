@@ -6,6 +6,7 @@ import { buildSequentialPrompt } from "../prompts/SequentialExtractorPrompt";
 import { extractWithPrompt, getBatches, mergeUsage, serializeSchema } from "./utils";
 import { runConcurrently } from "./concurrency";
 import { runWithRetries } from "../llm/RetryingRunner";
+import { emitStatus, stepLabelToStatus } from "./status";
 
 export type DoublePassStrategyConfig = {
   model: unknown;
@@ -98,6 +99,10 @@ export class DoublePassStrategy<T> implements ExtractionStrategy<T> {
         total: totalSteps,
         label: `pass 1 batch ${index + 1}/${batches.length}`,
       });
+      emitStatus(
+        options.events,
+        stepLabelToStatus(`pass 1 batch ${index + 1}/${batches.length}`, step, totalSteps),
+      );
       debug?.step({
         step,
         total: totalSteps,
@@ -151,6 +156,7 @@ export class DoublePassStrategy<T> implements ExtractionStrategy<T> {
       total: totalSteps,
       label: "pass 1 merge",
     });
+    emitStatus(options.events, stepLabelToStatus("pass 1 merge", step, totalSteps));
     debug?.step({
       step,
       total: totalSteps,
@@ -225,6 +231,10 @@ export class DoublePassStrategy<T> implements ExtractionStrategy<T> {
         total: totalSteps,
         label: `pass 2 batch ${index + 1}/${batches.length}`,
       });
+      emitStatus(
+        options.events,
+        stepLabelToStatus(`pass 2 batch ${index + 1}/${batches.length}`, step, totalSteps),
+      );
       debug?.step({
         step,
         total: totalSteps,

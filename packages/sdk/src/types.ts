@@ -16,6 +16,12 @@ export type ArtifactImage = {
   width?: number;
   height?: number;
   imageType?: ImageType;
+  /**
+   * Stable virtual-filesystem path the agent uses to reference this image
+   * (e.g. "/images/artifact-…-page-1-image-0.png"). Populated for embedded
+   * images and screenshots so consumers can resolve references back to bytes.
+   */
+  virtualPath?: string;
 };
 
 export type ArtifactContent = {
@@ -43,6 +49,11 @@ export type ExtractionResult<T> = {
   data: T;
   usage: Usage;
   error?: Error;
+  /**
+   * Maps virtual image paths to raw base64 bytes. Only populated by the agent
+   * strategy. Consumers resolve the image references inside `data` against this map.
+   */
+  images?: Record<string, string>;
 };
 
 /**
@@ -132,6 +143,36 @@ export type AgentReasoningInfo = {
   thought: string;
 };
 
+/**
+ * Coarse, strategy-independent phases meant for human-facing progress UIs.
+ * Strategies emit these via `onStatus`; consumers render the `phase` in their
+ * own language and use `message.key` (with `params`) for optional detail.
+ */
+export type StatusPhase =
+  | "starting"
+  | "analyzing"
+  | "extracting"
+  | "retrying"
+  | "completed"
+  | "failed";
+
+export type StatusInfo = {
+  phase: StatusPhase;
+  /**
+   * Optional structured detail, localized by the consumer via `key`.
+   * `params` are interpolated into the translated string.
+   */
+  message?: {
+    key: string;
+    params?: Record<string, string | number>;
+  };
+  /**
+   * Determinate progress in percent (0-100).
+   * `null`/absent means indeterminate — the UI should show a spinner, not a bar.
+   */
+  percent?: number | null;
+};
+
 export type AgentEvents = {
   onAgentToolStart?: (info: AgentToolStartInfo) => void | Promise<void>;
   onAgentToolEnd?: (info: AgentToolEndInfo) => void | Promise<void>;
@@ -150,6 +191,7 @@ export type ExtractionEvents = {
   onProgress?: (info: ProgressInfo) => void | Promise<void>;
   onTokenUsage?: (info: TokenUsageInfo) => void | Promise<void>;
   onRetry?: (info: RetryInfo) => void | Promise<void>;
+  onStatus?: (info: StatusInfo) => void | Promise<void>;
 } & AgentEvents;
 
 export type AnyJSONSchema = Record<string, unknown>;

@@ -5,6 +5,7 @@ import { buildParallelMergerPrompt } from "../prompts/ParallelMergerPrompt";
 import { extractWithPrompt, getBatches, mergeUsage, serializeSchema } from "./utils";
 import { runConcurrently } from "./concurrency";
 import { runWithRetries } from "../llm/RetryingRunner";
+import { emitStatus, stepLabelToStatus } from "./status";
 
 export type ParallelStrategyConfig = {
   model: unknown;
@@ -70,6 +71,10 @@ export class ParallelStrategy<T> implements ExtractionStrategy<T> {
       total: totalSteps,
       label: batches.length > 1 ? `batch 1/${batches.length}` : "extract",
     });
+    emitStatus(
+      options.events,
+      stepLabelToStatus(batches.length > 1 ? `batch 1/${batches.length}` : "extract", step, totalSteps),
+    );
     debug?.step({
       step,
       total: totalSteps,
@@ -102,6 +107,10 @@ export class ParallelStrategy<T> implements ExtractionStrategy<T> {
           total: totalSteps,
           label: `batch ${completedIndex + 1}/${batches.length}`,
         });
+        emitStatus(
+          options.events,
+          stepLabelToStatus(`batch ${completedIndex + 1}/${batches.length}`, step, totalSteps),
+        );
         debug?.step({
           step,
           total: totalSteps,
@@ -156,6 +165,7 @@ export class ParallelStrategy<T> implements ExtractionStrategy<T> {
       total: totalSteps,
       label: "merge",
     });
+    emitStatus(options.events, stepLabelToStatus("merge", step, totalSteps));
     debug?.step({
       step,
       total: totalSteps,

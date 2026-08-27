@@ -13,6 +13,8 @@ final readonly class ExtractionResult
         public array $data,
         public Usage $usage,
         public ?string $rawStdout = null,
+        /** @var array<string, string>|null Map of virtual image path to base64 bytes. */
+        public ?array $images = null,
     ) {
     }
 }

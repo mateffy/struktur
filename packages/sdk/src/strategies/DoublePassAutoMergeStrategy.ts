@@ -8,6 +8,7 @@ import { SmartDataMerger } from "../merge/SmartDataMerger";
 import { findExactDuplicatesWithHashing, deduplicateByIndices } from "../merge/Deduplicator";
 import { runConcurrently } from "./concurrency";
 import { runWithRetries } from "../llm/RetryingRunner";
+import { emitStatus, stepLabelToStatus } from "./status";
 
 export type DoublePassAutoMergeStrategyConfig = {
   model: unknown;
@@ -138,6 +139,10 @@ export class DoublePassAutoMergeStrategy<T> implements ExtractionStrategy<T> {
         total: totalSteps,
         label: `pass 1 batch ${index + 1}/${batches.length}`,
       });
+      emitStatus(
+        options.events,
+        stepLabelToStatus(`pass 1 batch ${index + 1}/${batches.length}`, step, totalSteps),
+      );
       debug?.step({
         step,
         total: totalSteps,
@@ -275,6 +280,7 @@ export class DoublePassAutoMergeStrategy<T> implements ExtractionStrategy<T> {
       total: totalSteps,
       label: "pass 1 dedupe",
     });
+    emitStatus(options.events, stepLabelToStatus("pass 1 dedupe", step, totalSteps));
     debug?.step({
       step,
       total: totalSteps,
@@ -360,6 +366,10 @@ export class DoublePassAutoMergeStrategy<T> implements ExtractionStrategy<T> {
         total: totalSteps,
         label: `pass 2 batch ${index + 1}/${batches.length}`,
       });
+      emitStatus(
+        options.events,
+        stepLabelToStatus(`pass 2 batch ${index + 1}/${batches.length}`, step, totalSteps),
+      );
       debug?.step({
         step,
         total: totalSteps,

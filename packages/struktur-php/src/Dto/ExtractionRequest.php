@@ -11,7 +11,8 @@ final readonly class ExtractionRequest
     /**
      * @param list<Input> $inputs
      * @param array<string, mixed> $schema
-     * @param array<string, string>|null $tokens Provider-to-token map (e.g. ['openai' => 'sk-xxx'])
+     * @param array<string, string>|null $tokens Provider-to-token map (e.g. ['openai' => 'sk-xxx']).
+     *        Tokens are passed as environment variable prefixes on the CLI command.
      */
     public function __construct(
         public array $inputs,
@@ -24,6 +25,8 @@ final readonly class ExtractionRequest
         public ?int $maxSteps = null,
         public ?int $maxIterations = null,
         public ?array $tokens = null,
+        public ?string $reasoningEffort = null,
+        public ?string $imagesOutput = null,
     ) {
         if (count($inputs) !== 1) {
             throw new \InvalidArgumentException('Exactly 1 input is required (multi-input not yet supported)');

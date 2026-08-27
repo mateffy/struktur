@@ -189,6 +189,43 @@ describe('EventParser', function () {
         expect($event->timestamp)->toBe(999);
     });
 
+    it('parses status event with message and percent', function () {
+        $json = json_encode([
+            'event' => 'status',
+            'phase' => 'analyzing',
+            'message' => ['key' => 'reading', 'params' => ['page' => 3]],
+            'percent' => null,
+            'timestamp' => 100,
+        ]);
+        $event = EventParser::parse($json);
+
+        expect($event)->toBeInstanceOf(Event\StatusEvent::class);
+        expect($event->phase)->toBe('analyzing');
+        expect($event->message)->toBe(['key' => 'reading', 'params' => ['page' => 3]]);
+        expect($event->percent)->toBeNull();
+        expect($event->timestamp)->toBe(100);
+    });
+
+    it('parses status event with determinate percent and no message', function () {
+        $json = json_encode(['event' => 'status', 'phase' => 'extracting', 'percent' => 42.5]);
+        $event = EventParser::parse($json);
+
+        expect($event)->toBeInstanceOf(Event\StatusEvent::class);
+        expect($event->phase)->toBe('extracting');
+        expect($event->message)->toBeNull();
+        expect($event->percent)->toBe(42.5);
+    });
+
+    it('parses status event with defaults', function () {
+        $json = json_encode(['event' => 'status']);
+        $event = EventParser::parse($json);
+
+        expect($event)->toBeInstanceOf(Event\StatusEvent::class);
+        expect($event->phase)->toBe('extracting');
+        expect($event->message)->toBeNull();
+        expect($event->percent)->toBeNull();
+    });
+
     it('parses failure event', function () {
         $json = json_encode(['event' => 'failure', 'reason' => 'error']);
         $event = EventParser::parse($json);

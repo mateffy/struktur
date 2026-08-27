@@ -85,7 +85,6 @@ import {
   readStdinBinary,
   resolveDefaultModelSpec,
   resolveExplicitModelSpec,
-  applyCliTokens,
   stdinConsumed,
   UserError,
   formatParseOutput,
@@ -1059,6 +1058,8 @@ type StrategyOptions = {
   chunkSize?: number;
   maxSteps?: number;
   maxIterations?: number;
+  outputInstructions?: string;
+  reasoningEffort?: "low" | "medium" | "high";
 };
 
 const DEFAULT_CHUNK_SIZE = 10_000;
@@ -1070,21 +1071,22 @@ const createStrategy = (
   options?: StrategyOptions,
 ): ExtractionStrategy<unknown> => {
   const chunkSize = options?.chunkSize ?? DEFAULT_CHUNK_SIZE;
+  const outputInstructions = options?.outputInstructions;
   switch (name) {
     case "simple":
-      return simple({ model });
+      return simple({ model, outputInstructions });
     case "parallel":
-      return parallel({ model, mergeModel: model, chunkSize });
+      return parallel({ model, mergeModel: model, chunkSize, outputInstructions });
     case "sequential":
-      return sequential({ model, chunkSize });
+      return sequential({ model, chunkSize, outputInstructions });
     case "parallelAutoMerge":
-      return parallelAutoMerge({ model, dedupeModel: model, chunkSize });
+      return parallelAutoMerge({ model, dedupeModel: model, chunkSize, outputInstructions });
     case "sequentialAutoMerge":
-      return sequentialAutoMerge({ model, dedupeModel: model, chunkSize });
+      return sequentialAutoMerge({ model, dedupeModel: model, chunkSize, outputInstructions });
     case "doublePass":
-      return doublePass({ model, mergeModel: model, chunkSize });
+      return doublePass({ model, mergeModel: model, chunkSize, outputInstructions });
     case "doublePassAutoMerge":
-      return doublePassAutoMerge({ model, dedupeModel: model, chunkSize });
+      return doublePassAutoMerge({ model, dedupeModel: model, chunkSize, outputInstructions });
     case "agent": {
       // Parse provider/model from modelSpec (format: "provider/model")
       const [provider, ...modelParts] = modelSpec.split("/");
@@ -1099,6 +1101,8 @@ const createStrategy = (
         modelId,
         maxSteps: options?.maxSteps ?? 50,
         maxIterations: options?.maxIterations ?? 1,
+        outputInstructions,
+        reasoningEffort: options?.reasoningEffort,
       });
     }
     default:
@@ -1806,6 +1810,19 @@ const extractCommand = defineCommand({
       description: "Maximum iteration loops for agent strategy",
       default: "1",
     },
+    instructions: {
+      type: "string",
+      description: "Additional extraction instructions appended to the strategy's prompt",
+    },
+    "reasoning-effort": {
+      type: "string",
+      description: "Reasoning effort for thinking models (low|medium|high). Defaults to the model's default.",
+      valueHint: "low|medium|high",
+    },
+    "images-output": {
+      type: "string",
+      description: "Write the extracted images (virtual path -> base64) to this file",
+    },
     format: {
       type: "string",
       description:
@@ -1845,11 +1862,6 @@ const extractCommand = defineCommand({
       type: "boolean",
       description: "Render page screenshots and include them as images in the artifact output",
       default: false,
-    },
-    token: {
-      type: "string",
-      description:
-        "API token for a provider (format: provider=token). Comma-separate for multiple providers. Overrides stored tokens.",
     },
   },
   async run({ args }) {
@@ -1943,9 +1955,6 @@ const extractCommand = defineCommand({
       totalImages,
     });
 
-    // Apply --token overrides before model resolution
-    applyCliTokens(args.token as string | undefined);
-
     let modelSpec = args.model
       ? await resolveExplicitModelSpec(args.model)
       : await resolveDefaultModelSpec();
@@ -1960,10 +1969,15 @@ const extractCommand = defineCommand({
 
     const maxSteps = parseInt(args["max-steps"] as string, 10) || 50;
     const maxIterations = parseInt(args["max-iterations"] as string, 10) || 1;
+    const reasoningEffort = ["low", "medium", "high"].includes(args["reasoning-effort"] as string)
+      ? (args["reasoning-effort"] as "low" | "medium" | "high")
+      : undefined;
     const strategy = createStrategy(args.strategy, model, modelSpec as string, {
       chunkSize,
       maxSteps,
       maxIterations,
+      outputInstructions: args.instructions as string | undefined,
+      reasoningEffort,
     });
     debug.strategyCreated({
       strategy: args.strategy,
@@ -2051,6 +2065,14 @@ const extractCommand = defineCommand({
             : "Extracting data";
           spinner.text = `${baseMessage} (retry ${info.attempt}/${info.maxAttempts})...`;
         }
+      },
+      onStatus: async (info) => {
+        emitEvent({
+          event: "status",
+          phase: info.phase,
+          message: info.message,
+          percent: info.percent,
+        });
       },
       onMessage: async (info) => {
         emitEvent({
@@ -2241,6 +2263,11 @@ const extractCommand = defineCommand({
       if (args.output && args.output !== "-") {
         console.log(json);
       }
+
+      if (args["images-output"] && result.images) {
+        const { writeFile } = await import("node:fs/promises");
+        await writeFile(args["images-output"] as string, JSON.stringify(result.images));
+      }
     } catch (error) {
       if (agentTUI) {
         agentTUI.clear();
@@ -2322,11 +2349,6 @@ const parseCommand = defineCommand({
         "PDF processor: pdf-parse (default), vlm, docling, liteparse, kreuzberg",
       valueHint: "pdf-parse|vlm|docling|liteparse|kreuzberg",
     },
-    token: {
-      type: "string",
-      description:
-        "API token for a provider (format: provider=token). Comma-separate for multiple providers. Overrides stored tokens.",
-    },
   },
   async run({ args }) {
     if (args.debug === true && args.format !== "json") {
@@ -2337,9 +2359,6 @@ const parseCommand = defineCommand({
     const useStdin = args.stdin === true;
     const isDebug = format === "debug";
     const debug = createDebugLogger(isDebug);
-
-    // Apply --token overrides before any processor runs
-    applyCliTokens(args.token as string | undefined);
 
     if (!args.input && !useStdin) {
       // No input source — show usage + error and exit 1
