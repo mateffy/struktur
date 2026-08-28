@@ -95,6 +95,22 @@ if (ghAvailable) {
     console.error("✗ Failed to create GitHub release");
     console.error(error);
   }
+
+  // Build and upload standalone binary
+  console.log("\nBuilding standalone binary...");
+  try {
+    execSync("bun run build:binary", { cwd: "packages/cli", stdio: "inherit" });
+    const arch = process.arch === "arm64" ? "arm64" : "x64";
+    const platform = process.platform === "darwin" ? "macos" : "linux";
+    const binaryName = `struktur-${platform}-${arch}`;
+    execSync(`cp packages/cli/dist/struktur ${binaryName}`);
+    execSync(`gh release upload ${tag} ${binaryName}`, { stdio: "inherit" });
+    execSync(`rm ${binaryName}`);
+    console.log(`✓ Binary uploaded: ${binaryName}\n`);
+  } catch (error) {
+    console.error("✗ Failed to build or upload binary");
+    console.error(error);
+  }
 }
 
 console.log(`\n✓ Successfully published version ${version}!`);

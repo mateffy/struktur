@@ -105,12 +105,32 @@ $result = $client->extract(new ExtractionRequest(
     inputs: [Input::fromPath('./document.pdf')],
     schema: $schema,
     model: 'openai/gpt-4o',
-    strategy: 'simple',         // optional, default: auto
-    screenshots: true,          // capture screenshots of each page
+    strategy: 'agent',          // optional, default: auto
+    outputInstructions: 'Extrahiere auf Deutsch.', // appended to the strategy prompt
     images: true,               // include images from the document
     maxSteps: 10,               // limit agent steps
     maxIterations: 3,           // limit retry iterations
+    reasoningEffort: 'low',     // low|medium|high (OpenRouter thinking models)
+    imagesOutput: '/tmp/images.json', // write image map (path → base64) to a file
+    tokens: ['openai' => 'sk-xxx'], // per-request API keys
 ));
+```
+
+When you pass `tokens`, the SDK prefixes the CLI command with environment variables:
+
+```bash
+OPENAI_API_KEY=sk-xxx struktur extract --model openai/gpt-4o ...
+```
+
+Each request gets its own credentials. No global environment variables needed.
+
+The result also carries an image map when `images` is enabled and the agent strategy runs:
+
+```php
+// $result->images: array<string, string> — virtual path → base64 bytes
+foreach ($result->images ?? [] as $path => $base64) {
+    // resolve image references inside $result->data against this map
+}
 ```
 
 ### Schema
@@ -183,6 +203,8 @@ $result = $client->extract(
                 printf("[step %d] %s\n", $event->step, $event->message),
             $event instanceof TokenUsageEvent =>
                 printf("[usage] %d tokens used\n", $event->totalTokens),
+            $event instanceof StatusEvent =>
+                printf("[status] %s\n", $event->phase),
             $event instanceof FinishEvent =>
                 printf("[done] finished after %d steps\n", $event->steps),
             default => null,
@@ -208,12 +230,13 @@ $result = $client->extract(
 | `TokenUsageEvent` | Token usage is reported |
 | `ProgressEvent` | Progress information is available |
 | `RetryEvent` | A validation retry occurs |
+| `StatusEvent` | Human-facing status update (`phase`, `message`, `percent`) |
 | `FinishEvent` | Extraction finishes successfully |
 | `FailureEvent` | Extraction fails |
 
 ## Docker
 
-For Docker deployments, include both PHP and Node.js. Refer to the [Docker guide](/docs/cli/docker) for the full Dockerfile and docker-compose example.
+For Docker deployments, download the standalone binary. Refer to the [Docker guide](/docs/cli/docker) for the full Dockerfile and docker-compose example.
 
 ## Error handling
 

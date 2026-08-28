@@ -1,12 +1,12 @@
 ---
 title: Docker
-description: Run Struktur in a Docker container.
+description: Run Struktur in a Docker container using the standalone binary.
 ---
 
 import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
 import { Callout } from 'fumadocs-ui/components/callout';
 
-Struktur runs in Docker containers. Use Docker to run extractions in CI/CD pipelines or alongside applications that do not have Node.js installed.
+Struktur distributes a standalone binary that bundles Node.js and all dependencies. Download it from GitHub Releases or build it from source.
 
 ## Prerequisites
 
@@ -15,52 +15,36 @@ Struktur runs in Docker containers. Use Docker to run extractions in CI/CD pipel
 
 ## Dockerfile
 
-This Dockerfile uses two stages. The first stage installs the Struktur CLI. The second stage copies it into your application image.
+Download the binary from the latest GitHub release and copy it into your image:
 
 ```dockerfile
-# syntax=docker/dockerfile:1
+FROM alpine:3.21 AS downloader
+RUN wget -O /struktur https://github.com/mateffy/struktur/releases/latest/download/struktur-linux-x64 \
+    && chmod +x /struktur
 
-# Stage 1: Install the Struktur CLI
-FROM node:22-bookworm-slim AS struktur
-
-RUN npm install -g @struktur/cli
-
-# Stage 2: Your application image
 FROM your-base-image
+COPY --from=downloader /struktur /usr/local/bin/struktur
 
-# Copy Node.js and the CLI from the first stage
-COPY --from=struktur /usr/local/bin/node /usr/local/bin/node
-COPY --from=struktur /usr/local/lib/node_modules /usr/local/lib/node_modules
-COPY --from=struktur /usr/local/bin/struktur /usr/local/bin/struktur
-
-# Set the API key at runtime
 ENV OPENAI_API_KEY=""
 ```
 
 <Callout type="info">
-  The second stage can use any base image that has a compatible C library. Examples: `php:8.3-cli`, `python:3.12-slim`, or `ubuntu:24.04`.
+  The binary targets Linux x64. For ARM64, use `struktur-linux-arm64`. The binary has no system dependencies beyond `glibc` (Alpine needs `gcompat`).
 </Callout>
 
-## PHP application
+### PHP application
 
-For PHP applications that use the [PHP SDK](/docs/sdk/php), copy the CLI and install Composer dependencies:
+For PHP applications that use the [PHP SDK](/docs/sdk/php):
 
 ```dockerfile
-# syntax=docker/dockerfile:1
-
-FROM node:22-bookworm-slim AS struktur
-RUN npm install -g @struktur/cli
+FROM alpine:3.21 AS downloader
+RUN wget -O /struktur https://github.com/mateffy/struktur/releases/latest/download/struktur-linux-x64 \
+    && chmod +x /struktur
 
 FROM php:8.3-cli-bookworm
 
-# Install the Node.js runtime
-RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
-    && apt-get install -y nodejs \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy the Struktur CLI
-COPY --from=struktur /usr/local/lib/node_modules /usr/local/lib/node_modules
-COPY --from=struktur /usr/local/bin/struktur /usr/local/bin/struktur
+# Copy the standalone binary
+COPY --from=downloader /struktur /usr/local/bin/struktur
 
 # Install PHP dependencies
 COPY composer.json composer.lock ./
@@ -78,9 +62,6 @@ services:
     build: .
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-    # Optional: mount a config directory for aliases and the default model
-    # volumes:
-    #   - ./config/struktur:/root/.config/struktur:ro
 ```
 
 ## Authentication
@@ -107,24 +88,33 @@ volumes:
   Do not put API keys in your Dockerfile. Use Docker secrets, an `.env` file, or a secrets manager.
 </Callout>
 
-## Set a default model
+## Per-command tokens
 
-Set the default model at build time:
+Prefix the command with environment variables for per-command token overrides:
 
-```dockerfile
-RUN struktur config models use openai/gpt-4o-mini
+```bash
+docker run --rm my-app \
+  sh -c 'OPENAI_API_KEY=sk-xxx struktur extract --model openai/gpt-4o --input doc.pdf --fields "title"'
 ```
 
-Or pass the model at runtime:
+In the [PHP SDK](/docs/sdk/php), pass tokens as an array. The SDK builds the env prefix automatically:
+
+```php
+$result = $client->extract(new ExtractionRequest(
+    inputs: [Input::fromPath('./invoice.pdf')],
+    schema: $schema,
+    model: 'openai/gpt-4o',
+    tokens: ['openai' => 'sk-xxx'],
+));
+```
+
+## Set a default model
 
 ```bash
 docker run --rm \
   -e OPENAI_API_KEY=$OPENAI_API_KEY \
   my-app \
-  struktur extract \
-    --model openai/gpt-4o-mini \
-    --input document.pdf \
-    --fields "title, date"
+  struktur config models use openai/gpt-4o-mini
 ```
 
 ## Examples
@@ -152,31 +142,18 @@ docker run --rm \
   struktur parse --input /docs/report.pdf --output -
 ```
 
-## Troubleshooting
+## Building the binary
 
-### "struktur: not found"
-
-Make sure that the CLI binary is copied correctly from the build stage. Check that `/usr/local/bin/struktur` exists:
+Build the standalone binary from source:
 
 ```bash
-docker run --rm --entrypoint ls my-app /usr/local/bin/struktur
+cd packages/cli
+bun install
+bun run build          # compiles TypeScript
+bun run build:binary   # creates dist/struktur (~71MB)
 ```
 
-### "exec format error"
-
-This error occurs on ARM64 machines (Apple Silicon) when the image targets x86. Use the `--platform` flag:
-
-```bash
-docker build --platform linux/amd64 -t my-app .
-```
-
-### Node.js fails to start
-
-Some slim base images do not include the C++ standard library. Install it:
-
-```dockerfile
-RUN apt-get update && apt-get install -y libstdc++6 && rm -rf /var/lib/apt/lists/*
-```
+The binary bundles Bun as its runtime. Optional dependencies (`@mongodb-js/zstd`, `@langfuse/otel`) are marked external — they are loaded dynamically at runtime if installed.
 
 ## See also
 

@@ -10,7 +10,8 @@ final readonly class ParseRequest
 {
     /**
      * @param list<Input> $inputs
-     * @param array<string, string>|null $tokens Provider-to-token map (e.g. ['openai' => 'sk-xxx'])
+     * @param array<string, string>|null $tokens Provider-to-token map (e.g. ['openai' => 'sk-xxx']).
+     *        Tokens are passed as environment variable prefixes on the CLI command.
      */
     public function __construct(
         public array $inputs,

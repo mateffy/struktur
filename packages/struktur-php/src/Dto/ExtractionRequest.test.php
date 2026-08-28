@@ -36,13 +36,11 @@ describe('ExtractionRequest', function () {
             strategy: 'simple',
             model: 'openai/gpt-4',
             outputInstructions: 'Be concise',
-            tokens: ['openai' => 'sk-test'],
         );
 
         expect($request->strategy)->toBe('simple');
         expect($request->model)->toBe('openai/gpt-4');
         expect($request->outputInstructions)->toBe('Be concise');
-        expect($request->tokens)->toBe(['openai' => 'sk-test']);
     });
 
     it('accepts empty schema', function () {

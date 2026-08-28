@@ -2,7 +2,7 @@ import { test, expect, describe } from "bun:test";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { rm, writeFile } from "node:fs/promises";
-import { loadArtifactsFromOptions, formatParseOutput, applyCliTokens } from "./shared";
+import { loadArtifactsFromOptions, formatParseOutput } from "./shared";
 import type { SerializedArtifact } from "@struktur/sdk";
 
 const makeTempPath = (name: string, ext = ".txt") =>
@@ -434,55 +434,5 @@ describe("liteparse processor end-to-end", () => {
     const output = formatParseOutput(serialized, { format: "text" });
     expect(output.length).toBeGreaterThan(0);
     expect(output).toContain("hello");
-  });
-});
-
-// ---------------------------------------------------------------------------
-// applyCliTokens
-// ---------------------------------------------------------------------------
-
-describe("applyCliTokens", () => {
-  test("parses single token and sets env var", () => {
-    delete process.env.OPENAI_API_KEY;
-    applyCliTokens("openai=sk-test123");
-    expect(process.env.OPENAI_API_KEY).toBe("sk-test123");
-    delete process.env.OPENAI_API_KEY;
-  });
-
-  test("parses comma-separated tokens", () => {
-    delete process.env.OPENAI_API_KEY;
-    delete process.env.ANTHROPIC_API_KEY;
-    applyCliTokens("openai=sk-oai,anthropic=sk-ant");
-    expect(process.env.OPENAI_API_KEY).toBe("sk-oai");
-    expect(process.env.ANTHROPIC_API_KEY).toBe("sk-ant");
-    delete process.env.OPENAI_API_KEY;
-    delete process.env.ANTHROPIC_API_KEY;
-  });
-
-  test("no-ops on undefined", () => {
-    applyCliTokens(undefined);
-    // no throw
-  });
-
-  test("no-ops on empty string", () => {
-    applyCliTokens("");
-    // no throw
-  });
-
-  test("throws on missing equals sign", () => {
-    expect(() => applyCliTokens("invalidformat")).toThrow(
-      /Invalid --token format/,
-    );
-  });
-
-  test("throws on unknown provider", () => {
-    expect(() => applyCliTokens("unknown=token")).toThrow(/Unknown provider/);
-  });
-
-  test("handles tokens with equals in value", () => {
-    delete process.env.OPENAI_API_KEY;
-    applyCliTokens("openai=sk-=test==123");
-    expect(process.env.OPENAI_API_KEY).toBe("sk-=test==123");
-    delete process.env.OPENAI_API_KEY;
   });
 });

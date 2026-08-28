@@ -30,8 +30,33 @@ import { Callout } from 'fumadocs-ui/components/callout';
       type: '(usage: { inputTokens: number; outputTokens: number; totalTokens: number }) => void',
       required: false,
     },
+    onStatus: {
+      description: 'Human-facing status update with a coarse, strategy-independent phase',
+      type: '(info: { phase: StatusPhase; message?: { key: string; params?: Record<string, string | number> }; percent?: number | null }) => void',
+      required: false,
+    },
   }}
 />
+
+## Example: human status events
+
+`onStatus` carries a coarse, strategy-independent `phase` so you can render localized progress without matching internal step labels or tool names.
+
+```js
+const result = await extract({
+  artifacts,
+  schema,
+  strategy: agent({ provider: "openai", modelId: "gpt-4o-mini" }),
+  events: {
+    onStatus: ({ phase, message, percent }) => {
+      // phase is one of: starting | analyzing | extracting | retrying | completed | failed
+      console.log(phase, message?.key, percent);
+    },
+  },
+});
+```
+
+When `percent` is `null`/absent, the strategy cannot report determinate progress (e.g. the agent strategy) — show an indeterminate spinner instead of a progress bar.
 
 ## Example: progress bar
 

@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Human-facing status events** (`onStatus` / `status` NDJSON event)
+  - Strategies emit coarse, strategy-independent phases (`starting`, `analyzing`, `extracting`, `retrying`, `completed`, `failed`) so consumers can render localized progress without string-matching internal step labels or tool names.
+  - Optional `message` (`{ key, params }`) carries structured detail for i18n interpolation.
+  - Optional `percent` distinguishes determinate progress (batch strategies) from indeterminate (agent strategy — `null`).
+- **Image map in extraction results** — the agent strategy now returns `result.images` (virtual path → base64) so consumers can resolve the image references inside `data` back to raw bytes.
+- **`--instructions`** — append custom output instructions to the strategy prompt (CLI flag + `outputInstructions` in every strategy config).
+- **`--reasoning-effort low|medium|high`** — control reasoning effort for OpenRouter thinking models (`reasoningEffort` in the agent strategy config).
+- **`--images-output <file>`** — write the extracted image map to a side file, keeping stdout clean for the JSON result.
+- **`ArtifactImage.virtualPath`** — each image now carries the virtual-filesystem path the agent references.
+
+### Changed
+
+- The agent system prompt now instructs the model to read `/artifact.json` directly instead of exploring with `ls`/`find`/`tree`/`grep`/`bash`, reducing wasted tool calls on small documents.
+
 ## 2.4.1
 - Inject correct package version for struktur --help
 

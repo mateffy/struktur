@@ -326,6 +326,7 @@ $client->extract(
 | `OutputUpdatedEvent` | The output object is incrementally updated |
 | `TokenUsageEvent` | Token usage is reported |
 | `ProgressEvent` | Chunking or processing progress updates |
+| `StatusEvent` | Human-facing status update (`phase`, `message`, `percent`) |
 | `RetryEvent` | A retry is attempted after a failure |
 | `FinishEvent` | Extraction completes successfully |
 | `FailureEvent` | Extraction fails |
