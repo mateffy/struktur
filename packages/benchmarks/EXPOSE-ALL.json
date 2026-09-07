@@ -1,0 +1,1218 @@
+{
+  "model": "openrouter/deepseek/deepseek-v4-flash-vision-exp",
+  "variant": "expose-agent-rerun3",
+  "generatedAt": "2026-09-05T20:41:15.116Z",
+  "cells": [
+    {
+      "caseId": "expose-sandstrasse",
+      "track": "text",
+      "strategy": "agent",
+      "model": "openrouter/deepseek/deepseek-v4-flash-vision-exp",
+      "cached": false,
+      "valid": true,
+      "score": {
+        "tp": 58,
+        "fp": 41,
+        "fn": 14,
+        "totalGold": 72,
+        "totalPred": 100,
+        "precision": 0.5858585858585859,
+        "recall": 0.8055555555555556,
+        "f1": 0.6783625730994152,
+        "exactMatch": false,
+        "fieldErrors": [
+          {
+            "path": "real_estate_property.features",
+            "gold": null,
+            "pred": "commercial-building",
+            "metric": "normalized"
+          },
+          {
+            "path": "real_estate_property.buildings[0].features",
+            "gold": "storefront",
+            "pred": null,
+            "metric": "normalized"
+          }
+        ]
+      },
+      "usage": {
+        "inputTokens": 49395,
+        "outputTokens": 6166,
+        "totalTokens": 55561
+      },
+      "latencyMs": 77116,
+      "costUsd": 0.01493646,
+      "data": {
+        "real_estate_property": {
+          "name": "Sandstraße 8/12, 23552 Lübeck",
+          "description_text": "Das Objekt Sandstraße 8/12 in 23552 Lübeck bietet Mietflächen im Einzelhandelssegment. Die Gesamtfläche umfasst ca. 392,37 m² Verkaufsfläche sowie ca. 194,83 m² Nebenfläche. Die Verkaufsfläche verteilt sich auf das Erdgeschoss (ca. 243,28 m²) und das 1. Obergeschoss (ca. 149,09 m²). Im 1. Untergeschoss befinden sich ca. 194,83 m² Nebenfläche. Die Front des Objekts beträgt ca. 12,00 m. Der aktuelle Mieter ist Ex Deichmann. Die monatliche Miete beträgt EUR 15.000,00 zzgl. gesetzlicher Mehrwertsteuer sowie Nebenkosten. Der Bezugstermin ist kurzfristig. Nachbarmieter sind unter anderem New Yorker, Ernsting's Family, MyToys und Rossmann.",
+          "location_text": "Das Objekt befindet sich mitten in der beliebten Lübecker Innenstadt und ist an den Nahverkehr hervorragend angebunden. Lübeck weist eine Bevölkerung von 216.219 (Prognose 2021) auf. Die einzelhandelsrelevante Kaufkraftkennziffer beträgt 90,7, die einzelhandelsrelevante Kaufkraft je Einwohner liegt bei 22.174,11 € und der Zentralitätsindex bei 142,3 (Quelle: MB Research).",
+          "address": {
+            "street": "Sandstraße",
+            "number": "8/12",
+            "postal_code": "23552",
+            "city": "Lübeck",
+            "country": "Deutschland"
+          },
+          "features": [
+            "commercial-building",
+            "close-to-public-transport"
+          ],
+          "buildings": [
+            {
+              "label": "Sandstraße 8/12",
+              "features": [],
+              "units": [
+                {
+                  "label": "Erdgeschoss",
+                  "usages": [
+                    "retail"
+                  ],
+                  "area": 243.28,
+                  "floor": 0,
+                  "rent_per_m2": null,
+                  "extra_costs_per_m2": null,
+                  "features": []
+                },
+                {
+                  "label": "1. Obergeschoss",
+                  "usages": [
+                    "retail"
+                  ],
+                  "area": 149.09,
+                  "floor": 1,
+                  "rent_per_m2": null,
+                  "extra_costs_per_m2": null,
+                  "features": []
+                },
+                {
+                  "label": "1. Untergeschoss",
+                  "usages": [
+                    "storage"
+                  ],
+                  "area": 194.83,
+                  "floor": -1,
+                  "rent_per_m2": null,
+                  "extra_costs_per_m2": null,
+                  "features": []
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "caseId": "expose-primePulse",
+      "track": "text",
+      "strategy": "agent",
+      "model": "openrouter/deepseek/deepseek-v4-flash-vision-exp",
+      "cached": false,
+      "valid": true,
+      "score": {
+        "tp": 88,
+        "fp": 144,
+        "fn": 12,
+        "totalGold": 100,
+        "totalPred": 233,
+        "precision": 0.3793103448275862,
+        "recall": 0.88,
+        "f1": 0.5301204819277108,
+        "exactMatch": false,
+        "fieldErrors": [
+          {
+            "path": "real_estate_property.features",
+            "gold": "bikesharing",
+            "pred": null,
+            "metric": "normalized"
+          },
+          {
+            "path": "real_estate_property.buildings[0].features",
+            "gold": "open-rooms",
+            "pred": null,
+            "metric": "normalized"
+          },
+          {
+            "path": "real_estate_property.buildings[0].features",
+            "gold": null,
+            "pred": "bikesharing",
+            "metric": "normalized"
+          }
+        ]
+      },
+      "usage": {
+        "inputTokens": 61800,
+        "outputTokens": 9908,
+        "totalTokens": 71708
+      },
+      "latencyMs": 127459,
+      "costUsd": 0.020135280000000002,
+      "data": {
+        "real_estate_property": {
+          "name": "PRIME PULSE OFFICES.",
+          "description_text": "Das Objekt „PRIME PULSE OFFICES.\" befindet sich an der Augustaanlage 62-64 in 68165 Mannheim. Das Bürogebäude verfügt über eine Gesamtfläche von rund 3.312 m², wovon insgesamt ca. 1.858 m² zur Vermietung stehen. Die größte zusammenhängende Fläche beträgt 649 m², die kleinste verfügbare Fläche 128 m². Der frühestmögliche Bezug ist sechs Monate nach Unterzeichnung des Mietvertrags. Der Mietpreis beträgt ab 17,00 €/m²/Monat, die Nebenkostenvorauszahlung ab 3,50 €/m²/Monat. Es stehen 17 Außenstellplätze zum Preis von je 100,00 €/Stellplatz/Monat zur Verfügung.\n\nDie Mietflächen werden nach der Sanierung erstbezogen und lassen sich flexibel nach Mieterwunsch aufteilen. Die Ausstattung umfasst unter anderem öffenbare Fenster, elektrische Außenjalousien (Raffstores), Küchen mit Loungebereich, Decken- und Wandumluftkühlgeräte zum Kühlen und Trocknen, Glastrennwände, einen Bodenbelag nach Mieterwunsch sowie Arbeitsplatzstehleuchten mit direkt/indirekter Beleuchtung und integriertem Luftreinigungssystem. Die EDV-Verkabelung erfolgt in KAT7. Das Gebäude verfügt über ein repräsentatives Foyer, einen barrierefreien Zugang über einen Rollstuhllift, ein behindertengerechtes WC im Basement, einen Personenfahrstuhl, objekteigene PKW-Stellplätze, Bike-Sharing, einen Glasfaseranschluss und lediglich 7% Allgemeinflächenanteil.\n\nEs lassen sich sämtliche Büronutzungskonzepte darstellen – von der klassischen Zellenstruktur über Kombibüros bis hin zum Open-Space. Aufgrund der effizienten Flächenstruktur lassen sich auf einer Etage bis zu 56 Arbeitsplätze darstellen, was lediglich 11,5 m² pro Arbeitsplatz inklusive Allgemeinflächenanteil entspricht. Die Vermieterin ist ein namhaftes Family-Office und an langfristigen, partnerschaftlichen Geschäftsbeziehungen interessiert.\n\nDas Angebot ist für die Mieterin bzw. den Mieter provisionsfrei. Hinsichtlich der Energiesparverordnung liegt ein Bedarfsausweis vom 18.12.2012 vor (Strombedarf 83,00 kWh, Heizungsbedarf 106,00 kWh, wesentlicher Energieträger Fernwärme). Auf Basis der Flächenanforderungen des Mietinteressenten wird eine individuelle Grundrissplanung erstellt und in einem gemeinsamen Workshop finalisiert.",
+          "location_text": "Die Immobilie liegt in bevorzugter Lage in Mannheim (Makrolage Mannheim). Die Mikrolage bietet eine sehr gute Verkehrsanbindung. Im öffentlichen Personennahverkehr ist der Mannheimer Hauptbahnhof in 2,1 km Entfernung erreichbar (S-Bahn-Linien S1–S3, S6, S9). Die Bushaltestelle „Mannheim Kunstverein\" befindet sich in 350 m Entfernung (Linien 63, 63E, 64), die Haltestelle „Mannheim Planetarium\" für die Tram/Straßenbahn liegt in 290 m Entfernung (Linien 6, 6A, 9, E). Überregional besteht Anschluss an das Autobahnkreuz Mannheim – A6 in 6 km Entfernung. Der Frankfurt Flughafen ist in 77 km Entfernung erreichbar, der Mannheimer Hauptbahnhof in 2,1 km.",
+          "address": {
+            "street": "Augustaanlage",
+            "number": "62-64",
+            "postal_code": "68165",
+            "city": "Mannheim",
+            "country": "Deutschland"
+          },
+          "features": [
+            "commercial-building",
+            "pkw-slots",
+            "close-to-public-transport",
+            "distance-main-station",
+            "distance-highway",
+            "distance-airport"
+          ],
+          "buildings": [
+            {
+              "label": "PRIME PULSE OFFICES.",
+              "features": [
+                "representative-foyer",
+                "elevators",
+                "handicap-fully-accessible",
+                "air-conditioning",
+                "outdoor-sunshade-electric",
+                "wired-with-cat7",
+                "led-lighting",
+                "variable-room-division",
+                "fiberglass-connection",
+                "bikesharing",
+                "completely-renovated",
+                "district-heating",
+                "kitchen"
+              ],
+              "units": [
+                {
+                  "label": "3. Obergeschoss – Büro",
+                  "usages": [
+                    "office"
+                  ],
+                  "area": 649,
+                  "floor": 3,
+                  "rent_per_m2": 16,
+                  "extra_costs_per_m2": 3.5,
+                  "features": []
+                },
+                {
+                  "label": "1. Obergeschoss – Büro",
+                  "usages": [
+                    "office"
+                  ],
+                  "area": 334,
+                  "floor": 1,
+                  "rent_per_m2": 15,
+                  "extra_costs_per_m2": 3.5,
+                  "features": []
+                },
+                {
+                  "label": "Souterrain – Büro/Labor",
+                  "usages": [
+                    "office",
+                    "research"
+                  ],
+                  "area": 639,
+                  "floor": -1,
+                  "rent_per_m2": 12,
+                  "extra_costs_per_m2": 3.5,
+                  "features": []
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "caseId": "expose-flottenstrasse",
+      "track": "text",
+      "strategy": "agent",
+      "model": "openrouter/deepseek/deepseek-v4-flash-vision-exp",
+      "cached": false,
+      "valid": true,
+      "score": {
+        "tp": 151,
+        "fp": 180,
+        "fn": 11,
+        "totalGold": 168,
+        "totalPred": 335,
+        "precision": 0.4561933534743202,
+        "recall": 0.9320987654320988,
+        "f1": 0.6125760649087221,
+        "exactMatch": false,
+        "fieldErrors": [
+          {
+            "path": "real_estate_property.buildings[0].features",
+            "gold": null,
+            "pred": "year-of-construction",
+            "metric": "normalized"
+          },
+          {
+            "path": "real_estate_property.buildings[0].units[0|5017].rent_per_m2",
+            "gold": null,
+            "pred": 3.9,
+            "metric": "tolerance"
+          },
+          {
+            "path": "real_estate_property.buildings[0].units[0|1908].rent_per_m2",
+            "gold": null,
+            "pred": 3.86,
+            "metric": "tolerance"
+          },
+          {
+            "path": "real_estate_property.buildings[1].features",
+            "gold": null,
+            "pred": "year-of-construction",
+            "metric": "normalized"
+          },
+          {
+            "path": "real_estate_property.buildings[1].units[0|5447].rent_per_m2",
+            "gold": null,
+            "pred": 3.9,
+            "metric": "tolerance"
+          },
+          {
+            "path": "real_estate_property.buildings[1].units[0|874].rent_per_m2",
+            "gold": null,
+            "pred": 3.86,
+            "metric": "tolerance"
+          },
+          {
+            "path": "real_estate_property.buildings[2].features",
+            "gold": null,
+            "pred": "year-of-construction",
+            "metric": "normalized"
+          },
+          {
+            "path": "real_estate_property.buildings[2].units[0|1279].rent_per_m2",
+            "gold": null,
+            "pred": 3.9,
+            "metric": "tolerance"
+          },
+          {
+            "path": "real_estate_property.buildings[2].units[0|329].rent_per_m2",
+            "gold": null,
+            "pred": 3.86,
+            "metric": "tolerance"
+          },
+          {
+            "path": "real_estate_property.buildings[3].units[0|2430].usages",
+            "gold": null,
+            "pred": "outdoor-space",
+            "metric": "normalized"
+          }
+        ]
+      },
+      "usage": {
+        "inputTokens": 74171,
+        "outputTokens": 13411,
+        "totalTokens": 87582
+      },
+      "latencyMs": 178511,
+      "costUsd": 0.02516888,
+      "data": {
+        "real_estate_property": {
+          "name": "Flottenstraße 54-55, Berlin-Reinickendorf",
+          "description_text": "Die Flottenstraße 54-55 liegt in einem Gewerbe- und Industriegebiet in Berlin-Reinickendorf (Norden Berlins). Der Produktions- und Lagerstandort verfügt über rd. 15.000 m² Mietfläche und ist zu 100 % vermietet. Mieter sind die Firmen Freudenberg NOK Mechatronics sowie iSi Automotive, beides Unternehmen der Automobil-Branche. Das Objekt ist nur wenige Minuten von der Stadtautobahn (A 111) entfernt; auch der Flughafen Tegel liegt in nur ca. 5 km Entfernung. Das Grundstück umfasst ca. 39.149 m² bei einem Bodenrichtwert von 70 EUR/m². Die vermietbaren Flächen betragen 14.845 m² (nur Gebäude) und setzen sich aus 3.111 m² Büroflächen sowie 11.743 m² Lager-/Produktionsflächen zusammen. Die jährlichen Mieteinnahmen belaufen sich auf 725.494 Euro. Es stehen ca. 100 Stellplätze zur Verfügung; der Vermietungsstand beträgt 100 %. Die Hallen wurden in den 60er und 80er Jahren erbaut. Umfangreiche Umbauarbeiten erfolgten im Zuge von Nutzungsänderungen Anfang der 90er Jahre sowie 2001/2002. In die Gebäudesubstanz wurde durch umfangreiche Instandsetzungsarbeiten wie z. B. Dachsanierungen und Erneuerung der Klimatechnik investiert. Die Erschließung des Objektes erfolgt über die Flottenstraße im Süden des Grundstücks, wo sich auch die ca. 100 Parkplätze befinden. Die Hallen werden zum einen über den jeweiligen Büroteil erschlossen, zum anderen gibt es verschiedene Tore, um die Hallenflächen separat zu erschließen. Zwischen den Hallen 1 und 2 gibt es eine überdachte Freifläche, die als Außenlager genutzt wird und von beiden Mietern ca. hälftig angemietet wird. Die Deckenhöhe beträgt 2,60 – 3,50 m im Büro und 3,80 – 8,40 m in Produktion/Lager. Die Ausbauraster liegen bei 15x15 m (Halle 1), 8x7,5 m (Halle 1), 6,75x25 m (Halle 2) und 8x5 m (Halle 3). Die Flächenaufteilung: Halle 1 mit 6.925 m² (Produktion 5.017 m², Büro 1.908 m²), Halle 2 mit 6.321 m² (Produktion 5.447 m², Büro 874 m²), Halle 3 mit 1.608 m² (Produktion 1.279 m², Büro 329 m²) sowie eine überdachte Freifläche von 2.430 m². Der Mieter Freudenberg hat die Hallen 1 und 3 angemietet, der Mieter ISI die Halle 2. Die Hallen- und Büroflächen in der Flottenstraße verfügen über eine gute Drittverwendungsfähigkeit. Wesentlicher Standortvorteil ist die innenstadtnahe Lage in einem Gewerbe- und Industriegebiet (24/7). Die Durchschnittsmiete für Produktionsflächen in der Flottenstraße liegt mit 3,90 €/m² deutlich unter den Angeboten der Konkurrenz mit 4,18 €/m² im Durchschnitt. Gleiches gilt für Büroflächen in der Flottenstraße mit 3,86 €/m², während Konkurrenten ihre Büroflächen für durchschnittlich 4,79 €/m² anbieten. Vor dem Hintergrund des stabilen Mietniveaus in diesem Marktsegment in den letzten 2 Jahren kann der Wettbewerbsvorteil der Flottenstraße auch in Zukunft aufrecht erhalten und ausgebaut werden.",
+          "location_text": "Das Objekt liegt in einem Gewerbe- und Industriegebiet in Berlin-Reinickendorf (Norden Berlins). Die Stadtautobahn (A111, A105) ist in nur wenigen Minuten zu erreichen; der Flughafen Berlin-Tegel liegt ca. 5 km entfernt. Der Hauptbahnhof ist über die S-Bahn-Linien S1, S85 und S25 bzw. die U-Bahn-Linie U8 in etwa 25 Minuten erreichbar (über die S-Bahn-Linien S1 und S2 in etwa 20 Minuten). Die Buslinie 122 verkehrt in 200 m Entfernung zum Objekt. In der Nähe befinden sich die S-Bahn-Stationen Wilhelmsruh und Alt-Reinickendorf. Darüber hinaus ergänzt die ebenfalls in der Nähe verlaufende U-Bahn-Linie U8 die Anbindung an den öffentlichen Nahverkehr. Das Objekt liegt in einem gut ausgelasteten und gewerblich-industriell genutzten Gebiet. Es besteht ein Branchenmix aus Produktion, Großhandel, Logistik, Dienstleistung, aber auch Einzelhandelsnutzung und kleinere Handwerksbetriebe. Berlin-Reinickendorf ist aufgrund seiner guten Verkehrsanbindungen (A111) und der wirtschaftsfreundlichen Bezirkspolitik ein bevorzugter Standort für die Ansiedlung von Gewerbeunternehmen. Die Leerstandsrate für Büros, Lager und Produktion in den Reinickendorfer Gewerbe- und Industriegebieten ist niedrig. Der Norden Berlins zeichnet sich durch niedrige Mietpreise für Büroflächen aus.",
+          "address": {
+            "street": "Flottenstraße",
+            "number": "54-55",
+            "postal_code": null,
+            "city": "Berlin",
+            "country": "Deutschland"
+          },
+          "features": [
+            "commercial-building",
+            "pkw-slots",
+            "plot-area",
+            "rentable-area",
+            "distance-airport",
+            "distance-highway",
+            "distance-main-station",
+            "close-to-public-transport"
+          ],
+          "buildings": [
+            {
+              "label": "Halle 1",
+              "features": [
+                "year-of-construction",
+                "air-conditioning",
+                "rolling-gates"
+              ],
+              "units": [
+                {
+                  "label": "Produktion und Lagerhalle 1",
+                  "usages": [
+                    "production",
+                    "storage"
+                  ],
+                  "area": 5017,
+                  "floor": 0,
+                  "rent_per_m2": 3.9,
+                  "extra_costs_per_m2": null,
+                  "features": [
+                    "high-ceilings"
+                  ]
+                },
+                {
+                  "label": "Bürogebäude Halle 1",
+                  "usages": [
+                    "office"
+                  ],
+                  "area": 1908,
+                  "floor": 0,
+                  "rent_per_m2": 3.86,
+                  "extra_costs_per_m2": null,
+                  "features": []
+                }
+              ]
+            },
+            {
+              "label": "Halle 2",
+              "features": [
+                "year-of-construction",
+                "air-conditioning",
+                "rolling-gates"
+              ],
+              "units": [
+                {
+                  "label": "Produktion und Lagerhalle 2",
+                  "usages": [
+                    "production",
+                    "storage"
+                  ],
+                  "area": 5447,
+                  "floor": 0,
+                  "rent_per_m2": 3.9,
+                  "extra_costs_per_m2": null,
+                  "features": [
+                    "high-ceilings"
+                  ]
+                },
+                {
+                  "label": "Bürogebäude Halle 2",
+                  "usages": [
+                    "office"
+                  ],
+                  "area": 874,
+                  "floor": 0,
+                  "rent_per_m2": 3.86,
+                  "extra_costs_per_m2": null,
+                  "features": []
+                }
+              ]
+            },
+            {
+              "label": "Halle 3",
+              "features": [
+                "year-of-construction",
+                "air-conditioning",
+                "rolling-gates"
+              ],
+              "units": [
+                {
+                  "label": "Produktion und Lagerhalle 3",
+                  "usages": [
+                    "production",
+                    "storage"
+                  ],
+                  "area": 1279,
+                  "floor": 0,
+                  "rent_per_m2": 3.9,
+                  "extra_costs_per_m2": null,
+                  "features": [
+                    "high-ceilings"
+                  ]
+                },
+                {
+                  "label": "Bürogebäude Halle 3",
+                  "usages": [
+                    "office"
+                  ],
+                  "area": 329,
+                  "floor": 0,
+                  "rent_per_m2": 3.86,
+                  "extra_costs_per_m2": null,
+                  "features": []
+                }
+              ]
+            },
+            {
+              "label": "Überdachte Freifläche (Außenlager)",
+              "features": [],
+              "units": [
+                {
+                  "label": "Überdachte Freifläche",
+                  "usages": [
+                    "storage",
+                    "outdoor-space"
+                  ],
+                  "area": 2430,
+                  "floor": 0,
+                  "rent_per_m2": null,
+                  "extra_costs_per_m2": null,
+                  "features": []
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "caseId": "expose-dock100",
+      "track": "text",
+      "strategy": "agent",
+      "model": "openrouter/deepseek/deepseek-v4-flash-vision-exp",
+      "cached": false,
+      "valid": true,
+      "score": {
+        "tp": 153,
+        "fp": 94,
+        "fn": 23,
+        "totalGold": 176,
+        "totalPred": 258,
+        "precision": 0.6194331983805668,
+        "recall": 0.8693181818181818,
+        "f1": 0.7234042553191489,
+        "exactMatch": false,
+        "fieldErrors": [
+          {
+            "path": "real_estate_property.features",
+            "gold": "mixed-use-building",
+            "pred": null,
+            "metric": "normalized"
+          },
+          {
+            "path": "real_estate_property.features",
+            "gold": "year-of-construction",
+            "pred": null,
+            "metric": "normalized"
+          },
+          {
+            "path": "real_estate_property.features",
+            "gold": null,
+            "pred": "access-control",
+            "metric": "normalized"
+          },
+          {
+            "path": "real_estate_property.buildings[0].features",
+            "gold": "ground-level-access",
+            "pred": null,
+            "metric": "normalized"
+          },
+          {
+            "path": "real_estate_property.buildings[0].features",
+            "gold": "ramp-access",
+            "pred": null,
+            "metric": "normalized"
+          },
+          {
+            "path": "real_estate_property.buildings[0].features",
+            "gold": null,
+            "pred": "year-of-construction",
+            "metric": "normalized"
+          },
+          {
+            "path": "real_estate_property.buildings[0].features",
+            "gold": null,
+            "pred": "commercial-building",
+            "metric": "normalized"
+          },
+          {
+            "path": "real_estate_property.buildings[0].features",
+            "gold": null,
+            "pred": "cable-ducts",
+            "metric": "normalized"
+          },
+          {
+            "path": "real_estate_property.buildings[0].features",
+            "gold": null,
+            "pred": "lkw-slots",
+            "metric": "normalized"
+          },
+          {
+            "path": "real_estate_property.buildings[1].features",
+            "gold": "central-fire-alarm-system-fire-department",
+            "pred": null,
+            "metric": "normalized"
+          },
+          {
+            "path": "real_estate_property.buildings[1].features",
+            "gold": null,
+            "pred": "variable-room-division",
+            "metric": "normalized"
+          },
+          {
+            "path": "real_estate_property.buildings[1].features",
+            "gold": null,
+            "pred": "year-of-construction",
+            "metric": "normalized"
+          },
+          {
+            "path": "real_estate_property.buildings[1].features",
+            "gold": null,
+            "pred": "commercial-building",
+            "metric": "normalized"
+          },
+          {
+            "path": "real_estate_property.buildings[2].features",
+            "gold": "central-fire-alarm-system-fire-department",
+            "pred": null,
+            "metric": "normalized"
+          },
+          {
+            "path": "real_estate_property.buildings[2].features",
+            "gold": "cooled-halls",
+            "pred": null,
+            "metric": "normalized"
+          },
+          {
+            "path": "real_estate_property.buildings[2].features",
+            "gold": "storage-rack",
+            "pred": null,
+            "metric": "normalized"
+          },
+          {
+            "path": "real_estate_property.buildings[2].features",
+            "gold": null,
+            "pred": "commercial-building",
+            "metric": "normalized"
+          },
+          {
+            "path": "real_estate_property.buildings[2].features",
+            "gold": null,
+            "pred": "cooling",
+            "metric": "normalized"
+          },
+          {
+            "path": "real_estate_property.buildings[2].features",
+            "gold": null,
+            "pred": "variable-room-division",
+            "metric": "normalized"
+          }
+        ]
+      },
+      "usage": {
+        "inputTokens": 32919,
+        "outputTokens": 6944,
+        "totalTokens": 39863
+      },
+      "latencyMs": 94010,
+      "costUsd": 0.01182522,
+      "data": {
+        "real_estate_property": {
+          "name": "Dock 100 – Gewerbe- und Logistikpark",
+          "description_text": "Der Gewerbe- und Logistikpark DOCK 100 liegt direkt am Borsighafen inmitten des rund 15 Hektar großen historischen Borsig-Areals in Berlin-Tegel. Das Objekt bietet eine Gesamtmietfläche von ca. 92.500 m² auf einer Grundstücksfläche von ca. 81.000 m² und wird für Büro-, Lager-, Produktions- und Logistikzwecke genutzt. Die Mieteinheiten sind nach Mieterwunsch gestaltbar, die Geschosse reichen von Ebene 0 bis Ebene 9 (UG bis 8. OG). Aktuell sind 35 Mieter im Objekt ansässig. Der Park umfasst die drei Gebäude Factory Dock, Office Dock und Veithalle. Lager-, Produktions- und Büroflächen sind an einem Standort gebündelt und kombinierbar. Das Factory Dock (Baujahr 1990) bietet Gewerbeflächen in Stahlbetonbauweise mit Klinkerfassade, vollflächiger Sprinkleranlage und Brandmeldeanlage mit Aufschaltung zur Feuerwehr, Zentralheizung, flexibler Kabelpritschen-Stromversorgung und abriebfester Bodenbeschichtung. Es verfügt über drei Lastenaufzüge (3.000 kg, 7.000 kg und 9.150 kg Tragkraft) sowie neun Personenaufzüge, drei LKW-Rampen und ca. 750 m² Verladefläche. Das Office Dock (Baujahr 1990) bietet Büroflächen im Untergeschoss, Erdgeschoss sowie in den oberen Geschossen mit vollflächiger Sprinkleranlage, Zentralheizung, Bodentanks und einer Kantine direkt im Gebäude. Die historische Veithalle bietet Kaltlagerflächen mit unverkennbarem industriellem Charakter auf dem einstigen Borsig-Areal, mit ebenerdigem Boden, Grundbeleuchtung, vollflächiger Sprinkleranlage, vier Toren à 4,50 m × 4,50 m und einer lichten Raumhöhe von 10,70 m an der Traufe bzw. 11,90 m am Giebel. Durch Synergieeffekte mit über 35 Bestandsmietern bietet der Standort vielfältige Nutzungsmöglichkeiten.",
+          "location_text": "Das Objekt liegt direkt am Borsighafen inmitten des rund 15 Hektar großen historischen Borsig-Areals in Berlin-Tegel. In der Umgebung befinden sich das Technologiezentrum am Borsigturm, das Einkaufscenter „Hallen am Borsigturm“ sowie das Vivantes Humboldt-Klinikum. U- und S-Bahnstationen sowie Bushaltestellen liegen in unmittelbarer Nähe. Mit dem Auto erreicht man Gesundbrunnen in ca. 20 Minuten (10 km), den Berliner Hauptbahnhof in ca. 20 Minuten (11 km), den Flughafen BER in ca. 35 Minuten (40 km) und die A111 in ca. 4 Minuten (1,6 km). Mit Bus und Bahn erreicht man Gesundbrunnen in ca. 30 Minuten, den Berliner Hauptbahnhof in ca. 35 Minuten, das City Center in ca. 40 Minuten und den Flughafen BER in ca. 70 Minuten.",
+          "address": {
+            "street": "Am Borsigturm",
+            "number": "100",
+            "postal_code": "13507",
+            "city": "Berlin",
+            "country": "Deutschland"
+          },
+          "features": [
+            "near-water",
+            "commercial-building",
+            "guarded",
+            "access-control",
+            "plot-area",
+            "rentable-area",
+            "distance-highway",
+            "distance-airport",
+            "distance-main-station",
+            "close-to-public-transport"
+          ],
+          "buildings": [
+            {
+              "label": "Factory Dock",
+              "features": [
+                "year-of-construction",
+                "commercial-building",
+                "central-fire-alarm-system-fire-department",
+                "sprinkler-system",
+                "central-heating",
+                "elevators",
+                "heavy-duty-elevator",
+                "high-ceilings",
+                "max-floor-load",
+                "cable-ducts",
+                "variable-room-division",
+                "lkw-slots"
+              ],
+              "units": [
+                {
+                  "label": "Factory Dock – Ebene 5, Bereich A",
+                  "usages": [
+                    "storage",
+                    "production",
+                    "office"
+                  ],
+                  "area": 2408,
+                  "floor": 5,
+                  "rent_per_m2": null,
+                  "extra_costs_per_m2": null,
+                  "features": []
+                },
+                {
+                  "label": "Factory Dock – Ebene 5, Bereich B",
+                  "usages": [
+                    "storage",
+                    "production",
+                    "office"
+                  ],
+                  "area": 2500,
+                  "floor": 5,
+                  "rent_per_m2": null,
+                  "extra_costs_per_m2": null,
+                  "features": []
+                }
+              ]
+            },
+            {
+              "label": "Office Dock",
+              "features": [
+                "year-of-construction",
+                "commercial-building",
+                "sprinkler-system",
+                "central-heating",
+                "cantina",
+                "elevators",
+                "variable-room-division"
+              ],
+              "units": [
+                {
+                  "label": "Office Dock – Ebene 0 (Souterrain)",
+                  "usages": [
+                    "office",
+                    "education",
+                    "storage"
+                  ],
+                  "area": 377,
+                  "floor": 0,
+                  "rent_per_m2": null,
+                  "extra_costs_per_m2": null,
+                  "features": []
+                },
+                {
+                  "label": "Office Dock – Ebene 1 (Erdgeschoss)",
+                  "usages": [
+                    "office"
+                  ],
+                  "area": 610,
+                  "floor": 1,
+                  "rent_per_m2": null,
+                  "extra_costs_per_m2": null,
+                  "features": [
+                    "variable-room-division"
+                  ]
+                },
+                {
+                  "label": "Office Dock – Ebene 6 (5. Obergeschoss)",
+                  "usages": [
+                    "office"
+                  ],
+                  "area": 469,
+                  "floor": 6,
+                  "rent_per_m2": null,
+                  "extra_costs_per_m2": null,
+                  "features": []
+                },
+                {
+                  "label": "Office Dock – Ebene 8 (7. Obergeschoss)",
+                  "usages": [
+                    "office"
+                  ],
+                  "area": 266,
+                  "floor": 8,
+                  "rent_per_m2": null,
+                  "extra_costs_per_m2": null,
+                  "features": []
+                }
+              ]
+            },
+            {
+              "label": "Veithalle",
+              "features": [
+                "commercial-building",
+                "sprinkler-system",
+                "high-ceilings",
+                "rolling-gates",
+                "ground-level-access",
+                "cooling",
+                "variable-room-division"
+              ],
+              "units": [
+                {
+                  "label": "Veithalle – Lagerfläche",
+                  "usages": [
+                    "storage"
+                  ],
+                  "area": 4360,
+                  "floor": 0,
+                  "rent_per_m2": null,
+                  "extra_costs_per_m2": null,
+                  "features": []
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "caseId": "expose-holzhauser",
+      "track": "text",
+      "strategy": "agent",
+      "model": "openrouter/deepseek/deepseek-v4-flash-vision-exp",
+      "cached": false,
+      "valid": true,
+      "score": {
+        "tp": 133,
+        "fp": 127,
+        "fn": 35,
+        "totalGold": 168,
+        "totalPred": 265,
+        "precision": 0.5115384615384615,
+        "recall": 0.7916666666666666,
+        "f1": 0.6214953271028038,
+        "exactMatch": false,
+        "fieldErrors": [
+          {
+            "path": "real_estate_property.features",
+            "gold": "individually-expandable",
+            "pred": null,
+            "metric": "normalized"
+          },
+          {
+            "path": "real_estate_property.features",
+            "gold": null,
+            "pred": "variable-room-division",
+            "metric": "normalized"
+          },
+          {
+            "path": "real_estate_property.buildings[0].features",
+            "gold": "gas-heating",
+            "pred": null,
+            "metric": "normalized"
+          },
+          {
+            "path": "real_estate_property.buildings[0].features",
+            "gold": null,
+            "pred": "pkw-slots",
+            "metric": "normalized"
+          },
+          {
+            "path": "real_estate_property.buildings[1].features",
+            "gold": "gas-heating",
+            "pred": null,
+            "metric": "normalized"
+          },
+          {
+            "path": "real_estate_property.buildings[1].features",
+            "gold": "modernized",
+            "pred": null,
+            "metric": "normalized"
+          },
+          {
+            "path": "real_estate_property.buildings[1].features",
+            "gold": null,
+            "pred": "pkw-slots",
+            "metric": "normalized"
+          },
+          {
+            "path": "real_estate_property.buildings[1].features",
+            "gold": null,
+            "pred": "variable-room-division",
+            "metric": "normalized"
+          },
+          {
+            "path": "real_estate_property.buildings[2].features",
+            "gold": null,
+            "pred": "pkw-slots",
+            "metric": "normalized"
+          }
+        ]
+      },
+      "usage": {
+        "inputTokens": 167730,
+        "outputTokens": 16415,
+        "totalTokens": 184145
+      },
+      "latencyMs": 210654,
+      "costUsd": 0.0477345,
+      "data": {
+        "real_estate_property": {
+          "name": "Holzhauser Quartier – Büro- und Lagerflächen",
+          "description_text": "Das Holzhauser Quartier ist eine historisch gewachsene Gewerbeimmobilie an der Holzhauser Straße 139, 153 und 155 in 13509 Berlin (Gewerbegebiet Borsigwalde). Die Liegenschaft wurde ursprünglich für einen Eigennutzer der Textilindustrie errichtet und hat sich über die letzten Jahre zu einem vielschichtig genutzten Gewerbehof entwickelt. Die Nutzung umfasst Lager/Logistik, Produktion, Büro, Werkstatt, Schulung und Verkauf. Die Gesamtmietfläche beträgt ca. 26.000 m²; die Mieteinheiten sind flexibel nutzbare Flächen, die nach Mieterwunsch ausbau- und teilbar sind. Die Gebäude erstrecken sich über die Geschosse EG bis 3. OG und stammen aus den Baujahren 1922 bis 2016. Stellplätze stehen direkt auf dem Gelände sowie in der näheren Umgebung zur Verfügung. Beheizt wird das Quartier über Gas-Heizung (Geb. 139 sowie Geb. 153/155). Besondere Merkmale sind die attraktive Gewerbelage an der Hauptstraße unweit der Autobahnauffahrt zur A111, das Gebäude 139 mit repräsentativem, verglastem Eingangsbereich sowie die Gebäude 153 und 155, die als Gewerbeareal mit Branchenmix genutzt werden. Zu den vermietbaren Flächen zählen Büro- und Lagerflächen in den Gebäuden 139, 153 und 153 TE, darunter modern bzw. neu ausgebaute Büroflächen sowie Lager-/Produktionsflächen mit Rolltoren und ebenerdiger Andienung. Angaben zum Energieausweis: Für das Objekt Holzhauser Straße 139 liegt ein Energieverbrauchsausweis vor (Heizenergieverbrauchskennwert 110,6 kWh/(m²a), Stromverbrauchskennwert 35,2 kWh/(m²a), Energieträger Erdgas E, Aluminiumfenster mit Verbundglasscheiben). Für das Objekt Holzhauser Straße 153/155 liegt ein Energieverbrauchsausweis vor (Heizenergieverbrauchskennwert 102,4 kWh/(m²a), Stromverbrauchskennwert 33,1 kWh/(m²a), Energieträger Erdgas E).",
+          "location_text": "Das Holzhauser Quartier liegt im Gewerbegebiet Borsigwalde in Berlin, direkt an der Hauptstraße, mit sehr guter Sichtbarkeit und guter Verkehrsanbindung. Die Autobahn A111 ist in ca. 4 Minuten (1,2 km) erreichbar. Die U-Bahn-Linien U6 und U8 sowie die S-Bahnstation Tegel befinden sich in der Nähe; die U8 ist nur ca. 10 Gehminuten entfernt. Mit dem Auto erreicht man den Bahnhof Gesundbrunnen in ca. 15 Minuten (7,8 km), den Berliner Hauptbahnhof in ca. 25 Minuten (9,7 km) und den Flughafen BER in ca. 40 Minuten (35 km). Mit Bus und Bahn ist Gesundbrunnen in ca. 25 Minuten, der Berliner Hauptbahnhof in ca. 37 Minuten, das City Center in ca. 35 Minuten und der Flughafen BER in ca. 60 Minuten erreichbar. Zu Fuß sind der Bus X33/322 in 2 Minuten (0,2 km), die U8 in 10 Minuten (0,9 km), die S8 in 12 Minuten (1 km) und die U6 in 20 Minuten (1,6 km) erreichbar. In der näheren Umgebung befinden sich mehrere Supermärkte und Einkaufsmöglichkeiten für den täglichen Bedarf sowie Einzelhandel, Parkplätze, Ausbildungseinrichtungen, ein Krankenhaus, Restaurants und Lager-/Archivflächen. Direkt gegenüber liegt der Gewerbepark Holzhauser Markt mit mehr als 60 Unternehmen aus unterschiedlichsten Branchen. Namhafte Mieter in der Umgebung sind unter anderem Haushahn, Deutsche Post, Stahlgruber, Sto, Wego und TransPak.",
+          "address": {
+            "street": "Holzhauser Straße",
+            "number": "139, 153, 155",
+            "postal_code": "13509",
+            "city": "Berlin",
+            "country": "Deutschland"
+          },
+          "features": [
+            "commercial-building",
+            "mixed-use-building",
+            "gas-heating",
+            "year-of-construction",
+            "rentable-area",
+            "close-to-public-transport",
+            "distance-highway",
+            "distance-airport",
+            "distance-main-station",
+            "pkw-slots",
+            "variable-room-division"
+          ],
+          "buildings": [
+            {
+              "label": "Gebäude 139",
+              "features": [
+                "representative-foyer"
+              ],
+              "units": [
+                {
+                  "label": "Geb. 139 – EG, Lager-/Produktionsfläche (ca. 355 m² zzgl. Gemeinschaftsfläche)",
+                  "usages": [
+                    "production",
+                    "storage"
+                  ],
+                  "area": 355,
+                  "floor": 0,
+                  "rent_per_m2": 9,
+                  "extra_costs_per_m2": null,
+                  "features": [
+                    "high-ceilings",
+                    "rolling-gates",
+                    "ground-level-access",
+                    "pkw-slots"
+                  ]
+                },
+                {
+                  "label": "Geb. 139 – EG, Lager-/Produktionsfläche mit Büro- und Sanitäranteil (zzgl. ca. 79 m² Gemeinschaftsfläche)",
+                  "usages": [
+                    "production",
+                    "storage",
+                    "office"
+                  ],
+                  "area": 604,
+                  "floor": 0,
+                  "rent_per_m2": 9,
+                  "extra_costs_per_m2": null,
+                  "features": [
+                    "high-ceilings",
+                    "pkw-slots"
+                  ]
+                },
+                {
+                  "label": "Geb. 139 – 1. OG, Bürofläche",
+                  "usages": [
+                    "office"
+                  ],
+                  "area": 204,
+                  "floor": 1,
+                  "rent_per_m2": 9.5,
+                  "extra_costs_per_m2": null,
+                  "features": [
+                    "high-ceilings",
+                    "pkw-slots",
+                    "variable-room-division"
+                  ]
+                }
+              ]
+            },
+            {
+              "label": "Gebäude 153",
+              "features": [],
+              "units": [
+                {
+                  "label": "Geb. 153 – 1. OG, Bürofläche",
+                  "usages": [
+                    "office"
+                  ],
+                  "area": 471,
+                  "floor": 1,
+                  "rent_per_m2": 13.5,
+                  "extra_costs_per_m2": null,
+                  "features": [
+                    "high-ceilings",
+                    "pkw-slots",
+                    "variable-room-division"
+                  ]
+                }
+              ]
+            },
+            {
+              "label": "Gebäude 153 TE (Technikgebäude)",
+              "features": [],
+              "units": [
+                {
+                  "label": "Geb. 153 TE – EG & 1. OG, Lagerfläche mit Büroanteil",
+                  "usages": [
+                    "storage",
+                    "office"
+                  ],
+                  "area": 592,
+                  "floor": 0,
+                  "rent_per_m2": 8.5,
+                  "extra_costs_per_m2": null,
+                  "features": [
+                    "high-ceilings",
+                    "rolling-gates",
+                    "ground-level-access",
+                    "pkw-slots"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "caseId": "expose-elsenstrasse",
+      "track": "text",
+      "strategy": "agent",
+      "model": "openrouter/deepseek/deepseek-v4-flash-vision-exp",
+      "cached": false,
+      "valid": true,
+      "score": {
+        "tp": 114,
+        "fp": 108,
+        "fn": 16,
+        "totalGold": 130,
+        "totalPred": 225,
+        "precision": 0.5135135135135135,
+        "recall": 0.8769230769230769,
+        "f1": 0.6477272727272726,
+        "exactMatch": false,
+        "fieldErrors": [
+          {
+            "path": "real_estate_property.features",
+            "gold": "close-to-public-transport",
+            "pred": null,
+            "metric": "normalized"
+          },
+          {
+            "path": "real_estate_property.features",
+            "gold": "bike-slots",
+            "pred": null,
+            "metric": "normalized"
+          },
+          {
+            "path": "real_estate_property.features",
+            "gold": "modernized",
+            "pred": null,
+            "metric": "normalized"
+          },
+          {
+            "path": "real_estate_property.features",
+            "gold": null,
+            "pred": "rentable-area",
+            "metric": "normalized"
+          },
+          {
+            "path": "real_estate_property.features",
+            "gold": null,
+            "pred": "pkw-slots",
+            "metric": "normalized"
+          },
+          {
+            "path": "real_estate_property.buildings[0].features",
+            "gold": "cable-ducts",
+            "pred": null,
+            "metric": "normalized"
+          },
+          {
+            "path": "real_estate_property.buildings[0].features",
+            "gold": "floor-heating",
+            "pred": null,
+            "metric": "normalized"
+          },
+          {
+            "path": "real_estate_property.buildings[0].features",
+            "gold": null,
+            "pred": "variable-room-division",
+            "metric": "normalized"
+          }
+        ]
+      },
+      "usage": {
+        "inputTokens": 58192,
+        "outputTokens": 8645,
+        "totalTokens": 66837
+      },
+      "latencyMs": 125453,
+      "costUsd": 0.01850794,
+      "data": {
+        "real_estate_property": {
+          "name": "Elsenstraße 87 – Büro- und Lagergebäude",
+          "description_text": "Das historische Backsteingebäude in der Elsenstraße 87 in 12435 Berlin wurde im Jahre 1895 als „Piano-Fabrik“ errichtet. Fritz Neumeyer, Besitzer der Fabrik, ließ das Gebäude für die Herstellung verschiedener Piano- und Flügelmodelle errichten. Rund sechs Jahre nach seiner Eröffnung unterlag das Objekt häufigen Nutzungsänderungen, wodurch es unter anderem als Produktionsstätte für Haushaltsgeräte und Fernmeldeanlagen diente. Nach über 120 Jahren erfindet sich die Elsenstraße neu – die historischen Einflüsse werden mit innovativen Eigenschaften kombiniert, um den traditionellen Charme der Liegenschaft zu wahren. BEOS hat hier einen einzigartigen Bürokomplex entwickelt, der die Vergangenheit mit der Zukunft vereint. Das Gewerbeobjekt wurde 2021/2022 modernisiert und bietet eine Gesamtmietfläche von ca. 4.905 m², davon ca. 4.677 m² Bürofläche (teilbar ab 227 m²) und ca. 228 m² Lagerfläche (teilbar ab 8 m²). Die Geschosse umfassen Keller, Erdgeschoss und vier Obergeschosse. Das Gebäude verfügt über eine repräsentative Lobby mit Empfangslounge, vier Treppenhäuser und zwei Personen-/Lastenaufzüge. Die Heizung erfolgt über Fernwärmeversorgung, in allen Büros ist eine Kühlung vorhanden, zusätzlich gibt es eine Lüftung in den Konferenzzonen im Erdgeschoss. In allen Etagen befinden sich jeweils Damen- und Herren-WCs, ein Behinderten-WC im Erdgeschoss sowie Duschen. Der offene Hofbereich bietet eine Außenfläche, zudem gibt es einen Community Space und einen Meetingbereich mit eigener Teeküche. Bauliche Merkmale sind Hohlraumboden, barrierearme Ausführung, überdachte Fahrradstellplätze, außenliegender Sonnenschutz auf der Südseite und eine lichte Raumhöhe von 3,55 bis 3,75 m mit historischen Kappendecken. Der Ausbau erfolgt nach Mieterwunsch.",
+          "location_text": "Die Liegenschaft befindet sich direkt am Siemenscampus, in der Nähe des Görlitzer und Treptower Parks sowie in der Nähe der A 100. Die PKW-Stellplätze befinden sich im öffentlichen Straßenland, Fahrradstellplätze sind vor und im Gebäude vorhanden. Das Objekt ist ab sofort verfügbar.",
+          "address": {
+            "street": "Elsenstraße",
+            "number": "87",
+            "postal_code": "12435",
+            "city": "Berlin",
+            "country": "Deutschland"
+          },
+          "features": [
+            "commercial-building",
+            "year-of-construction",
+            "year-of-renovation",
+            "rentable-area",
+            "distance-highway",
+            "pkw-slots"
+          ],
+          "buildings": [
+            {
+              "label": "Elsenstraße 87 – Büro- und Lagergebäude",
+              "features": [
+                "elevators",
+                "representative-foyer",
+                "high-ceilings",
+                "air-conditioning",
+                "district-heating",
+                "handicap-accessible",
+                "outdoor-sunshade",
+                "ventilation",
+                "meeting-rooms",
+                "shower",
+                "bike-slots",
+                "variable-room-division"
+              ],
+              "units": [
+                {
+                  "label": "Büroeinheit 1 (Erdgeschoss)",
+                  "usages": [
+                    "office"
+                  ],
+                  "area": 282,
+                  "floor": 0,
+                  "rent_per_m2": 24,
+                  "extra_costs_per_m2": 3.6,
+                  "features": [
+                    "open-rooms"
+                  ]
+                },
+                {
+                  "label": "Büroeinheit 2 (Erdgeschoss)",
+                  "usages": [
+                    "office"
+                  ],
+                  "area": 227,
+                  "floor": 0,
+                  "rent_per_m2": 24,
+                  "extra_costs_per_m2": 3.6,
+                  "features": [
+                    "open-rooms"
+                  ]
+                },
+                {
+                  "label": "1. Obergeschoss",
+                  "usages": [
+                    "office"
+                  ],
+                  "area": 1042,
+                  "floor": 1,
+                  "rent_per_m2": 24,
+                  "extra_costs_per_m2": 3.6,
+                  "features": [
+                    "open-rooms",
+                    "tee-kitchen",
+                    "meeting-rooms",
+                    "server-room"
+                  ]
+                },
+                {
+                  "label": "2. Obergeschoss",
+                  "usages": [
+                    "office"
+                  ],
+                  "area": 1042,
+                  "floor": 2,
+                  "rent_per_m2": 24,
+                  "extra_costs_per_m2": 3.6,
+                  "features": [
+                    "open-rooms",
+                    "tee-kitchen",
+                    "meeting-rooms",
+                    "server-room"
+                  ]
+                },
+                {
+                  "label": "3. Obergeschoss",
+                  "usages": [
+                    "office"
+                  ],
+                  "area": 1042,
+                  "floor": 3,
+                  "rent_per_m2": 24,
+                  "extra_costs_per_m2": 3.6,
+                  "features": [
+                    "open-rooms",
+                    "tee-kitchen",
+                    "meeting-rooms",
+                    "server-room"
+                  ]
+                },
+                {
+                  "label": "4. Obergeschoss",
+                  "usages": [
+                    "office"
+                  ],
+                  "area": 1042,
+                  "floor": 4,
+                  "rent_per_m2": 24,
+                  "extra_costs_per_m2": 3.6,
+                  "features": [
+                    "open-rooms",
+                    "tee-kitchen",
+                    "meeting-rooms",
+                    "server-room"
+                  ]
+                },
+                {
+                  "label": "Lager (Untergeschoss)",
+                  "usages": [
+                    "storage"
+                  ],
+                  "area": 228,
+                  "floor": -1,
+                  "rent_per_m2": 8,
+                  "extra_costs_per_m2": 3.6,
+                  "features": []
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "summary": [
+    {
+      "strategy": "agent",
+      "track": "text",
+      "cases": 6,
+      "meanF1": 0.6356143291808455,
+      "meanPrecision": 0.5109745762655057,
+      "meanRecall": 0.8592603743992632,
+      "validityRate": 1,
+      "exactMatchRate": 0,
+      "totalInputTokens": 444207,
+      "totalOutputTokens": 61489,
+      "totalCostUsd": 0.13830828,
+      "meanCostUsd": 0.02305138,
+      "totalLatencyMs": 813203,
+      "meanLatencyMs": 135533.83333333334
+    }
+  ]
+}

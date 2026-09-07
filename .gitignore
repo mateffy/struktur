@@ -34,6 +34,11 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .cache
 *.tsbuildinfo
 
+# benchmark generated data & run caches
+packages/benchmarks/.benchmark-cache/
+packages/benchmarks/SROIE.json
+packages/benchmarks/CHUNKS.json
+
 # PHP
 composer.lock
 

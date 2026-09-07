@@ -27,6 +27,102 @@ export type AgentStrategyConfig = {
   reasoningEffort?: "low" | "medium" | "high";
 };
 
+/**
+ * The agent writes output via the `set_output_data` tool, whose `data` arg is
+ * `z.any()`. Models often pass a JSON *string* there instead of a parsed object.
+ * Normalize: parse JSON strings, pass objects/arrays through, leave others as-is.
+ */
+export const parseOutputData = (value: unknown): unknown => {
+  if (typeof value !== "string") return value;
+  const trimmed = value.trim();
+  if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) return value;
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    // Two common LLM failures: unescaped quotes inside strings (e.g. German
+    // „Dock 100" typography) and truncation (missing closing brackets). Heal
+    // the former, then repair the latter, then give up.
+    try {
+      return JSON.parse(healQuotes(trimmed));
+    } catch {
+      return JSON.parse(balancedPrefix(trimmed));
+    }
+  }
+};
+
+/**
+ * Escape straight quotes that appear *inside* a JSON string value. A quote is
+ * structural (ends the string) only when followed by whitespace and then one
+ * of `, } ] :`. Anything else — e.g. `Dock 100" liegt` — is literal text and
+ * gets escaped.
+ */
+const healQuotes = (s: string): string => {
+  let out = "";
+  let inString = false;
+  let escape = false;
+
+  const isStructuralAfter = (idx: number): boolean => {
+    let i = idx;
+    while (i < s.length && (s[i] === " " || s[i] === "\t" || s[i] === "\n" || s[i] === "\r")) i++;
+    const ch = s[i];
+    return ch === undefined || ch === "," || ch === "}" || ch === "]" || ch === ":";
+  };
+
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i]!;
+    if (inString) {
+      if (escape) { out += ch; escape = false; continue; }
+      if (ch === "\\") { out += ch; escape = true; continue; }
+      if (ch === "\"") {
+        if (isStructuralAfter(i + 1)) { out += ch; inString = false; }
+        else out += "\\\"";
+        continue;
+      }
+      out += ch;
+      continue;
+    }
+    if (ch === "\"") { out += ch; inString = true; continue; }
+    out += ch;
+  }
+  return out;
+};
+
+/**
+ * Truncate a JSON string to its longest balanced prefix (closing unterminated
+ * strings/arrays/objects at the cut point). Falls back to the raw string when
+ * the input is beyond repair.
+ */
+const balancedPrefix = (s: string): string => {
+  const stack: string[] = [];
+  let inString = false;
+  let escape = false;
+  let cut = s.length;
+
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i]!;
+    if (inString) {
+      if (escape) escape = false;
+      else if (ch === "\\") escape = true;
+      else if (ch === "\"") inString = false;
+      continue;
+    }
+    if (ch === "\"") { inString = true; continue; }
+    if (ch === "{" || ch === "[") stack.push(ch);
+    else if (ch === "}" || ch === "]") {
+      const top = stack[stack.length - 1];
+      if ((ch === "}" && top === "{") || (ch === "]" && top === "[")) stack.pop();
+      else { cut = i; break; }
+    }
+  }
+
+  if (stack.length === 0) return s;
+  // Close any open strings, then close the containers in reverse order.
+  let out = s.slice(0, cut);
+  if (inString) out += "\"";
+  for (let i = stack.length - 1; i >= 0; i--) out += stack[i] === "{" ? "}" : "]";
+  return out;
+};
+
 const statusFromToolName = (toolName: string): StatusInfo => {
   switch (toolName) {
     case "read":
@@ -275,6 +371,7 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
     let failureReason: string | null = null;
     let iterationCount = 0;
     let isComplete = false;
+    const totalUsage = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
 
     // Auto-detect vision support from model APIs if vision not explicitly set
     let visionEnabled = this.config.vision ?? false;
@@ -684,6 +781,13 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
           textSnippet: (result.text || "").slice(0, 100),
         });
 
+        // Accumulate real token usage from this generateText step.
+        if (result.usage) {
+          totalUsage.inputTokens += result.usage.inputTokens ?? 0;
+          totalUsage.outputTokens += result.usage.outputTokens ?? 0;
+          totalUsage.totalTokens += result.usage.totalTokens ?? 0;
+        }
+
         stepCount++;
 
         // Emit thinking/reasoning if available (skip empty arrays/strings)
@@ -716,7 +820,7 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
     if (currentOutput !== null) {
       // If we have output but finish wasn't called, accept it anyway
       // This handles cases where the agent produces output but doesn't explicitly finish
-      extractedData = currentOutput as T;
+      extractedData = parseOutputData(currentOutput) as T;
     } else {
       throw new Error("Agent did not produce any output data.");
     }
@@ -724,9 +828,9 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
     debug?.llmCallComplete({
       callId,
       success: true,
-      inputTokens: 0,
-      outputTokens: 0,
-      totalTokens: 0,
+      inputTokens: totalUsage.inputTokens,
+      outputTokens: totalUsage.outputTokens,
+      totalTokens: totalUsage.totalTokens,
       durationMs,
     });
     await options.events?.onStep?.({
@@ -741,7 +845,7 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
 
     return {
       data: extractedData,
-      usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+      usage: totalUsage,
       images: Object.fromEntries(filesystem.virtualFiles),
     };
   }
