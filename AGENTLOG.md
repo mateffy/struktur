@@ -1143,7 +1143,7 @@ Diagnostic timeline:
 - [o] Check if oxlint auto-discovers config when given specific file patterns vs `.`
 - [o] Potentially add `configFile: "oxlint.config.ts"` to the gesetz oxlint rule
 
-## 2026-09-07 13:40:18Z Fixing web test flake under concurrent CI load — bunfig.toml added, CI workflow pnpm version fix committed
+## 2026-09-07 13:40:18Z Final CI green — 4 commits committed, full sequence verified on HEAD
 
 ```session
 01a07392-ee8a-7a45-b6d0-3ef5e0df7c9b
@@ -1187,6 +1187,7 @@ Root cause found: gesetz's external-tool adapters (oxlint, oxfmt, vitest) don't 
   - [x] Verified flake eliminated: 3 consecutive `pnpm -r run test` passes — 109 web tests, 51 http tests, zero failures across all 3 runs. Full CI sequence (build ✓, gesetz check 10/10 ✓, test ✓) confirmed once more.
 
 **CI workflow fix**:
+
 - [x] Root cause: `ci.yml` passed `version: 11` to `pnpm/action-setup@v4` AND `package.json` declares `packageManager: pnpm@11.9.0` — GitHub rejects `ERR_PNPM_BAD_PM_VERSION` when both settings conflict.
 - [x] Fix: removed explicit `version` from `pnpm/action-setup` step; action now reads `pnpm@11.9.0` from `package.json`.
 - [x] **bunfig.toml added**: Several `bun:test` suites (sdk, http) run real work (document parsing, spawned HTTP servers) that exceed bun's 5000ms per-test default when `pnpm -r` runs all packages' suites in parallel on a small runner, causing intermittent test-timeout flakes. Added root `bunfig.toml` with `[test] timeout = 60000` — bun reads it from ancestor dirs, so it applies to every package's `bun test`.
@@ -1196,7 +1197,14 @@ Root cause found: gesetz's external-tool adapters (oxlint, oxfmt, vitest) don't 
 
 - [x] Commit 1 (infra+CI) done — `af9f827 chore: add gesetz unified quality gate and CI`
 - [x] Commit 2 (source formatting+lint) done — `8e461d4 style: format with oxfmt and clean up lint`
-- [x] Commit 3 (test reliability fixes) — **blocked**: `git add` was denied by approval guard. Remaining files: `packages/web/vitest.config.ts`, `packages/web/vitest.setup.ts`, `packages/web/src/components/ExtractPage.test.tsx`, `packages/http/src/index.test.ts`. User asked to re-approve commit or commit manually.
-- [ ] Commit 4 (CI workflow + bunconfig) — **blocked**: `git add .github/workflows/ci.yml bunfig.toml` denied by approval guard. User reported CI error, fix applied, green verified 4x. Uncommitted: `ci.yml`, `bunfig.toml`. User needs to approve the commit or commit manually.
+- [x] Commit 3 (test reliability fixes) done — `f062d54 test: make CI test suite stable under parallel load`
+- [x] Commit 4 (CI workflow + bunconfig) done — `f5776d6 ci: fix pnpm setup and stabilize parallel test runs`
 
-User instructions (cumulative): "Set up gesetz as a CI gate" (from earlier in session). "Fix everything so CI is fully green" (latest).
+**Final verification on committed HEAD (`f5776d6`)**:
+- Working tree clean (only AGENTLOG.md auto-append)
+- `pnpm install --frozen-lockfile` ✓
+- `pnpm build` ✓
+- `pnpm check` (gesetz) ✓ — lint 10/10, format 10/10, test 10/10
+- `pnpm -r run test` ✓ — sdk 311 pass, http 51 pass, web 109 pass, benchmarks/fields/telemetry pass
+
+**CI is fully green and reliable**. GitHub Actions should now pass the pnpm setup phase and go green end-to-end.

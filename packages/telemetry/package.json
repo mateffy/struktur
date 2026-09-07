@@ -1,6 +1,6 @@
 {
   "name": "@struktur/telemetry",
-  "version": "2.5.0",
+  "version": "2.6.0",
   "license": "FSL-1.1-MIT",
   "type": "module",
   "main": "dist/index.js",
@@ -30,11 +30,10 @@
     "build": "tsup",
     "prepublishOnly": "pnpm run build"
   },
-  "dependencies": {},
   "optionalDependencies": {
-    "@arizeai/phoenix-otel": "^0.4.2",
     "@arizeai/openinference-core": "^1.0.0",
     "@arizeai/openinference-semantic-conventions": "^1.0.0",
+    "@arizeai/phoenix-otel": "^0.4.2",
     "@langfuse/otel": "^2.0.0",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/sdk-node": "^0.200.0"

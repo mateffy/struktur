@@ -1,6 +1,6 @@
 {
   "name": "@struktur/sdk",
-  "version": "2.5.0",
+  "version": "2.6.0",
   "license": "FSL-1.1-MIT",
   "type": "module",
   "main": "dist/index.js",
@@ -45,8 +45,8 @@
     "typescript": "^5"
   },
   "optionalDependencies": {
-    "@llamaindex/liteparse": "^1",
-    "@kreuzberg/node": "^4"
+    "@kreuzberg/node": "^4",
+    "@llamaindex/liteparse": "^1"
   },
   "devDependencies": {
     "@types/bun": "latest",

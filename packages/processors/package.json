@@ -1,6 +1,6 @@
 {
   "name": "@struktur/processors",
-  "version": "2.5.0",
+  "version": "2.6.0",
   "license": "MIT",
   "type": "module",
   "main": "dist/index.js",
@@ -20,9 +20,9 @@
     "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
-    "@struktur/sdk": "workspace:*",
+    "@kreuzberg/node": "^4",
     "@llamaindex/liteparse": "^1",
-    "@kreuzberg/node": "^4"
+    "@struktur/sdk": "workspace:*"
   },
   "peerDependencies": {
     "typescript": "^5"
