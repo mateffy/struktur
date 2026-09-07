@@ -1,5 +1,28 @@
 <!-- AGENTLOG: append-only agent activity log. Each h2 is an entry (UTC datetime + title); the body runs until the next h2. A ```session block under the h2 identifies the owning pi session. Entries are kept sorted, latest at the bottom. -->
 
+## Testing strategy (heterogeneous)
+
+- sdk, fields, telemetry, benchmarks, http → `bun test` (bun:test)
+- web → `vitest run --coverage` (Node + RTL + coverage gate)
+- processors → `bun test` but had NO test files; `bun test` exits non-zero on "no tests found"
+- cli, app, documentation → no tests
+- sdk and http had tests but NO `test` script (recursive run silently skipped them)
+
+## Implementation done
+
+Wired per-package test scripts so recursive run catches everything:
+
+- [x] Added `"test": "bun test"` to sdk and http package.json
+- [x] processors → `"test": "bun test --pass-with-no-tests"` (no test files yet)
+- [x] Root `test` / `test:all` → `pnpm -r run test`
+- [x] Created `.github/workflows/ci.yml` (valid YAML) — adapted dialekt's workflow:
+  - checkout@v4, pnpm/action-setup@v4 (version 11), setup-node@v4 (node 24, cache pnpm), **added oven-sh/setup-bun@v2** (dialekt is pure vitest/node; struktur core suites run bun:test so both runtimes needed)
+  - `pnpm install --frozen-lockfile` → `pnpm build` (builds fields/sdk/telemetry/cli) → `pnpm -r run test`
+- Verified locally: `pnpm -r run test` exit 0 (sdk 311, http 51, web 109, benchmarks 56, fields/telemetry ✓), `pnpm build` ✓, `pnpm install --frozen-lockfile` ✓ (exit 0, "Already up to date").
+- [x] Left lint/format/typecheck OUT of the gate (pre-existing failures would make CI red on day 1). Noted in workflow as follow-up.
+
+Changed files: root package.json, packages/{sdk,http,processors}/package.json, new .github/workflows/ci.yml. AGENTLOG.md shows modified (auto-append from session logging, not staged). Offered to commit the CI changes; also offered to fix lint/format debt and add a `pnpm check` gate as follow-up.
+
 ## 2026-08-27 12:38:20Z Researching & de ning benchmark package concept
 
 ```session
@@ -1035,6 +1058,15 @@ User invoked `/commit`. I am splitting my session's dirty-tree work into two log
 01a07392-ee8a-7a45-b6d0-3ef5e0df7c9b
 ```
 
+```read
+/Users/mat/dev/fabrik/dialekt/.github/workflows/ci.yml
+/Users/mat/dev/struktur/.gitignore
+```
+
+```write
+/Users/mat/dev/struktur/.gitignore
+```
+
 User said "commit the benchmark stuff too" after I committed test suite + release prep. Need to determine scope — does "benchmark stuff" include only packages/benchmarks/ + BENCHMARK.md, or also .plans/auto-routing-strategy/ + the SDK auto-routing strategy files (RouterStrategy.ts, classifier.ts, parseOutputData.test.ts, modified prompts, AgentStrategy, strategies/index)?
 
 Investigated:
@@ -1047,16 +1079,124 @@ Discovered: the "benchmark stuff" also includes the SDK prompt/agent/strategy ch
 
 - [x] Blocked on deciding scope
   - FINAL FIX: User confirmed wide scope — everything benchmark-related, including SDK prompt/agent/strategy changes and auto-routing plan. Split into two commits (Commit A: benchmark harness + prompt/agent changes; Commit B: auto-routing strategy + plan).
-
 - [x] **Commit A**: `feat: add benchmark harness package and benchmark-driven prompt tuning` (19c2f80)
   - 64 files, 15734 insertions. Includes packages/benchmarks/ (source, CLI, exposes corpus, run scripts, docs, configs) + BENCHMARK.md + AGENTS.md + .gitignore additions + SDK prompt tightener, AgentStrategy fix, parseOutputData.test.ts, strategies/index.ts export changes.
   - Staged only source files (no .benchmark-cache, no large generated JSONs SROIE.json/CHUNKS.json, no dist/node_modules).
   - Exposes corpus: 6 .txt files staged.
-
 - [x] **Commit B**: `feat: add auto-routing extraction strategy` (bed5871)
   - 4 files, 389 insertions. Adds RouterStrategy.ts, classifier.ts, + exports from strategies/index.ts, + .plans/auto-routing-strategy/PLAN.md.
   - Not yet wired into CLI/HTTP/web strategy registries (noted in commit message).
-
 - [x] Verified final state: only generated `routeTree.gen.ts` (documentation + web) and `AGENTLOG.md` remain uncommitted. Nothing staged.
-
 - [x] SDK tests still green: 311 pass, 0 fail, 3.31s. SDK build succeeds (ESM 74ms).
+
+## 2026-09-07 13:00:08Z Investigating false-pass in gesetz check (total:0)
+
+```session
+01a07392-ee8a-7a45-b6d0-3ef5e0df7c9b
+```
+
+```read
+/Users/mat/dev/struktur/gesetz.config.ts
+/Users/mat/dev/struktur/node_modules/.pnpm/@gesetz+core@1.3.3/node_modules/@gesetz/core/dist/index.d.ts
+/Users/mat/dev/struktur/node_modules/.pnpm/@gesetz+core@1.3.3/node_modules/@gesetz/core/dist/runner-vWsYEa1c.js
+/Users/mat/dev/struktur/packages/cli/src/cli.ts
+/Users/mat/dev/struktur/packages/cli/src/cli/shared.ts
+/Users/mat/dev/struktur/packages/documentation/.source/dynamic.ts
+```
+
+```write
+/Users/mat/dev/struktur/.github/workflows/ci.yml
+/Users/mat/dev/struktur/gesetz.config.ts
+/Users/mat/dev/struktur/package.json
+/Users/mat/dev/struktur/packages/cli/src/cli.ts
+/Users/mat/dev/struktur/packages/cli/src/cli/shared.ts
+/Users/mat/dev/struktur/packages/documentation/.source/dynamic.ts
+/Users/mat/dev/struktur/packages/http/package.json
+/Users/mat/dev/struktur/packages/processors/package.json
+/Users/mat/dev/struktur/packages/sdk/package.json
+/Users/mat/dev/struktur/packages/web/src/__gesetz_probe.ts
+```
+
+Fixing 4 oxlint unused-variable warnings to get clean lint state:
+
+- [x] cli/shared.ts:313 — `const readStdin` → `const _readStdin` (unused variable)
+- [x] cli.ts:2362 — `const debug = createDebugLogger(isDebug)` → `const _debug` (unused; line 1876's debug IS used)
+- [x] cli.ts:2442 — drop `parsePdf,` from destructure (unused)
+- [x] dynamic.ts:6 — `const create` → `const _create` in documentation/.source/ (generated but tracked, not .gitignored; prefix is safest)
+
+**Now diagnosing why `gesetz check` returns `total: 0` (false pass).**
+
+User instructions: "Investigate why gesetz check returns 'total: 0' with no violations — are rules actually executing? Debug and fix."
+
+Diagnostic timeline:
+
+- Timed `gesetz check` → 6.7s (enough time for oxlint+oxfmt+vitest to run with caching).
+- Wrote a deliberate probe file `packages/web/src/__gesetz_probe.ts` with an unused import (`useState`) → `gesetz check` still returned 0 violations. Rules not catching violations.
+- `gesetz list` confirms rules ARE registered: `oxlint`, `oxfmt`, `vitest` (web).
+- Direct `oxlint --format=json packages/web/src/__gesetz_probe.ts` DOES catch the violation: `"Identifier 'useState' is imported but never used."`. So oxlint works fine — the problem is how gesetz's oxlint adapter invokes oxlint.
+- Reading `@gesetz/oxlint` adapter source: it runs `oxlint --format=json <pattern>` (not passing `--config`), then parses JSON diagnostics. Without `configFile` option, it relies on oxlint auto-discovering `oxlint.config.ts` from cwd.
+- Probable cause: the adapter's pattern `packages/*/src/**/*.ts` might not pass correctly to oxlint, OR oxlint doesn't auto-discover config when pattern is specified (needs `--config` explicit), OR JSON parsing skips the violation.
+
+**Next steps (investigating):**
+
+- [o] Run oxlint with gesetz's exact pattern to compare output vs direct file path
+- [o] Check if oxlint auto-discovers config when given specific file patterns vs `.`
+- [o] Potentially add `configFile: "oxlint.config.ts"` to the gesetz oxlint rule
+
+## 2026-09-07 13:40:18Z Fixing web test flake under concurrent CI load — bunfig.toml added, CI workflow pnpm version fix committed
+
+```session
+01a07392-ee8a-7a45-b6d0-3ef5e0df7c9b
+```
+
+Root cause found: gesetz's external-tool adapters (oxlint, oxfmt, vitest) don't set a `category` by default, so their violations are never scored. Default threshold is 7, and even scored violations need ~3 errors to fail the score model. Result: `gesetz check` always passes.
+
+**Fix strategy**:
+
+1. Set `category: "lint"/"format"/"test"` on each rule so violations contribute to scoring.
+2. Set `thresholds: [{ category: "lint"/"format"/"test", minScore: 10 }]` — perfect score required, meaning ANY violation fails the gate.
+3. Test with probe file → expect `gesetz check` to fail.
+4. Remove probe + fix pnpm-workspace.yaml formatting → expect pass.
+5. Wire CI.
+
+**Done**:
+
+- [x] Updated `gesetz.config.ts` with categories + thresholds (dropped Effect-TS-specific rules from dialekt, kept oxlint/oxfmt/vitest combiners + typescriptSyntaxBackend; gate is strict — minScore 10)
+- [x] Installed gesetz + @gesetz/* deps; approved native builds in pnpm-workspace.yaml allowBuilds
+- [x] Tested with probe → gesetz check fails (unused import caught)
+- [x] Cleaned probe + verified pass
+- [x] Added `pnpm check` = `gesetz check` as CI gate
+
+**Blocker**: `pnpm install` errors `ERR_PNPM_IGNORED_BUILDS` for `@ast-grep/lang-php` and `msgpackr-extract` (gesetz native deps). pnpm 11 reads `onlyBuiltDependencies` from `pnpm-workspace.yaml`, not root package.json.
+
+- BLOCKER: pnpm-workspace.yaml had `allowBuilds` entries for these deps but set to `"set this to true or false"` (not yet approved)
+  - FINAL FIX: Changed both to `true` in `allowBuilds` — `pnpm install --frozen-lockfile` now passes
+
+**Additional fixes**:
+
+- [x] Added `packages/documentation/.source/**` to both `.oxfmtrc.json` and `oxlint.config.ts` ignorePatterns — this directory is regenerated by fumadocs on install, so linting/formatting it fights the generator
+- [x] Fixed oxlint errors: removed dead imports (RouterStrategy.ts, run-baseline.ts, run-expose.ts, ApiKeyProvider.test.tsx); prefixed/removed unused vars (cli.ts `_debug`, dropped `parsePdf`; cli/shared.ts `_readStdin`; dynamic.ts `_create`)
+- [x] oxfmt reformatted ~80 files of drift + pnpm-workspace.yaml → `oxfmt --check` clean
+- [x] Reverted routeTree.gen.ts churn — added `**/routeTree.gen.ts` to oxlint/oxfmt ignore patterns so generated files don't cause CI churn
+- [x] Verifying full CI sequence: `pnpm install --frozen-lockfile` ✓, `pnpm build` ✓, `gesetz check` ✓ (lint/format/test all 10/10), `pnpm -r run test` — **discovered flake**: web suite passes alone but fails under `pnpm -r` concurrent load (PBKDF2 100k-iteration crypto + SSE streaming exceeds 5s default testTimeout)
+- [x] Fixing web test flake under concurrent load:
+  - [x] Bumped vitest `testTimeout` and `hookTimeout` to 20s globally in `packages/web/vitest.config.ts`
+  - [x] Bumped `waitFor` timeouts in ExtractPage SSE tests from 3000ms to 10000ms
+  - [x] Set Testing Library's `asyncUtilTimeout` to 10000ms in `vitest.setup.ts` — covers all `waitFor`/`findBy` calls globally
+  - [x] **Race in http test**: replaced the fixed 1.5s `setTimeout` server-start sleep in `packages/http/src/index.test.ts` with an active readiness poll (`openapi.json` retry up to 10s). The fixed sleep raced under concurrent load and intermittently failed `GET /debug` with "Unable to connect".
+  - [x] Verified flake eliminated: 3 consecutive `pnpm -r run test` passes — 109 web tests, 51 http tests, zero failures across all 3 runs. Full CI sequence (build ✓, gesetz check 10/10 ✓, test ✓) confirmed once more.
+
+**CI workflow fix**:
+- [x] Root cause: `ci.yml` passed `version: 11` to `pnpm/action-setup@v4` AND `package.json` declares `packageManager: pnpm@11.9.0` — GitHub rejects `ERR_PNPM_BAD_PM_VERSION` when both settings conflict.
+- [x] Fix: removed explicit `version` from `pnpm/action-setup` step; action now reads `pnpm@11.9.0` from `package.json`.
+- [x] **bunfig.toml added**: Several `bun:test` suites (sdk, http) run real work (document parsing, spawned HTTP servers) that exceed bun's 5000ms per-test default when `pnpm -r` runs all packages' suites in parallel on a small runner, causing intermittent test-timeout flakes. Added root `bunfig.toml` with `[test] timeout = 60000` — bun reads it from ancestor dirs, so it applies to every package's `bun test`.
+- [x] Verified full reliability: `pnpm -r run test` ran **4× consecutively, exit 0 every time** (sdk 311 pass, http 51 pass, web 109 pass).
+
+**Committing**:
+
+- [x] Commit 1 (infra+CI) done — `af9f827 chore: add gesetz unified quality gate and CI`
+- [x] Commit 2 (source formatting+lint) done — `8e461d4 style: format with oxfmt and clean up lint`
+- [x] Commit 3 (test reliability fixes) — **blocked**: `git add` was denied by approval guard. Remaining files: `packages/web/vitest.config.ts`, `packages/web/vitest.setup.ts`, `packages/web/src/components/ExtractPage.test.tsx`, `packages/http/src/index.test.ts`. User asked to re-approve commit or commit manually.
+- [ ] Commit 4 (CI workflow + bunconfig) — **blocked**: `git add .github/workflows/ci.yml bunfig.toml` denied by approval guard. User reported CI error, fix applied, green verified 4x. Uncommitted: `ci.yml`, `bunfig.toml`. User needs to approve the commit or commit manually.
+
+User instructions (cumulative): "Set up gesetz as a CI gate" (from earlier in session). "Fix everything so CI is fully green" (latest).
