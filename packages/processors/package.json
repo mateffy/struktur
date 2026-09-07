@@ -15,7 +15,7 @@
     "dist"
   ],
   "scripts": {
-    "test": "bun test",
+    "test": "bun test --pass-with-no-tests",
     "build": "tsup && tsc --project tsconfig.build.json",
     "prepublishOnly": "pnpm run build"
   },

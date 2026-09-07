@@ -4,7 +4,9 @@
   "type": "module",
   "packageManager": "pnpm@11.9.0",
   "scripts": {
-    "test": "bun test",
+    "test": "pnpm -r run test",
+    "test:all": "pnpm -r run test",
+    "check": "gesetz check",
     "build": "pnpm --filter @struktur/fields --filter @struktur/sdk --filter @struktur/telemetry --filter @struktur/cli build",
     "docs": "bun run docs:build && bun run docs:publish",
     "docs:build": "bun run --filter @struktur/documentation build",
@@ -19,8 +21,14 @@
     "fmt:check": "oxfmt --check"
   },
   "devDependencies": {
+    "@gesetz/cli": "^1.3.3",
+    "@gesetz/oxfmt": "^1.3.3",
+    "@gesetz/oxlint": "^1.3.3",
+    "@gesetz/typescript": "^1.3.3",
+    "@gesetz/vitest": "^1.3.3",
     "@types/bun": "latest",
     "eslint-plugin-unused-imports": "^4.4.1",
+    "gesetz": "^1.3.3",
     "oxfmt": "^0.42.0",
     "oxlint": "^1.57.0"
   },

@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      # The core suites run on Bun (`bun:test`); the web app suite runs on
+      # vitest via Node. Install both runtimes.
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: pnpm install --frozen-lockfile
+
+      # Build the packages the test suites import (@struktur/sdk <- @struktur/fields,
+      # consumed by web/http/benchmarks/cli) before running checks/tests.
+      - run: pnpm build
+
+      # gesetz: unified lint + format + vitest(web) gate. oxlint and oxfmt scan the
+      # whole repo; the web app runs its Vitest suite. Any violation fails the gate.
+      - run: pnpm check
+
+      # Every package's test suite — the bun:test packages (sdk/fields/telemetry/
+      # http/benchmarks) plus the web vitest suite.
+      - run: pnpm -r run test

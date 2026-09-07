@@ -24,6 +24,7 @@
   ],
   "scripts": {
     "build": "tsup && tsc --project tsconfig.build.json && node scripts/postbuild.mjs",
+    "test": "bun test",
     "prepublishOnly": "pnpm run build"
   },
   "dependencies": {

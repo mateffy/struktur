@@ -6,6 +6,8 @@
     "packages/web/.dist/**",
     "packages/web/.output/**",
     "packages/documentation/.output/**",
+    "packages/documentation/.source/**",
+    "**/routeTree.gen.ts",
     "**/*.json",
     "**/*.mdx",
     "**/*.md",

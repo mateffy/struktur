@@ -8,6 +8,8 @@ export default defineConfig({
     "packages/web/.dist/**",
     "packages/web/.output/**",
     "packages/documentation/.output/**",
+    "packages/documentation/.source/**",
+    "**/routeTree.gen.ts",
   ],
   jsPlugins: ["eslint-plugin-unused-imports"],
   rules: {
