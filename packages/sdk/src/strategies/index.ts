@@ -6,3 +6,5 @@ export { SequentialAutoMergeStrategy, sequentialAutoMerge } from "./SequentialAu
 export { DoublePassStrategy, doublePass } from "./DoublePassStrategy";
 export { DoublePassAutoMergeStrategy, doublePassAutoMerge } from "./DoublePassAutoMergeStrategy";
 export { AgentStrategy, agent, type AgentStrategyConfig } from "./agent/AgentStrategy";
+export { RouterStrategy, router, routerFeatures, type RouterStrategyConfig, type RouterFeatures } from "./RouterStrategy";
+export { classifyDocument, type DocumentClass } from "./classifier";
