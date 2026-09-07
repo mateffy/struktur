@@ -54,6 +54,8 @@ src/
 │   ├── hono.ts             # API routes
 │   ├── api.ts              # Extraction logic
 │   └── models.ts           # Model fetching
+├── vitest.config.ts        # Test runner config + coverage thresholds
+├── vitest.setup.ts         # Test setup: webcrypto, IndexedDB, DOM stubs
 ├── routes/
 │   ├── __root.tsx          # Root with ApiKeyProvider
 │   └── index.tsx
@@ -104,6 +106,32 @@ bun run build
 # Start production server
 bun run start
 ```
+
+## Testing
+
+The web app uses Vitest (jsdom) + Testing Library, with colocated `*.test.ts(x)` files next to the source, plus a shared setup in `vitest.setup.ts`.
+
+```bash
+# Run the strict suite (enforces coverage thresholds)
+bun run test
+
+# Watch mode
+bun run test:watch
+```
+
+`vitest.config.ts` scopes the coverage gate to the data/auth/logic modules and the rendering surfaces the suite exercises (crypto/secure-storage/file-storage, the server API, and the main component tree). `bun run test` fails if statements/lines drop below 76%, branches below 70%, or functions below 62% on those files.
+
+Coverage map (what the suite verifies):
+
+- `lib/crypto.ts`, `lib/secure-storage.ts`, `lib/file-storage.ts` — encryption, key lifecycle, and IndexedDB persistence.
+- `server/api.ts` — the `src/server` Hono routes (`/api/config`, `/api/parse`), `parseFiles`, `parseFieldsShorthand`, and the `extractData` failure path.
+- `components/auth/*` — `ApiKeyProvider`, `SecureStorageGate`, `PasswordPrompt`, `ProviderSettings` (secure-storage workflow + rendering).
+- `components/ExtractPage`, `Sidebar`, `SchemaInput`, `OutputViewer`, `Logo`, `FileUploadZone` — layout/rendering detail and the parse → extract → result workflow.
+
+Notes:
+
+- Provider listing (`/api/models`) hits the network, so the suite mocks `fetch` for `/api/config`, `/api/models`, `/api/parse`, and `/api/extract/stream` (SSE bodies are constructed as `ReadableStream`s).
+- No real provider keys are used; the extraction error paths assert the failure behaviour.
 
 ## Security
 

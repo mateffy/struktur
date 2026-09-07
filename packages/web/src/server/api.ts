@@ -345,7 +345,7 @@ function createStrategy(name: string, model: unknown, chunkSize: number, modelSp
   }
 }
 
-function parseFieldsShorthand(fields: string): any {
+export function parseFieldsShorthand(fields: string): any {
   const properties: any = {};
   const required: string[] = [];
 
