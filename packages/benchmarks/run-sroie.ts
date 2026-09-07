@@ -9,7 +9,14 @@
  * SROIE.json + SROIE.md.
  */
 import { loadDataset, sroie } from "./src/datasets/index";
-import { runBenchmark, saveReport, buildReport, type BenchmarkReport, type CellResult, type BenchmarkCase } from "./src/index";
+import {
+  runBenchmark,
+  saveReport,
+  buildReport,
+  type BenchmarkReport,
+  type CellResult,
+  type BenchmarkCase,
+} from "./src/index";
 import { BENCHMARK_MODEL } from "./src/config";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -22,7 +29,11 @@ const SHARDS = Number(process.env.SHARDS ?? 1);
 const SHARD_INDEX = Number(process.env.SHARD_INDEX ?? -1);
 const REPORT_FILE = process.env.REPORT_FILE;
 
-async function runSlice(cases: BenchmarkCase[], shardIndex: number, reportFile: string): Promise<void> {
+async function runSlice(
+  cases: BenchmarkCase[],
+  shardIndex: number,
+  reportFile: string,
+): Promise<void> {
   const report = await runBenchmark({
     cases: cases.map((c) => ({ ...c, tracks: [...TRACKS] })),
     strategies: [...STRATEGIES],
@@ -52,7 +63,9 @@ async function main() {
 
   // Parent: shard into SHARDS child processes and merge.
   const dir = await mkdtemp(join(tmpdir(), "sroie-"));
-  console.error(`SROIE: ${cases.length} cases, ${STRATEGIES.length} strategies, ${SHARDS} shard(s).`);
+  console.error(
+    `SROIE: ${cases.length} cases, ${STRATEGIES.length} strategies, ${SHARDS} shard(s).`,
+  );
 
   const start = Date.now();
   const jobs = Array.from({ length: SHARDS }, (_, i) => {

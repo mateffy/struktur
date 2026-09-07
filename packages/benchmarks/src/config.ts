@@ -12,5 +12,4 @@ export const defaultDatasetDir = (): string =>
   process.env.STRUKTUR_BENCHMARKS_DIR ?? `${process.env.HOME ?? "."}/.struktur/benchmarks`;
 
 /** Default cache root for extraction result cells. */
-export const defaultResultsDir = (): string =>
-  `${defaultDatasetDir()}/results`;
+export const defaultResultsDir = (): string => `${defaultDatasetDir()}/results`;

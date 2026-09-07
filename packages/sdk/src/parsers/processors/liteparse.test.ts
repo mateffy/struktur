@@ -47,7 +47,10 @@ describe("liteparseProcessor", () => {
     const artifact = artifacts[0];
     expect(artifact).toBeDefined();
     expect(artifact?.contents.length).toBeGreaterThan(0);
-    const totalText = artifact?.contents.map((c) => c.text ?? "").join("").trim();
+    const totalText = artifact?.contents
+      .map((c) => c.text ?? "")
+      .join("")
+      .trim();
     expect(totalText?.length).toBeGreaterThan(0);
   });
 });

@@ -15,7 +15,17 @@ import { downloadHubRows, type Dataset, type FetchLike } from "./source";
 const REPO = "darentang/sroie";
 const CONFIG = "sroie";
 
-const LABELS = ["O", "B-COMPANY", "I-COMPANY", "B-DATE", "I-DATE", "B-ADDRESS", "I-ADDRESS", "B-TOTAL", "I-TOTAL"] as const;
+const LABELS = [
+  "O",
+  "B-COMPANY",
+  "I-COMPANY",
+  "B-DATE",
+  "I-DATE",
+  "B-ADDRESS",
+  "I-ADDRESS",
+  "B-TOTAL",
+  "I-TOTAL",
+] as const;
 
 const SCHEMA = {
   type: "object",
@@ -36,8 +46,16 @@ export type SroieRow = {
 };
 
 /** Reconstruct `company/date/address/total` from BIO-tagged words. */
-export function reconstructEntities(words: string[], tags: number[]): Record<string, string | null> {
-  const out: Record<string, string | null> = { company: null, date: null, address: null, total: null };
+export function reconstructEntities(
+  words: string[],
+  tags: number[],
+): Record<string, string | null> {
+  const out: Record<string, string | null> = {
+    company: null,
+    date: null,
+    address: null,
+    total: null,
+  };
   let current: string | null = null;
   let buffer: string[] = [];
   const flush = () => {

@@ -1,10 +1,7 @@
 import { Hono } from "hono";
 import { describeRoute } from "hono-openapi";
 import { ExtractRequestSchema } from "../schemas";
-import {
-  parseExtractRequest,
-  createExtractionStream,
-} from "../utils/extraction";
+import { parseExtractRequest, createExtractionStream } from "../utils/extraction";
 
 const app = new Hono();
 

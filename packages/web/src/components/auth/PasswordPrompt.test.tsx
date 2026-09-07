@@ -12,9 +12,7 @@ describe("PasswordPrompt — setup mode", () => {
     expect(screen.getByRole("heading", { name: "Secure Your API Keys" })).toBeInTheDocument();
     expect(screen.getByLabelText(/^Password$/)).toBeInTheDocument();
     expect(screen.getByLabelText(/^Confirm Password$/)).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Create Secure Storage" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Create Secure Storage" })).toBeInTheDocument();
   });
 
   it("does not offer a skip button in setup mode", () => {
@@ -108,7 +106,12 @@ describe("PasswordPrompt — unlock mode", () => {
 describe("PasswordPrompt — errors", () => {
   it("renders an external error message", () => {
     render(
-      <PasswordPrompt mode="unlock" onSubmit={resolved} onCancel={noop} error="Incorrect password. Try again." />,
+      <PasswordPrompt
+        mode="unlock"
+        onSubmit={resolved}
+        onCancel={noop}
+        error="Incorrect password. Try again."
+      />,
     );
     expect(screen.getByText("Incorrect password. Try again.")).toBeInTheDocument();
   });

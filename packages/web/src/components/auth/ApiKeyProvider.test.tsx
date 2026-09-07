@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { ApiKeyProvider, useApiKeys } from "./ApiKeyProvider";
 
@@ -19,7 +19,9 @@ function Probe() {
       <button onClick={() => safe(() => ctx.initialize("secure-password-1"))}>init</button>
       <button onClick={() => safe(() => ctx.unlock("secure-password-1"))}>unlock</button>
       <button onClick={() => safe(() => ctx.unlock("wrong-password"))}>unlock-bad</button>
-      <button onClick={() => safe(() => ctx.saveApiKey("openai", "sk-openai-test"))}>save-openai</button>
+      <button onClick={() => safe(() => ctx.saveApiKey("openai", "sk-openai-test"))}>
+        save-openai
+      </button>
       <button onClick={() => ctx.lock()}>lock</button>
       <button onClick={() => ctx.reset()}>reset</button>
     </div>
@@ -69,9 +71,7 @@ describe("ApiKeyProvider", () => {
     await waitFor(() => expect(screen.getByTestId("unlocked")).toHaveTextContent("false"));
 
     fireEvent.click(screen.getByRole("button", { name: "unlock-bad" }));
-    await waitFor(() =>
-      expect(screen.getByTestId("error")).not.toHaveTextContent(""),
-    );
+    await waitFor(() => expect(screen.getByTestId("error")).not.toHaveTextContent(""));
     expect(screen.getByTestId("unlocked")).toHaveTextContent("false");
   });
 

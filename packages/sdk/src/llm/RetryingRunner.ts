@@ -1,7 +1,4 @@
-import {
-  createValidator,
-  SchemaValidationError,
-} from "../validation/validator";
+import { createValidator, SchemaValidationError } from "../validation/validator";
 import type { ModelMessage } from "ai";
 import type { ExtractionEvents, Usage, TelemetryAdapter } from "../types";
 import type { DebugLogger } from "../debug/logger";

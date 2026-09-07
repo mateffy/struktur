@@ -16,12 +16,12 @@ describe("Logo", () => {
   it("renders the logo image with the expected source", () => {
     const { container } = render(<Logo />);
     // img with alt="" carries a presentation role, so query the DOM directly.
-    expect(container.querySelector("img[src=\"/struktur-icon.png\"]")).toBeTruthy();
+    expect(container.querySelector('img[src="/struktur-icon.png"]')).toBeTruthy();
   });
 
   it("renders four empty quadrant images for the hover animation", () => {
     const { container } = render(<Logo />);
-    expect(container.querySelectorAll("img[src=\"/struktur-icon-empty.webp\"]")).toHaveLength(4);
+    expect(container.querySelectorAll('img[src="/struktur-icon-empty.webp"]')).toHaveLength(4);
   });
 
   it("links to the root route", () => {

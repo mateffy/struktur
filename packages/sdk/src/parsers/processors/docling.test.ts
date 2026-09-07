@@ -14,9 +14,7 @@ describe("doclingProcessor", () => {
     const originalPath = process.env.PATH;
     process.env.PATH = "";
     try {
-      await expect(doclingProcessor.parse(pdfBuffer, {})).rejects.toThrow(
-        /pip install docling/,
-      );
+      await expect(doclingProcessor.parse(pdfBuffer, {})).rejects.toThrow(/pip install docling/);
     } finally {
       process.env.PATH = originalPath;
     }

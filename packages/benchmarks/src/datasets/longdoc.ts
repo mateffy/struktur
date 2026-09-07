@@ -57,14 +57,30 @@ const SCHEMA = {
 } as const;
 
 const CUSTOMERS = [
-  "Acme Corp", "Globex Inc", "Initech LLC", "Umbrella Corp", "Soylent Corp",
-  "Hooli", "Pied Piper", "Stark Industries", "Wayne Enterprises", "Aperture Science",
+  "Acme Corp",
+  "Globex Inc",
+  "Initech LLC",
+  "Umbrella Corp",
+  "Soylent Corp",
+  "Hooli",
+  "Pied Piper",
+  "Stark Industries",
+  "Wayne Enterprises",
+  "Aperture Science",
 ] as const;
 
 const NOTES = [
-  "priority order", "standard delivery", "expedited shipping", "payment pending",
-  "payment received", "on hold — awaiting review", "partially shipped",
-  "fully delivered", "return requested", "refund issued", "backordered",
+  "priority order",
+  "standard delivery",
+  "expedited shipping",
+  "payment pending",
+  "payment received",
+  "on hold — awaiting review",
+  "partially shipped",
+  "fully delivered",
+  "return requested",
+  "refund issued",
+  "backordered",
   "customer pickup",
 ] as const;
 
@@ -86,7 +102,10 @@ const buildRecords = (count: number, seed: number): LongDocRecord[] => {
 
 const buildText = (records: LongDocRecord[]): string =>
   records
-    .map((r) => `Record ${r.id}\nCustomer: ${r.customer}\nAmount: ${r.amount.toFixed(2)}\nNotes: ${r.notes}\n`)
+    .map(
+      (r) =>
+        `Record ${r.id}\nCustomer: ${r.customer}\nAmount: ${r.amount.toFixed(2)}\nNotes: ${r.notes}\n`,
+    )
     .join("\n---\n");
 
 export const longDocArtifact = (id: string, text: string): Artifact => textArtifact(text, id);

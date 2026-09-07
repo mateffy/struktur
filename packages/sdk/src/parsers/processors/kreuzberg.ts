@@ -10,10 +10,12 @@ export const kreuzbergProcessor: PdfProcessor = {
     "Kreuzberg — Rust core with Node.js/WASM bindings (npm: @kreuzberg/node or @kreuzberg/wasm)",
   async parse(buffer: Buffer): Promise<Artifact[]> {
     // Try @kreuzberg/node first (NAPI-RS, faster), fall back to @kreuzberg/wasm
-    let extractFile: (path: string) => Promise<{ content?: string; tables?: { markdown?: string }[] }>;
+    let extractFile: (
+      path: string,
+    ) => Promise<{ content?: string; tables?: { markdown?: string }[] }>;
 
     try {
-      const mod = await import("@kreuzberg/node") as { extractFile: typeof extractFile };
+      const mod = (await import("@kreuzberg/node")) as { extractFile: typeof extractFile };
       extractFile = mod.extractFile;
     } catch {
       throw new Error(

@@ -6,7 +6,15 @@
  * Sharding: SHARDS=N splits cases across N child processes in parallel.
  */
 import { simple, parallel, sequential, doublePass, type ExtractionStrategy } from "@struktur/sdk";
-import { runBenchmark, saveReport, buildReport, type BenchmarkReport, type CellResult, type BenchmarkCase, type StrategyLike } from "./src/index";
+import {
+  runBenchmark,
+  saveReport,
+  buildReport,
+  type BenchmarkReport,
+  type CellResult,
+  type BenchmarkCase,
+  type StrategyLike,
+} from "./src/index";
 import { longDocCases } from "./src/datasets/longdoc";
 import { BENCHMARK_MODEL } from "./src/config";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
@@ -23,7 +31,8 @@ const REPORT_FILE = process.env.REPORT_FILE;
 
 type Builtin = (typeof STRATEGIES)[number];
 
-const factory = (name: Builtin, chunkSize: number) =>
+const factory =
+  (name: Builtin, chunkSize: number) =>
   (model: unknown, _spec: string, instructions?: string): ExtractionStrategy<unknown> => {
     switch (name) {
       case "simple":
@@ -33,7 +42,12 @@ const factory = (name: Builtin, chunkSize: number) =>
       case "sequential":
         return sequential({ model, chunkSize, outputInstructions: instructions });
       case "doublePass":
-        return doublePass({ model, mergeModel: model, chunkSize, outputInstructions: instructions });
+        return doublePass({
+          model,
+          mergeModel: model,
+          chunkSize,
+          outputInstructions: instructions,
+        });
     }
   };
 
@@ -76,7 +90,13 @@ async function main() {
     const reportFile = join(dir, `shard-${i}.json`);
     const proc = Bun.spawn(["bun", "run", "run-chunks.ts"], {
       cwd: import.meta.dir,
-      env: { ...process.env, SHARD_INDEX: String(i), SHARDS: String(SHARDS), VARIANT, REPORT_FILE: reportFile },
+      env: {
+        ...process.env,
+        SHARD_INDEX: String(i),
+        SHARDS: String(SHARDS),
+        VARIANT,
+        REPORT_FILE: reportFile,
+      },
       stdout: "ignore",
       stderr: "pipe",
     });

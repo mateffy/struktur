@@ -20,8 +20,18 @@ test("syntheticCases wraps records with a shared schema", () => {
 });
 
 test("generateKeyValueCases is deterministic and well-formed", () => {
-  const a = generateKeyValueCases("kv", [{ name: "name" }, { name: "price", type: "number" }], 5, 42);
-  const b = generateKeyValueCases("kv", [{ name: "name" }, { name: "price", type: "number" }], 5, 42);
+  const a = generateKeyValueCases(
+    "kv",
+    [{ name: "name" }, { name: "price", type: "number" }],
+    5,
+    42,
+  );
+  const b = generateKeyValueCases(
+    "kv",
+    [{ name: "name" }, { name: "price", type: "number" }],
+    5,
+    42,
+  );
 
   expect(a).toHaveLength(5);
   // deterministic except for the `raw` closure (a fresh function each call)

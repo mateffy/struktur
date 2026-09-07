@@ -113,12 +113,14 @@ describe("HTTP API - OpenAPI Documentation", () => {
     const response = await fetch(`${baseUrl}/openapi.json`);
     const data = await response.json();
 
-    const parseResponse = data.paths["/parse"].post.responses[200].content["application/json"].schema;
+    const parseResponse =
+      data.paths["/parse"].post.responses[200].content["application/json"].schema;
     expect(parseResponse).toBeDefined();
     expect(parseResponse.type).toBe("object");
     expect(parseResponse.properties).toHaveProperty("artifacts");
 
-    const extractResponse = data.paths["/extract"].post.responses[200].content["application/json"].schema;
+    const extractResponse =
+      data.paths["/extract"].post.responses[200].content["application/json"].schema;
     expect(extractResponse).toBeDefined();
     expect(extractResponse.type).toBe("object");
     expect(extractResponse.properties).toHaveProperty("data");

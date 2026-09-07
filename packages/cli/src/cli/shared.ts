@@ -310,7 +310,7 @@ export const loadArtifactsFromOptions = async (
   const screenshots = options.screenshots === true;
   const mimeOverride = typeof options.mime === "string" ? options.mime : undefined;
   const parserOverride = typeof options.parser === "string" ? options.parser : undefined;
-  const readStdin = deps?.readStdinText ?? readStdinText;
+  const _readStdin = deps?.readStdinText ?? readStdinText;
   const readStdinBin = deps?.readStdinBinary ?? readStdinBinary;
   const stdinIsTTY = deps?.stdinIsTTY ?? process.stdin.isTTY;
   const inferredStdin =

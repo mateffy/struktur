@@ -3,7 +3,19 @@ import { reconstructEntities, sroieToCases, type SroieRow } from "./sroie";
 
 // BIO tags: 0=O,1=B-COMPANY,2=I-COMPANY,3=B-DATE,5=B-ADDRESS,6=I-ADDRESS,7=B-TOTAL
 test("reconstructEntities extracts all four fields from BIO tags", () => {
-  const words = ["ACME", "Inc", "Date", ":", "25/12/2018", "123", "Main", "St", "Total", ":", "9.00"];
+  const words = [
+    "ACME",
+    "Inc",
+    "Date",
+    ":",
+    "25/12/2018",
+    "123",
+    "Main",
+    "St",
+    "Total",
+    ":",
+    "9.00",
+  ];
   const tags = [1, 2, 0, 0, 3, 5, 6, 6, 0, 0, 7];
   const gold = reconstructEntities(words, tags);
   expect(gold).toEqual({

@@ -64,8 +64,7 @@ export class SchemaValidationError extends Error {
  * Returns true when the issue represents a missing required field.
  * Used by the retry loop to distinguish "missing field" retries from hard type errors.
  */
-export const isRequiredError = (issue: ValidationIssue): boolean =>
-  issue.keyword === "required";
+export const isRequiredError = (issue: ValidationIssue): boolean => issue.keyword === "required";
 
 // ---------------------------------------------------------------------------
 // Schema-type predicates
@@ -164,23 +163,22 @@ const fromZodIssues = (issues: z.ZodIssue[]): ValidationIssue[] =>
     };
   });
 
-const fromStandardIssues = (
-  issues: ReadonlyArray<StandardSchemaIssue>,
-): ValidationIssue[] =>
+const fromStandardIssues = (issues: ReadonlyArray<StandardSchemaIssue>): ValidationIssue[] =>
   issues.map((issue) => {
-    const path = issue.path?.map((p) =>
-      typeof p === "object" && "key" in p ? p.key : p,
-    ) as (string | number | symbol)[] | undefined;
+    const path = issue.path?.map((p) => (typeof p === "object" && "key" in p ? p.key : p)) as
+      | (string | number | symbol)[]
+      | undefined;
 
     // Heuristic keyword detection from issue message.
     // Order matters: check "received undefined" (missing required field) before other
     // "received X" patterns (which indicate a type mismatch on a present field).
     const msg = issue.message.toLowerCase();
-    const keyword = msg.includes("received undefined") || msg.includes("required")
-      ? "required"
-      : msg.includes("invalid type") || msg.includes("expected") || msg.includes("received")
-        ? "type"
-        : undefined;
+    const keyword =
+      msg.includes("received undefined") || msg.includes("required")
+        ? "required"
+        : msg.includes("invalid type") || msg.includes("expected") || msg.includes("received")
+          ? "type"
+          : undefined;
 
     return { message: issue.message, path, keyword };
   });
@@ -191,7 +189,10 @@ const fromStandardIssues = (
 
 export type Validator = {
   validateOrThrow: <T>(data: unknown) => T;
-  validateAllowingMissingRequired: <T>(data: unknown, isFinalAttempt?: boolean) => ValidationResult<T>;
+  validateAllowingMissingRequired: <T>(
+    data: unknown,
+    isFinalAttempt?: boolean,
+  ) => ValidationResult<T>;
 };
 
 // --- Standard Schema validator ---
@@ -230,9 +231,7 @@ const standardSchemaValidator = (schema: StandardSchema): Validator => {
 
       if (nonRequired.length === 0) {
         // Only required-field failures — accept on the final attempt
-        return isFinalAttempt
-          ? { valid: true, data: data as T }
-          : { valid: false, errors: issues };
+        return isFinalAttempt ? { valid: true, data: data as T } : { valid: false, errors: issues };
       }
       return { valid: false, errors: nonRequired };
     },
@@ -282,9 +281,7 @@ const jsonSchemaValidator = (jsonSchema: Record<string, unknown>): Validator => 
 
       if (nonRequired.length === 0) {
         // Only required-field failures — accept on the final attempt
-        return isFinalAttempt
-          ? { valid: true, data: data as T }
-          : { valid: false, errors: issues };
+        return isFinalAttempt ? { valid: true, data: data as T } : { valid: false, errors: issues };
       }
       return { valid: false, errors: nonRequired };
     },

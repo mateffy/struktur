@@ -3,12 +3,15 @@ import type { PdfProcessor } from "./types";
 
 export const liteparseProcessor: PdfProcessor = {
   name: "liteparse",
-  description:
-    "LiteParse — high-speed Rust layout parser (npm: @llamaindex/liteparse)",
+  description: "LiteParse — high-speed Rust layout parser (npm: @llamaindex/liteparse)",
   async parse(buffer: Buffer): Promise<Artifact[]> {
-    let mod: { LiteParse: new (opts?: { outputFormat?: string; ocrEnabled?: boolean }) => { parse: (input: Buffer | string) => Promise<{ text?: string; pages?: { text: string }[] }> } };
+    let mod: {
+      LiteParse: new (opts?: { outputFormat?: string; ocrEnabled?: boolean }) => {
+        parse: (input: Buffer | string) => Promise<{ text?: string; pages?: { text: string }[] }>;
+      };
+    };
     try {
-      mod = await import("@llamaindex/liteparse") as typeof mod;
+      mod = (await import("@llamaindex/liteparse")) as typeof mod;
     } catch {
       throw new Error(
         "The 'liteparse' processor requires the '@llamaindex/liteparse' package.\n" +

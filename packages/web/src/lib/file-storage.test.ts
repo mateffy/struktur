@@ -1,12 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { clearStoredFiles, loadFilesFromStorage, saveFilesToStorage } from "./file-storage";
 
-function makeFile(
-  name: string,
-  content: string,
-  type = "text/plain",
-  lastModified?: number,
-): File {
+function makeFile(name: string, content: string, type = "text/plain", lastModified?: number): File {
   return new File([content], name, { type, lastModified });
 }
 

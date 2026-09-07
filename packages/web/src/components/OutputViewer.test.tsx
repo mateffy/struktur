@@ -48,7 +48,9 @@ describe("OutputViewer", () => {
       value: { writeText },
     });
 
-    render(<OutputViewer data={{ company: "Acme Corp" }} usage={{ inputTokens: 1, outputTokens: 1 }} />);
+    render(
+      <OutputViewer data={{ company: "Acme Corp" }} usage={{ inputTokens: 1, outputTokens: 1 }} />,
+    );
     fireEvent.click(screen.getByRole("button", { name: "Copy" }));
 
     expect(writeText).toHaveBeenCalledWith('{\n  "company": "Acme Corp"\n}');

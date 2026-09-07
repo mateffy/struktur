@@ -5,8 +5,7 @@ export const EMPTY = Symbol("struktur.benchmarks.empty");
 
 export type Normalized = string | number | boolean | typeof EMPTY;
 
-const stripDiacritics = (s: string): string =>
-  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+const stripDiacritics = (s: string): string => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
 /** Case, whitespace, and diacritic folding for normal string comparison. */
 export const normalizeString = (s: string): string =>

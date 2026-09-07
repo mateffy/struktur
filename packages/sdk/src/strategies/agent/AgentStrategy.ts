@@ -1,4 +1,9 @@
-import type { ExtractionOptions, ExtractionResult, ExtractionStrategy, StatusInfo } from "../../types";
+import type {
+  ExtractionOptions,
+  ExtractionResult,
+  ExtractionStrategy,
+  StatusInfo,
+} from "../../types";
 import type { createDebugLogger } from "../../debug/logger";
 import { resolveModel, type AiSdkModel } from "../../llm/resolveModel";
 import { generateText, tool } from "ai";
@@ -71,17 +76,31 @@ const healQuotes = (s: string): string => {
   for (let i = 0; i < s.length; i++) {
     const ch = s[i]!;
     if (inString) {
-      if (escape) { out += ch; escape = false; continue; }
-      if (ch === "\\") { out += ch; escape = true; continue; }
-      if (ch === "\"") {
-        if (isStructuralAfter(i + 1)) { out += ch; inString = false; }
-        else out += "\\\"";
+      if (escape) {
+        out += ch;
+        escape = false;
+        continue;
+      }
+      if (ch === "\\") {
+        out += ch;
+        escape = true;
+        continue;
+      }
+      if (ch === '"') {
+        if (isStructuralAfter(i + 1)) {
+          out += ch;
+          inString = false;
+        } else out += '\\"';
         continue;
       }
       out += ch;
       continue;
     }
-    if (ch === "\"") { out += ch; inString = true; continue; }
+    if (ch === '"') {
+      out += ch;
+      inString = true;
+      continue;
+    }
     out += ch;
   }
   return out;
@@ -103,22 +122,28 @@ const balancedPrefix = (s: string): string => {
     if (inString) {
       if (escape) escape = false;
       else if (ch === "\\") escape = true;
-      else if (ch === "\"") inString = false;
+      else if (ch === '"') inString = false;
       continue;
     }
-    if (ch === "\"") { inString = true; continue; }
+    if (ch === '"') {
+      inString = true;
+      continue;
+    }
     if (ch === "{" || ch === "[") stack.push(ch);
     else if (ch === "}" || ch === "]") {
       const top = stack[stack.length - 1];
       if ((ch === "}" && top === "{") || (ch === "]" && top === "[")) stack.pop();
-      else { cut = i; break; }
+      else {
+        cut = i;
+        break;
+      }
     }
   }
 
   if (stack.length === 0) return s;
   // Close any open strings, then close the containers in reverse order.
   let out = s.slice(0, cut);
-  if (inString) out += "\"";
+  if (inString) out += '"';
   for (let i = stack.length - 1; i >= 0; i--) out += stack[i] === "{" ? "}" : "]";
   return out;
 };
@@ -581,7 +606,11 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
               type: "content" as const,
               value: [
                 { type: "text" as const, text: `[Image: ${path}]` },
-                { type: "media" as const, data: imageData, mediaType: mimeType as "image/png" | "image/jpeg" },
+                {
+                  type: "media" as const,
+                  data: imageData,
+                  mediaType: mimeType as "image/png" | "image/jpeg",
+                },
               ],
             };
           } else {
@@ -664,8 +693,6 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
       let stepCount = 0;
       const iterMaxSteps = maxSteps;
 
-
-
       while (stepCount < iterMaxSteps && !isComplete && !extractionFailed) {
         const stepNumber = stepCount + 1;
         debug?.agentStepStart({
@@ -677,9 +704,13 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
 
         const stepStart = Date.now();
         const abortController = new AbortController();
-        const timeoutId = setTimeout(() => abortController.abort(
-          new Error(`Step ${stepNumber} timed out after ${stepTimeoutMs}ms`)
-        ), stepTimeoutMs);
+        const timeoutId = setTimeout(
+          () =>
+            abortController.abort(
+              new Error(`Step ${stepNumber} timed out after ${stepTimeoutMs}ms`),
+            ),
+          stepTimeoutMs,
+        );
 
         let result: any;
         try {
@@ -733,41 +764,43 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
                     : undefined,
               });
 
-            // Extract text from tool result
-            let resultText: string;
-            if (error) {
-              resultText = `Error: ${error.message}`;
-            } else if (typeof output === "string") {
-              resultText = output;
-            } else if (output?.content?.[0]?.text) {
-              resultText = output.content[0].text;
-            } else if (output?.content?.[0]?.type === "text") {
-              resultText = output.content[0].text;
-            } else {
-              resultText = JSON.stringify(output).slice(0, 200);
-            }
+              // Extract text from tool result
+              let resultText: string;
+              if (error) {
+                resultText = `Error: ${error.message}`;
+              } else if (typeof output === "string") {
+                resultText = output;
+              } else if (output?.content?.[0]?.text) {
+                resultText = output.content[0].text;
+              } else if (output?.content?.[0]?.type === "text") {
+                resultText = output.content[0].text;
+              } else {
+                resultText = JSON.stringify(output).slice(0, 200);
+              }
 
-            await options.events?.onAgentToolEnd?.({
-              toolCallId: toolCallId as string,
-              result: { text: resultText } as any,
-            });
+              await options.events?.onAgentToolEnd?.({
+                toolCallId: toolCallId as string,
+                result: { text: resultText } as any,
+              });
 
-            // Check for finish/fail tools - only succeed if no error and output indicates success
-            if (toolName === "finish" && !error && resultText === "Complete") {
-              isComplete = true;
-            }
-            if (toolName === "fail" || (toolName === "finish" && resultText === "Error: No data")) {
-              extractionFailed = true;
-              failureReason =
-                toolName === "fail"
-                  ? typeof output === "object" && output?.reason
-                    ? output.reason
-                    : "Unknown error"
-                  : "finish called without setting output data first";
-            }
-          },
-        });
-
+              // Check for finish/fail tools - only succeed if no error and output indicates success
+              if (toolName === "finish" && !error && resultText === "Complete") {
+                isComplete = true;
+              }
+              if (
+                toolName === "fail" ||
+                (toolName === "finish" && resultText === "Error: No data")
+              ) {
+                extractionFailed = true;
+                failureReason =
+                  toolName === "fail"
+                    ? typeof output === "object" && output?.reason
+                      ? output.reason
+                      : "Unknown error"
+                    : "finish called without setting output data first";
+              }
+            },
+          });
         } finally {
           clearTimeout(timeoutId);
         }

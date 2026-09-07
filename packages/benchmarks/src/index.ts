@@ -16,14 +16,13 @@ export { estimateCostUsd, pricingFor, type ModelPricing } from "./pricing";
 
 export { trackToPdfOptions, materializeTrack } from "./tracks";
 
+export { scoreData, leafCount, EMPTY, type FieldScore, type FieldError } from "./scoring/score";
 export {
-  scoreData,
-  leafCount,
-  EMPTY,
-  type FieldScore,
-  type FieldError,
-} from "./scoring/score";
-export { normalizeString, normalizeAggressive, normalizeValue, valuesEqual } from "./scoring/normalize";
+  normalizeString,
+  normalizeAggressive,
+  normalizeValue,
+  valuesEqual,
+} from "./scoring/normalize";
 
 export {
   runBenchmark,

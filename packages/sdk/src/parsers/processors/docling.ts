@@ -21,8 +21,7 @@ const parseDoclingOutput = (markdown: string): ArtifactContent[] => {
 
 export const doclingProcessor: PdfProcessor = {
   name: "docling",
-  description:
-    "IBM Docling — layout analysis, tables as markdown (requires: pip install docling)",
+  description: "IBM Docling — layout analysis, tables as markdown (requires: pip install docling)",
   async parse(buffer: Buffer): Promise<Artifact[]> {
     const tmpDir = await mkdtemp(join(tmpdir(), "struktur-docling-"));
     try {

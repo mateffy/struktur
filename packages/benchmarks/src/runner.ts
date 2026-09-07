@@ -1,8 +1,14 @@
 import type { ExtractionStrategy, Usage } from "@struktur/sdk";
 import { extract, resolveModel, toJsonSchema } from "@struktur/sdk";
 import {
-  simple, parallel, sequential, parallelAutoMerge, sequentialAutoMerge,
-  doublePass, doublePassAutoMerge, agent,
+  simple,
+  parallel,
+  sequential,
+  parallelAutoMerge,
+  sequentialAutoMerge,
+  doublePass,
+  doublePassAutoMerge,
+  agent,
 } from "@struktur/sdk";
 import type { BenchmarkCase, Track } from "./types";
 import { TRACKS } from "./types";
@@ -17,9 +23,13 @@ import { estimateCostUsd } from "./pricing";
 // ---------------------------------------------------------------------------
 
 type BuiltinName =
-  | "simple" | "parallel" | "sequential"
-  | "parallelAutoMerge" | "sequentialAutoMerge"
-  | "doublePass" | "doublePassAutoMerge"
+  | "simple"
+  | "parallel"
+  | "sequential"
+  | "parallelAutoMerge"
+  | "sequentialAutoMerge"
+  | "doublePass"
+  | "doublePassAutoMerge"
   | "agent";
 
 /**
@@ -40,7 +50,11 @@ export type StrategyEntry = {
   strategy: BuiltinName | StrategyFactory;
 };
 
-export type StrategyLike = BuiltinName | StrategyFactory | ExtractionStrategy<unknown> | StrategyEntry;
+export type StrategyLike =
+  | BuiltinName
+  | StrategyFactory
+  | ExtractionStrategy<unknown>
+  | StrategyEntry;
 
 // ---------------------------------------------------------------------------
 // Built-in factories
@@ -53,18 +67,41 @@ const builtins: Record<BuiltinName, StrategyFactory> = {
   sequential: (model, _spec, instructions) =>
     sequential({ model, chunkSize: 10_000, outputInstructions: instructions }),
   parallelAutoMerge: (model, _spec, instructions) =>
-    parallelAutoMerge({ model, dedupeModel: model, chunkSize: 10_000, outputInstructions: instructions }),
+    parallelAutoMerge({
+      model,
+      dedupeModel: model,
+      chunkSize: 10_000,
+      outputInstructions: instructions,
+    }),
   sequentialAutoMerge: (model, _spec, instructions) =>
-    sequentialAutoMerge({ model, dedupeModel: model, chunkSize: 10_000, outputInstructions: instructions }),
+    sequentialAutoMerge({
+      model,
+      dedupeModel: model,
+      chunkSize: 10_000,
+      outputInstructions: instructions,
+    }),
   doublePass: (model, _spec, instructions) =>
     doublePass({ model, mergeModel: model, chunkSize: 10_000, outputInstructions: instructions }),
   doublePassAutoMerge: (model, _spec, instructions) =>
-    doublePassAutoMerge({ model, dedupeModel: model, chunkSize: 10_000, outputInstructions: instructions }),
+    doublePassAutoMerge({
+      model,
+      dedupeModel: model,
+      chunkSize: 10_000,
+      outputInstructions: instructions,
+    }),
   agent: (_model, modelSpec, instructions) => {
     const [provider, ...rest] = modelSpec.split("/");
     const modelId = rest.join("/");
-    if (!provider || !modelId) throw new Error(`Agent requires 'provider/model'. Got: ${modelSpec}`);
-    return agent({ provider, modelId, maxSteps: 50, maxIterations: 1, vision: true, outputInstructions: instructions });
+    if (!provider || !modelId)
+      throw new Error(`Agent requires 'provider/model'. Got: ${modelSpec}`);
+    return agent({
+      provider,
+      modelId,
+      maxSteps: 50,
+      maxIterations: 1,
+      vision: true,
+      outputInstructions: instructions,
+    });
   },
 };
 
@@ -143,7 +180,9 @@ function resolveStrategy(
   if (typeof entry === "string") {
     const factory = builtins[entry];
     if (!factory) {
-      throw new Error(`Unknown builtin strategy: ${entry}. Available: ${Object.keys(builtins).join(", ")}`);
+      throw new Error(
+        `Unknown builtin strategy: ${entry}. Available: ${Object.keys(builtins).join(", ")}`,
+      );
     }
     return { name: entry, strategy: factory(model, modelSpec) };
   }
@@ -158,13 +197,19 @@ function resolveStrategy(
     if (typeof inner === "string") {
       const factory = builtins[inner];
       if (!factory) throw new Error(`Unknown builtin strategy: ${inner}`);
-      return { name: entry.label ?? inner, strategy: factory(model, modelSpec, entry.instructions) };
+      return {
+        name: entry.label ?? inner,
+        strategy: factory(model, modelSpec, entry.instructions),
+      };
     }
     const s = inner(model, modelSpec, entry.instructions);
     return { name: entry.label ?? s.name, strategy: s };
   }
 
-  return { name: (entry as ExtractionStrategy<unknown>).name, strategy: entry as ExtractionStrategy<unknown> };
+  return {
+    name: (entry as ExtractionStrategy<unknown>).name,
+    strategy: entry as ExtractionStrategy<unknown>,
+  };
 }
 
 const emptyUsage = (): Usage => ({ inputTokens: 0, outputTokens: 0, totalTokens: 0 });
@@ -201,7 +246,8 @@ export async function runBenchmark(options: RunOptions): Promise<BenchmarkReport
         if (cached) {
           cached.cached = true;
           // Backfill cost for cells cached before cost tracking was added.
-          if (cached.costUsd === undefined) cached.costUsd = estimateCostUsd(modelSpec, cached.usage);
+          if (cached.costUsd === undefined)
+            cached.costUsd = estimateCostUsd(modelSpec, cached.usage);
           cells.push(cached);
           options.onCell?.({ caseId: c.id, track, strategy: name, cached: true });
           continue;

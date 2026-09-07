@@ -7,13 +7,77 @@ import { EMPTY, normalizeValue, valuesEqual } from "./normalize";
 // content-word overlap — an ordered F1 over the distinct content tokens.
 
 const STOPWORDS = new Set([
-  "the", "a", "an", "and", "or", "of", "to", "in", "on", "at", "is", "are",
-  "it", "this", "that", "with", "for", "as", "by", "from", "be", "was", "were",
-  "und", "der", "die", "das", "ein", "eine", "einen", "dem", "den", "mit",
-  "von", "zur", "zum", "auf", "im", "in", "am", "ist", "sind", "werden",
-  "wird", "des", "sich", "auch", "nicht", "als", "bei", "für", "über", "aus",
-  "nach", "einer", "einem", "eine", "zu", "unter", "an", "sowie", "durch",
-  "alle", "dass", "dieser", "diese", "hier", "sein", "ihr", "wir", "man",
+  "the",
+  "a",
+  "an",
+  "and",
+  "or",
+  "of",
+  "to",
+  "in",
+  "on",
+  "at",
+  "is",
+  "are",
+  "it",
+  "this",
+  "that",
+  "with",
+  "for",
+  "as",
+  "by",
+  "from",
+  "be",
+  "was",
+  "were",
+  "und",
+  "der",
+  "die",
+  "das",
+  "ein",
+  "eine",
+  "einen",
+  "dem",
+  "den",
+  "mit",
+  "von",
+  "zur",
+  "zum",
+  "auf",
+  "im",
+  "in",
+  "am",
+  "ist",
+  "sind",
+  "werden",
+  "wird",
+  "des",
+  "sich",
+  "auch",
+  "nicht",
+  "als",
+  "bei",
+  "für",
+  "über",
+  "aus",
+  "nach",
+  "einer",
+  "einem",
+  "eine",
+  "zu",
+  "unter",
+  "an",
+  "sowie",
+  "durch",
+  "alle",
+  "dass",
+  "dieser",
+  "diese",
+  "hier",
+  "sein",
+  "ihr",
+  "wir",
+  "man",
 ]);
 
 const tokenizeProse = (s: string): string[] => {
@@ -106,7 +170,11 @@ const merge = (into: FieldScore, child: FieldScore): void => {
 };
 
 const isLeaf = (v: unknown): boolean =>
-  v === null || v === undefined || typeof v === "string" || typeof v === "number" || typeof v === "boolean";
+  v === null ||
+  v === undefined ||
+  typeof v === "string" ||
+  typeof v === "number" ||
+  typeof v === "boolean";
 
 const isObject = (v: unknown): v is Record<string, unknown> =>
   typeof v === "object" && v !== null && !Array.isArray(v);
@@ -133,7 +201,9 @@ const alignmentFor = (spec: FieldMetricSpec, path: string): ArrayAlignment | und
   spec.arrays?.find((a) => canonPath(path).endsWith(canonPath(a.path)));
 
 const isSetPath = (spec: FieldMetricSpec, path: string): boolean =>
-  (spec.sets ?? []).some((s) => canonPath(s) === canonPath(path) || canonPath(path).endsWith(canonPath(s)));
+  (spec.sets ?? []).some(
+    (s) => canonPath(s) === canonPath(path) || canonPath(path).endsWith(canonPath(s)),
+  );
 
 function groupByKey(items: unknown[], key: string | string[]): Map<string, unknown[]> {
   const map = new Map<string, unknown[]>();
@@ -267,13 +337,23 @@ function scoreSet(path: string, g: unknown[], p: unknown[], spec: FieldMetricSpe
     s.fn += gc - common;
     s.fp += pc - common;
     if (common < gc) {
-      s.fieldErrors.push({ path, gold: g.find((v) => String(normalizeValue(v, metric)) === k), pred: null, metric });
+      s.fieldErrors.push({
+        path,
+        gold: g.find((v) => String(normalizeValue(v, metric)) === k),
+        pred: null,
+        metric,
+      });
     }
   }
   for (const [k, pc] of predKeyed) {
     const gc = goldKeyed.get(k) ?? 0;
     if (pc > gc) {
-      s.fieldErrors.push({ path, gold: null, pred: p.find((v) => String(normalizeValue(v, metric)) === k), metric });
+      s.fieldErrors.push({
+        path,
+        gold: null,
+        pred: p.find((v) => String(normalizeValue(v, metric)) === k),
+        metric,
+      });
     }
   }
   return finalize(s);

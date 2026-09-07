@@ -62,9 +62,7 @@ export async function loadDataset(
   if (!cases) {
     if (dataset.source.kind === "manual") {
       const hint = dataset.source.hint ?? `download the dataset into ${rawDir}`;
-      throw new Error(
-        `Dataset "${dataset.id}" requires manual download. ${hint}`,
-      );
+      throw new Error(`Dataset "${dataset.id}" requires manual download. ${hint}`);
     }
 
     await mkdir(rawDir, { recursive: true });
@@ -114,8 +112,7 @@ export async function downloadHubRows(
   const rows: Record<string, unknown>[] = [];
   let offset = 0;
   for (;;) {
-    const url =
-      `${base}/rows?dataset=${repo}&config=${config}&split=${split}&offset=${offset}&length=${pageSize}`;
+    const url = `${base}/rows?dataset=${repo}&config=${config}&split=${split}&offset=${offset}&length=${pageSize}`;
     const res = await fetchImpl(url);
     if (!res.ok) {
       throw new Error(`Hugging Face datasets-server error ${res.status} for ${url}`);

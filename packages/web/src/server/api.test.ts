@@ -1,11 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import {
-  extractData,
-  parseFieldsShorthand,
-  parseFiles,
-  type ExtractionEvent,
-} from "./api";
+import { extractData, parseFieldsShorthand, parseFiles, type ExtractionEvent } from "./api";
 import { app } from "./hono";
 
 function textFile(content: string, name = "note.txt", type = "text/plain"): File {

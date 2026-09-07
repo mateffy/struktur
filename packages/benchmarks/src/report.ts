@@ -13,7 +13,9 @@ export function toMarkdownTable(report: BenchmarkReport): string {
   if (report.variant) lines.push(`- variant: \`${report.variant}\``);
   lines.push(`- generated: ${report.generatedAt}`);
   lines.push(``);
-  lines.push(`| strategy | track | cases | F1 | precision | recall | valid | exact | in tok | out tok | cost (USD) | ms/case | total ms |`);
+  lines.push(
+    `| strategy | track | cases | F1 | precision | recall | valid | exact | in tok | out tok | cost (USD) | ms/case | total ms |`,
+  );
   lines.push(`|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|`);
   for (const row of report.summary) {
     lines.push(

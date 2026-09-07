@@ -1,9 +1,4 @@
-import type {
-  Artifact,
-  StandardSchema,
-  TypedJSONSchema,
-  Usage,
-} from "@struktur/sdk";
+import type { Artifact, StandardSchema, TypedJSONSchema, Usage } from "@struktur/sdk";
 
 /**
  * The four ways a source can be presented to the model.
@@ -18,11 +13,7 @@ import type {
  * For image-only sources (scanned receipts, photos) text is absent and the
  * image IS the content, so only `text+embedded` is meaningful.
  */
-export type Track =
-  | "text"
-  | "text+embedded"
-  | "text+screenshots"
-  | "text+embedded+screenshots";
+export type Track = "text" | "text+embedded" | "text+screenshots" | "text+embedded+screenshots";
 
 export const TRACKS: readonly Track[] = [
   "text",
@@ -37,11 +28,8 @@ export const TRACKS: readonly Track[] = [
  * - TypedJSONSchema<T> (tagged plain JSON Schema)      → T
  * - plain JSON Schema object                            → unknown (no type info carried)
  */
-export type SchemaOutput<S> = S extends StandardSchema<unknown, infer T>
-  ? T
-  : S extends TypedJSONSchema<infer T>
-    ? T
-    : unknown;
+export type SchemaOutput<S> =
+  S extends StandardSchema<unknown, infer T> ? T : S extends TypedJSONSchema<infer T> ? T : unknown;
 
 /** How a single field is compared against its gold value. */
 export type FieldMetric = "exact" | "normalized" | "tolerance" | "semantic" | "prose";

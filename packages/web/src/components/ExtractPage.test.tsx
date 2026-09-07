@@ -65,14 +65,22 @@ function mockFetch({
     }
     if (urlStr === "/api/extract/stream" && method === "POST") {
       return Promise.resolve(
-        sseResponse(streamEvents ?? [
-          { type: "step", data: { step: 1, total: 2, label: "Parsing files" } },
-          { type: "step", data: { step: 2, total: 2, label: "Extracting data" } },
-          {
-            type: "complete",
-            data: { result: { data: { company: "Acme Corp" }, usage: { inputTokens: 10, outputTokens: 5 } }, artifacts: [artifacts] },
-          },
-        ]),
+        sseResponse(
+          streamEvents ?? [
+            { type: "step", data: { step: 1, total: 2, label: "Parsing files" } },
+            { type: "step", data: { step: 2, total: 2, label: "Extracting data" } },
+            {
+              type: "complete",
+              data: {
+                result: {
+                  data: { company: "Acme Corp" },
+                  usage: { inputTokens: 10, outputTokens: 5 },
+                },
+                artifacts: [artifacts],
+              },
+            },
+          ],
+        ),
       );
     }
     return Promise.reject(new Error(`Unhandled fetch: ${urlStr}`));
@@ -102,7 +110,7 @@ const flush = () => act(() => new Promise((r) => setTimeout(r, 0)));
 // Simulates a file drop into the hidden <input type="file"> by forcing the
 // read-only `files` property before dispatching a change event.
 function upload(container: HTMLElement, name: string, content: string, type = "text/plain") {
-  const input = container.querySelector<HTMLInputElement>("input[type=\"file\"]");
+  const input = container.querySelector<HTMLInputElement>('input[type="file"]');
   const file = new File([content], name, { type });
   Object.defineProperty(input!, "files", {
     configurable: true,
@@ -231,8 +239,8 @@ describe("ExtractPage — extract workflow", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Extract" }));
 
-    await waitFor(() =>
-      expect(screen.getByText("No API key provided for openai")).toBeInTheDocument(),
+    await waitFor(
+      () => expect(screen.getByText("No API key provided for openai")).toBeInTheDocument(),
       { timeout: 3000 },
     );
   });

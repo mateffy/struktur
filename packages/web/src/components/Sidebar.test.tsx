@@ -44,14 +44,23 @@ function mockFetch() {
     if (urlStr === "/api/config") {
       return Promise.resolve(
         new Response(
-          JSON.stringify({ defaultModel: null, aliases: {}, availableProviders: [], useGlobalProviders: false, allProviders: [] }),
+          JSON.stringify({
+            defaultModel: null,
+            aliases: {},
+            availableProviders: [],
+            useGlobalProviders: false,
+            allProviders: [],
+          }),
           { status: 200 },
         ),
       );
     }
     if (urlStr.startsWith("/examples/schemas/")) {
       return Promise.resolve(
-        new Response(JSON.stringify({ type: "object", properties: { company: { type: "string" } } }), { status: 200 }),
+        new Response(
+          JSON.stringify({ type: "object", properties: { company: { type: "string" } } }),
+          { status: 200 },
+        ),
       );
     }
     return Promise.reject(new Error(`Unhandled fetch: ${urlStr}`));
@@ -112,9 +121,7 @@ describe("Sidebar", () => {
     fireEvent.click(invoice);
 
     await waitFor(() =>
-      expect(onSchemaJsonChange).toHaveBeenCalledWith(
-        expect.stringContaining('"company"'),
-      ),
+      expect(onSchemaJsonChange).toHaveBeenCalledWith(expect.stringContaining('"company"')),
     );
     expect(onSchemaModeChange).toHaveBeenCalledWith("json");
   });

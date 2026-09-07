@@ -16,7 +16,12 @@ const noArtifacts: Artifact[] = [];
   // @ts-expect-error `total` must be a number
   defineCase({ id: "bad2", schema, gold: { name: "a", total: "x" }, artifacts: noArtifacts });
   // @ts-expect-error unknown field
-  defineCase({ id: "bad3", schema, gold: { name: "a", total: 1, extra: true }, artifacts: noArtifacts });
+  defineCase({
+    id: "bad3",
+    schema,
+    gold: { name: "a", total: 1, extra: true },
+    artifacts: noArtifacts,
+  });
   const _out: Out = { name: "x", total: 2 };
   void _out;
 }

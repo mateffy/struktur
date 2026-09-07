@@ -1,7 +1,8 @@
 declare const __CLI_VERSION__: string | undefined;
 
 /** Version string — injected by tsup define at build time, falls back to '0.0.0-dev' when running source directly (e.g. tests). */
-const CLI_VERSION: string = (typeof __CLI_VERSION__ !== "undefined" && __CLI_VERSION__) || "0.0.0-dev";
+const CLI_VERSION: string =
+  (typeof __CLI_VERSION__ !== "undefined" && __CLI_VERSION__) || "0.0.0-dev";
 
 // Workaround for AI SDK timestamp parsing issue with certain providers
 // Some providers (e.g., opencode) return invalid timestamps that cause
@@ -1816,7 +1817,8 @@ const extractCommand = defineCommand({
     },
     "reasoning-effort": {
       type: "string",
-      description: "Reasoning effort for thinking models (low|medium|high). Defaults to the model's default.",
+      description:
+        "Reasoning effort for thinking models (low|medium|high). Defaults to the model's default.",
       valueHint: "low|medium|high",
     },
     "images-output": {
@@ -1858,7 +1860,7 @@ const extractCommand = defineCommand({
       description: "Extract embedded images from documents (PDFs)",
       default: false,
     },
-    "screenshots": {
+    screenshots: {
       type: "boolean",
       description: "Render page screenshots and include them as images in the artifact output",
       default: false,
@@ -2345,8 +2347,7 @@ const parseCommand = defineCommand({
     },
     processor: {
       type: "string",
-      description:
-        "PDF processor: pdf-parse (default), vlm, docling, liteparse, kreuzberg",
+      description: "PDF processor: pdf-parse (default), vlm, docling, liteparse, kreuzberg",
       valueHint: "pdf-parse|vlm|docling|liteparse|kreuzberg",
     },
   },
@@ -2358,7 +2359,7 @@ const parseCommand = defineCommand({
 
     const useStdin = args.stdin === true;
     const isDebug = format === "debug";
-    const debug = createDebugLogger(isDebug);
+    const _debug = createDebugLogger(isDebug);
 
     if (!args.input && !useStdin) {
       // No input source — show usage + error and exit 1
@@ -2438,11 +2439,7 @@ const parseCommand = defineCommand({
     if (parserDef) {
       artifacts = await runParser(parserDef, { kind: "buffer", buffer }, mimeType);
     } else if (mimeType === "application/pdf") {
-      const {
-        parsePdf,
-        getPdfProcessor,
-        listPdfProcessors,
-      } = await import("@struktur/sdk");
+      const { getPdfProcessor, listPdfProcessors } = await import("@struktur/sdk");
       const screenshotScale = args["screenshot-scale"]
         ? parseFloat(args["screenshot-scale"])
         : undefined;
@@ -2453,10 +2450,10 @@ const parseCommand = defineCommand({
       const processorName = (args.processor as string | undefined) ?? "pdf-parse";
       const processor = getPdfProcessor(processorName);
       if (!processor) {
-        const available = listPdfProcessors().map((p) => p.name).join(", ");
-        throw new UserError(
-          `Unknown processor: "${processorName}". Available: ${available}`,
-        );
+        const available = listPdfProcessors()
+          .map((p) => p.name)
+          .join(", ");
+        throw new UserError(`Unknown processor: "${processorName}". Available: ${available}`);
       }
 
       // For VLM processor, resolve the model from user's default config

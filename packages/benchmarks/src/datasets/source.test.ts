@@ -7,15 +7,17 @@ import type { BenchmarkCase } from "../types";
 import { textArtifact } from "./synthetic";
 
 /** A fake fetch that returns paginated rows. */
-const hubFetch = (pages: Record<string, unknown>[][]): FetchLike => async (url) => {
-  const match = /offset=(\d+)&length=(\d+)/.exec(url);
-  const offset = Number(match?.[1] ?? 0);
-  const page = pages[Math.floor(offset / 100)] ?? [];
-  return new Response(JSON.stringify({ rows: page.map((row) => ({ row })) }), {
-    status: 200,
-    headers: { "content-type": "application/json" },
-  });
-};
+const hubFetch =
+  (pages: Record<string, unknown>[][]): FetchLike =>
+  async (url) => {
+    const match = /offset=(\d+)&length=(\d+)/.exec(url);
+    const offset = Number(match?.[1] ?? 0);
+    const page = pages[Math.floor(offset / 100)] ?? [];
+    return new Response(JSON.stringify({ rows: page.map((row) => ({ row })) }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
+  };
 
 test("downloadHubRows pages through the datasets-server API", async () => {
   const pages = [
@@ -23,7 +25,13 @@ test("downloadHubRows pages through the datasets-server API", async () => {
     [{ id: "100" }, { id: "101" }],
   ];
   const rows = await downloadHubRows(
-    { kind: "hub", repo: "test/dataset", config: "default", split: "train", baseUrl: "https://example.test" },
+    {
+      kind: "hub",
+      repo: "test/dataset",
+      config: "default",
+      split: "train",
+      baseUrl: "https://example.test",
+    },
     hubFetch(pages),
   );
   expect(rows).toHaveLength(102);
@@ -45,14 +53,18 @@ test("loadDataset downloads, converts, and caches", async () => {
       },
       convert: async (rawDir) => {
         const { readFile } = await import("node:fs/promises");
-        const rows = JSON.parse(await readFile(join(rawDir, "rows.json"), "utf8")) as { v: string }[];
-        return rows.map((r, i): BenchmarkCase => ({
-          id: `demo-${i}`,
-          schema: { type: "object" },
-          gold: { v: r.v },
-          artifacts: [textArtifact(r.v)],
-          tracks: ["text"],
-        }));
+        const rows = JSON.parse(await readFile(join(rawDir, "rows.json"), "utf8")) as {
+          v: string;
+        }[];
+        return rows.map(
+          (r, i): BenchmarkCase => ({
+            id: `demo-${i}`,
+            schema: { type: "object" },
+            gold: { v: r.v },
+            artifacts: [textArtifact(r.v)],
+            tracks: ["text"],
+          }),
+        );
       },
     };
 
@@ -62,7 +74,13 @@ test("loadDataset downloads, converts, and caches", async () => {
 
     // Second load hits the cache — convert is not called again.
     let convertCalls = 0;
-    const counting: Dataset = { ...dataset, convert: async (_rawDir) => { convertCalls++; return []; } };
+    const counting: Dataset = {
+      ...dataset,
+      convert: async (_rawDir) => {
+        convertCalls++;
+        return [];
+      },
+    };
     const cached = await loadDataset(counting, { cacheDir: dir });
     expect(convertCalls).toBe(0);
     expect(cached).toHaveLength(1);
@@ -80,12 +98,14 @@ test("loadDataset applies limit and offset", async () => {
       source: { kind: "hub", repo: "test/demo2" },
       download: async () => {},
       convert: async () =>
-        [0, 1, 2, 3, 4].map((i): BenchmarkCase => ({
-          id: `c${i}`,
-          schema: { type: "object" },
-          gold: {},
-          artifacts: [textArtifact("")],
-        })),
+        [0, 1, 2, 3, 4].map(
+          (i): BenchmarkCase => ({
+            id: `c${i}`,
+            schema: { type: "object" },
+            gold: {},
+            artifacts: [textArtifact("")],
+          }),
+        ),
     };
     const cases = await loadDataset(dataset, { cacheDir: dir, limit: 2, offset: 1 });
     expect(cases.map((c) => c.id)).toEqual(["c1", "c2"]);

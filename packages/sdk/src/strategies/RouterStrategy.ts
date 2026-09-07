@@ -1,16 +1,10 @@
-import type {
-  Artifact,
-  ExtractionOptions,
-  ExtractionResult,
-  ExtractionStrategy,
-} from "../types";
+import type { Artifact, ExtractionOptions, ExtractionResult, ExtractionStrategy } from "../types";
 import type { createDebugLogger } from "../debug/logger";
 import { simple } from "./SimpleStrategy";
 import { parallel } from "./ParallelStrategy";
 import { sequential } from "./SequentialStrategy";
 import { agent } from "./agent/AgentStrategy";
 import { classifyDocument, type DocumentClass } from "./classifier";
-import { mergeUsage } from "./utils";
 
 /**
  * Auto-routing strategy: classify the input, then delegate extraction to the
@@ -95,7 +89,11 @@ export class RouterStrategy<T> implements ExtractionStrategy<T> {
   }
 
   getEstimatedSteps(artifacts: Artifact[]): number {
-    return Math.max(3, Math.ceil(routerFeatures(artifacts).totalTokens / (this.config.simpleThreshold ?? 10_000)) + 1);
+    return Math.max(
+      3,
+      Math.ceil(routerFeatures(artifacts).totalTokens / (this.config.simpleThreshold ?? 10_000)) +
+        1,
+    );
   }
 
   async run(options: ExtractionOptions<T>): Promise<ExtractionResult<T>> {

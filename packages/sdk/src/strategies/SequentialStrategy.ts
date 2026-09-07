@@ -70,7 +70,11 @@ export class SequentialStrategy<T> implements ExtractionStrategy<T> {
     });
     emitStatus(
       options.events,
-      stepLabelToStatus(batches.length > 1 ? `batch 1/${batches.length}` : "extract", step, totalSteps),
+      stepLabelToStatus(
+        batches.length > 1 ? `batch 1/${batches.length}` : "extract",
+        step,
+        totalSteps,
+      ),
     );
     debug?.step({
       step,

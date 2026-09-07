@@ -11,7 +11,13 @@ test("estimateCostUsd uses input/output pricing per 1M tokens", () => {
 });
 
 test("estimateCostUsd returns 0 for unknown models", () => {
-  expect(estimateCostUsd("openrouter/unknown/model", { inputTokens: 100, outputTokens: 100, totalTokens: 200 })).toBe(0);
+  expect(
+    estimateCostUsd("openrouter/unknown/model", {
+      inputTokens: 100,
+      outputTokens: 100,
+      totalTokens: 200,
+    }),
+  ).toBe(0);
 });
 
 test("pricingFor strips an OpenRouter provider suffix", () => {

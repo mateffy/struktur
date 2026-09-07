@@ -77,9 +77,7 @@ export function generateKeyValueCases(
 
   const schema = {
     type: "object",
-    properties: Object.fromEntries(
-      fields.map((f) => [f.name, { type: f.type ?? "string" }]),
-    ),
+    properties: Object.fromEntries(fields.map((f) => [f.name, { type: f.type ?? "string" }])),
     required: fields.map((f) => f.name),
     additionalProperties: false,
   };
@@ -89,7 +87,8 @@ export function generateKeyValueCases(
     const lines: string[] = [];
     const gold: Record<string, unknown> = {};
     for (const f of fields) {
-      const values = f.values ?? (f.type === "number" ? DEFAULT_NUMBER_VALUES : DEFAULT_STRING_VALUES);
+      const values =
+        f.values ?? (f.type === "number" ? DEFAULT_NUMBER_VALUES : DEFAULT_STRING_VALUES);
       const raw = pick(values);
       const value = f.type === "number" ? Number.parseFloat(raw) : raw;
       lines.push(`${f.name}: ${raw}`);

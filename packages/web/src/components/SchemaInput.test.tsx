@@ -59,10 +59,7 @@ describe("SchemaInput", () => {
       />,
     );
     const input = screen.getByLabelText("Field definitions");
-    expect(input).toHaveAttribute(
-      "placeholder",
-      "name:string, age:number, tags:array{string}",
-    );
+    expect(input).toHaveAttribute("placeholder", "name:string, age:number, tags:array{string}");
     expect(
       screen.getByText(/Separate fields with commas\. Types: string, number, boolean, array, enum/),
     ).toBeInTheDocument();
@@ -133,10 +130,9 @@ describe("SchemaInput", () => {
         onFieldsChange={noop}
       />,
     );
-    fireEvent.change(
-      screen.getByPlaceholderText('{"type": "object", "properties": {...}}'),
-      { target: { value: '{"type":"object"}' } },
-    );
+    fireEvent.change(screen.getByPlaceholderText('{"type": "object", "properties": {...}}'), {
+      target: { value: '{"type":"object"}' },
+    });
     expect(onSchemaJsonChange).toHaveBeenCalledWith('{"type":"object"}');
   });
 

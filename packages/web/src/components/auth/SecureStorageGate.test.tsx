@@ -16,9 +16,7 @@ describe("SecureStorageGate", () => {
   it("shows the setup prompt for a brand-new user", () => {
     renderGate();
     expect(screen.getByRole("heading", { name: "Secure Your API Keys" })).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Create Secure Storage" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Create Secure Storage" })).toBeInTheDocument();
   });
 
   it("always renders the protected children underneath the gate", () => {
@@ -63,9 +61,7 @@ describe("SecureStorageGate", () => {
     fireEvent.click(screen.getByRole("button", { name: "Skip for Now" }));
 
     await waitFor(() =>
-      expect(
-        screen.queryByRole("heading", { name: "Unlock Struktur" }),
-      ).not.toBeInTheDocument(),
+      expect(screen.queryByRole("heading", { name: "Unlock Struktur" })).not.toBeInTheDocument(),
     );
     expect(screen.getByText("protected-content")).toBeInTheDocument();
   });

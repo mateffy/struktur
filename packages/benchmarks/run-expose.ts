@@ -3,25 +3,35 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import type { Artifact } from "@struktur/sdk";
 import { runBenchmark, saveReport, type BenchmarkCase, type StrategyEntry } from "./src/index";
-import { estateTextSchema, wrapGold, type ExposeGold } from "./src/expose/schema";
-import { sandstrasse, primePulse, flottenstrasse, dock100, holzhauser, elsenstrasse } from "./src/expose/gold";
+import { estateTextSchema, type ExposeGold } from "./src/expose/schema";
+import {
+  sandstrasse,
+  primePulse,
+  flottenstrasse,
+  dock100,
+  holzhauser,
+  elsenstrasse,
+} from "./src/expose/gold";
 import { buildEstateInstructions } from "./src/expose/instructions";
 import { exposeMetric } from "./src/expose/metric";
 import { normalizeForScoring } from "./src/expose/gold-score";
 import { BENCHMARK_MODEL } from "./src/config";
 
-const baseDir = "/Users/mat/Library/Mobile Documents/com~apple~CloudDocs/Archiv/Dev/Realbeispiele/Exposes";
+const baseDir =
+  "/Users/mat/Library/Mobile Documents/com~apple~CloudDocs/Archiv/Dev/Realbeispiele/Exposes";
 
 const files: { id: string; gold: ExposeGold; file: string }[] = [
-  { id: "sandstrasse", gold: sandstrasse, file: "834b58b6-2ab8-4976-8624-ea28bfd3dde6-1780388793.pdf" },
+  {
+    id: "sandstrasse",
+    gold: sandstrasse,
+    file: "834b58b6-2ab8-4976-8624-ea28bfd3dde6-1780388793.pdf",
+  },
   { id: "primePulse", gold: primePulse, file: "240317_Exposé_AA_62-64_MA.pdf" },
   { id: "flottenstrasse", gold: flottenstrasse, file: "A 0100210 Flottenstraße (Final).pdf" },
   { id: "dock100", gold: dock100, file: "dock100.pdf" },
   { id: "holzhauser", gold: holzhauser, file: "Expose Holzhauser Quartier.pdf" },
   { id: "elsenstrasse", gold: elsenstrasse, file: "expose_elsenstrasse-1 copy.pdf" },
 ];
-
-
 
 async function loadArtifact(file: string): Promise<Artifact> {
   const buf = await readFile(path.join(baseDir, file));
@@ -54,7 +64,15 @@ async function main() {
 
   const instructions = buildEstateInstructions();
   const strat = (name: BuiltinName): StrategyEntry => ({ strategy: name, instructions });
-  type BuiltinName = "simple" | "parallel" | "sequential" | "doublePass" | "parallelAutoMerge" | "sequentialAutoMerge" | "doublePassAutoMerge" | "agent";
+  type BuiltinName =
+    | "simple"
+    | "parallel"
+    | "sequential"
+    | "doublePass"
+    | "parallelAutoMerge"
+    | "sequentialAutoMerge"
+    | "doublePassAutoMerge"
+    | "agent";
 
   const report = await runBenchmark({
     cases,
@@ -94,7 +112,9 @@ async function main() {
     // show field errors
     const feCount = process.env.VERBOSE ? s.fieldErrors.length : 8;
     for (const fe of s.fieldErrors.slice(0, feCount)) {
-      console.error(`    ${fe.path} | gold=${JSON.stringify(fe.gold)?.slice(0, 60)} | pred=${JSON.stringify(fe.pred)?.slice(0, 60)}`);
+      console.error(
+        `    ${fe.path} | gold=${JSON.stringify(fe.gold)?.slice(0, 60)} | pred=${JSON.stringify(fe.pred)?.slice(0, 60)}`,
+      );
     }
   }
 
@@ -106,7 +126,9 @@ async function main() {
   }
 
   const exact = report.cells.filter((c) => c.score.exactMatch).length;
-  console.error(`\n${exact}/${report.cells.length} exact (${((exact / report.cells.length) * 100).toFixed(0)}%)\n`);
+  console.error(
+    `\n${exact}/${report.cells.length} exact (${((exact / report.cells.length) * 100).toFixed(0)}%)\n`,
+  );
 }
 
 main().catch((e) => {

@@ -5,10 +5,7 @@ import type { ExtractionEvents, StatusInfo } from "../types";
  * (void) return value; strategies use this so consumers get a consistent,
  * strategy-independent progress contract.
  */
-export const emitStatus = (
-  events: ExtractionEvents | undefined,
-  info: StatusInfo,
-): void => {
+export const emitStatus = (events: ExtractionEvents | undefined, info: StatusInfo): void => {
   void events?.onStatus?.(info);
 };
 
@@ -17,11 +14,7 @@ export const emitStatus = (
  * human status. These labels are strategy internals and must not leak to
  * consumers — this helper is the single place that translates them.
  */
-export const stepLabelToStatus = (
-  label: string,
-  step?: number,
-  total?: number,
-): StatusInfo => {
+export const stepLabelToStatus = (label: string, step?: number, total?: number): StatusInfo => {
   const percent =
     step !== undefined && total !== undefined && total > 0
       ? Math.round((step / total) * 100)

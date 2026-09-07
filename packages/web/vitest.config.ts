@@ -9,13 +9,7 @@ export default defineConfig({
     globals: true,
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
     css: false,
-    exclude: [
-      "node_modules",
-      "dist",
-      "build",
-      "src/routeTree.gen.ts",
-      "src/paraglide/**",
-    ],
+    exclude: ["node_modules", "dist", "build", "src/routeTree.gen.ts", "src/paraglide/**"],
     coverage: {
       provider: "v8",
       // Scope the coverage gate to the data/auth/logic modules and the

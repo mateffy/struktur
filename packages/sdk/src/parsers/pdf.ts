@@ -156,7 +156,7 @@ export async function parsePdf(
     contents = Array.from(pageImageMap.keys())
       .sort((a, b) => a - b)
       .map((pageNum) => {
-        const entry: ArtifactContent = { page: pageNum, text: '' };
+        const entry: ArtifactContent = { page: pageNum, text: "" };
         const media = pageImageMap.get(pageNum);
         if (media) entry.media = media;
         return entry;

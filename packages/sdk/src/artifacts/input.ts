@@ -83,10 +83,7 @@ const zSerializedArtifact = z.object({
   tokens: z.number().optional(),
 });
 
-const zSerializedArtifacts = z.union([
-  zSerializedArtifact,
-  z.array(zSerializedArtifact),
-]);
+const zSerializedArtifacts = z.union([zSerializedArtifact, z.array(zSerializedArtifact)]);
 
 const inputParsers: ArtifactInputParser[] = [];
 

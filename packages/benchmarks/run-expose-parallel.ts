@@ -41,7 +41,9 @@ async function runChild(id: string, reportFile: string): Promise<void> {
 
 async function main() {
   const dir = await mkdtemp(join(tmpdir(), "expose-parallel-"));
-  console.error(`Variant: ${VARIANT}\nLaunching ${FILES.length} parallel processes (one per expose file)...`);
+  console.error(
+    `Variant: ${VARIANT}\nLaunching ${FILES.length} parallel processes (one per expose file)...`,
+  );
 
   const start = Date.now();
   const jobs = FILES.map(async (id) => {
@@ -80,10 +82,13 @@ async function main() {
   }
   const header = `| strategy | ${FILES.join(" | ")} | mean F1 | cost | total ms |`;
   console.error(header);
-  console.error(`|${"-".repeat(8)}|${FILES.map(() => "-".repeat(14)).join("|")}|--------|------|----------|`);
+  console.error(
+    `|${"-".repeat(8)}|${FILES.map(() => "-".repeat(14)).join("|")}|--------|------|----------|`,
+  );
   for (const [strategy, m] of byStrategy) {
     const vals = FILES.map((f) => m.get(f)?.score.f1);
-    const mean = vals.filter((v): v is number => v !== undefined).reduce((a, b) => a + b, 0) / vals.length;
+    const mean =
+      vals.filter((v): v is number => v !== undefined).reduce((a, b) => a + b, 0) / vals.length;
     const cost = [...m.values()].reduce((a, c) => a + (c.costUsd ?? 0), 0);
     const ms = [...m.values()].reduce((a, c) => a + c.latencyMs, 0);
     console.error(

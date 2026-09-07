@@ -167,7 +167,11 @@ describe("createValidator (JSON Schema)", () => {
   });
 
   test("validateOrThrow supports string format: email", () => {
-    const schema = { type: "object", properties: { email: { type: "string", format: "email" } }, required: ["email"] };
+    const schema = {
+      type: "object",
+      properties: { email: { type: "string", format: "email" } },
+      required: ["email"],
+    };
     const v = createValidator(schema);
     const result = v.validateOrThrow<{ email: string }>({ email: "test@example.com" });
     expect(result.email).toBe("test@example.com");

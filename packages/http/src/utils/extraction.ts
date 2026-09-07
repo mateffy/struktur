@@ -255,7 +255,9 @@ export async function parseExtractRequest(c: Context): Promise<ExtractParams> {
     }
 
     if (!artifacts) {
-      throw new HTTPException(400, { message: "'artifacts' is required for form-urlencoded requests" });
+      throw new HTTPException(400, {
+        message: "'artifacts' is required for form-urlencoded requests",
+      });
     }
 
     if (schemaJson && typeof schemaJson === "string") {
@@ -284,7 +286,8 @@ export async function parseExtractRequest(c: Context): Promise<ExtractParams> {
     if (maxStepsValue) maxSteps = parseInt(maxStepsValue, 10);
   } else {
     throw new HTTPException(400, {
-      message: "Content-Type must be application/json, multipart/form-data, or application/x-www-form-urlencoded",
+      message:
+        "Content-Type must be application/json, multipart/form-data, or application/x-www-form-urlencoded",
     });
   }
 
@@ -306,13 +309,29 @@ export type StreamEvent =
   | { type: "step"; data: { step: number; total?: number; label?: string; detail?: string } }
   | { type: "progress"; data: { current: number; total: number; percent?: number } }
   | { type: "message"; data: { role: string; content: unknown } }
-  | { type: "tokenUsage"; data: { inputTokens: number; outputTokens: number; totalTokens: number; model?: string } }
+  | {
+      type: "tokenUsage";
+      data: { inputTokens: number; outputTokens: number; totalTokens: number; model?: string };
+    }
   | { type: "retry"; data: { attempt: number; maxAttempts: number; reason?: string } }
-  | { type: "agent_tool_start"; data: { toolName: string; toolCallId: string; args: Record<string, unknown> } }
-  | { type: "agent_tool_end"; data: { toolCallId: string; result?: Record<string, unknown>; error?: string } }
+  | {
+      type: "agent_tool_start";
+      data: { toolName: string; toolCallId: string; args: Record<string, unknown> };
+    }
+  | {
+      type: "agent_tool_end";
+      data: { toolCallId: string; result?: Record<string, unknown>; error?: string };
+    }
   | { type: "agent_message"; data: { content: string; role?: string } }
   | { type: "agent_reasoning"; data: { thought: string } }
-  | { type: "complete"; data: { data: unknown; usage: { inputTokens: number; outputTokens: number; totalTokens: number }; error?: string } }
+  | {
+      type: "complete";
+      data: {
+        data: unknown;
+        usage: { inputTokens: number; outputTokens: number; totalTokens: number };
+        error?: string;
+      };
+    }
   | { type: "error"; data: { message: string } };
 
 export function createExtractionStream(params: ExtractParams): ReadableStream {

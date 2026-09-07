@@ -71,11 +71,26 @@ test("nested objects flatten with dot paths", () => {
 });
 
 test("arrays compare by index by default", () => {
-  const gold = { items: [{ n: "a", q: 1 }, { n: "b", q: 2 }] };
-  const pred = { items: [{ n: "a", q: 1 }, { n: "b", q: 2 }] };
+  const gold = {
+    items: [
+      { n: "a", q: 1 },
+      { n: "b", q: 2 },
+    ],
+  };
+  const pred = {
+    items: [
+      { n: "a", q: 1 },
+      { n: "b", q: 2 },
+    ],
+  };
   expect(scoreData(gold, pred).f1).toBe(1);
 
-  const wrong = { items: [{ n: "a", q: 1 }, { n: "b", q: 9 }] };
+  const wrong = {
+    items: [
+      { n: "a", q: 1 },
+      { n: "b", q: 9 },
+    ],
+  };
   const s = scoreData(gold, wrong);
   expect(s.tp).toBe(3);
   expect(s.fn).toBe(1);
@@ -83,8 +98,18 @@ test("arrays compare by index by default", () => {
 });
 
 test("array alignment by key is order-invariant", () => {
-  const gold = { items: [{ n: "a", q: 1 }, { n: "b", q: 2 }] };
-  const reordered = { items: [{ n: "b", q: 2 }, { n: "a", q: 1 }] };
+  const gold = {
+    items: [
+      { n: "a", q: 1 },
+      { n: "b", q: 2 },
+    ],
+  };
+  const reordered = {
+    items: [
+      { n: "b", q: 2 },
+      { n: "a", q: 1 },
+    ],
+  };
   const spec: FieldMetricSpec = { arrays: [{ path: "items", key: "n" }] };
 
   const indexed = scoreData(gold, reordered);
@@ -97,8 +122,18 @@ test("array alignment by key is order-invariant", () => {
 test("array alignment falls back to position when no key overlaps", () => {
   // e.g. building label "Halle 1" vs "Halle 1 mit Bürogebäude" — no exact key
   // match, so positional alignment must pair them instead of scoring all FN+FP.
-  const gold = { items: [{ n: "Halle 1", q: 1 }, { n: "Halle 2", q: 2 }] };
-  const pred = { items: [{ n: "Halle 1 mit Bürogebäude", q: 1 }, { n: "Halle 2 mit Bürogebäude", q: 2 }] };
+  const gold = {
+    items: [
+      { n: "Halle 1", q: 1 },
+      { n: "Halle 2", q: 2 },
+    ],
+  };
+  const pred = {
+    items: [
+      { n: "Halle 1 mit Bürogebäude", q: 1 },
+      { n: "Halle 2 mit Bürogebäude", q: 2 },
+    ],
+  };
   const spec: FieldMetricSpec = { arrays: [{ path: "items", key: "n" }] };
 
   const s = scoreData(gold, pred, spec);
@@ -110,8 +145,18 @@ test("array alignment falls back to position when no key overlaps", () => {
 });
 
 test("array alignment counts missing and extra items", () => {
-  const gold = { items: [{ n: "a", q: 1 }, { n: "b", q: 2 }] };
-  const pred = { items: [{ n: "a", q: 1 }, { n: "c", q: 3 }] };
+  const gold = {
+    items: [
+      { n: "a", q: 1 },
+      { n: "b", q: 2 },
+    ],
+  };
+  const pred = {
+    items: [
+      { n: "a", q: 1 },
+      { n: "c", q: 3 },
+    ],
+  };
   const spec: FieldMetricSpec = { arrays: [{ path: "items", key: "n" }] };
 
   const s = scoreData(gold, pred, spec);
