@@ -1,0 +1,10 @@
+# Bun test runner config.
+#
+# Several suites run real work (document parsing, spawned HTTP servers) that
+# exceed bun's 5000ms per-test default when `pnpm -r run test` runs every
+# package's suite in parallel on a small CI runner. Raising the timeout here
+# keeps the suites from flaking out under contention. bunfig.toml at this
+# location is picked up when `bun test` runs in any package subdirectory.
+[test]
+timeout = 60000
+bail = 0
