@@ -7,8 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-09-07
+
 ### Added
 
+- **`@struktur/fields` package** — the fields-shorthand builder is extracted into a standalone, zero-dependency package. It turns a concise string like `title, price:number, tags:array` into a valid JSON Schema object, with no coupling to Struktur internals.
+- **`@struktur/processors` package** — dedicated document/PDF processors, powered by LLamaIndex liteparse and Kreuzberg, so the SDK can keep its parser surface focused.
+- **`@struktur/php` SDK** (`mateffy/struktur`) — a zero-dependency PHP adapter over the CLI. It provides strongly-typed DTOs, real-time event streaming, and a clean API; all LLM/vision/parsing logic stays in the CLI for automatic feature parity. Mirrored to a subtree repository with CI.
 - **Human-facing status events** (`onStatus` / `status` NDJSON event)
   - Strategies emit coarse, strategy-independent phases (`starting`, `analyzing`, `extracting`, `retrying`, `completed`, `failed`) so consumers can render localized progress without string-matching internal step labels or tool names.
   - Optional `message` (`{ key, params }`) carries structured detail for i18n interpolation.
@@ -18,10 +23,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`--reasoning-effort low|medium|high`** — control reasoning effort for OpenRouter thinking models (`reasoningEffort` in the agent strategy config).
 - **`--images-output <file>`** — write the extracted image map to a side file, keeping stdout clean for the JSON result.
 - **`ArtifactImage.virtualPath`** — each image now carries the virtual-filesystem path the agent references.
+- **Standalone binary** — the CLI builds to a single compiled `struktur` binary via `bun build --compile`, uploaded to GitHub releases on publish.
+- **Server-Sent Events streaming** — the HTTP server streams extraction progress over SSE by default on `/extract`.
 
 ### Changed
 
-- The agent system prompt now instructs the model to read `/artifact.json` directly instead of exploring with `ls`/`find`/`tree`/`grep`/`bash`, reducing wasted tool calls on small documents.
+- **Package manager migration to pnpm** — the monorepo moved to pnpm workspaces with a version catalog.
+- **Zod v4 validation** — bumped from the v3 line across the SDK and web app.
+- **SSE by default on `/extract`** — the HTTP API now streams events by default; pass `?sse=false` for a plain JSON response.
+- **Agent prompt efficiency** — the agent system prompt now instructs the model to read `/artifact.json` directly instead of exploring with `ls`/`find`/`tree`/`grep`/`bash`, reducing wasted tool calls on small documents.
+- **Docs: Docker setup, PHP SDK, and environment variables** are now documented.
 
 ## 2.4.1
 - Inject correct package version for struktur --help
