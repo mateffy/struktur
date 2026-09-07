@@ -9,6 +9,11 @@ export default defineConfig({
     globals: true,
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
     css: false,
+    // Generous timeouts: several suites run real PBKDF2 (100k iterations) and
+    // SSE-stream extraction that are slow when CI runs all package tests in
+    // parallel. Without this, heavy async tests flake out at the 5s default.
+    testTimeout: 20000,
+    hookTimeout: 20000,
     exclude: ["node_modules", "dist", "build", "src/routeTree.gen.ts", "src/paraglide/**"],
     coverage: {
       provider: "v8",

@@ -1,6 +1,12 @@
 import "@testing-library/jest-dom/vitest";
 import "fake-indexeddb/auto";
 import { beforeEach } from "vitest";
+import { configure } from "@testing-library/react";
+
+// Global default for waitFor/findBy async queries. Many suites run real PBKDF2
+// (100k iterations) and SSE-stream extraction that exceed the 1000ms default
+// when CI runs all package tests in parallel, causing intermittent flakiness.
+configure({ asyncUtilTimeout: 10000 });
 
 // jsdom lacks the Web Crypto subtle API; Node's webcrypto provides it.
 import { webcrypto } from "node:crypto";

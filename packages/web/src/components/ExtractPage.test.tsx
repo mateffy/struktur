@@ -212,7 +212,7 @@ describe("ExtractPage — extract workflow", () => {
 
     // The SSE stream completes and the result surfaces in the Output panel.
     await waitFor(() => expect(screen.getByText("Acme Corp")).toBeInTheDocument(), {
-      timeout: 3000,
+      timeout: 10000,
     });
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/extract/stream",
@@ -241,7 +241,7 @@ describe("ExtractPage — extract workflow", () => {
 
     await waitFor(
       () => expect(screen.getByText("No API key provided for openai")).toBeInTheDocument(),
-      { timeout: 3000 },
+      { timeout: 10000 },
     );
   });
 });

@@ -9,8 +9,22 @@ async function startServer(port: string, apiKey = ""): Promise<Subprocess> {
     stdout: "pipe",
     stderr: "pipe",
   });
-  await new Promise((resolve) => setTimeout(resolve, 1500));
-  return server;
+
+  // The server runs as a separate subprocess; a fixed sleep races its startup
+  // under CI load. Poll until it answers (openapi.json is auth-free) or time out.
+  const url = `http://localhost:${port}/openapi.json`;
+  for (let attempt = 0; attempt < 50; attempt++) {
+    try {
+      const response = await fetch(url);
+      if (response.status === 200) return server;
+    } catch {
+      // Server not bound yet — retry.
+    }
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
+
+  server.kill();
+  throw new Error(`Server did not become ready on port ${port}`);
 }
 
 async function safeJson(response: Response) {
