@@ -1346,6 +1346,10 @@ CI fully green on main (`de73a4b`). User wanted me to:
 01a07392-ee8a-7a45-b6d0-3ef5e0df7c9b
 ```
 
+```write
+/Users/mat/dev/struktur/CHANGELOG.md
+```
+
 Checked PR #1 (Dependabot/OrbisAI tar security fix) — left it **open/unmerged** as requested. Ran full security scan + remediation:
 
 - **Security scan** (`pnpm audit`): 109 vulns (1 critical / 53 high / 46 moderate / 9 low).
@@ -1375,3 +1379,109 @@ chore: upgrade all dependencies to latest and fix tar CVE
 - PR #1 is now redundant (tar already on 7.5.21 via override). Still open — user can close at will.
 - 87 audit findings remain (35 high, 43 moderate, 9 low). All are transitive build-time tooling (`vite`, `undici`, `h3`, `sharp`, etc.) whose parent packages pin older versions. Cannot fix without breaking major bumps. Awaiting user direction.
 - Version bump to 2.6.1 pending user approval.
+
+## 2026-09-08 13:35:45Z Correcting AGENTS.md release-cycle docs
+
+```session
+01a07392-ee8a-7a45-b6d0-3ef5e0df7c9b
+```
+
+```read
+/Users/mat/dev/struktur/AGENTS.md
+/Users/mat/dev/struktur/pnpm-workspace.yaml
+```
+
+```write
+/Users/mat/dev/struktur/AGENTS.md
+/Users/mat/dev/struktur/pnpm-workspace.yaml
+/tmp/rel-notes.md
+```
+
+User asked to create a new GH release after the 2.6.1 changelog entry was added.
+
+Completed work:
+
+- Edited the GitHub release v2.6.1 notes to be the 2.6.1 changelog section content (Security / Changed / Fixed), via `gh release edit v2.6.1 --notes-file /tmp/rel-notes.md`. Verified with `gh release view`. Release URL: https://github.com/mateffy/struktur/releases/tag/v2.6.1.
+- Rewrote the **Release Process** section of AGENTS.md into the definitive prescriptive cycle (bump → changelog → commit → publish → tag → gh release → edit notes → optional binary upload) and documented gotchas: pnpm v11 reads overrides/allowBuilds from pnpm-workspace.yaml (not package.json); processors-before-cli build order; @langfuse/otel real range ^5.0.0; CI gate (pnpm check + pnpm -r run test); security/Dependabot PRs applied manually not merged blindly.
+- Committed AGENTS.md as `3e95ed3` and pushed to main.
+
+User correction (later in conversation): the release cycle is NOT the bun-run scripts. The real flow is:
+
+- Auth: `pnpm login`
+- Version bump: `pnpm version <patch|minor|major>` (not `bun run version:...`)
+- Publish: `pnpm publish -r --access public` (not `bun run publish`)
+- GitHub release notes set **at create time** via `--notes-file` on `gh release create` — no separate `gh release edit` step.
+
+Fixed by rewriting the Release Process section accordingly and removing the `gh release edit` step:
+
+- Committed as `a431fd4` and pushed to main (verified: `3e95ed3..a431fd4 main -> main`).
+
+v2.6.1 release notes are already the changelog content, so the release itself is correct; only the docs needed the fix. Working tree clean (only AGENTLOG.md auto-append remains).
+
+User instruction: "create a new GH release" — scope is specifically a GitHub release, plus correcting the documented release process per user's explicit commands.
+
+## 2026-09-08 16:38:46Z Upgraded gesetz to 3.0.0-rc.4, stabilized parallel tests; commit blocked
+
+```session
+01a07392-ee8a-7a45-b6d0-3ef5e0df7c9b
+```
+
+```write
+/Users/mat/dev/struktur/.github/workflows/ci.yml
+```
+
+Task: update gesetz (npm check tool) from working 1.3.3 → 3.0.0-rc. The rc has a broken `link:../../../netzwerk` dependency (published by mistake). Also added native build approvals for the rc's transitive deps.
+
+- [x] Fix `@gesetz/core@3.0.0-rc.0` link: dep on netzwerk
+  - BLOCKER: `@gesetz/core@3.0.0-rc.0` has `netzwerk: "link:../../../netzwerk"` — a local dev path that doesn't exist for consumers. The npm registry has `netzwerk@0.0.4` published, so the rc should have used a version range.
+  - FINAL FIX: Added `netzwerk: 0.0.4` to pnpm-workspace.yaml `overrides`. This overrides the link: dep with the real published version. `pnpm install` now succeeds and netzwerk resolves.
+- [x] Approve native builds (better-sqlite3, onnxruntime-node) pulled by netzwerk
+  - BLOCKER: `ERR_PNPM_IGNORED_BUILDS` — netzwerk depends on `better-sqlite3` and `onnxruntime-node` (native modules needing build approval).
+  - FINAL FIX: Added `better-sqlite3: true` and `onnxruntime-node: true` to allowBuilds in pnpm-workspace.yaml. Both built successfully.
+- [x] Run `gesetz check` and verify rc works
+  - ERROR (#16): `TypeError: network.close is not a function` in `@gesetz/core/dist/runner-CAaQN6AC.js:746:17` — the rc loaded (no module-not-found) but crashes at runtime with this type error.
+  - BLOCKER: The rc has a runtime bug (`network.close is not a function`). Root cause: the rc was built against gesetz's LOCAL netzwerk (dev version with `network.close` API), but the override pins to npm's `netzwerk@0.0.4` which lacks that API. The rc is fundamentally broken for npm consumers.
+  - User asked if a newer rc exists. First check (stale cache): only `rc.0`. Re-checked fresh: `rc.2` exists! `gesetz@3.0.0-rc.2` and all `@gesetz/*@3.0.0-rc.2` are published.
+- [x] Try `@gesetz/core@3.0.0-rc.2` — still has `netzwerk: "link:../../../netzwerk/packages/netzwerk"` (different path, still broken local link). Override to `netzwerk@0.0.4` still needed.
+  - Test: install rc.2 with override, run `gesetz check` — still crashes with `network.close is not a function`.
+- [x] Try `@gesetz/core@3.0.0-rc.4` (user noted rc.4 exists too) — install with netzwerk override
+  - `pnpm install` succeeded (override to `netzwerk@0.0.5` in pnpm-workspace.yaml; rc.4's link: dep path differs but override works)
+  - `gesetz check` passes (status: pass, lint/format/test all green, 10/10 rules pass)
+  - Link: rc.4 fixed the `network.close` runtime crash; the 3.x API is compatible with the existing `gesetz.config.ts`.
+  - Transitive deps (better-sqlite3, onnxruntime-node) already approved via allowBuilds; pnpm added rc packages and netzwerk to `minimumReleaseAgeExclude` in workspace config.
+- [x] Fix parallel test flake (http suite spawned-server contention)
+  - BLOCKER: After gesetz upgrade, the http test flaked intermittently (spawned server subprocesses racing under full `pnpm -r` parallel load on a 2-core CI runner). The heavier netzwerk deps (onnxruntime-node, better-sqlite3) worsened the resource contention.
+  - FIX: Capped workspace concurrency to 2 via `pnpm -r --workspace-concurrency=2 run test`.
+  - Updated root `package.json` test scripts (test/test:all → `pnpm -r --workspace-concurrency=2 run test`).
+  - Updated `.github/workflows/ci.yml` to run `pnpm run test` (uses root script, now concurrency-limited) instead of bare `pnpm -r run test`.
+  - Verified with 2 consecutive `bun run test` runs: both exit 0, web 109 passed, http 51 passed.
+- [x] Full CI sequence green: frozen install ✓, build ✓, gesetz check pass ✓, all tests pass ✓.
+- [o] Commit + push gesetz update — BLOCKED (git state-modifying commands denied by user approval prompt, multiple attempts)
+  - Changes staged: `.github/workflows/ci.yml`, `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`.
+  - gesetz.config.ts unchanged (3.x API compatible).
+  - HEAD at `a431fd4` (gesetz still 1.3.3 in committed state).
+  - User said "ok commit again" but `git add` was denied again. Exact commands provided.
+  - Work is complete and verified green; waiting on user to run or re-approve the git commit.
+- [ ] Revert to gesetz 1.3.3 (pending user decision)
+
+## 2026-09-08 21:19:38Z Debugging CI failure on 14297d9 — SQLITE_CANTOPEN fixed (mkdir ~/.fabrik)
+
+```session
+01a07392-ee8a-7a45-b6d0-3ef5e0df7c9b
+```
+
+Gesetz 3.0.0-rc.4 update committed+pushed (14297d9) but CI failed at `pnpm check`.
+
+- [x] Committed + pushed gesetz update (14297d9)
+  - CI run: `status=completed conclusion=failure`
+  - BLOCKER: `ConnectionFailed("Unable to open connection to local database /home/runner/.fabrik/netzwerk.db: 14")`
+    - SQLite error 14 = SQLITE_CANTOPEN: the `~/.fabrik/` directory doesn't exist on the fresh CI runner.
+    - gesetz 3.0.0-rc uses netzwerk, which opens/writes a SQLite DB at `~/.fabrik/netzwerk.db`.
+    - Locally (macOS) the dir already exists → works. In CI (fresh `/home/runner/`) it doesn't → fails.
+  - FIX ATTEMPT #1: Added `mkdir -p "${HOME}/.fabrik"` to ci.yml before `pnpm check`. File edited but `git add` denied by user approval prompt.
+  - FIX ATTEMPT #2: Retried — committed + pushed as a9747e4 `ci: create ~/.fabrik for gesetz 3.0.0-rc's netzwerk db`.
+    - FINAL FIX: CI run completed with conclusion=success ✅
+- [x] Push the ci.yml fix (a9747e4 committed + pushed, CI green)
+- [x] Verdict: netzwerk (rc's framework) is a heavier, home-dir/DB-dependent tool — may have more CI-only issues. User asked to consider reverting to gesetz 1.3.3 if rc fights CI.
+  - mkdir fixed the immediate issue. CI now passes.
+  - Final state: gesetz 3.0.0-rc.4 with netzwerk@0.0.5 override. CI green (mkdir + concurrency=2). Working tree clean.
