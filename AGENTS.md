@@ -84,18 +84,46 @@ test("hello world", () => {
 
 ## Release Process
 
-1. **Version bump**: Run `bun run version:<patch|minor|major>` to bump versions in all packages
-2. **Commit changes**: Commit the version bumps with message "v<version>"
-3. **Publish**: Run `bun run publish` to:
-   - Create a git tag
-   - Push the tag to GitHub
-   - Publish packages to npm
-   - Create a GitHub release with auto-generated notes
+The release cycle is: **bump → changelog → commit → publish → tag → GitHub release → edit notes**. Do it in this order every time.
 
-The publish script requires:
-- Clean working directory (no uncommitted changes)
-- GitHub CLI (`gh`) installed for creating releases
-- npm authentication configured for publishing
+1. **Version bump**: `bun run version:<patch|minor|major>`. Bumps the five published packages (`@struktur/fields`, `@struktur/sdk`, `@struktur/processors`, `@struktur/cli`, `@struktur/telemetry`) to `major.minor.0` (or `minor.patch+1`) and refreshes `pnpm-lock.yaml`.
+
+2. **Changelog**: Add a `## [<version>] - <date>` entry to `CHANGELOG.md` (Keep a Changelog, grouped by Added / Changed / Fixed / Security). Keep a fresh `## [Unreleased]` heading at the top. This is the source of truth for the release notes.
+
+3. **Commit**: Commit the bumps + changelog, e.g. `chore: bump to v<version>`. The publish script requires a clean working tree.
+
+4. **Publish**: `bun run publish` publishes the five packages to npm. Requires npm auth + a clean tree. The script also tags, pushes, and creates a GitHub release.
+
+5. **Tag** (if publishing manually):
+   ```bash
+   git tag -a v<version> -m "Release v<version>"
+   git push origin v<version>
+   ```
+
+6. **GitHub release**:
+   ```bash
+   gh release create v<version> --title "v<version>" --generate-notes
+   ```
+
+7. **Edit release notes**: Replace the auto-generated notes with the CHANGELOG.md section for this version (omit the `## [<version>]` heading, keep the Security/Changed/Fixed groups):
+   ```bash
+   gh release edit v<version> --notes-file <changelog-section>
+   ```
+
+8. **(Optional) Standalone binary**: build + upload the compiled CLI binary to the release:
+   ```bash
+   bun run build:binary
+   cp packages/cli/dist/struktur struktur-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m)
+   gh release upload v<version> struktur-*
+   ```
+
+### Gotchas (corner cases we hit)
+- **pnpm v11 reads settings from `pnpm-workspace.yaml`, not `package.json`.** `pnpm.overrides` / `pnpm.onlyBuiltDependencies` in package.json are silently ignored; put them under `overrides:` / `allowBuilds:` in `pnpm-workspace.yaml` (used for the `tar` CVE override and the build-script approvals).
+- **`pnpm build` must build `@struktur/processors` before `@struktur/cli`** — the CLI imports it and fails in a fresh checkout. The root `build` script orders fields → sdk → processors → telemetry → cli.
+- **`@langfuse/otel` needs a real version range** — `^2.0.0` is unsatisfiable (the package only ships 4.x/5.x); use `^5.0.0`.
+- **CI gate**: `pnpm check` (gesetz: oxlint + oxfmt + vitest) and `pnpm -r run test` must pass before releasing. CI runs install → build → check → test.
+- **Dependency/security PRs** (Dependabot, OrbisAI, …): apply the fix yourself (own commit) rather than merging blindly; review the actual change and its lockfile.
+- **Verify CI via `gh`**: `gh run list` / `gh run view <id>` to confirm the release commit's CI is green.
 
 
 <research-agent>
