@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.6.1] - 2026-09-08
+
+### Security
+
+- **Pinned `tar` to `7.5.21`** (`overrides` in `pnpm-workspace.yaml`) to fix CVE-2026-59873 — a critical denial-of-service via crafted gzip bomb — plus several node-tar path-traversal advisories. The audit went from 109 findings (1 critical) to 87, 0 critical.
+
+### Changed
+
+- Upgraded all dependencies to their latest versions (`pnpm update --latest`): `zod` 4.5.4, `hono` 4.12.28, `oxfmt` 0.66, `oxlint` 1.81, `@mariozechner/pi-coding-agent` 0.73.
+- Fixed `@langfuse/otel` in `@struktur/telemetry` — the `^2.0.0` range was unsatisfiable (only 4.x/5.x exist); now `^5.0.0`. Regenerated `pnpm-lock.yaml` so `pnpm install --frozen-lockfile` succeeds in CI.
+
+### Fixed
+
+- Build `@struktur/processors` before the CLI so a fresh checkout resolves the `@struktur/processors` import.
+- HTTP API (`GET /`, `/openapi.json`) now reports the actual package version instead of a hardcoded `1.2.1`.
+
 ## [2.6.0] - 2026-09-07
 
 - janitor release
