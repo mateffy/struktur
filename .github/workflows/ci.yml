@@ -37,6 +37,10 @@ jobs:
       # consumed by web/http/benchmarks/cli) before running checks/tests.
       - run: pnpm build
 
+      # gesetz 3.0.0-rc uses netzwerk, which needs a writable ~/.fabrik/netzwerk.db
+      # SQLite file; create the dir on the fresh runner first.
+      - run: mkdir -p "${HOME}/.fabrik"
+
       # gesetz: unified lint + format + vitest(web) gate. oxlint and oxfmt scan the
       # whole repo; the web app runs its Vitest suite. Any violation fails the gate.
       - run: pnpm check
