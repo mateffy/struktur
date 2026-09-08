@@ -29,16 +29,16 @@
     "@types/bun": "latest",
     "eslint-plugin-unused-imports": "^4.4.1",
     "gesetz": "^1.3.3",
-    "oxfmt": "^0.42.0",
-    "oxlint": "^1.57.0"
+    "oxfmt": "^0.66.0",
+    "oxlint": "^1.81.0"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "dependencies": {
-    "@mariozechner/pi-coding-agent": "^0.57.1",
-    "@radix-ui/react-separator": "^1.1.8",
-    "@sinclair/typebox": "^0.34.48",
+    "@mariozechner/pi-coding-agent": "^0.73.1",
+    "@radix-ui/react-separator": "^1.1.15",
+    "@sinclair/typebox": "^0.34.52",
     "@struktur/cli": "link:packages/cli"
   },
   "workspaces": [

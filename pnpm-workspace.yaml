@@ -1,5 +1,12 @@
 packages:
   - "packages/*"
+
+# Force tar to a patched version (CVE-2026-59873 critical gzip-bomb DoS and
+# several node-tar path-traversal advisories). pnpm v11 reads overrides from
+# pnpm-workspace.yaml, not package.json.
+overrides:
+  tar: 7.5.21
+
 allowBuilds:
   "@ast-grep/lang-php": true
   "@google/genai": true

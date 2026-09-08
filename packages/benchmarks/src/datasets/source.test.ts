@@ -56,15 +56,13 @@ test("loadDataset downloads, converts, and caches", async () => {
         const rows = JSON.parse(await readFile(join(rawDir, "rows.json"), "utf8")) as {
           v: string;
         }[];
-        return rows.map(
-          (r, i): BenchmarkCase => ({
-            id: `demo-${i}`,
-            schema: { type: "object" },
-            gold: { v: r.v },
-            artifacts: [textArtifact(r.v)],
-            tracks: ["text"],
-          }),
-        );
+        return rows.map((r, i): BenchmarkCase => ({
+          id: `demo-${i}`,
+          schema: { type: "object" },
+          gold: { v: r.v },
+          artifacts: [textArtifact(r.v)],
+          tracks: ["text"],
+        }));
       },
     };
 
@@ -98,14 +96,12 @@ test("loadDataset applies limit and offset", async () => {
       source: { kind: "hub", repo: "test/demo2" },
       download: async () => {},
       convert: async () =>
-        [0, 1, 2, 3, 4].map(
-          (i): BenchmarkCase => ({
-            id: `c${i}`,
-            schema: { type: "object" },
-            gold: {},
-            artifacts: [textArtifact("")],
-          }),
-        ),
+        [0, 1, 2, 3, 4].map((i): BenchmarkCase => ({
+          id: `c${i}`,
+          schema: { type: "object" },
+          gold: {},
+          artifacts: [textArtifact("")],
+        })),
     };
     const cases = await loadDataset(dataset, { cacheDir: dir, limit: 2, offset: 1 });
     expect(cases.map((c) => c.id)).toEqual(["c1", "c2"]);
