@@ -84,31 +84,25 @@ test("hello world", () => {
 
 ## Release Process
 
-The release cycle is: **bump → changelog → commit → publish → tag → GitHub release → edit notes**. Do it in this order every time.
+The release cycle is: **login → version bump → changelog → commit → publish → tag → GitHub release → (optional) binary**. Do it in this order every time.
 
-1. **Version bump**: `bun run version:<patch|minor|major>`. Bumps the five published packages (`@struktur/fields`, `@struktur/sdk`, `@struktur/processors`, `@struktur/cli`, `@struktur/telemetry`) to `major.minor.0` (or `minor.patch+1`) and refreshes `pnpm-lock.yaml`.
+1. **Login** (npm auth, once per session): `pnpm login`
 
-2. **Changelog**: Add a `## [<version>] - <date>` entry to `CHANGELOG.md` (Keep a Changelog, grouped by Added / Changed / Fixed / Security). Keep a fresh `## [Unreleased]` heading at the top. This is the source of truth for the release notes.
+2. **Version bump**: `pnpm version <patch|minor|major>` — bumps the five published packages (`@struktur/fields`, `@struktur/sdk`, `@struktur/processors`, `@struktur/cli`, `@struktur/telemetry`) and refreshes `pnpm-lock.yaml`.
 
-3. **Commit**: Commit the bumps + changelog, e.g. `chore: bump to v<version>`. The publish script requires a clean working tree.
+3. **Changelog**: Add a `## [<version>] - <date>` entry to `CHANGELOG.md` (Keep a Changelog, grouped by Added / Changed / Fixed / Security). Keep a fresh `## [Unreleased]` heading at the top. This is the source of truth for the release notes.
 
-4. **Publish**: `bun run publish` publishes the five packages to npm. Requires npm auth + a clean tree. The script also tags, pushes, and creates a GitHub release.
+4. **Commit**: Commit the version bump + changelog (e.g. `chore: bump to v<version>`). The tree must be clean before publishing.
 
-5. **Tag** (if publishing manually):
+5. **Publish**: `pnpm publish -r --access public` — publishes every package to npm.
+
+6. **Tag**: `git tag -a v<version> -m "Release v<version>"` then `git push origin v<version>`.
+
+7. **GitHub release** — set the notes here at create time (no later `gh release edit`):
    ```bash
-   git tag -a v<version> -m "Release v<version>"
-   git push origin v<version>
+   gh release create v<version> --title "v<version>" --notes-file <changelog-section>
    ```
-
-6. **GitHub release**:
-   ```bash
-   gh release create v<version> --title "v<version>" --generate-notes
-   ```
-
-7. **Edit release notes**: Replace the auto-generated notes with the CHANGELOG.md section for this version (omit the `## [<version>]` heading, keep the Security/Changed/Fixed groups):
-   ```bash
-   gh release edit v<version> --notes-file <changelog-section>
-   ```
+   Produce `<changelog-section>` from the `## [<version>]` block in `CHANGELOG.md` (omit the `## [<version>]` heading, keep the Security/Changed/Fixed groups).
 
 8. **(Optional) Standalone binary**: build + upload the compiled CLI binary to the release:
    ```bash
