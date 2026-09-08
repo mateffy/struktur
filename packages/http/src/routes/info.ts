@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { describeRoute, resolver } from "hono-openapi";
+import packageJson from "../../package.json" with { type: "json" };
 import { APIInfoSchema } from "../schemas";
 
 const app = new Hono();
@@ -26,7 +27,7 @@ app.get(
     return c.json(
       {
         name: "struktur-http",
-        version: "1.2.1",
+        version: packageJson.version,
         endpoints: {
           "POST /parse": "Parse uploaded files into artifact JSON",
           "POST /extract": "Extract structured data from documents or artifact JSON",

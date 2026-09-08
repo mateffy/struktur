@@ -1,5 +1,6 @@
 import { test, expect, describe, beforeAll, afterAll } from "bun:test";
 import { spawn, type Subprocess } from "bun";
+import packageJson from "../package.json" with { type: "json" };
 
 async function startServer(port: string, apiKey = ""): Promise<Subprocess> {
   const server = spawn({
@@ -64,7 +65,7 @@ describe("HTTP API - OpenAPI Documentation", () => {
     const data = await response.json();
 
     expect(data.info.title).toBe("Struktur HTTP API");
-    expect(data.info.version).toBe("1.2.1");
+    expect(data.info.version).toBe(packageJson.version);
     expect(data.info.description).toContain("Struktur");
   });
 
