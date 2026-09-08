@@ -6,16 +6,37 @@ packages:
 # pnpm-workspace.yaml, not package.json.
 overrides:
   tar: 7.5.21
+  # gesetz 3.x-rcs publish a local `link:` dep on netzwerk; pin it to the real
+  # published version (now carrying the matching API) so it resolves for consumers.
+  netzwerk: 0.0.5
 
 allowBuilds:
   "@ast-grep/lang-php": true
   "@google/genai": true
   "@mongodb-js/zstd": true
   "@parcel/watcher": true
+  better-sqlite3: true
   esbuild: true
   koffi: true
   msgpackr-extract: true
   node-liblzma: true
+  onnxruntime-node: true
   protobufjs: true
   sharp: true
   tesseract.js: false
+
+minimumReleaseAgeExclude:
+  - "@gesetz/cli@3.0.0-rc.0 || 3.0.0-rc.4"
+  - "@gesetz/core@3.0.0-rc.0 || 3.0.0-rc.4"
+  - "@gesetz/oxfmt@3.0.0-rc.0 || 3.0.0-rc.4"
+  - "@gesetz/oxlint@3.0.0-rc.0 || 3.0.0-rc.4"
+  - "@gesetz/php@3.0.0-rc.0 || 3.0.0-rc.4"
+  - "@gesetz/typescript@3.0.0-rc.0 || 3.0.0-rc.4"
+  - "@gesetz/vitest@3.0.0-rc.0 || 3.0.0-rc.4"
+  - gesetz@3.0.0-rc.0 || 3.0.0-rc.4
+  - "@netzwerk/cli@0.0.5"
+  - "@netzwerk/core@0.0.5"
+  - "@netzwerk/php@0.0.5"
+  - "@netzwerk/summarize@0.0.5"
+  - "@netzwerk/typescript@0.0.5"
+  - netzwerk@0.0.5

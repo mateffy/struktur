@@ -41,6 +41,7 @@ jobs:
       # whole repo; the web app runs its Vitest suite. Any violation fails the gate.
       - run: pnpm check
 
-      # Every package's test suite — the bun:test packages (sdk/fields/telemetry/
-      # http/benchmarks) plus the web vitest suite.
-      - run: pnpm -r run test
+      # Every package's test suite — bun:test packages (sdk/fields/telemetry/http/
+      # benchmarks) plus the web vitest suite. Concurrency is capped at 2 because the
+      # http suite spawns server subprocesses that race under full parallel load.
+      - run: pnpm run test

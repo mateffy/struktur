@@ -4,8 +4,8 @@
   "type": "module",
   "packageManager": "pnpm@11.9.0",
   "scripts": {
-    "test": "pnpm -r run test",
-    "test:all": "pnpm -r run test",
+    "test": "pnpm -r --workspace-concurrency=2 run test",
+    "test:all": "pnpm -r --workspace-concurrency=2 run test",
     "check": "gesetz check",
     "build": "pnpm --filter @struktur/fields --filter @struktur/sdk --filter @struktur/processors --filter @struktur/telemetry --filter @struktur/cli build",
     "docs": "bun run docs:build && bun run docs:publish",
@@ -21,14 +21,14 @@
     "fmt:check": "oxfmt --check"
   },
   "devDependencies": {
-    "@gesetz/cli": "^1.3.3",
-    "@gesetz/oxfmt": "^1.3.3",
-    "@gesetz/oxlint": "^1.3.3",
-    "@gesetz/typescript": "^1.3.3",
-    "@gesetz/vitest": "^1.3.3",
+    "@gesetz/cli": "3.0.0-rc.4",
+    "@gesetz/oxfmt": "3.0.0-rc.4",
+    "@gesetz/oxlint": "3.0.0-rc.4",
+    "@gesetz/typescript": "3.0.0-rc.4",
+    "@gesetz/vitest": "3.0.0-rc.4",
     "@types/bun": "latest",
     "eslint-plugin-unused-imports": "^4.4.1",
-    "gesetz": "^1.3.3",
+    "gesetz": "3.0.0-rc.4",
     "oxfmt": "^0.66.0",
     "oxlint": "^1.81.0"
   },
