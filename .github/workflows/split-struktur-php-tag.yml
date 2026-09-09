@@ -25,5 +25,5 @@ jobs:
           # Push tag if triggered by a tag event
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
             TAG_NAME=${GITHUB_REF#refs/tags/}
-            git push "$MIRROR" "$SPLIT:refs/tags/$TAG_NAME"
+            git push "$MIRROR" "$SPLIT:refs/tags/$TAG_NAME" --force
           fi
