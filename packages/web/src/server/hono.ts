@@ -1,6 +1,8 @@
+import { randomUUID } from "node:crypto";
 import { Readable } from "node:stream";
 import busboy from "busboy";
 import { Hono } from "hono";
+import { bearerAuth } from "hono/bearer-auth";
 import {
   type ExtractionEvent,
   extractData,
@@ -10,7 +12,14 @@ import {
 } from "./api";
 import { fetchConfig, fetchModels } from "./models";
 
+// Shared secret required to access the API. Set STRUKTUR_SERVER_TOKEN so trusted
+// clients (e.g. the desktop shell) can authenticate; otherwise a random per-process
+// token is generated so the server never starts up unauthenticated.
+export const SERVER_TOKEN = process.env.STRUKTUR_SERVER_TOKEN ?? randomUUID();
+
 export const app = new Hono();
+
+app.use("/api/*", bearerAuth({ token: SERVER_TOKEN }));
 
 app.post("/api/parse", async (c) => {
   const contentType = c.req.header("content-type");
