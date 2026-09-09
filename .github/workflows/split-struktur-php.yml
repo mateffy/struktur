@@ -17,6 +17,7 @@ jobs:
 
       - name: Push to struktur-php mirror
         run: |
-          git subtree push --prefix=packages/struktur-php \
-            https://x-access-token:${{ secrets.SPLIT_TOKEN }}@github.com/mateffy/struktur-php.git \
-            main
+          MIRROR="https://x-access-token:${{ secrets.SPLIT_TOKEN }}@github.com/mateffy/struktur-php.git"
+
+          SPLIT=$(git subtree split --prefix=packages/struktur-php)
+          git push "$MIRROR" "$SPLIT:refs/heads/main" --force

@@ -17,13 +17,13 @@ jobs:
 
       - name: Push tag to struktur-php mirror
         run: |
-          git remote add mirror https://x-access-token:${{ secrets.SPLIT_TOKEN }}@github.com/mateffy/struktur-php.git
+          MIRROR="https://x-access-token:${{ secrets.SPLIT_TOKEN }}@github.com/mateffy/struktur-php.git"
 
-          # Push main from the subtree
-          git subtree push --prefix=packages/struktur-php mirror main
+          SPLIT=$(git subtree split --prefix=packages/struktur-php)
+          git push "$MIRROR" "$SPLIT:refs/heads/main" --force
 
           # Push tag if triggered by a tag event
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
             TAG_NAME=${GITHUB_REF#refs/tags/}
-            git push mirror "$TAG_NAME:refs/tags/$TAG_NAME"
+            git push "$MIRROR" "$SPLIT:refs/tags/$TAG_NAME"
           fi
