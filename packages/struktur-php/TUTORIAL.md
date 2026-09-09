@@ -787,3 +787,4 @@ The CLI produced something unexpected on stdout. Check `$result->rawStdout` (or 
 - Explore the [SDK TypeScript source](https://github.com/struktur-ai/struktur/tree/main/packages/sdk) to understand the underlying extraction strategies.
 - Check `packages/struktur-php/src/` — every `.php` file has a colocated `.test.php` showing usage examples.
 
+
