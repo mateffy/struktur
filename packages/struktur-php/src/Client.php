@@ -279,6 +279,9 @@ class Client
             $parts[] = '--images-output';
             $parts[] = $request->imagesOutput;
         }
+        if ($request->purgeImages === false) {
+            $parts[] = '--no-purge-images';
+        }
         if ($input->path !== null) {
             $parts[] = '--input';
             $parts[] = $input->path;

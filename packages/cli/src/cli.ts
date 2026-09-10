@@ -1062,6 +1062,7 @@ type StrategyOptions = {
   maxIterations?: number;
   outputInstructions?: string;
   reasoningEffort?: "low" | "medium" | "high";
+  purgeImages?: boolean;
 };
 
 const DEFAULT_CHUNK_SIZE = 10_000;
@@ -1107,6 +1108,7 @@ const createStrategy = (
         maxIterations: options?.maxIterations ?? 1,
         outputInstructions,
         reasoningEffort: options?.reasoningEffort,
+        purgeImages: options?.purgeImages,
       });
     }
     default:
@@ -1832,6 +1834,12 @@ const extractCommand = defineCommand({
       type: "string",
       description: "Write the extracted images (virtual path -> base64) to this file",
     },
+    "no-purge-images": {
+      type: "boolean",
+      description:
+        "Disable observation masking: keep previously-viewed image payloads in the agent's message history. Off by default (images are masked).",
+      default: false,
+    },
     format: {
       type: "string",
       description:
@@ -1988,6 +1996,7 @@ const extractCommand = defineCommand({
       maxIterations,
       outputInstructions: args.instructions as string | undefined,
       reasoningEffort,
+      purgeImages: args["no-purge-images"] === undefined ? undefined : !args["no-purge-images"],
     });
     debug.strategyCreated({
       strategy: args.strategy,

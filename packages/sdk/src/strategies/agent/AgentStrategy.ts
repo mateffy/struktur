@@ -30,6 +30,14 @@ export type AgentStrategyConfig = {
    * "low" | "medium" | "high". Leave undefined to use the model's default.
    */
   reasoningEffort?: "low" | "medium" | "high";
+  /**
+   * Mask previously-viewed image payloads in the message history instead of
+   * re-sending their base64 on every subsequent step (observation masking).
+   * Keeps the context prefix small and stable, which is required for prompt
+   * caching to hit, and avoids re-sending huge payloads. Images stay
+   * re-fetchable via the virtual filesystem (view_image). Default: true.
+   */
+  purgeImages?: boolean;
 };
 
 /**
@@ -37,6 +45,40 @@ export type AgentStrategyConfig = {
  * `z.any()`. Models often pass a JSON *string* there instead of a parsed object.
  * Normalize: parse JSON strings, pass objects/arrays through, leave others as-is.
  */
+/**
+ * Replace large image payloads inside tool-result content parts with a short text
+ * placeholder, keeping any sibling text (e.g. the image path). Operates in place
+ * on the AI SDK message list.
+ */
+export const maskImagePayloads = (messages: any[]): void => {
+  for (const message of messages) {
+    if (!Array.isArray(message?.content)) continue;
+    for (const part of message.content) {
+      if (part?.type === "tool-result" && part?.output?.type === "content") {
+        const value = part.output.value;
+        if (!Array.isArray(value)) continue;
+        for (let i = 0; i < value.length; i++) {
+          const piece = value[i];
+          // Covers `media` (SDK tool output), `image-data` (after download
+          // conversion) and any part carrying a large inline base64 payload.
+          const isImage =
+            piece?.type === "media" ||
+            piece?.type === "image-data" ||
+            (typeof piece?.data === "string" && piece.data.length > 512);
+          if (isImage) {
+            // Keep a pointer to the image path if a sibling text part has it.
+            const pathText = value.find((v) => v?.type === "text")?.text;
+            value[i] = {
+              type: "text",
+              text: pathText ? `[Image viewed: ${pathText}]` : "[Image viewed]",
+            };
+          }
+        }
+      }
+    }
+  }
+};
+
 export const parseOutputData = (value: unknown): unknown => {
   if (typeof value !== "string") return value;
   const trimmed = value.trim();
@@ -176,14 +218,9 @@ const statusFromToolName = (toolName: string): StatusInfo => {
 const defaultSystemPrompt = (
   schema: string,
   outputInstructions?: string,
-  carriedData?: any,
   fileTree?: string,
   manifestContent?: string,
 ) => {
-  const carriedContext = carriedData
-    ? `\n## Previously Extracted Data (carry forward)\nThe following data was already extracted in previous iterations. Preserve and extend it:\n${JSON.stringify(carriedData, null, 2)}\n\nIMPORTANT: Start by setting this data with set_output_data, then continue extracting remaining fields.`
-    : "";
-
   const fileTreeSection = fileTree
     ? `\n## File System Structure\n\n\`\`\`\n${fileTree}\n\`\`\`\n`
     : "";
@@ -230,7 +267,6 @@ ALWAYS use pagination (offset + limit) when reading large files. Start with offs
 2. Call update_output_data to add new fields as you discover them
 3. Call finish() when done
 
-${carriedContext}
 ${outputInstructions ? `\n## Additional Instructions\n\n${outputInstructions}\n` : ""}
 
 ## JSON Schema
@@ -678,15 +714,16 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
         defaultSystemPrompt(
           schema,
           this.config.outputInstructions,
-          currentOutput,
           fileTree,
           manifestContent,
         );
 
       debug?.promptSystem({ callId, system: systemPrompt });
 
+      // Keep the system prompt stable so prompt caching can hit. Volatile data
+      // (the growing extraction) goes in the user message tail, not the prefix.
       const userMessage = currentOutput
-        ? `Continue extraction. Previously extracted data is provided in system prompt. Use set_output_data to preserve it, then add remaining fields. Use finish() when complete.`
+        ? `Continue extraction using the data below. Preserve it with set_output_data, add remaining fields, then call finish().\n\n## Previously Extracted Data\n${JSON.stringify(currentOutput, null, 2)}`
         : "Begin exploring the artifacts. Read manifest, then extract data. Use set_output_data and finish() tools.";
 
       const messages: any[] = [{ role: "user", content: userMessage }];
@@ -832,6 +869,14 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
         // Add all response messages (assistant + tool results) to conversation history
         if (result.response?.messages) {
           messages.push(...result.response.messages);
+        }
+
+        // Observation masking: once an image has been viewed, its base64 payload is
+        // re-fetchable from the virtual filesystem. Keep a short placeholder in history
+        // so we don't re-send megabytes on every subsequent step, and so the context
+        // prefix stays stable enough for prompt caching to hit.
+        if (this.config.purgeImages !== false) {
+          maskImagePayloads(messages);
         }
 
         if (!result.toolCalls?.length && result.text) break;

@@ -27,6 +27,7 @@ final readonly class ExtractionRequest
         public ?array $tokens = null,
         public ?string $reasoningEffort = null,
         public ?string $imagesOutput = null,
+        public ?bool $purgeImages = true,
     ) {
         if (count($inputs) !== 1) {
             throw new \InvalidArgumentException('Exactly 1 input is required (multi-input not yet supported)');

@@ -276,6 +276,37 @@ describe('Client', function () {
             expect($cmd)->not->toContain("'--reasoning-effort'");
             expect($cmd)->not->toContain("'--images-output'");
         });
+
+        it('adds --no-purge-images when purgeImages is false', function () {
+            $client = new Client(binaryPath: 'struktur');
+            $request = new Dto\ExtractionRequest(
+                inputs: [Input::fromBytes('x')],
+                schema: [],
+                purgeImages: false,
+            );
+            $cmd = invokePrivateMethod($client, 'buildExtractCommand', [$request]);
+
+            expect($cmd)->toContain("'--no-purge-images'");
+        });
+
+        it('omits --no-purge-images when purgeImages is null or true', function () {
+            $client = new Client(binaryPath: 'struktur');
+            $nullRequest = new Dto\ExtractionRequest(
+                inputs: [Input::fromBytes('x')],
+                schema: [],
+                purgeImages: null,
+            );
+            $nullCmd = invokePrivateMethod($client, 'buildExtractCommand', [$nullRequest]);
+            expect($nullCmd)->not->toContain("'--no-purge-images'");
+
+            $trueRequest = new Dto\ExtractionRequest(
+                inputs: [Input::fromBytes('x')],
+                schema: [],
+                purgeImages: true,
+            );
+            $trueCmd = invokePrivateMethod($client, 'buildExtractCommand', [$trueRequest]);
+            expect($trueCmd)->not->toContain("'--no-purge-images'");
+        });
     });
 
     describe('extractFirstJsonObject', function () {
