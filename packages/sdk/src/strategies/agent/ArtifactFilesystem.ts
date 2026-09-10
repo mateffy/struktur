@@ -114,14 +114,18 @@ export const createVirtualFilesystem = (artifacts: Artifact[]): VirtualFilesyste
               // Detect image format from base64
               const extension = detectImageFormat(media.base64);
 
-              // Create descriptive filename
-              let virtualPath: string;
-              if (pageNumber !== undefined) {
-                // If we have a page number, include it in the filename
-                virtualPath = `/images/${artifactName}-page-${pageNumber}-image-${mediaIndex}.${extension}`;
-              } else {
-                // No page number, just use artifact name and image index
-                virtualPath = `/images/${artifactName}-image-${mediaIndex}.${extension}`;
+              // Respect a pre-assigned path (e.g. a contact sheet that was
+              // already stamped with a meaningful name by the parser). Only
+              // synthesize a path when none exists yet.
+              let virtualPath: string = media.virtualPath ?? "";
+              if (!virtualPath) {
+                if (pageNumber !== undefined) {
+                  // If we have a page number, include it in the filename
+                  virtualPath = `/images/${artifactName}-page-${pageNumber}-image-${mediaIndex}.${extension}`;
+                } else {
+                  // No page number, just use artifact name and image index
+                  virtualPath = `/images/${artifactName}-image-${mediaIndex}.${extension}`;
+                }
               }
 
               // Store the base64 content in the virtual filesystem
