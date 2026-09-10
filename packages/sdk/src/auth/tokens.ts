@@ -218,6 +218,8 @@ export const resolveProviderEnvVar = (provider: string) => {
       return "OPENCODE_API_KEY";
     case "openrouter":
       return "OPENROUTER_API_KEY";
+    case "cerebras":
+      return "CEREBRAS_API_KEY";
     default:
       return undefined;
   }

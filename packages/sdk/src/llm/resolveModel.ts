@@ -91,6 +91,21 @@ export const resolveModel = async (model: string): Promise<AiSdkModel> => {
 
       return modelInstance;
     }
+    case "cerebras": {
+      const apiKey = process.env.CEREBRAS_API_KEY ?? (await resolveProviderToken("cerebras"));
+      if (!apiKey) {
+        throw new Error(
+          "Cerebras API key is required. Set CEREBRAS_API_KEY environment variable or run 'struktur config providers add cerebras --token <token>'",
+        );
+      }
+
+      const { createOpenAI } = await import("@ai-sdk/openai");
+      const cerebras = createOpenAI({
+        apiKey,
+        baseURL: process.env.CEREBRAS_BASE_URL ?? "https://api.cerebras.ai/v1",
+      });
+      return cerebras.chat(modelName);
+    }
     case "ollama": {
       const { createOllama } = await import("ollama-ai-provider-v2");
       const baseURL = await resolveOllamaBaseURL();
@@ -99,7 +114,7 @@ export const resolveModel = async (model: string): Promise<AiSdkModel> => {
     }
     default:
       throw new Error(
-        `Unsupported model provider: ${provider}. Supported providers: openai, anthropic, google, opencode, openrouter, ollama`,
+        `Unsupported model provider: ${provider}. Supported providers: openai, anthropic, google, opencode, openrouter, cerebras, ollama`,
       );
   }
 };
