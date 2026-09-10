@@ -11,6 +11,7 @@ export const pdfParseProcessor: PdfProcessor = {
       screenshots: options.screenshots,
       screenshotScale: options.screenshotScale,
       screenshotWidth: options.screenshotWidth,
+      contactSheet: options.contactSheet,
     };
     return [await parsePdf(buffer, pdfOptions)];
   },

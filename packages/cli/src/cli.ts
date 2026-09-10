@@ -2342,6 +2342,12 @@ const parseCommand = defineCommand({
       description: "Render page screenshots and include them as images in the artifact output",
       default: false,
     },
+    "no-contact-sheet": {
+      type: "boolean",
+      description:
+        "Disable labeled contact-sheet compositing of extracted images. On by default when --images is set.",
+      default: false,
+    },
     "screenshot-scale": {
       type: "string",
       description: "Scale factor for screenshots (default: 1.5)",
@@ -2486,6 +2492,7 @@ const parseCommand = defineCommand({
         screenshots: args.screenshots === true,
         screenshotScale,
         screenshotWidth,
+        contactSheet: !args["no-contact-sheet"],
         model,
       });
     } else if (mimeType.startsWith("text/")) {

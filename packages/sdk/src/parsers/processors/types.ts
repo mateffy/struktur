@@ -5,6 +5,7 @@ export type PdfProcessorOptions = {
   screenshots?: boolean;
   screenshotScale?: number;
   screenshotWidth?: number;
+  contactSheet?: boolean;
   /**
    * VLM processor only: the AI SDK model to use for page-to-markdown conversion.
    * Resolved by the caller (CLI or SDK user) before being passed in.

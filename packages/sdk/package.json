@@ -39,6 +39,7 @@
     "just-bash": "^2.11.15",
     "ollama-ai-provider-v2": "^3.5.0",
     "pdf-parse": "^2.4.5",
+    "sharp": "^0.34.5",
     "zod": "^4.4.3"
   },
   "peerDependencies": {

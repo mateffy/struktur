@@ -1,5 +1,6 @@
 import type { Artifact, ArtifactContent, ArtifactImage } from "../types";
 import { collectStream } from "./collect";
+import { buildContactSheets } from "./contactSheet";
 
 export type ParsePdfOptions = {
   /**
@@ -24,6 +25,11 @@ export type ParsePdfOptions = {
    * Height is calculated to maintain aspect ratio.
    */
   screenshotWidth?: number;
+  /**
+   * Whether to composite all extracted images into labeled contact sheets and
+   * append them as extra content entries. Defaults to true. Pass false to skip.
+   */
+  contactSheet?: boolean;
 };
 
 /**
@@ -135,6 +141,25 @@ export async function parsePdf(
     }
   }
 
+  // Deduplicate images document-wide: a byte-identical image (e.g. a recurring
+  // logo/letterhead drawn on every page) is kept only once, so the artifact,
+  // manifest and contact sheet never list redundant copies. Prefers the first
+  // occurrence, then drops any page whose media is now empty.
+  const seenImages = new Set<string>();
+  for (const [pageNum, media] of pageImageMap) {
+    const kept = media.filter((img) => {
+      if (!img.base64) return true; // attacker/other kinds pass through
+      if (seenImages.has(img.base64)) return false;
+      seenImages.add(img.base64);
+      return true;
+    });
+    if (kept.length > 0) {
+      pageImageMap.set(pageNum, kept);
+    } else {
+      pageImageMap.delete(pageNum);
+    }
+  }
+
   let contents: ArtifactContent[];
 
   if (textResult.pages.length > 0) {
@@ -181,8 +206,50 @@ export async function parsePdf(
 
   await parser.destroy();
 
+  const artifactId = `artifact-${crypto.randomUUID()}`;
+
+  // Stamp every image with its stable virtual path so all strategies
+  // (including simple/parallel etc.) can reference images by the same
+  // paths the agent strategy uses.
+  for (const content of contents) {
+    if (!content.media) continue;
+    content.media.forEach((img, idx) => {
+      // Detect format from base64 signature
+      let extension = "png";
+      if (img.base64) {
+        if (img.base64.startsWith("/9j/")) extension = "jpg";
+        else if (img.base64.startsWith("iVBOR")) extension = "png";
+        else if (img.base64.startsWith("R0lGOD")) extension = "gif";
+        else if (img.base64.startsWith("UklGR")) extension = "webp";
+      }
+      img.virtualPath = `/images/${artifactId}-page-${content.page ?? 0}-image-${idx}.${extension}`;
+    });
+  }
+
+  // Composite all extracted images into labeled contact sheets and append them
+  // as extra content entries. Each sheet is a single image the agent can read in
+  // one `view_image` call, with each thumbnail labeled by its virtual path.
+  // Opt-in — the CLI/immocore enables it; keeps parsePdf backward-compatible.
+  if (options?.contactSheet === true && options?.includeImages !== false) {
+    const allImages = contents.flatMap((c) => c.media ?? []);
+    if (allImages.length > 0) {
+      try {
+        const sheets = await buildContactSheets(allImages, { onto: `/images/${artifactId}` });
+        for (const [i, sheet] of sheets.entries()) {
+          contents.push({
+            text: `Contact sheet ${i + 1}: all extracted images, each labeled with its virtual filesystem path. Copy the label under each image exactly.`,
+            media: [sheet],
+          });
+        }
+      } catch (err) {
+        // Compositing is best-effort — never fail parsing over it.
+        console.error(`[struktur] contact sheet compositing failed: ${(err as Error).message}`);
+      }
+    }
+  }
+
   return {
-    id: `artifact-${crypto.randomUUID()}`,
+    id: artifactId,
     type: "pdf",
     raw: async () => buffer,
     contents,

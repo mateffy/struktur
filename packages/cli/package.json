@@ -23,6 +23,7 @@
     "citty": "^0.2.1",
     "kleur": "^4.1.5",
     "pdf-parse": "^2.4.5",
+    "sharp": "^0.34.5",
     "yocto-spinner": "^1.1.0"
   },
   "peerDependencies": {

@@ -60,6 +60,44 @@ function makeBuffer() {
   return Buffer.from("%PDF-1.4 fake");
 }
 
+/**
+ * Parse with contact sheets disabled, flatten every image base64 across all
+ * pages, and assert each distinct base64 appears exactly once (byte-identical
+ * duplicates are removed, keeping the first occurrence). Returns the artifact.
+ */
+async function assertDedupeCase(imagePages: PageImagesStub[]) {
+  stubTextPages = [{ num: 1, text: "Page" }];
+  stubTextFull = "";
+  stubImagePages = imagePages;
+  stubScreenshotPages = [];
+  stubGetImageThrows = false;
+  stubGetScreenshotThrows = false;
+
+  const artifact = await parsePdf(makeBuffer(), { contactSheet: false });
+
+  const base64s = artifact.contents
+    .flatMap((c) => c.media ?? [])
+    .map((m) => m.base64 ?? "")
+    .filter((b) => b.length > 0);
+
+  const seen = new Set<string>();
+  for (const b of base64s) {
+    expect(seen.has(b)).toBe(false); // no duplicate survives
+    seen.add(b);
+  }
+
+  // Every distinct source image should be present exactly once.
+  const expected = new Set<string>();
+  for (const p of imagePages) {
+    for (const img of p.images) {
+      expected.add(img.dataUrl.replace(/^data:[^;]+;base64,/, ""));
+    }
+  }
+  expect(new Set(base64s)).toEqual(expected);
+
+  return artifact;
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -132,6 +170,29 @@ test("parsePdf attaches images to the matching page content entry", async () => 
   const page2 = artifact.contents[1]!;
   expect(page2.page).toBe(2);
   expect(page2.media).toBeUndefined();
+});
+
+test("parsePdf deduplicates byte-identical images across pages (keeps first occurrence)", async () => {
+  // The same image bytes appear on three different pages (a recurring logo),
+  // plus one distinct image. Only the first copy should survive in all cases.
+  await assertDedupeCase([
+    { pageNumber: 1, images: [{ dataUrl: "data:image/png;base64,LOGO", width: 60, height: 60 }] },
+    { pageNumber: 2, images: [{ dataUrl: "data:image/png;base64,LOGO", width: 60, height: 60 }] },
+    { pageNumber: 3, images: [{ dataUrl: "data:image/png;base64,LOGO", width: 60, height: 60 }] },
+    { pageNumber: 3, images: [{ dataUrl: "data:image/png;base64,DISTINCT", width: 100, height: 100 }] },
+  ]);
+});
+
+test("parsePdf keeps distinct image bytes even on the same page", async () => {
+  await assertDedupeCase([
+    {
+      pageNumber: 1,
+      images: [
+        { dataUrl: "data:image/png;base64,A", width: 90, height: 90 },
+        { dataUrl: "data:image/png;base64,B", width: 90, height: 90 },
+      ],
+    },
+  ]);
 });
 
 test("parsePdf strips data URL prefix to produce raw base64", async () => {
