@@ -1057,6 +1057,7 @@ const generateArtifactViewerHtml = (artifacts: SerializedArtifact[], version: st
 
 type StrategyOptions = {
   chunkSize?: number;
+  maxImages?: number;
   maxSteps?: number;
   maxIterations?: number;
   outputInstructions?: string;
@@ -1064,6 +1065,7 @@ type StrategyOptions = {
 };
 
 const DEFAULT_CHUNK_SIZE = 10_000;
+const DEFAULT_MAX_IMAGES = 5;
 
 const createStrategy = (
   name: string,
@@ -1072,22 +1074,23 @@ const createStrategy = (
   options?: StrategyOptions,
 ): ExtractionStrategy<unknown> => {
   const chunkSize = options?.chunkSize ?? DEFAULT_CHUNK_SIZE;
+  const maxImages = options?.maxImages ?? DEFAULT_MAX_IMAGES;
   const outputInstructions = options?.outputInstructions;
   switch (name) {
     case "simple":
       return simple({ model, outputInstructions });
     case "parallel":
-      return parallel({ model, mergeModel: model, chunkSize, outputInstructions });
+      return parallel({ model, mergeModel: model, chunkSize, maxImages, outputInstructions });
     case "sequential":
-      return sequential({ model, chunkSize, outputInstructions });
+      return sequential({ model, chunkSize, maxImages, outputInstructions });
     case "parallelAutoMerge":
-      return parallelAutoMerge({ model, dedupeModel: model, chunkSize, outputInstructions });
+      return parallelAutoMerge({ model, dedupeModel: model, chunkSize, maxImages, outputInstructions });
     case "sequentialAutoMerge":
-      return sequentialAutoMerge({ model, dedupeModel: model, chunkSize, outputInstructions });
+      return sequentialAutoMerge({ model, dedupeModel: model, chunkSize, maxImages, outputInstructions });
     case "doublePass":
-      return doublePass({ model, mergeModel: model, chunkSize, outputInstructions });
+      return doublePass({ model, mergeModel: model, chunkSize, maxImages, outputInstructions });
     case "doublePassAutoMerge":
-      return doublePassAutoMerge({ model, dedupeModel: model, chunkSize, outputInstructions });
+      return doublePassAutoMerge({ model, dedupeModel: model, chunkSize, maxImages, outputInstructions });
     case "agent": {
       // Parse provider/model from modelSpec (format: "provider/model")
       const [provider, ...modelParts] = modelSpec.split("/");
@@ -1801,6 +1804,10 @@ const extractCommand = defineCommand({
       description: "Token budget per batch for chunked strategies",
       default: "10000",
     },
+    "max-images": {
+      type: "string",
+      description: "Maximum images per batch for chunked strategies. Defaults to 5.",
+    },
     "max-steps": {
       type: "string",
       description: "Maximum agent steps for agent strategy",
@@ -1976,6 +1983,7 @@ const extractCommand = defineCommand({
       : undefined;
     const strategy = createStrategy(args.strategy, model, modelSpec as string, {
       chunkSize,
+      maxImages: args["max-images"] ? parseInt(args["max-images"] as string, 10) : undefined,
       maxSteps,
       maxIterations,
       outputInstructions: args.instructions as string | undefined,
