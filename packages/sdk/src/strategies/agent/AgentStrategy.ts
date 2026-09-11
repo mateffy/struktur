@@ -190,6 +190,29 @@ const balancedPrefix = (s: string): string => {
   return out;
 };
 
+/**
+ * The AI SDK returns reasoning as an array of parts (provider-specific), a
+ * plain string, or nothing. Normalize all shapes to a single string (or null).
+ */
+export const extractReasoningText = (reasoning: unknown): string | null => {
+  if (typeof reasoning === "string") {
+    return reasoning;
+  }
+  if (Array.isArray(reasoning)) {
+    const text = reasoning
+      .map((part) => {
+        if (typeof part === "string") return part;
+        if (part && typeof part === "object" && "text" in part) {
+          return String((part as { text?: unknown }).text ?? "");
+        }
+        return "";
+      })
+      .join("");
+    return text.trim() !== "" ? text : null;
+  }
+  return null;
+};
+
 const statusFromToolName = (toolName: string): StatusInfo => {
   switch (toolName) {
     case "read":
@@ -862,9 +885,11 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
 
         stepCount++;
 
-        // Emit thinking/reasoning if available (skip empty arrays/strings)
-        const reasoningText = result.reasoning || result.text;
-        if (reasoningText && reasoningText.length > 0 && typeof reasoningText === "string") {
+        // Emit thinking/reasoning if available. The AI SDK returns reasoning as
+        // an array of parts (provider-specific), a plain string, or nothing —
+        // so handle both shapes instead of only strings.
+        const reasoningText = extractReasoningText(result.reasoning) ?? result.text ?? "";
+        if (reasoningText.trim() !== "") {
           await options.events?.onAgentReasoning?.({ thought: reasoningText });
         }
 
