@@ -1,6 +1,7 @@
 import { Readable } from "node:stream";
 import busboy from "busboy";
 import { Hono } from "hono";
+import { bearerAuth } from "hono/bearer-auth";
 import {
   type ExtractionEvent,
   extractData,
@@ -11,6 +12,15 @@ import {
 import { fetchConfig, fetchModels } from "./models";
 
 export const app = new Hono();
+
+// Require a bearer token for the data-processing endpoints so that an
+// unauthenticated attacker cannot invoke the app's LLM API keys.
+const apiToken = process.env.STRUKTUR_API_TOKEN;
+if (apiToken) {
+  app.use("/api/parse", bearerAuth({ token: apiToken }));
+  app.use("/api/extract", bearerAuth({ token: apiToken }));
+  app.use("/api/extract/stream", bearerAuth({ token: apiToken }));
+}
 
 app.post("/api/parse", async (c) => {
   const contentType = c.req.header("content-type");
