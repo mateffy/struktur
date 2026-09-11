@@ -662,6 +662,27 @@ SH
             cleanupMockScript($script);
         });
 
+        it('propagates exceptions thrown by the event callback (does not swallow them)', function () {
+            $script = createMockScript(<<<'SH'
+if [ "$1" = "--stdin" ]; then cat > /dev/null; fi
+printf '{"event":"failure","reason":"extraction failed","timestamp":1}\n' >&2
+SH
+            );
+            $client = new Client(binaryPath: $script);
+            $request = new Dto\ExtractionRequest(
+                inputs: [Input::fromBytes('hello')],
+                schema: ['type' => 'object'],
+            );
+
+            expect(fn () => $client->extract($request, onEvent: function ($e) {
+                if ($e instanceof Event\FailureEvent) {
+                    throw new \RuntimeException('surface this!');
+                }
+            }))->toThrow(\RuntimeException::class, 'surface this!');
+
+            cleanupMockScript($script);
+        });
+
         it('handles extract from stream input', function () {
             $script = createExtractSuccessScript();
             $stream = fopen('php://temp', 'r+');

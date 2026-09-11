@@ -145,16 +145,20 @@ class Client
                         if ($line !== '' && $onEvent !== null) {
                             try {
                                 $event = EventParser::parse($line);
-                                $onEvent($event);
-                                if ($event instanceof Dto\Event\TokenUsageEvent) {
-                                    $usage = new Dto\Usage(
-                                        $event->inputTokens,
-                                        $event->outputTokens,
-                                        $event->totalTokens,
-                                    );
-                                }
-                            } catch (\Throwable $e) {
+                            } catch (\Throwable) {
                                 // Skip unparsable lines (e.g. stray stderr output)
+                                continue;
+                            }
+
+                            // Exceptions thrown by the event callback (e.g. a
+                            // FailureEvent) must propagate — never swallow them.
+                            $onEvent($event);
+                            if ($event instanceof Dto\Event\TokenUsageEvent) {
+                                $usage = new Dto\Usage(
+                                    $event->inputTokens,
+                                    $event->outputTokens,
+                                    $event->totalTokens,
+                                );
                             }
                         }
                     }
@@ -177,15 +181,19 @@ class Client
             if ($line !== '' && $onEvent !== null) {
                 try {
                     $event = EventParser::parse($line);
-                    $onEvent($event);
-                    if ($event instanceof Dto\Event\TokenUsageEvent) {
-                        $usage = new Dto\Usage(
-                            $event->inputTokens,
-                            $event->outputTokens,
-                            $event->totalTokens,
-                        );
-                    }
                 } catch (\Throwable) {
+                    // Skip unparsable lines (e.g. stray stderr output)
+                    continue;
+                }
+
+                // Exceptions thrown by the event callback must propagate.
+                $onEvent($event);
+                if ($event instanceof Dto\Event\TokenUsageEvent) {
+                    $usage = new Dto\Usage(
+                        $event->inputTokens,
+                        $event->outputTokens,
+                        $event->totalTokens,
+                    );
                 }
             }
         }
