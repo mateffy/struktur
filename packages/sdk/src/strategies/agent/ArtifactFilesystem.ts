@@ -114,7 +114,7 @@ export const createVirtualFilesystem = (artifacts: Artifact[]): VirtualFilesyste
               // Detect image format from base64
               const extension = detectImageFormat(media.base64);
 
-              // Respect a pre-assigned path (e.g. a contact sheet that was
+              // Respect a pre-assigned path (e.g. a image overview that was
               // already stamped with a meaningful name by the parser). Only
               // synthesize a path when none exists yet.
               let virtualPath: string = media.virtualPath ?? "";

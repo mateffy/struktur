@@ -1,9 +1,9 @@
 import type { ArtifactImage } from "../types";
 
 /**
- * Contact-sheet compositor.
+ * Image-overview compositor.
  *
- * Composites many extracted images into one or more labeled contact sheets:
+ * Composites many extracted images into one or more labeled image overviews:
  * each source image becomes a thumbnail with its virtual filesystem path printed
  * underneath as a label. The label IS the path the agent must emit, so reading a
  * sheet turns per-image classification into a single copy-the-label step.
@@ -89,13 +89,13 @@ const shortLabel = (virtualPath: string): string => {
 };
 
 /**
- * Build one or more contact-sheet images from a list of extracted images.
+ * Build one or more image-overview images from a list of extracted images.
  *
  * @param images          The extracted images (must carry `base64` + `virtualPath`).
  * @param options.onto    Base path prefix for the generated sheet virtual paths.
  * @returns Composite `ArtifactImage[]` — one per emitted sheet.
  */
-export async function buildContactSheets(
+export async function buildImageOverviews(
   images: ArtifactImage[],
   options?: { onto?: string },
 ): Promise<ArtifactImage[]> {
@@ -155,7 +155,7 @@ export async function buildContactSheets(
   }
   if (current.length > 0) sheets.push(current);
 
-  const basePath = (options?.onto ?? "/images") + "/contact-sheet";
+  const basePath = (options?.onto ?? "/images") + "/image-overview";
   const out: ArtifactImage[] = [];
 
   for (let s = 0; s < sheets.length; s++) {

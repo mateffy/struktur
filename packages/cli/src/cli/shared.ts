@@ -308,7 +308,7 @@ export const loadArtifactsFromOptions = async (
   const noParse = options["no-parse"] === true;
   const images = options.images === true;
   const screenshots = options.screenshots === true;
-  const contactSheet = options["no-contact-sheet"] !== true;
+  const imageOverview = options["no-image-overview"] !== true;
   const mimeOverride = typeof options.mime === "string" ? options.mime : undefined;
   const parserOverride = typeof options.parser === "string" ? options.parser : undefined;
   const _readStdin = deps?.readStdinText ?? readStdinText;
@@ -402,7 +402,7 @@ export const loadArtifactsFromOptions = async (
         parserConfig: effectiveParsers,
         includeImages: images,
         screenshots,
-        contactSheet,
+        imageOverview,
       },
     );
   }
@@ -471,7 +471,7 @@ export const loadArtifactsFromOptions = async (
         parserConfig: effectiveParsers,
         includeImages: images,
         screenshots,
-        contactSheet,
+        imageOverview,
       },
     );
   }

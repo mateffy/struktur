@@ -61,7 +61,7 @@ function makeBuffer() {
 }
 
 /**
- * Parse with contact sheets disabled, flatten every image base64 across all
+ * Parse with image overviews disabled, flatten every image base64 across all
  * pages, and assert each distinct base64 appears exactly once (byte-identical
  * duplicates are removed, keeping the first occurrence). Returns the artifact.
  */
@@ -73,7 +73,7 @@ async function assertDedupeCase(imagePages: PageImagesStub[]) {
   stubGetImageThrows = false;
   stubGetScreenshotThrows = false;
 
-  const artifact = await parsePdf(makeBuffer(), { contactSheet: false });
+  const artifact = await parsePdf(makeBuffer(), { imageOverview: false });
 
   const base64s = artifact.contents
     .flatMap((c) => c.media ?? [])

@@ -40,7 +40,7 @@ export type ArtifactInputParser = {
       screenshots?: boolean;
       screenshotScale?: number;
       screenshotWidth?: number;
-      contactSheet?: boolean;
+      imageOverview?: boolean;
       processor?: string;
       processorModel?: unknown;
     },
@@ -164,7 +164,7 @@ const parseBufferInput = async (
   screenshots?: boolean,
   screenshotScale?: number,
   screenshotWidth?: number,
-  contactSheet?: boolean,
+  imageOverview?: boolean,
   processor?: string,
   processorModel?: unknown,
 ): Promise<Artifact[]> => {
@@ -207,7 +207,7 @@ const parseBufferInput = async (
       screenshots,
       screenshotScale,
       screenshotWidth,
-      contactSheet,
+      imageOverview,
       model: processorModel,
     });
   }
@@ -293,7 +293,7 @@ const fileParser: ArtifactInputParser = {
       options?.screenshots,
       options?.screenshotScale,
       options?.screenshotWidth,
-      options?.contactSheet,
+      options?.imageOverview,
       options?.processor,
       options?.processorModel,
     );
@@ -317,7 +317,7 @@ const bufferParser: ArtifactInputParser = {
       options?.screenshots,
       options?.screenshotScale,
       options?.screenshotWidth,
-      options?.contactSheet,
+      options?.imageOverview,
       options?.processor,
       options?.processorModel,
     );
@@ -334,7 +334,7 @@ export const parse = async (
     screenshots?: boolean;
     screenshotScale?: number;
     screenshotWidth?: number;
-    contactSheet?: boolean;
+    imageOverview?: boolean;
     processor?: string;
     processorModel?: unknown;
   },
@@ -359,7 +359,7 @@ export const parse = async (
     screenshots: options?.screenshots,
     screenshotScale: options?.screenshotScale,
     screenshotWidth: options?.screenshotWidth,
-    contactSheet: options?.contactSheet,
+    imageOverview: options?.imageOverview,
     processor: options?.processor,
     processorModel: options?.processorModel,
   });
