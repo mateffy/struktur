@@ -1,5 +1,61 @@
 import { test, expect } from "bun:test";
-import { maskImagePayloads } from "./AgentStrategy";
+import { maskImagePayloads, maskPriorImagePayloads } from "./AgentStrategy";
+
+test("maskPriorImagePayloads keeps the current step's images visible", () => {
+  const mediaResult = (path: string) => ({
+    role: "tool",
+    content: [
+      {
+        type: "tool-result",
+        toolCallId: `call_${path}`,
+        toolName: "view_image",
+        output: {
+          type: "content",
+          value: [
+            { type: "text", text: `[Image: ${path}]` },
+            { type: "media", data: "aGVsbG8gd29ybGQ", mediaType: "image/png" },
+          ],
+        },
+      },
+    ],
+  });
+
+  const messages: any[] = [mediaResult("/old.png"), mediaResult("/new.png")];
+
+  // Second message is the current step's tool result — it must stay intact.
+  maskPriorImagePayloads(messages, 1);
+
+  const oldValue = messages[0].content[0].output.value;
+  const newValue = messages[1].content[0].output.value;
+
+  expect(oldValue[1].type).toBe("text");
+  expect(JSON.stringify(oldValue)).not.toContain("aGVsbG8gd29ybGQ");
+
+  expect(newValue[1].type).toBe("media");
+  expect(newValue[1].data).toBe("aGVsbG8gd29ybGQ");
+});
+
+test("maskPriorImagePayloads is a no-op when nothing precedes the new messages", () => {
+  const messages: any[] = [
+    {
+      role: "tool",
+      content: [
+        {
+          type: "tool-result",
+          toolCallId: "call_1",
+          toolName: "view_image",
+          output: {
+            type: "content",
+            value: [{ type: "media", data: "aGVsbG8=", mediaType: "image/png" }],
+          },
+        },
+      ],
+    },
+  ];
+
+  maskPriorImagePayloads(messages, 0);
+  expect(messages[0].content[0].output.value[0].type).toBe("media");
+});
 
 test("maskImagePayloads replaces media parts in tool-result with a text placeholder", () => {
   const messages = [

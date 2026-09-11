@@ -50,8 +50,7 @@ export type AgentStrategyConfig = {
  * placeholder, keeping any sibling text (e.g. the image path). Operates in place
  * on the AI SDK message list.
  */
-export const maskImagePayloads = (messages: any[]): void => {
-  for (const message of messages) {
+export const maskImagePayloads = (messages: any[]): void => {  for (const message of messages) {
     if (!Array.isArray(message?.content)) continue;
     for (const part of message.content) {
       if (part?.type === "tool-result" && part?.output?.type === "content") {
@@ -77,6 +76,25 @@ export const maskImagePayloads = (messages: any[]): void => {
       }
     }
   }
+};
+
+/**
+ * Mask images from *earlier* steps only.
+ *
+ * `firstNewMessageIndex` marks where the most recent step's messages begin.
+ * Those must keep their media payloads so the model can actually see what it
+ * just requested — masking them would blind the agent and make every
+ * view_image call look like it returned nothing.
+ */
+export const maskPriorImagePayloads = (
+  messages: any[],
+  firstNewMessageIndex: number,
+): void => {
+  if (firstNewMessageIndex <= 0) {
+    return;
+  }
+
+  maskImagePayloads(messages.slice(0, firstNewMessageIndex));
 };
 
 export const parseOutputData = (value: unknown): unknown => {
@@ -292,10 +310,13 @@ ALWAYS use pagination (offset + limit) when reading large files. Start with offs
 - Read /artifact.json directly and extract. Paginate (offset/limit) only if a read is truncated.
 - Image references must never be invented: only assign a path you have actually seen (via the image overview or view_image). Filenames alone cannot distinguish exterior vs. interior vs. floorplan.
 
-## CRITICAL: Incremental Updates
-1. If data was already extracted in previous iterations, use set_output_data to preserve it
-2. Call update_output_data to add new fields as you discover them
-3. Call finish() when done
+## CRITICAL: Build the output incrementally
+Never emit the whole extraction in one huge tool call. On a large document that
+takes minutes, risks truncation, and gives no visibility into progress.
+1. Call set_output_data once with the top-level fields you already know from the text.
+2. Then add each section with its own update_output_data call — buildings first, then units, then their features, images and floorplans. update_output_data deep-merges, so each call can be small.
+3. Keep each call focused: a handful of fields or one section at a time.
+4. Call finish() only once the object is complete.
 
 ${outputInstructions ? `\n## Additional Instructions\n\n${outputInstructions}\n` : ""}
 
@@ -883,6 +904,7 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
         }
 
         // Add all response messages (assistant + tool results) to conversation history
+        const firstNewMessageIndex = messages.length;
         if (result.response?.messages) {
           messages.push(...result.response.messages);
         }
@@ -891,8 +913,13 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
         // re-fetchable from the virtual filesystem. Keep a short placeholder in history
         // so we don't re-send megabytes on every subsequent step, and so the context
         // prefix stays stable enough for prompt caching to hit.
+        //
+        // Only mask images from *earlier* steps. The tool results returned by the
+        // step above must stay intact — masking them here would replace the image
+        // with a placeholder before the model ever sees it, leaving the agent
+        // image-blind and convinced view_image returns no content.
         if (this.config.purgeImages !== false) {
-          maskImagePayloads(messages);
+          maskPriorImagePayloads(messages, firstNewMessageIndex);
         }
 
         if (!result.toolCalls?.length && result.text) break;
