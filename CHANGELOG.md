@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.7.0] - 2026-09-11
+
+### Added
+
+- **Contact-sheet compositor** — `parsePdf` composites extracted images into labeled contact sheets (MaxRects bin packing), each thumbnail labeled with its virtual filesystem path. Sheets cap at 1500px so the vision encoder does not downscale labels into illegibility. Opt-in (default off in `parsePdf`; the CLI enables it by default, `--no-contact-sheet` to disable).
+- **Document-wide image dedup** — `parsePdf` keeps only one copy of byte-identical images (recurring logos/letterheads).
+- **Observation-masked image payloads** in agent history (defensive; the AI SDK already strips media from persisted tool results).
+- **Stable agent system prompt** — the growing extraction output moved out of the system prompt into the user-message tail so prompt caching can hit on the static prefix.
+- **Contact-sheet-aware agent instructions** — the agent now views `contact-sheet` paths first and never assigns an image path it has not viewed.
+
+### Fixed
+
+- `createVirtualFilesystem` no longer clobbers a parser-assigned `virtualPath` (e.g. contact sheets).
+
 ## [2.6.1] - 2026-09-08
 
 ### Security

@@ -260,7 +260,9 @@ ALWAYS use pagination (offset + limit) when reading large files. Start with offs
 - All document content is already in /artifact.json (full text of every page) and /manifest.json (summary, shown above).
 - The file tree above already describes the complete filesystem — do NOT use ls, find, tree, grep, or bash to explore it.
 - Read /artifact.json directly and extract. Paginate (offset/limit) only if a read is truncated.
-- Use view_image only when the schema requires visual content (e.g. floorplans or photos).
+- Images: if the manifest lists paths containing "contact-sheet", call view_image on those FIRST — each sheet shows every extracted image as a thumbnail with its exact virtual path printed beneath it. Assign image references by copying the labels you see on the sheet.
+- Only call view_image on individual images when no contact sheet is available, or when you need a closer look at one image.
+- Never assign an image path you have not viewed (via a contact sheet or view_image). Filenames alone cannot distinguish exterior vs. interior vs. floorplan.
 
 ## CRITICAL: Incremental Updates
 1. If data was already extracted in previous iterations, use set_output_data to preserve it
