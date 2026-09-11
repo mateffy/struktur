@@ -254,6 +254,13 @@ const defaultSystemPrompt = (
 
   return `You are an autonomous data extraction agent. Your task is to explore the provided artifacts and extract structured data according to the given JSON schema.
 
+## Required Workflow (follow this order)
+1. **Text first.** Read "/artifact.json" — it already contains the full text of every page. Extract every field you can from that text alone (address, areas, units, prices, features, dates, ...). Almost all schema fields are answered here.
+2. **Then the image overview.** Only once the text is exhausted, look at the images. If the manifest lists an "image-overview", call view_image on it ONCE: it is a single image showing every extracted image as a labeled thumbnail, so one view tells you which photos and floorplans exist. Copy each exact path from its label.
+3. **Individual images only when needed.** The overview already shows every image with its exact path — assign image references from it directly. Do NOT open an individual image merely to confirm, label or double-check one you can already see on the overview. Open a single image only when the overview is genuinely unreadable for that one (for example a floorplan whose room labels you must read). A handful of individual views at most — never one per image.
+
+Do not reorder this workflow: text → overview → individual images.
+
 ## Your Environment
 You have access to a virtual filesystem:
 - "/artifact.json" - All artifacts in structured JSON format (full data)
@@ -283,9 +290,7 @@ ALWAYS use pagination (offset + limit) when reading large files. Start with offs
 - All document content is already in /artifact.json (full text of every page) and /manifest.json (summary, shown above).
 - The file tree above already describes the complete filesystem — do NOT use ls, find, tree, grep, or bash to explore it.
 - Read /artifact.json directly and extract. Paginate (offset/limit) only if a read is truncated.
-- Images: the manifest may list an "image-overview" image. View it FIRST — it is a single image that shows every extracted image as a labeled thumbnail, so you can see them all at once and copy each exact path from its label. Only view individual images when you need a closer look at one.
-- Only call view_image on individual images when no image overview is available, or when you need a closer look at one image.
-- Never assign an image path you have not viewed (via the image overview or view_image). Filenames alone cannot distinguish exterior vs. interior vs. floorplan.
+- Image references must never be invented: only assign a path you have actually seen (via the image overview or view_image). Filenames alone cannot distinguish exterior vs. interior vs. floorplan.
 
 ## CRITICAL: Incremental Updates
 1. If data was already extracted in previous iterations, use set_output_data to preserve it
@@ -459,36 +464,15 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
     let isComplete = false;
     const totalUsage = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
 
-    // Auto-detect vision support from model APIs if vision not explicitly set
-    let visionEnabled = this.config.vision ?? false;
+    // Auto-detect vision support from model APIs if vision not explicitly set.
+    // Fails open: when detection is inconclusive we assume the model can see
+    // images. The user asked for images; if the model truly cannot accept them
+    // the provider returns a clear error rather than silently going text-only.
+    let visionEnabled = this.config.vision ?? true;
     if (this.config.vision === undefined && this.config.provider && this.config.modelId) {
-      try {
-        if (this.config.provider === "openrouter") {
-          // Use OpenRouter API for OpenRouter models
-          const response = await fetch(
-            `https://openrouter.ai/api/v1/models/${this.config.modelId}`,
-          );
-          if (response.ok) {
-            const modelData: any = await response.json();
-            const inputModalities = modelData?.data?.architecture?.input_modalities || [];
-            visionEnabled = inputModalities.includes("image");
-          }
-        } else {
-          // Use models.dev for other providers
-          const response = await fetch("https://models.dev/api.json");
-          if (response.ok) {
-            const allModels: any = await response.json();
-            const providerData = allModels[this.config.provider];
-            if (providerData?.models) {
-              const modelData = providerData.models[this.config.modelId];
-              if (modelData?.modalities?.input) {
-                visionEnabled = modelData.modalities.input.includes("image");
-              }
-            }
-          }
-        }
-      } catch {
-        // Fall back to false if API fails
+      const modalities = await detectInputModalities(this.config.provider, this.config.modelId);
+      if (modalities && modalities.length > 0) {
+        visionEnabled = modalities.includes("image");
       }
     }
 
@@ -634,7 +618,7 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
         },
       }),
       view_image: tool({
-        description: visionEnabled ? "View an image" : "View image metadata (no vision support)",
+        description: "View an image",
         inputSchema: z.object({ image_path: z.string() }),
         execute: async (params: { image_path: string }) => {
           const imageData = filesystem.getImageByPath?.(params.image_path);
@@ -677,7 +661,12 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
           } else {
             return {
               type: "content" as const,
-              value: [{ type: "text" as const, text: `[Image: ${path}]` }],
+              value: [
+                {
+                  type: "text" as const,
+                  text: `[Image: ${path}] This model cannot display images — work from the text content only.`,
+                },
+              ],
             };
           }
         },
@@ -957,3 +946,52 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
 }
 
 export const agent = <T>(config: AgentStrategyConfig) => new AgentStrategy<T>(config);
+
+/**
+ * Look up the input modalities a model accepts (e.g. ["text", "image"]).
+ *
+ * Returns undefined when the answer cannot be determined, so the caller can
+ * keep its default instead of interpreting "unknown" as "no vision".
+ */
+const detectInputModalities = async (
+  provider: string,
+  modelId: string,
+): Promise<string[] | undefined> => {
+  try {
+    if (provider === "openrouter") {
+      const single = await fetch(`https://openrouter.ai/api/v1/models/${modelId}`);
+      if (single.ok) {
+        const modelData: any = await single.json();
+        const modalities = modelData?.data?.architecture?.input_modalities;
+        if (Array.isArray(modalities) && modalities.length > 0) {
+          return modalities;
+        }
+      }
+
+      // The single-model endpoint is inconsistent (it 404s for some models),
+      // so fall back to the full catalogue and match by id.
+      const list = await fetch("https://openrouter.ai/api/v1/models");
+      if (list.ok) {
+        const all: any = await list.json();
+        const match = (all?.data ?? []).find((entry: any) => entry?.id === modelId);
+        const modalities = match?.architecture?.input_modalities;
+        if (Array.isArray(modalities) && modalities.length > 0) {
+          return modalities;
+        }
+      }
+
+      return undefined;
+    }
+
+    const response = await fetch("https://models.dev/api.json");
+    if (!response.ok) {
+      return undefined;
+    }
+
+    const allModels: any = await response.json();
+    const modalities = allModels?.[provider]?.models?.[modelId]?.modalities?.input;
+    return Array.isArray(modalities) && modalities.length > 0 ? modalities : undefined;
+  } catch {
+    return undefined;
+  }
+};
