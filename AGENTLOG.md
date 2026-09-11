@@ -1470,6 +1470,12 @@ Task: update gesetz (npm check tool) from working 1.3.3 → 3.0.0-rc. The rc has
 01a07392-ee8a-7a45-b6d0-3ef5e0df7c9b
 ```
 
+```write
+/Users/mat/dev/struktur/.github/workflows/ci.yml
+/Users/mat/dev/struktur/package.json
+/Users/mat/dev/struktur/pnpm-workspace.yaml
+```
+
 Gesetz 3.0.0-rc.4 update committed+pushed (14297d9) but CI failed at `pnpm check`.
 
 - [x] Committed + pushed gesetz update (14297d9)

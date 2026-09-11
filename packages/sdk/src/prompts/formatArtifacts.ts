@@ -1,6 +1,13 @@
 import type { Artifact, ArtifactImage } from "../types";
 
 const imageRefFor = (artifactId: string, index: number, image: ArtifactImage) => {
+  // Prefer the stable virtual filesystem path (set by createVirtualFilesystem/
+  // the agent strategy) so the model can reference images by their exact path
+  // in the output. Fall back to URL or a synthetic artifact ref.
+  if (image.virtualPath) {
+    return image.virtualPath;
+  }
+
   if (image.url) {
     return image.url;
   }
