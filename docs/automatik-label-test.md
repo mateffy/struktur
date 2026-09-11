@@ -1,0 +1,1 @@
+labelled trigger works
