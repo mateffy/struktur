@@ -458,4 +458,4 @@ Full documentation at **[struktur.sh](https://struktur.sh)**
 - [Strategies](https://struktur.sh/docs/explanation/strategies)
 - [Examples](https://struktur.sh/docs/examples)
 
-> **Joke of the README:** Why did the JSON schema go to therapy? It had too many unresolved `$ref`s.
+> **Joke of the README:** I asked Struktur to extract 'happiness' from my documents. It returned `null` and suggested I lower my `temperature`.
