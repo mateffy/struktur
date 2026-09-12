@@ -448,6 +448,11 @@ struktur config parsers remove --mime application/vnd.ms-excel
 <br />
 <br />
 
+> **Why did the developer install Struktur?**  
+> They were tired of their LLM hallucinating spreadsheets.
+
+<br />
+
 ## Documentation
 
 Full documentation at **[struktur.sh](https://struktur.sh)**
