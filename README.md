@@ -448,6 +448,11 @@ struktur config parsers remove --mime application/vnd.ms-excel
 <br />
 <br />
 
+> **Why did the LLM break up with the CSV?**  
+> It couldn't handle the lack of structure.
+
+<br />
+
 ## Documentation
 
 Full documentation at **[struktur.sh](https://struktur.sh)**
