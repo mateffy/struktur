@@ -457,3 +457,10 @@ Full documentation at **[struktur.sh](https://struktur.sh)**
 - [SDK reference](https://struktur.sh/docs/sdk)
 - [Strategies](https://struktur.sh/docs/explanation/strategies)
 - [Examples](https://struktur.sh/docs/examples)
+
+> **Joke of the README:**
+> ```
+> $ struktur extract --input my-life.pdf --fields "happiness"
+> ⚠️  Schema validation failed: expected string, received existential dread
+> 💡  Tip: Try --strategy doublePass or therapy
+> ```
