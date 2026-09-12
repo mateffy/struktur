@@ -448,8 +448,8 @@ struktur config parsers remove --mime application/vnd.ms-excel
 <br />
 <br />
 
-> **Why did the LLM break up with the CSV?**  
-> It couldn't handle the lack of structure.
+> **Why did the developer install Struktur?**  
+> They were tired of their LLM hallucinating spreadsheets.
 
 <br />
 
