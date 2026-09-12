@@ -457,3 +457,5 @@ Full documentation at **[struktur.sh](https://struktur.sh)**
 - [SDK reference](https://struktur.sh/docs/sdk)
 - [Strategies](https://struktur.sh/docs/explanation/strategies)
 - [Examples](https://struktur.sh/docs/examples)
+
+> **Joke of the README:** Why did the JSON schema go to therapy? It had too many unresolved `$ref`s.
