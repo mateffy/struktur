@@ -287,6 +287,14 @@ class Client
             $parts[] = '--images-output';
             $parts[] = $request->imagesOutput;
         }
+        if ($request->prefill !== null) {
+            $parts[] = '--prefill';
+            $parts[] = $request->prefill;
+        }
+        if ($request->prefillImages !== null) {
+            $parts[] = '--prefill-images';
+            $parts[] = (string) $request->prefillImages;
+        }
         if ($input->path !== null) {
             $parts[] = '--input';
             $parts[] = $input->path;

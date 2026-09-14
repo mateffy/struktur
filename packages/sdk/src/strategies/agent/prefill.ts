@@ -2,21 +2,18 @@ import { estimateImageTokens, estimateTextTokens } from "../../tokenization";
 import type { VirtualFilesystemResult } from "./ArtifactFilesystem";
 
 export type PrefillOptions = {
-  /** Total token budget for the pre-loaded context. */
-  tokens: number;
-  /** Fraction of the budget reserved for document text. Default: 0.67. */
-  textRatio?: number;
+  /** Maximum tokens of document text to pre-load. */
+  textTokens: number;
   /**
-   * Hard cap on pre-loaded images. Default: 1 — the image overview alone. Loading
-   * individual photos up front is what the prompt explicitly tells the agent not to
-   * do, and a single image is 1–4 MB of base64, so more than one is rarely worth it.
+   * Hard cap on pre-loaded images, image overviews first. Default: 1 — the
+   * overview alone, which already shows every extracted image.
    */
   maxImages?: number;
   /**
    * Hard cap on the total base64 bytes of pre-loaded images. Providers reject
    * oversized request bodies (OpenRouter: "Downloaded image content cannot
-   * exceed 30MB"), and image token estimates are too coarse to catch that.
-   * Default: 4 MB.
+   * exceed 30MB") and a single image is 1–4 MB, so a count alone is not enough.
+   * Default: 12 MB.
    */
   maxImageBytes?: number;
 };
@@ -90,10 +87,7 @@ export const buildPrefill = (
   filesystem: VirtualFilesystemResult,
   options: PrefillOptions,
 ): PrefillResult => {
-  const budget = Math.max(0, options.tokens);
-  const textRatio = options.textRatio ?? 0.67;
-  const textBudget = Math.floor(budget * textRatio);
-  const imageBudget = budget - textBudget;
+  const textBudget = Math.max(0, options.textTokens);
 
   const artifactJson = filesystem["/artifact.json"] ?? "";
   const read = buildReadMessages("/artifact.json", artifactJson, textBudget);
@@ -105,7 +99,7 @@ export const buildPrefill = (
   ];
 
   const maxImages = options.maxImages ?? 1;
-  const maxImageBytes = options.maxImageBytes ?? 4_000_000;
+  const maxImageBytes = options.maxImageBytes ?? 12_000_000;
   const messages = [...read.messages];
   const loadedPaths: string[] = [];
   let imageTokens = 0;
@@ -118,7 +112,6 @@ export const buildPrefill = (
     if (!data) continue;
 
     const tokens = estimateImageTokens();
-    if (imageTokens + tokens > imageBudget) break;
     if (imageBytes + data.length > maxImageBytes) continue;
 
     const toolCallId = `prefill_view_image_${loadedPaths.length + 1}`;

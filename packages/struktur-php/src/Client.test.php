@@ -276,6 +276,34 @@ describe('Client', function () {
             expect($cmd)->not->toContain("'--reasoning-effort'");
             expect($cmd)->not->toContain("'--images-output'");
         });
+
+        it('passes the prefill budget and image cap when provided', function () {
+            $client = new Client(binaryPath: 'struktur');
+            $request = new Dto\ExtractionRequest(
+                inputs: [Input::fromBytes('x')],
+                schema: [],
+                prefill: '300k',
+                prefillImages: 4,
+            );
+            $cmd = invokePrivateMethod($client, 'buildExtractCommand', [$request]);
+
+            expect($cmd)->toContain("'--prefill'");
+            expect($cmd)->toContain("'300k'");
+            expect($cmd)->toContain("'--prefill-images'");
+            expect($cmd)->toContain("'4'");
+        });
+
+        it('omits prefill when null', function () {
+            $client = new Client(binaryPath: 'struktur');
+            $request = new Dto\ExtractionRequest(
+                inputs: [Input::fromBytes('x')],
+                schema: [],
+            );
+            $cmd = invokePrivateMethod($client, 'buildExtractCommand', [$request]);
+
+            expect($cmd)->not->toContain("'--prefill'");
+            expect($cmd)->not->toContain("'--prefill-images'");
+        });
     });
 
     describe('extractFirstJsonObject', function () {

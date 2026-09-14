@@ -1062,7 +1062,7 @@ type StrategyOptions = {
   maxIterations?: number;
   outputInstructions?: string;
   reasoningEffort?: "low" | "medium" | "high";
-  prefill?: number;
+  prefill?: { textTokens: number; maxImages?: number };
 };
 
 const DEFAULT_CHUNK_SIZE = 10_000;
@@ -1082,6 +1082,22 @@ const parseTokenBudget = (value?: string): number | undefined => {
   }
 
   return tokens;
+};
+
+/** Build the agent prefill config from --prefill and --prefill-images. */
+const parsePrefill = (
+  textBudget?: string,
+  images?: string,
+): { textTokens: number; maxImages?: number } | undefined => {
+  const textTokens = parseTokenBudget(textBudget);
+  const maxImages = images ? Number.parseInt(images, 10) : undefined;
+
+  if (!textTokens && !maxImages) return undefined;
+  if (maxImages !== undefined && (!Number.isInteger(maxImages) || maxImages < 0)) {
+    throw new UserError(`Invalid --prefill-images value: ${images}`);
+  }
+
+  return { textTokens: textTokens ?? 0, maxImages };
 };
 
 const createStrategy = (
@@ -1124,7 +1140,7 @@ const createStrategy = (
         maxIterations: options?.maxIterations ?? 1,
         outputInstructions,
         reasoningEffort: options?.reasoningEffort,
-        prefill: options?.prefill ? { tokens: options.prefill } : undefined,
+        prefill: options?.prefill,
       });
     }
     default:
@@ -1853,7 +1869,12 @@ const extractCommand = defineCommand({
     prefill: {
       type: "string",
       description:
-        "Pre-load up to this many tokens of document context (text + image overviews) as synthetic tool calls before the agent starts. Agent strategy only. e.g. 200k",
+        "Pre-load up to this many tokens of document text as synthetic read calls before the agent starts. Agent strategy only. e.g. 300k",
+    },
+    "prefill-images": {
+      type: "string",
+      description:
+        "Maximum number of images to pre-load alongside --prefill. Image overviews first. Default: 1",
     },
     format: {
       type: "string",
@@ -2011,7 +2032,7 @@ const extractCommand = defineCommand({
       maxIterations,
       outputInstructions: args.instructions as string | undefined,
       reasoningEffort,
-      prefill: parseTokenBudget(args.prefill as string | undefined),
+      prefill: parsePrefill(args.prefill as string | undefined, args["prefill-images"] as string | undefined),
     });
     debug.strategyCreated({
       strategy: args.strategy,

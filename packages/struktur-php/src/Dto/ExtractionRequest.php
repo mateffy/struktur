@@ -27,6 +27,13 @@ final readonly class ExtractionRequest
         public ?array $tokens = null,
         public ?string $reasoningEffort = null,
         public ?string $imagesOutput = null,
+        /**
+         * Agent context prefill: max tokens of document text to front-load as
+         * synthetic read calls, e.g. "300k". Agent strategy only.
+         */
+        public ?string $prefill = null,
+        /** Maximum images to pre-load alongside the prefill. Overviews first. */
+        public ?int $prefillImages = null,
     ) {
         if (count($inputs) !== 1) {
             throw new \InvalidArgumentException('Exactly 1 input is required (multi-input not yet supported)');
