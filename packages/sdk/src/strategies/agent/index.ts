@@ -7,3 +7,4 @@ export {
   type ArtifactsManifest,
 } from "./ArtifactFilesystem";
 export { createVirtualFilesystemTools } from "./AgentTools";
+export { buildPrefill, type PrefillOptions, type PrefillResult } from "./prefill";

@@ -1062,11 +1062,27 @@ type StrategyOptions = {
   maxIterations?: number;
   outputInstructions?: string;
   reasoningEffort?: "low" | "medium" | "high";
-  purgeImages?: boolean;
+  prefill?: number;
 };
 
 const DEFAULT_CHUNK_SIZE = 10_000;
 const DEFAULT_MAX_IMAGES = 5;
+
+/** Parse "200k" / "1.5m" / "200_000" / "200000" into a token count. */
+const parseTokenBudget = (value?: string): number | undefined => {
+  if (!value) return undefined;
+
+  const match = value.replace(/[_,]/g, "").match(/^([\d.]+)\s*([kmKM]?)$/);
+  if (!match) throw new UserError(`Invalid token budget: ${value}`);
+
+  const scale = { "": 1, k: 1_000, m: 1_000_000 }[match[2].toLowerCase()] ?? 1;
+  const tokens = Math.round(Number.parseFloat(match[1]) * scale);
+  if (!Number.isFinite(tokens) || tokens <= 0) {
+    throw new UserError(`Invalid token budget: ${value}`);
+  }
+
+  return tokens;
+};
 
 const createStrategy = (
   name: string,
@@ -1108,7 +1124,7 @@ const createStrategy = (
         maxIterations: options?.maxIterations ?? 1,
         outputInstructions,
         reasoningEffort: options?.reasoningEffort,
-        purgeImages: options?.purgeImages,
+        prefill: options?.prefill ? { tokens: options.prefill } : undefined,
       });
     }
     default:
@@ -1834,11 +1850,10 @@ const extractCommand = defineCommand({
       type: "string",
       description: "Write the extracted images (virtual path -> base64) to this file",
     },
-    "no-purge-images": {
-      type: "boolean",
+    prefill: {
+      type: "string",
       description:
-        "Disable observation masking: keep previously-viewed image payloads in the agent's message history. Off by default (images are masked).",
-      default: false,
+        "Pre-load up to this many tokens of document context (text + image overviews) as synthetic tool calls before the agent starts. Agent strategy only. e.g. 200k",
     },
     format: {
       type: "string",
@@ -1996,7 +2011,7 @@ const extractCommand = defineCommand({
       maxIterations,
       outputInstructions: args.instructions as string | undefined,
       reasoningEffort,
-      purgeImages: args["no-purge-images"] === undefined ? undefined : !args["no-purge-images"],
+      prefill: parseTokenBudget(args.prefill as string | undefined),
     });
     debug.strategyCreated({
       strategy: args.strategy,

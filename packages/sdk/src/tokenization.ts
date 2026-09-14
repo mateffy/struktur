@@ -1,4 +1,4 @@
-import type { Artifact, ArtifactContent, ArtifactImage } from "./types";
+import type { Artifact, ArtifactContent } from "./types";
 
 export type TokenCountOptions = {
   textTokenRatio?: number;
@@ -20,7 +20,7 @@ export const estimateTextTokens = (text: string, options?: TokenCountOptions) =>
   return Math.ceil(text.length / textTokenRatio);
 };
 
-export const estimateImageTokens = (_image: ArtifactImage, options?: TokenCountOptions) => {
+export const estimateImageTokens = (_image?: unknown, options?: TokenCountOptions) => {
   const { defaultImageTokens } = mergeOptions(options);
   return defaultImageTokens;
 };

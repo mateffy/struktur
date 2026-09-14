@@ -12,6 +12,8 @@ import { createVirtualFilesystem } from "./ArtifactFilesystem";
 import { emitStatus } from "../status";
 import { z } from "zod";
 
+import { buildPrefill, type PrefillOptions } from "./prefill";
+
 export type AgentStrategyConfig = {
   model?: string | AiSdkModel;
   provider?: string;
@@ -31,13 +33,12 @@ export type AgentStrategyConfig = {
    */
   reasoningEffort?: "low" | "medium" | "high";
   /**
-   * Mask previously-viewed image payloads in the message history instead of
-   * re-sending their base64 on every subsequent step (observation masking).
-   * Keeps the context prefix small and stable, which is required for prompt
-   * caching to hit, and avoids re-sending huge payloads. Images stay
-   * re-fetchable via the virtual filesystem (view_image). Default: true.
+   * Pre-load the document text and image overviews as synthetic tool calls
+   * before the first step, so the agent starts with full context instead of
+   * spending steps discovering it. Also gives providers a large, stable prefix
+   * to prompt-cache. Off by default.
    */
-  purgeImages?: boolean;
+  prefill?: PrefillOptions;
 };
 
 /**
@@ -45,58 +46,6 @@ export type AgentStrategyConfig = {
  * `z.any()`. Models often pass a JSON *string* there instead of a parsed object.
  * Normalize: parse JSON strings, pass objects/arrays through, leave others as-is.
  */
-/**
- * Replace large image payloads inside tool-result content parts with a short text
- * placeholder, keeping any sibling text (e.g. the image path). Operates in place
- * on the AI SDK message list.
- */
-export const maskImagePayloads = (messages: any[]): void => {  for (const message of messages) {
-    if (!Array.isArray(message?.content)) continue;
-    for (const part of message.content) {
-      if (part?.type === "tool-result" && part?.output?.type === "content") {
-        const value = part.output.value;
-        if (!Array.isArray(value)) continue;
-        for (let i = 0; i < value.length; i++) {
-          const piece = value[i];
-          // Covers `media` (SDK tool output), `image-data` (after download
-          // conversion) and any part carrying a large inline base64 payload.
-          const isImage =
-            piece?.type === "media" ||
-            piece?.type === "image-data" ||
-            (typeof piece?.data === "string" && piece.data.length > 512);
-          if (isImage) {
-            // Keep a pointer to the image path if a sibling text part has it.
-            const pathText = value.find((v) => v?.type === "text")?.text;
-            value[i] = {
-              type: "text",
-              text: pathText ? `[Image viewed: ${pathText}]` : "[Image viewed]",
-            };
-          }
-        }
-      }
-    }
-  }
-};
-
-/**
- * Mask images from *earlier* steps only.
- *
- * `firstNewMessageIndex` marks where the most recent step's messages begin.
- * Those must keep their media payloads so the model can actually see what it
- * just requested — masking them would blind the agent and make every
- * view_image call look like it returned nothing.
- */
-export const maskPriorImagePayloads = (
-  messages: any[],
-  firstNewMessageIndex: number,
-): void => {
-  if (firstNewMessageIndex <= 0) {
-    return;
-  }
-
-  maskImagePayloads(messages.slice(0, firstNewMessageIndex));
-};
-
 export const parseOutputData = (value: unknown): unknown => {
   if (typeof value !== "string") return value;
   const trimmed = value.trim();
@@ -261,6 +210,7 @@ const defaultSystemPrompt = (
   outputInstructions?: string,
   fileTree?: string,
   manifestContent?: string,
+  prefilled?: boolean,
 ) => {
   const fileTreeSection = fileTree
     ? `\n## File System Structure\n\n\`\`\`\n${fileTree}\n\`\`\`\n`
@@ -273,11 +223,18 @@ const defaultSystemPrompt = (
   return `You are an autonomous data extraction agent. Your task is to explore the provided artifacts and extract structured data according to the given JSON schema.
 
 ## Required Workflow (follow this order)
-1. **Text first.** Read "/artifact.json" — it already contains the full text of every page. Extract every field you can from that text alone (address, areas, units, prices, features, dates, ...). Almost all schema fields are answered here.
+${
+  prefilled
+    ? `The document text and image overviews below are ALREADY LOADED as completed tool calls. Do not read /artifact.json or view the image overview again — extract straight from the loaded context.
+1. **Extract from the loaded context.** Everything already read above is available to you. Almost all schema fields are answered there.
+2. **Then assign images.** The loaded image overview shows every image with its exact path. Copy each path from its label.
+3. **Individual images only when needed.** Do not open an individual image merely to confirm, label or double-check one you can already see on the overview. Open a single image only when the overview is genuinely unreadable for that one (for example a floorplan whose room labels you must read). A handful of individual views at most — never one per image.`
+    : `1. **Text first.** Read "/artifact.json" — it already contains the full text of every page. Extract every field you can from that text alone (address, areas, units, prices, features, dates, ...). Almost all schema fields are answered here.
 2. **Then the image overview.** Only once the text is exhausted, look at the images. If the manifest lists an "image-overview", call view_image on it ONCE: it is a single image showing every extracted image as a labeled thumbnail, so one view tells you which photos and floorplans exist. Copy each exact path from its label.
 3. **Individual images only when needed.** The overview already shows every image with its exact path — assign image references from it directly. Do NOT open an individual image merely to confirm, label or double-check one you can already see on the overview. Open a single image only when the overview is genuinely unreadable for that one (for example a floorplan whose room labels you must read). A handful of individual views at most — never one per image.
 
-Do not reorder this workflow: text → overview → individual images.
+Do not reorder this workflow: text → overview → individual images.`
+}
 
 ## Your Environment
 You have access to a virtual filesystem:
@@ -744,6 +701,10 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
         message: { key: "iteration", params: { current: iterationCount } },
       });
 
+      const prefill = this.config.prefill
+        ? buildPrefill(filesystem, this.config.prefill)
+        : undefined;
+
       const systemPrompt =
         this.config.systemPrompt ??
         defaultSystemPrompt(
@@ -751,6 +712,7 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
           this.config.outputInstructions,
           fileTree,
           manifestContent,
+          prefill !== undefined && prefill.messages.length > 0,
         );
 
       debug?.promptSystem({ callId, system: systemPrompt });
@@ -762,6 +724,11 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
         : "Begin exploring the artifacts. Read manifest, then extract data. Use set_output_data and finish() tools.";
 
       const messages: any[] = [{ role: "user", content: userMessage }];
+
+      if (prefill) {
+        messages.push(...prefill.messages);
+      }
+
       let stepCount = 0;
       const iterMaxSteps = maxSteps;
 
@@ -903,23 +870,12 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
           await options.events?.onAgentReasoning?.({ thought: reasoningText });
         }
 
-        // Add all response messages (assistant + tool results) to conversation history
-        const firstNewMessageIndex = messages.length;
+        // Add all response messages (assistant + tool results) to conversation history.
+        // Viewed images stay in history verbatim: appending keeps the prompt prefix
+        // byte-stable (so provider prompt caching can hit) and lets the model re-read
+        // an image it already loaded without spending another step.
         if (result.response?.messages) {
           messages.push(...result.response.messages);
-        }
-
-        // Observation masking: once an image has been viewed, its base64 payload is
-        // re-fetchable from the virtual filesystem. Keep a short placeholder in history
-        // so we don't re-send megabytes on every subsequent step, and so the context
-        // prefix stays stable enough for prompt caching to hit.
-        //
-        // Only mask images from *earlier* steps. The tool results returned by the
-        // step above must stay intact — masking them here would replace the image
-        // with a placeholder before the model ever sees it, leaving the agent
-        // image-blind and convinced view_image returns no content.
-        if (this.config.purgeImages !== false) {
-          maskPriorImagePayloads(messages, firstNewMessageIndex);
         }
 
         if (!result.toolCalls?.length && result.text) break;
@@ -986,7 +942,10 @@ const detectInputModalities = async (
 ): Promise<string[] | undefined> => {
   try {
     if (provider === "openrouter") {
-      const single = await fetch(`https://openrouter.ai/api/v1/models/${modelId}`);
+      // Routing variants (`:nitro`, `:floor`, `:free`) are not catalogue entries,
+      // so look the base model up instead of failing open on every variant.
+      const baseId = modelId.split(":")[0];
+      const single = await fetch(`https://openrouter.ai/api/v1/models/${baseId}`);
       if (single.ok) {
         const modelData: any = await single.json();
         const modalities = modelData?.data?.architecture?.input_modalities;
@@ -1000,7 +959,7 @@ const detectInputModalities = async (
       const list = await fetch("https://openrouter.ai/api/v1/models");
       if (list.ok) {
         const all: any = await list.json();
-        const match = (all?.data ?? []).find((entry: any) => entry?.id === modelId);
+        const match = (all?.data ?? []).find((entry: any) => entry?.id === baseId);
         const modalities = match?.architecture?.input_modalities;
         if (Array.isArray(modalities) && modalities.length > 0) {
           return modalities;
