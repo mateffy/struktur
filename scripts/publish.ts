@@ -17,7 +17,24 @@ const tag = `v${version}`;
 
 console.log(`Publishing version ${version}...\n`);
 
-// Check if tag already exists
+/** True when this exact version already exists on the registry. */
+const isPublished = (name: string, pkgVersion: string): boolean => {
+  try {
+    const out = execSync(`npm view ${name}@${pkgVersion} version`, {
+      encoding: "utf-8",
+      stdio: "pipe",
+    });
+    return out.trim() !== "";
+  } catch {
+    // Not found — or the registry is unreachable, in which case let the publish
+    // attempt fail loudly rather than silently skipping a new package.
+    return false;
+  }
+};
+
+// Refuse to publish a version that was already released from different code.
+// Re-running the release for a tag that points at HEAD is fine — the tag may have
+// been created by hand or a previous run may have died after tagging.
 let tagExists = false;
 try {
   execSync(`git rev-parse ${tag}`, { stdio: "pipe" });
@@ -27,9 +44,18 @@ try {
 }
 
 if (tagExists) {
-  console.error(`Error: Tag ${tag} already exists.`);
-  console.error("Did you forget to run 'pnpm version:<patch|minor|major>' first?");
-  process.exit(1);
+  const tagCommit = execSync(`git rev-parse ${tag}^{commit}`, { encoding: "utf-8" }).trim();
+  const headCommit = execSync("git rev-parse HEAD", { encoding: "utf-8" }).trim();
+
+  if (tagCommit !== headCommit) {
+    console.error(`Error: Tag ${tag} already exists and points at ${tagCommit.slice(0, 7)},`);
+    console.error(`       but HEAD is ${headCommit.slice(0, 7)}.`);
+    console.error("Refusing to publish a version that was already released from different code.");
+    console.error("Did you forget to run 'pnpm version:<patch|minor|major>' first?");
+    process.exit(1);
+  }
+
+  console.log(`Tag ${tag} already exists at HEAD; reusing it.\n`);
 }
 
 execSync("pnpm install", { stdio: "inherit" });
@@ -55,45 +81,80 @@ try {
 }
 
 // Create git tag
-console.log(`Creating git tag ${tag}...`);
-execSync(`git tag -a ${tag} -m "Release ${tag}"`, { stdio: "inherit" });
+if (!tagExists) {
+  console.log(`Creating git tag ${tag}...`);
+  execSync(`git tag -a ${tag} -m "Release ${tag}"`, { stdio: "inherit" });
+}
 
-// Push tag to GitHub
+// Push tag to GitHub (idempotent when it is already up to date)
 console.log(`Pushing tag to GitHub...`);
 execSync(`git push origin ${tag}`, { stdio: "inherit" });
 
-// Publish packages to npm with pnpm
+// Publish packages to npm with pnpm. Packages whose version is already on the
+// registry are skipped: a release only bumps the packages that actually changed,
+// so blindly publishing all five fails on the first unchanged one.
 console.log("\nPublishing packages to npm...\n");
 
+const released: Array<{ name: string; version: string }> = [];
+
 for (const pkg of packages) {
-  console.log(`Publishing ${pkg.name}...`);
+  const pkgVersion = JSON.parse(readFileSync(`${pkg.path}/package.json`, "utf-8")).version;
+
+  if (isPublished(pkg.name, pkgVersion)) {
+    console.log(`Skipping ${pkg.name}@${pkgVersion} (already published)\n`);
+    continue;
+  }
+
+  console.log(`Publishing ${pkg.name}@${pkgVersion}...`);
   try {
     execSync("pnpm publish --access public --no-git-checks", {
       cwd: pkg.path,
       stdio: "inherit",
     });
-    console.log(`✓ ${pkg.name} published\n`);
+    released.push({ name: pkg.name, version: pkgVersion });
+    console.log(`✓ ${pkg.name}@${pkgVersion} published\n`);
   } catch (error) {
-    console.error(`✗ Failed to publish ${pkg.name}`);
+    console.error(`✗ Failed to publish ${pkg.name}@${pkgVersion}`);
     console.error(error);
-    console.error("\nRolling back: deleting tag...");
-    execSync(`git tag -d ${tag}`, { stdio: "inherit" });
-    execSync(`git push origin --delete ${tag}`, { stdio: "inherit" });
+    if (released.length > 0) {
+      console.error("\nAlready published in this run:");
+      for (const done of released) console.error(`  - ${done.name}@${done.version}`);
+    }
+    if (tagExists) {
+      // The tag predates this run, so leave it alone.
+      console.error("\nLeaving the existing tag in place.");
+    } else {
+      console.error("\nRolling back: deleting tag...");
+      execSync(`git tag -d ${tag}`, { stdio: "inherit" });
+      execSync(`git push origin --delete ${tag}`, { stdio: "inherit" });
+    }
     process.exit(1);
   }
 }
 
 // Create GitHub release
 if (ghAvailable) {
-  console.log("Creating GitHub release...");
+  let releaseExists = false;
   try {
-    execSync(`gh release create ${tag} --title "${tag}" --generate-notes`, { stdio: "inherit" });
-    console.log(
-      `✓ GitHub release created: https://github.com/mateffy/struktur/releases/tag/${tag}`,
-    );
-  } catch (error) {
-    console.error("✗ Failed to create GitHub release");
-    console.error(error);
+    execSync(`gh release view ${tag}`, { stdio: "pipe" });
+    releaseExists = true;
+  } catch {
+    // Release doesn't exist yet
+  }
+
+  if (releaseExists) {
+    console.log(`GitHub release ${tag} already exists; reusing it.`);
+  } else {
+    console.log("Creating GitHub release...");
+    try {
+      execSync(`gh release create ${tag} --title "${tag}" --generate-notes`, { stdio: "inherit" });
+      console.log(
+        `✓ GitHub release created: https://github.com/mateffy/struktur/releases/tag/${tag}`,
+      );
+    } catch (error) {
+      console.error("✗ Failed to create GitHub release");
+      console.error(error);
+    }
   }
 
   // Build and upload standalone binary
@@ -104,7 +165,7 @@ if (ghAvailable) {
     const platform = process.platform === "darwin" ? "macos" : "linux";
     const binaryName = `struktur-${platform}-${arch}`;
     execSync(`cp packages/cli/dist/struktur ${binaryName}`);
-    execSync(`gh release upload ${tag} ${binaryName}`, { stdio: "inherit" });
+    execSync(`gh release upload ${tag} ${binaryName} --clobber`, { stdio: "inherit" });
     execSync(`rm ${binaryName}`);
     console.log(`✓ Binary uploaded: ${binaryName}\n`);
   } catch (error) {
@@ -113,10 +174,11 @@ if (ghAvailable) {
   }
 }
 
-console.log(`\n✓ Successfully published version ${version}!`);
-console.log(`  - npm: @struktur/telemetry@${version}`);
-console.log(`  - npm: @struktur/fields@${version}`);
-console.log(`  - npm: @struktur/sdk@${version}`);
-console.log(`  - npm: @struktur/processors@${version}`);
-console.log(`  - npm: @struktur/cli@${version}`);
+console.log(`\n✓ Released version ${version}!`);
+for (const pkg of released) {
+  console.log(`  - npm: ${pkg.name}@${pkg.version}`);
+}
+if (released.length === 0) {
+  console.log("  - npm: nothing to publish (all versions already on the registry)");
+}
 console.log(`  - GitHub: https://github.com/mateffy/struktur/releases/tag/${tag}`);
