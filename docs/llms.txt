@@ -1,6 +1,7 @@
 # Documentation
 
 - [config](/docs/cli/config): Manage providers, models, and parsers.
+- [Docker](/docs/cli/docker): Run Struktur in a Docker container using the standalone binary.
 - [extract](/docs/cli/extract): Main extraction command for Struktur CLI.
 - [Fields Shorthand](/docs/cli/fields): Build schemas on the fly from the CLI using a concise field definition string.
 - [CLI](/docs/cli): undefined
@@ -30,6 +31,7 @@
 - [SDK](/docs/sdk): undefined
 - [Installation](/docs/sdk/installation): Install the Struktur TypeScript SDK.
 - [parse()](/docs/sdk/parse): Load files and text into artifacts for extraction.
+- [PHP SDK](/docs/sdk/php): Use Struktur from PHP applications. Typed DTOs, event streaming, and zero runtime dependencies.
 - [Struktur Agent Skill](/docs/skill): Install the Struktur agent skill to teach AI coding assistants how to use Struktur.
 - [Installation](/docs/skill/installation): Install the Struktur agent skill for your preferred AI coding tool.
 - [Usage](/docs/skill/usage): How to use the Struktur agent skill with your AI coding assistant.

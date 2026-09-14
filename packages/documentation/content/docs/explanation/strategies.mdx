@@ -90,8 +90,34 @@ The agent adapts to your document:
       type: 'string',
       required: false,
     },
+    prefill: {
+      description:
+        'Pre-load document context as synthetic read/view_image tool calls before the first step. `textTokens` caps the text, `maxImages` (default 1) and `maxImageBytes` (default 12 MB) cap images.',
+      type: '{ textTokens: number; maxImages?: number; maxImageBytes?: number }',
+      required: false,
+    },
   }}
 />
+
+#### Context prefill
+
+The agent normally spends its first steps reading `/artifact.json` and looking at the image overview. Prefill hands it that context up front so it can extract immediately:
+
+```ts
+import { extract, agent } from "@struktur/sdk";
+
+const result = await extract({
+  artifacts,
+  schema,
+  strategy: agent({
+    provider: "openrouter",
+    modelId: "deepseek/deepseek-v4.1-flash",
+    prefill: { textTokens: 300_000, maxImages: 4 },
+  }),
+});
+```
+
+The block is deterministic — stable tool-call ids, no timestamps — so the same document always produces the same prefix and providers can prompt-cache it. Images get far less budget than text because a single page image is 1–4 MB of base64; the defaults load the image overview only.
 
 ### Example
 

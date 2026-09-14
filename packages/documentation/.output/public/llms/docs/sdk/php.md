@@ -1,0 +1,298 @@
+
+
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+The PHP SDK wraps the Struktur CLI. It gives you typed DTOs and real-time event streaming from PHP. The SDK communicates with the CLI through `proc_open`. All extraction work runs in the Node.js process.
+
+Installation [#installation]
+
+Install the PHP package with Composer:
+
+```bash
+composer require mateffy/struktur
+```
+
+The SDK needs the Struktur CLI. Install it with npm:
+
+<Tabs items={['npm', 'Bun']} groupId="package-manager">
+  <Tab value="npm">
+    ```bash
+    npm install -g @struktur/cli
+    ```
+  </Tab>
+
+  <Tab value="Bun">
+    ```bash
+    bun install -g @struktur/cli
+    ```
+  </Tab>
+</Tabs>
+
+<Callout type="info">
+  The PHP SDK needs PHP 8.2 or newer. It has no other PHP dependencies.
+</Callout>
+
+Quick start [#quick-start]
+
+```php
+use Mateffy\Struktur\Client;
+use Mateffy\Struktur\Input;
+use Mateffy\Struktur\Dto\ExtractionRequest;
+
+$client = new Client();
+
+$result = $client->extract(new ExtractionRequest(
+    inputs: [Input::fromPath('./invoice.pdf')],
+    schema: [
+        'type' => 'object',
+        'properties' => [
+            'invoice_number' => ['type' => 'string'],
+            'date' => ['type' => 'string'],
+            'total' => ['type' => 'number'],
+        ],
+        'required' => ['invoice_number', 'date', 'total'],
+    ],
+    model: 'openai/gpt-4o-mini',
+));
+
+var_dump($result->data);
+// ['invoice_number' => 'INV-2024-001', 'date' => '2024-01-15', 'total' => 1499.99]
+```
+
+Input modes [#input-modes]
+
+The SDK supports three input modes.
+
+From a file path [#from-a-file-path]
+
+```php
+$input = Input::fromPath('./document.pdf');
+```
+
+The CLI reads the file directly. This mode is fastest for large files.
+
+From bytes [#from-bytes]
+
+```php
+$bytes = file_get_contents('./document.pdf');
+$input = Input::fromBytes($bytes);
+```
+
+Use this mode when you have file contents in memory.
+
+From a stream [#from-a-stream]
+
+```php
+$stream = fopen('php://input', 'r');
+$input = Input::fromStream($stream);
+```
+
+Use this mode for HTTP uploads.
+
+<Callout type="warn">
+  Do not close the stream before the extraction finishes. The SDK reads the stream during the call.
+</Callout>
+
+Extraction [#extraction]
+
+Call `extract()` with a schema, model, and input:
+
+```php
+$result = $client->extract(new ExtractionRequest(
+    inputs: [Input::fromPath('./document.pdf')],
+    schema: $schema,
+    model: 'openai/gpt-4o',
+    strategy: 'agent',          // optional, default: auto
+    outputInstructions: 'Extrahiere auf Deutsch.', // appended to the strategy prompt
+    images: true,               // include images from the document
+    maxSteps: 10,               // limit agent steps
+    maxIterations: 3,           // limit retry iterations
+    reasoningEffort: 'low',     // low|medium|high (OpenRouter thinking models)
+    prefill: '300k',            // pre-load up to 300k tokens of document text
+    prefillImages: 4,           // plus up to 4 images, image overviews first
+    imagesOutput: '/tmp/images.json', // write image map (path → base64) to a file
+    tokens: ['openai' => 'sk-xxx'], // per-request API keys
+));
+```
+
+`prefill` hands the agent the document text and image overviews as completed tool calls before its first step, so it does not spend steps discovering them. It is deterministic, so providers can prompt-cache the prefix. Leave it `null` to disable.
+
+When you pass `tokens`, the SDK prefixes the CLI command with environment variables:
+
+```bash
+OPENAI_API_KEY=sk-xxx struktur extract --model openai/gpt-4o ...
+```
+
+Each request gets its own credentials. No global environment variables needed.
+
+The result also carries an image map when `images` is enabled and the agent strategy runs:
+
+```php
+// $result->images: array<string, string> — virtual path → base64 bytes
+foreach ($result->images ?? [] as $path => $base64) {
+    // resolve image references inside $result->data against this map
+}
+```
+
+Schema [#schema]
+
+Pass a JSON Schema array:
+
+```php
+$schema = [
+    'type' => 'object',
+    'properties' => [
+        'name' => ['type' => 'string'],
+        'items' => [
+            'type' => 'array',
+            'items' => [
+                'type' => 'object',
+                'properties' => [
+                    'description' => ['type' => 'string'],
+                    'quantity' => ['type' => 'integer'],
+                    'price' => ['type' => 'number'],
+                ],
+                'required' => ['description', 'quantity', 'price'],
+            ],
+        ],
+    ],
+    'required' => ['name', 'items'],
+];
+```
+
+Result [#result]
+
+The result object contains:
+
+```php
+$result->data;      // array — the extracted data, validated against your schema
+$result->usage;     // Usage { inputTokens: int, outputTokens: int, totalTokens: int }
+$result->rawStdout; // string — raw stdout from the CLI (for debugging)
+```
+
+Parsing [#parsing]
+
+Parse a document into artifacts without extraction:
+
+```php
+$result = $client->parse(new ParseRequest(
+    inputs: [Input::fromPath('./document.pdf')],
+));
+
+foreach ($result->artifacts as $artifact) {
+    echo $artifact->id . ': ' . $artifact->type . "\n";
+    foreach ($artifact->contents as $content) {
+        echo $content->text . "\n";
+    }
+}
+```
+
+Event streaming [#event-streaming]
+
+Listen to extraction events in real time:
+
+```php
+$result = $client->extract(
+    request: new ExtractionRequest(
+        inputs: [Input::fromPath('./document.pdf')],
+        schema: $schema,
+        model: 'openai/gpt-4o',
+    ),
+    onEvent: function (ExtractionEvent $event) {
+        match (true) {
+            $event instanceof StepEvent =>
+                printf("[step %d] %s\n", $event->step, $event->message),
+            $event instanceof TokenUsageEvent =>
+                printf("[usage] %d tokens used\n", $event->totalTokens),
+            $event instanceof StatusEvent =>
+                printf("[status] %s\n", $event->phase),
+            $event instanceof FinishEvent =>
+                printf("[done] finished after %d steps\n", $event->steps),
+            default => null,
+        };
+    },
+);
+```
+
+<Callout type="info">
+  Events arrive on stderr as NDJSON. The SDK parses each line into typed event objects. Lines that are not valid events are skipped.
+</Callout>
+
+Available events [#available-events]
+
+| Event                | Trigger                                                    |
+| -------------------- | ---------------------------------------------------------- |
+| `StepEvent`          | An agent step starts or finishes                           |
+| `ToolStartEvent`     | A tool call starts                                         |
+| `ToolEndEvent`       | A tool call ends                                           |
+| `ReasoningEvent`     | The model emits reasoning text                             |
+| `OutputSetEvent`     | Output data is set                                         |
+| `OutputUpdatedEvent` | Output data is updated                                     |
+| `TokenUsageEvent`    | Token usage is reported                                    |
+| `ProgressEvent`      | Progress information is available                          |
+| `RetryEvent`         | A validation retry occurs                                  |
+| `StatusEvent`        | Human-facing status update (`phase`, `message`, `percent`) |
+| `FinishEvent`        | Extraction finishes successfully                           |
+| `FailureEvent`       | Extraction fails                                           |
+
+Docker [#docker]
+
+For Docker deployments, download the standalone binary. Refer to the [Docker guide](/docs/cli/docker) for the full Dockerfile and docker-compose example.
+
+Error handling [#error-handling]
+
+The SDK throws typed exceptions:
+
+```php
+use Mateffy\Struktur\Exception;
+
+try {
+    $result = $client->extract($request);
+} catch (Exception\ProcessException $e) {
+    // The CLI process failed to start
+    logger()->error('struktur process failed', ['error' => $e->getMessage()]);
+} catch (Exception\ExtractionFailedException $e) {
+    // The extraction failed (validation errors, model errors)
+    logger()->error('extraction failed', [
+        'message' => $e->getMessage(),
+        'stderr' => $e->stderr,
+    ]);
+} catch (Exception\SchemaValidationException $e) {
+    // The result did not match the schema
+    logger()->error('result validation failed', ['errors' => $e->errors]);
+}
+```
+
+| Exception                   | When                                         |
+| --------------------------- | -------------------------------------------- |
+| `StrukturException`         | Base exception for all SDK errors            |
+| `ProcessException`          | The CLI process failed to start              |
+| `ExtractionFailedException` | The extraction returned a non-zero exit code |
+| `SchemaValidationException` | The extracted data did not match the schema  |
+
+Custom binary path [#custom-binary-path]
+
+If the `struktur` binary is not in `PATH`, specify the full path:
+
+```php
+$client = new Client(
+    binaryPath: '/opt/struktur/node_modules/.bin/struktur',
+);
+```
+
+Laravel integration [#laravel-integration]
+
+The SDK includes examples for Laravel. Refer to the [tutorial on GitHub](https://github.com/mateffy/struktur/blob/main/packages/struktur-php/TUTORIAL.md) for:
+
+* A service provider that binds the `Client`
+* A queue job for background extraction
+* An Artisan command for one-off extractions
+* An SSE controller for streaming events to the browser
+
+See also [#see-also]
+
+* [Docker](/docs/cli/docker) — run Struktur in a container with PHP
+* [CLI Installation](/docs/cli/installation) — environment variables and configuration
+* [TypeScript SDK: Extract](/docs/sdk/extract) — the TypeScript extraction API
+* [GitHub: struktur-php](https://github.com/mateffy/struktur-php) — source code and tests

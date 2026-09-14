@@ -55,10 +55,9 @@ test("buildPrefill puts image overviews before individual images", () => {
 });
 
 test("buildPrefill delivers image media in the same shape as the view_image tool", () => {
-  const result = buildPrefill(
-    makeFilesystem({ "/images/doc-image-overview-1.png": "aGVsbG8=" }),
-    { textTokens: 10_000 },
-  );
+  const result = buildPrefill(makeFilesystem({ "/images/doc-image-overview-1.png": "aGVsbG8=" }), {
+    textTokens: 10_000,
+  });
 
   const imageMessage = result.messages.at(-1);
   expect(imageMessage.content[0]).toMatchObject({

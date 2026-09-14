@@ -91,8 +91,34 @@ Configuration [#configuration]
     type: 'string',
     required: false,
   },
+  prefill: {
+    description:
+      'Pre-load document context as synthetic read/view_image tool calls before the first step. `textTokens` caps the text, `maxImages` (default 1) and `maxImageBytes` (default 12 MB) cap images.',
+    type: '{ textTokens: number; maxImages?: number; maxImageBytes?: number }',
+    required: false,
+  },
 }}
 />
+
+Context prefill [#context-prefill]
+
+The agent normally spends its first steps reading `/artifact.json` and looking at the image overview. Prefill hands it that context up front so it can extract immediately:
+
+```ts
+import { extract, agent } from "@struktur/sdk";
+
+const result = await extract({
+  artifacts,
+  schema,
+  strategy: agent({
+    provider: "openrouter",
+    modelId: "deepseek/deepseek-v4.1-flash",
+    prefill: { textTokens: 300_000, maxImages: 4 },
+  }),
+});
+```
+
+The block is deterministic — stable tool-call ids, no timestamps — so the same document always produces the same prefix and providers can prompt-cache it. Images get far less budget than text because a single page image is 1–4 MB of base64; the defaults load the image overview only.
 
 Example [#example]
 
@@ -152,19 +178,19 @@ Recommended models for extraction [#recommended-models-for-extraction]
 
 | Use Case              | Model             | Cost (per 1M tokens) | Why                              |
 | --------------------- | ----------------- | -------------------- | -------------------------------- |
-| **Best quality**      | Claude Sonnet 4.6 | $3/$15               | Best balance of quality and cost |
-| **Latest frontier**   | GPT-5.4           | $2.50/$15            | Native computer use, 1M context  |
-| **Large docs**        | Gemini 3.1 Pro    | $2/$12               | 2M token context                 |
+| **Best quality**      | Claude Sonnet 4.6 | $3.00/$15.00         | Best balance of quality and cost |
+| **Latest frontier**   | GPT-5.4           | $2.50/$15.00         | Native computer use, 1M context  |
+| **Large docs**        | Gemini 3.1 Pro    | $2.00/$12.00         | 2M token context                 |
 | **Budget extraction** | Mistral Small 3.1 | $0.20/$0.60          | Cheapest capable                 |
 
 OpenRouter budget picks [#openrouter-budget-picks]
 
-| Model                        | Cost    | Best For                   |
-| ---------------------------- | ------- | -------------------------- |
-| Qwen3-235B-Thinking          | \~$0.30 | Best reasoning at low cost |
-| google/gemini-2.0-flash-lite | $0.25   | Fast, cheap, vision        |
-| mistralai/mistral-small-2603 | $0.15   | Best price/quality         |
-| deepseek/deepseek-chat       | \~$0.28 | Excellent reasoning        |
+| Model                        | Cost (per 1M) | Best For                   |
+| ---------------------------- | ------------- | -------------------------- |
+| Qwen3-235B-Thinking          | $0.30/$1.20   | Best reasoning at low cost |
+| google/gemini-2.0-flash-lite | $0.25/$1.50   | Fast, cheap, vision        |
+| mistralai/mistral-small-2603 | $0.15/$0.60   | Best price/quality         |
+| deepseek/deepseek-chat       | $0.28/$1.10   | Excellent reasoning        |
 
 <Callout type="warn">
   Some models claim tool support but don't work well with the agent. Avoid: older GPT-4o-mini (inconsistent tool calling), GPT-3.5 models.

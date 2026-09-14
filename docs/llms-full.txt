@@ -282,6 +282,169 @@ See also [#see-also]
 * [Document Parsing](/docs/explanation/document-parsing) — how the parser system works
 
 
+# Docker
+
+
+
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Struktur distributes a standalone binary that bundles Node.js and all dependencies. Download it from GitHub Releases or build it from source.
+
+Prerequisites [#prerequisites]
+
+* Docker Engine 24 or newer.
+* An API key for your LLM provider.
+
+Dockerfile [#dockerfile]
+
+Download the binary from the latest GitHub release and copy it into your image:
+
+```dockerfile
+FROM alpine:3.21 AS downloader
+RUN wget -O /struktur https://github.com/mateffy/struktur/releases/latest/download/struktur-linux-x64 \
+    && chmod +x /struktur
+
+FROM your-base-image
+COPY --from=downloader /struktur /usr/local/bin/struktur
+
+ENV OPENAI_API_KEY=""
+```
+
+<Callout type="info">
+  The binary targets Linux x64. For ARM64, use `struktur-linux-arm64`. The binary has no system dependencies beyond `glibc` (Alpine needs `gcompat`).
+</Callout>
+
+PHP application [#php-application]
+
+For PHP applications that use the [PHP SDK](/docs/sdk/php):
+
+```dockerfile
+FROM alpine:3.21 AS downloader
+RUN wget -O /struktur https://github.com/mateffy/struktur/releases/latest/download/struktur-linux-x64 \
+    && chmod +x /struktur
+
+FROM php:8.3-cli-bookworm
+
+# Copy the standalone binary
+COPY --from=downloader /struktur /usr/local/bin/struktur
+
+# Install PHP dependencies
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-interaction
+COPY . .
+
+ENV OPENAI_API_KEY=""
+```
+
+docker-compose.yml [#docker-composeyml]
+
+```yaml
+services:
+  app:
+    build: .
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+```
+
+Authentication [#authentication]
+
+Docker containers do not have macOS Keychain. Use environment variables to authenticate. Set one or more of these variables:
+
+| Variable                       | Provider   |
+| ------------------------------ | ---------- |
+| `OPENAI_API_KEY`               | OpenAI     |
+| `ANTHROPIC_API_KEY`            | Anthropic  |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Google     |
+| `OPENCODE_API_KEY`             | OpenCode   |
+| `OPENROUTER_API_KEY`           | OpenRouter |
+| `OLLAMA_BASE_URL`              | Ollama     |
+
+You can also mount a `tokens.json` file for authentication:
+
+```yaml
+volumes:
+  - ./tokens.json:/root/.config/struktur/tokens.json:ro
+```
+
+<Callout type="warn">
+  Do not put API keys in your Dockerfile. Use Docker secrets, an `.env` file, or a secrets manager.
+</Callout>
+
+Per-command tokens [#per-command-tokens]
+
+Prefix the command with environment variables for per-command token overrides:
+
+```bash
+docker run --rm my-app \
+  sh -c 'OPENAI_API_KEY=sk-xxx struktur extract --model openai/gpt-4o --input doc.pdf --fields "title"'
+```
+
+In the [PHP SDK](/docs/sdk/php), pass tokens as an array. The SDK builds the env prefix automatically:
+
+```php
+$result = $client->extract(new ExtractionRequest(
+    inputs: [Input::fromPath('./invoice.pdf')],
+    schema: $schema,
+    model: 'openai/gpt-4o',
+    tokens: ['openai' => 'sk-xxx'],
+));
+```
+
+Set a default model [#set-a-default-model]
+
+```bash
+docker run --rm \
+  -e OPENAI_API_KEY=$OPENAI_API_KEY \
+  my-app \
+  struktur config models use openai/gpt-4o-mini
+```
+
+Examples [#examples]
+
+Extract data from a PDF [#extract-data-from-a-pdf]
+
+```bash
+docker run --rm \
+  -e OPENAI_API_KEY=$OPENAI_API_KEY \
+  -v $(pwd)/documents:/docs:ro \
+  my-app \
+  struktur extract \
+    --input /docs/invoice.pdf \
+    --model openai/gpt-4o-mini \
+    --fields "invoice_number, date, total, line_items"
+```
+
+Parse a PDF into artifacts [#parse-a-pdf-into-artifacts]
+
+```bash
+docker run --rm \
+  -e OPENAI_API_KEY=$OPENAI_API_KEY \
+  -v $(pwd)/documents:/docs:ro \
+  my-app \
+  struktur parse --input /docs/report.pdf --output -
+```
+
+Building the binary [#building-the-binary]
+
+Build the standalone binary from source:
+
+```bash
+cd packages/cli
+bun install
+bun run build          # compiles TypeScript
+bun run build:binary   # creates dist/struktur (~71MB)
+```
+
+The binary bundles Bun as its runtime. Optional dependencies (`@mongodb-js/zstd`, `@langfuse/otel`) are marked external — they are loaded dynamically at runtime if installed.
+
+See also [#see-also]
+
+* [Installation & Setup](/docs/cli/installation) — all environment variables
+* [Config](/docs/cli/config) — provider and model management
+* [PHP SDK](/docs/sdk/php) — use Struktur from PHP
+
+
 # extract
 
 
@@ -450,11 +613,37 @@ Strategy [#strategy]
 }}
 />
 
-Strategy names: `simple`, `parallel`, `sequential`, `parallelAutoMerge`, `sequentialAutoMerge`, `doublePass`, `doublePassAutoMerge`.
+Strategy names: `simple`, `parallel`, `sequential`, `parallelAutoMerge`, `sequentialAutoMerge`, `doublePass`, `doublePassAutoMerge`, `agent` (default).
 
-<Callout type="info">
-  When using `--strategy` other than `simple`, both `model` and `mergeModel`/`dedupeModel` are set to the same model. For different models per role, use the TypeScript SDK.
-</Callout>
+Agent strategy options [#agent-strategy-options]
+
+When using `--strategy agent`, these additional options are available:
+
+| Option               | Description                                                                                                                               | Default       |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| `--max-steps`        | Maximum tool calls per iteration                                                                                                          | 50            |
+| `--max-iterations`   | Number of iteration loops                                                                                                                 | 1             |
+| `--instructions`     | Additional instructions appended to the strategy prompt                                                                                   | —             |
+| `--reasoning-effort` | Reasoning effort for thinking models: `low` \| `medium` \| `high`                                                                         | model default |
+| `--prefill`          | Pre-load up to this many tokens of document text as synthetic `read` calls before the agent starts. Accepts `300k`, `1.5m` and `300_000`. | — (off)       |
+| `--prefill-images`   | Maximum images to pre-load alongside `--prefill`, image overviews first                                                                   | 1             |
+| `--images-output`    | Write the extracted image map (virtual path → base64) to this file                                                                        | —             |
+
+Context prefill [#context-prefill]
+
+The agent normally spends its first steps reading `/artifact.json` and viewing the image overview. Prefill hands it that context up front, as completed `read` and `view_image` tool calls, so it can start extracting immediately:
+
+```bash
+# Pre-load up to 300k tokens of text and the image overview
+struktur extract --input ./expose.pdf --schema ./schema.json \
+  --prefill 300k
+
+# Also load the three largest other images
+struktur extract --input ./expose.pdf --schema ./schema.json \
+  --prefill 300k --prefill-images 4
+```
+
+The prefill block is deterministic, so the same document always produces the same bytes and providers can prompt-cache the prefix. Prefilling text is cheap and safe; prefilling images is not — a single page image can be several megabytes of base64, which is why the default stops after the overview and the total payload is byte-capped.
 
 Output [#output]
 
@@ -999,7 +1188,7 @@ Once set, `--model` is optional in `extract` commands.
 
 Environment variables [#environment-variables]
 
-Provider API keys can also be set via environment variables. This is useful for CI/CD or temporary sessions, but stored tokens are recommended for regular use.
+You can set provider API keys as environment variables. Use this method for CI/CD pipelines and Docker containers. Environment variables override stored tokens. For regular use, stored tokens are recommended.
 
 Provider API keys [#provider-api-keys]
 
@@ -1011,21 +1200,37 @@ Provider API keys [#provider-api-keys]
 | `OPENCODE_API_KEY`             | OpenCode   |
 | `OPENROUTER_API_KEY`           | OpenRouter |
 
-Environment variables override stored tokens.
+Local providers [#local-providers]
+
+| Variable          | Provider                                       |
+| ----------------- | ---------------------------------------------- |
+| `OLLAMA_BASE_URL` | Ollama (default: `http://localhost:11434/api`) |
+
+Custom endpoints [#custom-endpoints]
+
+You can override the default API endpoint for OpenAI and Anthropic. Use custom endpoints for proxy servers and local models.
+
+| Variable             | Provider  |
+| -------------------- | --------- |
+| `OPENAI_BASE_URL`    | OpenAI    |
+| `ANTHROPIC_BASE_URL` | Anthropic |
 
 Configuration [#configuration]
 
-| Variable                    | Purpose                                                   |
-| --------------------------- | --------------------------------------------------------- |
-| `STRUKTUR_CONFIG_DIR`       | Override config directory (default: `~/.config/struktur`) |
-| `STRUKTUR_DISABLE_KEYCHAIN` | Set to any value to disable macOS Keychain                |
-| `STRUKTUR_KEYCHAIN_SERVICE` | Override Keychain service name                            |
+| Variable                    | Purpose                                                       |
+| --------------------------- | ------------------------------------------------------------- |
+| `STRUKTUR_CONFIG_DIR`       | Override the config directory (default: `~/.config/struktur`) |
+| `STRUKTUR_DISABLE_KEYCHAIN` | Set to any value to force file-based token storage on macOS   |
+| `STRUKTUR_KEYCHAIN_SERVICE` | Override the Keychain service name                            |
 
-SDK behavior [#sdk-behavior]
+Debug and output [#debug-and-output]
 
-| Variable              | Purpose                                         |
-| --------------------- | ----------------------------------------------- |
-| `AI_SDK_LOG_WARNINGS` | Set to `true` to enable AI SDK warning messages |
+| Variable              | Effect                                                                 |
+| --------------------- | ---------------------------------------------------------------------- |
+| `NO_COLOR`            | Set to any value to disable colored output                             |
+| `CI`                  | Set to any value to disable colored output (same effect as `NO_COLOR`) |
+| `DEBUG`               | Set to any value to show debug messages                                |
+| `AI_SDK_LOG_WARNINGS` | Set to `true` to show AI SDK warnings                                  |
 
 See also [#see-also]
 
@@ -2899,6 +3104,7 @@ Struktur currently supports the following providers out of the box:
 | **OpenAI**     | `OPENAI_API_KEY`               | `@ai-sdk/openai`              |
 | **Anthropic**  | `ANTHROPIC_API_KEY`            | `@ai-sdk/anthropic`           |
 | **Google**     | `GOOGLE_GENERATIVE_AI_API_KEY` | `@ai-sdk/google`              |
+| **Mistral**    | `MISTRAL_API_KEY`              | mistralai provider            |
 | **OpenCode**   | `OPENCODE_API_KEY`             | `@ai-sdk/openai`\*            |
 | **OpenRouter** | `OPENROUTER_API_KEY`           | `@openrouter/ai-sdk-provider` |
 
@@ -3262,8 +3468,34 @@ Configuration [#configuration]
     type: 'string',
     required: false,
   },
+  prefill: {
+    description:
+      'Pre-load document context as synthetic read/view_image tool calls before the first step. `textTokens` caps the text, `maxImages` (default 1) and `maxImageBytes` (default 12 MB) cap images.',
+    type: '{ textTokens: number; maxImages?: number; maxImageBytes?: number }',
+    required: false,
+  },
 }}
 />
+
+Context prefill [#context-prefill]
+
+The agent normally spends its first steps reading `/artifact.json` and looking at the image overview. Prefill hands it that context up front so it can extract immediately:
+
+```ts
+import { extract, agent } from "@struktur/sdk";
+
+const result = await extract({
+  artifacts,
+  schema,
+  strategy: agent({
+    provider: "openrouter",
+    modelId: "deepseek/deepseek-v4.1-flash",
+    prefill: { textTokens: 300_000, maxImages: 4 },
+  }),
+});
+```
+
+The block is deterministic — stable tool-call ids, no timestamps — so the same document always produces the same prefix and providers can prompt-cache it. Images get far less budget than text because a single page image is 1–4 MB of base64; the defaults load the image overview only.
 
 Example [#example]
 
@@ -3307,18 +3539,38 @@ When to use [#when-to-use]
 * Automatically adapts to document structure
 * Best for complex schemas with nested objects
 
-Model compatibility [#model-compatibility]
+Model compatibility (March 2026) [#model-compatibility-march-2026]
 
 The agent requires models that support tool/function calling:
 
-| Provider  | Compatible Models                                |
-| --------- | ------------------------------------------------ |
-| Anthropic | Claude 3.5 Sonnet, Claude 3 Opus, Claude 3 Haiku |
-| OpenAI    | GPT-4o, GPT-4 Turbo, GPT-4, GPT-3.5 Turbo        |
-| Google    | Gemini 1.5 Pro, Gemini 1.5 Flash                 |
+| Provider  | Compatible Models (2026)                             |
+| --------- | ---------------------------------------------------- |
+| Anthropic | Claude Opus 4.6, Claude Sonnet 4.6, Claude Haiku 4.5 |
+| OpenAI    | GPT-5.4, GPT-5.4 Pro, GPT-5.2, GPT-4o                |
+| Google    | Gemini 3.1 Pro, Gemini 2.5 Pro, Gemini 2.5 Flash     |
+| xAI       | Grok 4, Grok 4 Beta                                  |
+| Mistral   | Mistral Large 3, Mistral Medium 3, Mistral Small 3.1 |
+
+Recommended models for extraction [#recommended-models-for-extraction]
+
+| Use Case              | Model             | Cost (per 1M tokens) | Why                              |
+| --------------------- | ----------------- | -------------------- | -------------------------------- |
+| **Best quality**      | Claude Sonnet 4.6 | $3.00/$15.00         | Best balance of quality and cost |
+| **Latest frontier**   | GPT-5.4           | $2.50/$15.00         | Native computer use, 1M context  |
+| **Large docs**        | Gemini 3.1 Pro    | $2.00/$12.00         | 2M token context                 |
+| **Budget extraction** | Mistral Small 3.1 | $0.20/$0.60          | Cheapest capable                 |
+
+OpenRouter budget picks [#openrouter-budget-picks]
+
+| Model                        | Cost (per 1M) | Best For                   |
+| ---------------------------- | ------------- | -------------------------- |
+| Qwen3-235B-Thinking          | $0.30/$1.20   | Best reasoning at low cost |
+| google/gemini-2.0-flash-lite | $0.25/$1.50   | Fast, cheap, vision        |
+| mistralai/mistral-small-2603 | $0.15/$0.60   | Best price/quality         |
+| deepseek/deepseek-chat       | $0.28/$1.10   | Excellent reasoning        |
 
 <Callout type="warn">
-  Some models claim tool support but don't work well with the agent. Avoid: GPT-4o-mini (inconsistent tool calling), older GPT-3.5 models, models without native function calling.
+  Some models claim tool support but don't work well with the agent. Avoid: older GPT-4o-mini (inconsistent tool calling), GPT-3.5 models.
 </Callout>
 
 Virtual filesystem [#virtual-filesystem]
@@ -4094,8 +4346,33 @@ Available events [#available-events]
     type: '(usage: { inputTokens: number; outputTokens: number; totalTokens: number }) => void',
     required: false,
   },
+  onStatus: {
+    description: 'Human-facing status update with a coarse, strategy-independent phase',
+    type: '(info: { phase: StatusPhase; message?: { key: string; params?: Record<string, string | number> }; percent?: number | null }) => void',
+    required: false,
+  },
 }}
 />
+
+Example: human status events [#example-human-status-events]
+
+`onStatus` carries a coarse, strategy-independent `phase` so you can render localized progress without matching internal step labels or tool names.
+
+```js
+const result = await extract({
+  artifacts,
+  schema,
+  strategy: agent({ provider: "openai", modelId: "gpt-4o-mini" }),
+  events: {
+    onStatus: ({ phase, message, percent }) => {
+      // phase is one of: starting | analyzing | extracting | retrying | completed | failed
+      console.log(phase, message?.key, percent);
+    },
+  },
+});
+```
+
+When `percent` is `null`/absent, the strategy cannot report determinate progress (e.g. the agent strategy) — show an indeterminate spinner instead of a progress bar.
 
 Example: progress bar [#example-progress-bar]
 
@@ -4483,6 +4760,308 @@ See also [#see-also]
 
 * [The Artifact Format](/docs/explanation/artifact-format) — JSON spec
 * [Document Parsing](/docs/explanation/document-parsing) — how files are converted to artifacts and extending the parser system
+
+
+# PHP SDK
+
+
+
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+The PHP SDK wraps the Struktur CLI. It gives you typed DTOs and real-time event streaming from PHP. The SDK communicates with the CLI through `proc_open`. All extraction work runs in the Node.js process.
+
+Installation [#installation]
+
+Install the PHP package with Composer:
+
+```bash
+composer require mateffy/struktur
+```
+
+The SDK needs the Struktur CLI. Install it with npm:
+
+<Tabs items={['npm', 'Bun']} groupId="package-manager">
+  <Tab value="npm">
+    ```bash
+    npm install -g @struktur/cli
+    ```
+  </Tab>
+
+  <Tab value="Bun">
+    ```bash
+    bun install -g @struktur/cli
+    ```
+  </Tab>
+</Tabs>
+
+<Callout type="info">
+  The PHP SDK needs PHP 8.2 or newer. It has no other PHP dependencies.
+</Callout>
+
+Quick start [#quick-start]
+
+```php
+use Mateffy\Struktur\Client;
+use Mateffy\Struktur\Input;
+use Mateffy\Struktur\Dto\ExtractionRequest;
+
+$client = new Client();
+
+$result = $client->extract(new ExtractionRequest(
+    inputs: [Input::fromPath('./invoice.pdf')],
+    schema: [
+        'type' => 'object',
+        'properties' => [
+            'invoice_number' => ['type' => 'string'],
+            'date' => ['type' => 'string'],
+            'total' => ['type' => 'number'],
+        ],
+        'required' => ['invoice_number', 'date', 'total'],
+    ],
+    model: 'openai/gpt-4o-mini',
+));
+
+var_dump($result->data);
+// ['invoice_number' => 'INV-2024-001', 'date' => '2024-01-15', 'total' => 1499.99]
+```
+
+Input modes [#input-modes]
+
+The SDK supports three input modes.
+
+From a file path [#from-a-file-path]
+
+```php
+$input = Input::fromPath('./document.pdf');
+```
+
+The CLI reads the file directly. This mode is fastest for large files.
+
+From bytes [#from-bytes]
+
+```php
+$bytes = file_get_contents('./document.pdf');
+$input = Input::fromBytes($bytes);
+```
+
+Use this mode when you have file contents in memory.
+
+From a stream [#from-a-stream]
+
+```php
+$stream = fopen('php://input', 'r');
+$input = Input::fromStream($stream);
+```
+
+Use this mode for HTTP uploads.
+
+<Callout type="warn">
+  Do not close the stream before the extraction finishes. The SDK reads the stream during the call.
+</Callout>
+
+Extraction [#extraction]
+
+Call `extract()` with a schema, model, and input:
+
+```php
+$result = $client->extract(new ExtractionRequest(
+    inputs: [Input::fromPath('./document.pdf')],
+    schema: $schema,
+    model: 'openai/gpt-4o',
+    strategy: 'agent',          // optional, default: auto
+    outputInstructions: 'Extrahiere auf Deutsch.', // appended to the strategy prompt
+    images: true,               // include images from the document
+    maxSteps: 10,               // limit agent steps
+    maxIterations: 3,           // limit retry iterations
+    reasoningEffort: 'low',     // low|medium|high (OpenRouter thinking models)
+    prefill: '300k',            // pre-load up to 300k tokens of document text
+    prefillImages: 4,           // plus up to 4 images, image overviews first
+    imagesOutput: '/tmp/images.json', // write image map (path → base64) to a file
+    tokens: ['openai' => 'sk-xxx'], // per-request API keys
+));
+```
+
+`prefill` hands the agent the document text and image overviews as completed tool calls before its first step, so it does not spend steps discovering them. It is deterministic, so providers can prompt-cache the prefix. Leave it `null` to disable.
+
+When you pass `tokens`, the SDK prefixes the CLI command with environment variables:
+
+```bash
+OPENAI_API_KEY=sk-xxx struktur extract --model openai/gpt-4o ...
+```
+
+Each request gets its own credentials. No global environment variables needed.
+
+The result also carries an image map when `images` is enabled and the agent strategy runs:
+
+```php
+// $result->images: array<string, string> — virtual path → base64 bytes
+foreach ($result->images ?? [] as $path => $base64) {
+    // resolve image references inside $result->data against this map
+}
+```
+
+Schema [#schema]
+
+Pass a JSON Schema array:
+
+```php
+$schema = [
+    'type' => 'object',
+    'properties' => [
+        'name' => ['type' => 'string'],
+        'items' => [
+            'type' => 'array',
+            'items' => [
+                'type' => 'object',
+                'properties' => [
+                    'description' => ['type' => 'string'],
+                    'quantity' => ['type' => 'integer'],
+                    'price' => ['type' => 'number'],
+                ],
+                'required' => ['description', 'quantity', 'price'],
+            ],
+        ],
+    ],
+    'required' => ['name', 'items'],
+];
+```
+
+Result [#result]
+
+The result object contains:
+
+```php
+$result->data;      // array — the extracted data, validated against your schema
+$result->usage;     // Usage { inputTokens: int, outputTokens: int, totalTokens: int }
+$result->rawStdout; // string — raw stdout from the CLI (for debugging)
+```
+
+Parsing [#parsing]
+
+Parse a document into artifacts without extraction:
+
+```php
+$result = $client->parse(new ParseRequest(
+    inputs: [Input::fromPath('./document.pdf')],
+));
+
+foreach ($result->artifacts as $artifact) {
+    echo $artifact->id . ': ' . $artifact->type . "\n";
+    foreach ($artifact->contents as $content) {
+        echo $content->text . "\n";
+    }
+}
+```
+
+Event streaming [#event-streaming]
+
+Listen to extraction events in real time:
+
+```php
+$result = $client->extract(
+    request: new ExtractionRequest(
+        inputs: [Input::fromPath('./document.pdf')],
+        schema: $schema,
+        model: 'openai/gpt-4o',
+    ),
+    onEvent: function (ExtractionEvent $event) {
+        match (true) {
+            $event instanceof StepEvent =>
+                printf("[step %d] %s\n", $event->step, $event->message),
+            $event instanceof TokenUsageEvent =>
+                printf("[usage] %d tokens used\n", $event->totalTokens),
+            $event instanceof StatusEvent =>
+                printf("[status] %s\n", $event->phase),
+            $event instanceof FinishEvent =>
+                printf("[done] finished after %d steps\n", $event->steps),
+            default => null,
+        };
+    },
+);
+```
+
+<Callout type="info">
+  Events arrive on stderr as NDJSON. The SDK parses each line into typed event objects. Lines that are not valid events are skipped.
+</Callout>
+
+Available events [#available-events]
+
+| Event                | Trigger                                                    |
+| -------------------- | ---------------------------------------------------------- |
+| `StepEvent`          | An agent step starts or finishes                           |
+| `ToolStartEvent`     | A tool call starts                                         |
+| `ToolEndEvent`       | A tool call ends                                           |
+| `ReasoningEvent`     | The model emits reasoning text                             |
+| `OutputSetEvent`     | Output data is set                                         |
+| `OutputUpdatedEvent` | Output data is updated                                     |
+| `TokenUsageEvent`    | Token usage is reported                                    |
+| `ProgressEvent`      | Progress information is available                          |
+| `RetryEvent`         | A validation retry occurs                                  |
+| `StatusEvent`        | Human-facing status update (`phase`, `message`, `percent`) |
+| `FinishEvent`        | Extraction finishes successfully                           |
+| `FailureEvent`       | Extraction fails                                           |
+
+Docker [#docker]
+
+For Docker deployments, download the standalone binary. Refer to the [Docker guide](/docs/cli/docker) for the full Dockerfile and docker-compose example.
+
+Error handling [#error-handling]
+
+The SDK throws typed exceptions:
+
+```php
+use Mateffy\Struktur\Exception;
+
+try {
+    $result = $client->extract($request);
+} catch (Exception\ProcessException $e) {
+    // The CLI process failed to start
+    logger()->error('struktur process failed', ['error' => $e->getMessage()]);
+} catch (Exception\ExtractionFailedException $e) {
+    // The extraction failed (validation errors, model errors)
+    logger()->error('extraction failed', [
+        'message' => $e->getMessage(),
+        'stderr' => $e->stderr,
+    ]);
+} catch (Exception\SchemaValidationException $e) {
+    // The result did not match the schema
+    logger()->error('result validation failed', ['errors' => $e->errors]);
+}
+```
+
+| Exception                   | When                                         |
+| --------------------------- | -------------------------------------------- |
+| `StrukturException`         | Base exception for all SDK errors            |
+| `ProcessException`          | The CLI process failed to start              |
+| `ExtractionFailedException` | The extraction returned a non-zero exit code |
+| `SchemaValidationException` | The extracted data did not match the schema  |
+
+Custom binary path [#custom-binary-path]
+
+If the `struktur` binary is not in `PATH`, specify the full path:
+
+```php
+$client = new Client(
+    binaryPath: '/opt/struktur/node_modules/.bin/struktur',
+);
+```
+
+Laravel integration [#laravel-integration]
+
+The SDK includes examples for Laravel. Refer to the [tutorial on GitHub](https://github.com/mateffy/struktur/blob/main/packages/struktur-php/TUTORIAL.md) for:
+
+* A service provider that binds the `Client`
+* A queue job for background extraction
+* An Artisan command for one-off extractions
+* An SSE controller for streaming events to the browser
+
+See also [#see-also]
+
+* [Docker](/docs/cli/docker) — run Struktur in a container with PHP
+* [CLI Installation](/docs/cli/installation) — environment variables and configuration
+* [TypeScript SDK: Extract](/docs/sdk/extract) — the TypeScript extraction API
+* [GitHub: struktur-php](https://github.com/mateffy/struktur-php) — source code and tests
 
 
 # Struktur Agent Skill

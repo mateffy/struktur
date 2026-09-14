@@ -111,10 +111,14 @@ $result = $client->extract(new ExtractionRequest(
     maxSteps: 10,               // limit agent steps
     maxIterations: 3,           // limit retry iterations
     reasoningEffort: 'low',     // low|medium|high (OpenRouter thinking models)
+    prefill: '300k',            // pre-load up to 300k tokens of document text
+    prefillImages: 4,           // plus up to 4 images, image overviews first
     imagesOutput: '/tmp/images.json', // write image map (path → base64) to a file
     tokens: ['openai' => 'sk-xxx'], // per-request API keys
 ));
 ```
+
+`prefill` hands the agent the document text and image overviews as completed tool calls before its first step, so it does not spend steps discovering them. It is deterministic, so providers can prompt-cache the prefix. Leave it `null` to disable.
 
 When you pass `tokens`, the SDK prefixes the CLI command with environment variables:
 

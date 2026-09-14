@@ -1117,13 +1117,31 @@ const createStrategy = (
     case "sequential":
       return sequential({ model, chunkSize, maxImages, outputInstructions });
     case "parallelAutoMerge":
-      return parallelAutoMerge({ model, dedupeModel: model, chunkSize, maxImages, outputInstructions });
+      return parallelAutoMerge({
+        model,
+        dedupeModel: model,
+        chunkSize,
+        maxImages,
+        outputInstructions,
+      });
     case "sequentialAutoMerge":
-      return sequentialAutoMerge({ model, dedupeModel: model, chunkSize, maxImages, outputInstructions });
+      return sequentialAutoMerge({
+        model,
+        dedupeModel: model,
+        chunkSize,
+        maxImages,
+        outputInstructions,
+      });
     case "doublePass":
       return doublePass({ model, mergeModel: model, chunkSize, maxImages, outputInstructions });
     case "doublePassAutoMerge":
-      return doublePassAutoMerge({ model, dedupeModel: model, chunkSize, maxImages, outputInstructions });
+      return doublePassAutoMerge({
+        model,
+        dedupeModel: model,
+        chunkSize,
+        maxImages,
+        outputInstructions,
+      });
     case "agent": {
       // Parse provider/model from modelSpec (format: "provider/model")
       const [provider, ...modelParts] = modelSpec.split("/");
@@ -2032,7 +2050,10 @@ const extractCommand = defineCommand({
       maxIterations,
       outputInstructions: args.instructions as string | undefined,
       reasoningEffort,
-      prefill: parsePrefill(args.prefill as string | undefined, args["prefill-images"] as string | undefined),
+      prefill: parsePrefill(
+        args.prefill as string | undefined,
+        args["prefill-images"] as string | undefined,
+      ),
     });
     debug.strategyCreated({
       strategy: args.strategy,

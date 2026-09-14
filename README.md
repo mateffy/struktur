@@ -382,6 +382,29 @@ const result = await extract({
 });
 ```
 
+### Context prefill
+
+The agent otherwise spends its first steps reading `/artifact.json` and looking at the image overview. Prefill hands it that context up front as completed tool calls, so it can extract straight away:
+
+```bash
+# Pre-load up to 300k tokens of document text and the image overview
+struktur extract --input ./expose.pdf --schema ./schema.json --prefill 300k
+
+# ...plus up to three more images
+struktur extract --input ./expose.pdf --schema ./schema.json \
+  --prefill 300k --prefill-images 4
+```
+
+```ts
+strategy: agent({
+  provider: "openrouter",
+  modelId: "deepseek/deepseek-v4.1-flash",
+  prefill: { textTokens: 300_000, maxImages: 4 },
+})
+```
+
+The block is deterministic, so the same document always produces the same prefix and providers can prompt-cache it. Text is cheap to pre-load; images are not — one page image is 1–4 MB of base64 — so the defaults load the image overview only and the total payload is byte-capped.
+
 → [Extraction Strategies](https://struktur.sh/docs/explanation/strategies)
 
 <br />

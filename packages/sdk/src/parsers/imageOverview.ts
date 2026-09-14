@@ -145,7 +145,10 @@ export async function buildImageOverviews(
   let current: typeof cells = [];
   for (const cell of cells) {
     const trial = [...current, cell];
-    const { usedH } = pack(trial.map((c) => ({ x: 0, y: 0, w: c.w, h: c.h })), SHEET_WIDTH);
+    const { usedH } = pack(
+      trial.map((c) => ({ x: 0, y: 0, w: c.w, h: c.h })),
+      SHEET_WIDTH,
+    );
     if (usedH > MAX_SHEET_EDGE && current.length > 0) {
       sheets.push(current);
       current = [cell];
@@ -176,7 +179,12 @@ export async function buildImageOverviews(
       // Black border rect (underneath).
       composites.push({
         input: await sharp({
-          create: { width: p.w, height: p.h, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 1 } },
+          create: {
+            width: p.w,
+            height: p.h,
+            channels: 4,
+            background: { r: 0, g: 0, b: 0, alpha: 1 },
+          },
         })
           .png()
           .toBuffer(),
@@ -204,7 +212,12 @@ export async function buildImageOverviews(
     }
 
     const sheetPng = await sharp({
-      create: { width: SHEET_WIDTH, height, channels: 4, background: { r: 255, g: 255, b: 255, alpha: 1 } },
+      create: {
+        width: SHEET_WIDTH,
+        height,
+        channels: 4,
+        background: { r: 255, g: 255, b: 255, alpha: 1 },
+      },
     })
       .composite(composites)
       .png()

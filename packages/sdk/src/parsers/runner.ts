@@ -67,7 +67,10 @@ const runNpmParser = async (
     const { createReadStream } = await import("node:fs");
     const { Readable } = await import("node:stream");
     const nodeStream = createReadStream(input.path);
-    const stream = Readable.toWeb(nodeStream) as ReadableStream<Uint8Array>;
+    // `Readable.toWeb` is declared against node:stream/web's ReadableStream, which
+    // is structurally but not nominally the same as the DOM one lib.dom.d.ts
+    // declares. Bridge the two explicitly.
+    const stream = Readable.toWeb(nodeStream) as unknown as ReadableStream<Uint8Array>;
     return mod.parseStream!(stream, mimeType);
   }
 

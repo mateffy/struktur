@@ -1,0 +1,159 @@
+
+
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Struktur distributes a standalone binary that bundles Node.js and all dependencies. Download it from GitHub Releases or build it from source.
+
+Prerequisites [#prerequisites]
+
+* Docker Engine 24 or newer.
+* An API key for your LLM provider.
+
+Dockerfile [#dockerfile]
+
+Download the binary from the latest GitHub release and copy it into your image:
+
+```dockerfile
+FROM alpine:3.21 AS downloader
+RUN wget -O /struktur https://github.com/mateffy/struktur/releases/latest/download/struktur-linux-x64 \
+    && chmod +x /struktur
+
+FROM your-base-image
+COPY --from=downloader /struktur /usr/local/bin/struktur
+
+ENV OPENAI_API_KEY=""
+```
+
+<Callout type="info">
+  The binary targets Linux x64. For ARM64, use `struktur-linux-arm64`. The binary has no system dependencies beyond `glibc` (Alpine needs `gcompat`).
+</Callout>
+
+PHP application [#php-application]
+
+For PHP applications that use the [PHP SDK](/docs/sdk/php):
+
+```dockerfile
+FROM alpine:3.21 AS downloader
+RUN wget -O /struktur https://github.com/mateffy/struktur/releases/latest/download/struktur-linux-x64 \
+    && chmod +x /struktur
+
+FROM php:8.3-cli-bookworm
+
+# Copy the standalone binary
+COPY --from=downloader /struktur /usr/local/bin/struktur
+
+# Install PHP dependencies
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-interaction
+COPY . .
+
+ENV OPENAI_API_KEY=""
+```
+
+docker-compose.yml [#docker-composeyml]
+
+```yaml
+services:
+  app:
+    build: .
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+```
+
+Authentication [#authentication]
+
+Docker containers do not have macOS Keychain. Use environment variables to authenticate. Set one or more of these variables:
+
+| Variable                       | Provider   |
+| ------------------------------ | ---------- |
+| `OPENAI_API_KEY`               | OpenAI     |
+| `ANTHROPIC_API_KEY`            | Anthropic  |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Google     |
+| `OPENCODE_API_KEY`             | OpenCode   |
+| `OPENROUTER_API_KEY`           | OpenRouter |
+| `OLLAMA_BASE_URL`              | Ollama     |
+
+You can also mount a `tokens.json` file for authentication:
+
+```yaml
+volumes:
+  - ./tokens.json:/root/.config/struktur/tokens.json:ro
+```
+
+<Callout type="warn">
+  Do not put API keys in your Dockerfile. Use Docker secrets, an `.env` file, or a secrets manager.
+</Callout>
+
+Per-command tokens [#per-command-tokens]
+
+Prefix the command with environment variables for per-command token overrides:
+
+```bash
+docker run --rm my-app \
+  sh -c 'OPENAI_API_KEY=sk-xxx struktur extract --model openai/gpt-4o --input doc.pdf --fields "title"'
+```
+
+In the [PHP SDK](/docs/sdk/php), pass tokens as an array. The SDK builds the env prefix automatically:
+
+```php
+$result = $client->extract(new ExtractionRequest(
+    inputs: [Input::fromPath('./invoice.pdf')],
+    schema: $schema,
+    model: 'openai/gpt-4o',
+    tokens: ['openai' => 'sk-xxx'],
+));
+```
+
+Set a default model [#set-a-default-model]
+
+```bash
+docker run --rm \
+  -e OPENAI_API_KEY=$OPENAI_API_KEY \
+  my-app \
+  struktur config models use openai/gpt-4o-mini
+```
+
+Examples [#examples]
+
+Extract data from a PDF [#extract-data-from-a-pdf]
+
+```bash
+docker run --rm \
+  -e OPENAI_API_KEY=$OPENAI_API_KEY \
+  -v $(pwd)/documents:/docs:ro \
+  my-app \
+  struktur extract \
+    --input /docs/invoice.pdf \
+    --model openai/gpt-4o-mini \
+    --fields "invoice_number, date, total, line_items"
+```
+
+Parse a PDF into artifacts [#parse-a-pdf-into-artifacts]
+
+```bash
+docker run --rm \
+  -e OPENAI_API_KEY=$OPENAI_API_KEY \
+  -v $(pwd)/documents:/docs:ro \
+  my-app \
+  struktur parse --input /docs/report.pdf --output -
+```
+
+Building the binary [#building-the-binary]
+
+Build the standalone binary from source:
+
+```bash
+cd packages/cli
+bun install
+bun run build          # compiles TypeScript
+bun run build:binary   # creates dist/struktur (~71MB)
+```
+
+The binary bundles Bun as its runtime. Optional dependencies (`@mongodb-js/zstd`, `@langfuse/otel`) are marked external — they are loaded dynamically at runtime if installed.
+
+See also [#see-also]
+
+* [Installation & Setup](/docs/cli/installation) — all environment variables
+* [Config](/docs/cli/config) — provider and model management
+* [PHP SDK](/docs/sdk/php) — use Struktur from PHP

@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.8.0] - 2026-09-14
+
+### Added
+
+- **Agent context prefill** — `--prefill <tokens>` front-loads the document text as synthetic `read` tool calls before the agent's first step, so it stops spending steps discovering the document. `--prefill-images <n>` controls how many images are loaded alongside it, image overviews first.
+  - The prefill block is built deterministically from stable tool-call ids, so an identical document produces a byte-identical prefix that providers can prompt-cache.
+  - Images are bounded by count **and** total base64 bytes (defaults: 1 image, 12 MB). A 25-page exposé carried 37.9 MB of embedded images, which providers reject outright (`Downloaded image content cannot exceed 30MB`), so a count alone is not enough.
+  - `buildPrefill` is exported from `@struktur/sdk`, so library callers get the same behaviour.
+  - On a 25-page, 32-image exposé, prefill removed all per-step image discovery (8 `view_image` calls → 0).
+
+### Changed
+
+- **Observation masking removed** — viewed images stay in the agent's message history verbatim instead of being replaced by a placeholder. Masking rewrote already-sent bytes on every step, which invalidated the very prompt-cache prefix it was meant to protect, and caused two bugs where the model was blinded to an image it had just requested. Measured on a 25-page exposé, it saved nothing: median input tokens were 64.0k with masking and 65.1k without.
+- **`PrefillOptions`** takes `textTokens` instead of `tokens` + `textRatio`; images no longer compete with text for budget.
+- **Routing variants** (`:nitro`, `:floor`, `:free`) are stripped before the OpenRouter modality lookup, so vision detection stays accurate instead of falling back to "unknown".
+- **Build** now typechecks cleanly again: `lib` in `packages/sdk/tsconfig.build.json` includes `DOM`, because bun-types otherwise falls back to `import("undici-types")`, which is not a dependency, degrading every `fetch` response to `{}`.
+
+### Removed
+
+- **`--no-purge-images`** (CLI), **`purgeImages`** (`AgentStrategyConfig`), and **`ExtractionRequest::$purgeImages`** (PHP SDK). Replace with `--prefill` / `prefill`.
+
 ## [2.7.0] - 2026-09-11
 
 ### Added

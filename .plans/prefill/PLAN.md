@@ -1,5 +1,13 @@
 # `--prefill` — front-load the extraction context with synthetic tool calls
 
+> **Outcome (v2.8.0):** shipped, but not as planned below. Observation masking
+> was removed outright rather than given a `floor`, which deleted the whole
+> "Problem A" class of bug instead of patching it. `PrefillOptions` ended up as
+> `textTokens` + `maxImages` + `maxImageBytes` — the 0.67/0.33 token split in
+> the Design section conflated two unrelated budgets and could not express
+> "300k of text and 4 images". Phase 1 (model-info/context-window lookup) was
+> not needed: the budget is caller-supplied. Everything else matches.
+
 ## Goal
 
 Give the extraction agent its full context **up front** instead of making it

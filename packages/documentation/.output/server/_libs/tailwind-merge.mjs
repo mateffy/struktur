@@ -302,15 +302,27 @@ const createConfigUtils = (config) => ({
   cache: createLruCache(config.cacheSize),
   parseClassName: createParseClassName(config),
   sortModifiers: createSortModifiers(config),
+  postfixLookupClassGroupIds: createPostfixLookupClassGroupIds(config),
   ...createClassGroupUtils(config)
 });
+const createPostfixLookupClassGroupIds = (config) => {
+  const lookup = /* @__PURE__ */ Object.create(null);
+  const classGroupIds = config.postfixLookupClassGroups;
+  if (classGroupIds) {
+    for (let i = 0; i < classGroupIds.length; i++) {
+      lookup[classGroupIds[i]] = true;
+    }
+  }
+  return lookup;
+};
 const SPLIT_CLASSES_REGEX = /\s+/;
 const mergeClassList = (classList, configUtils) => {
   const {
     parseClassName,
     getClassGroupId,
     getConflictingClassGroupIds,
-    sortModifiers
+    sortModifiers,
+    postfixLookupClassGroupIds
   } = configUtils;
   const classGroupsInConflict = [];
   const classNames = classList.trim().split(SPLIT_CLASSES_REGEX);
@@ -329,7 +341,18 @@ const mergeClassList = (classList, configUtils) => {
       continue;
     }
     let hasPostfixModifier = !!maybePostfixModifierPosition;
-    let classGroupId = getClassGroupId(hasPostfixModifier ? baseClassName.substring(0, maybePostfixModifierPosition) : baseClassName);
+    let classGroupId;
+    if (hasPostfixModifier) {
+      const baseClassNameWithoutPostfix = baseClassName.substring(0, maybePostfixModifierPosition);
+      classGroupId = getClassGroupId(baseClassNameWithoutPostfix);
+      const classGroupIdWithPostfix = classGroupId && postfixLookupClassGroupIds[classGroupId] ? getClassGroupId(baseClassName) : void 0;
+      if (classGroupIdWithPostfix && classGroupIdWithPostfix !== classGroupId) {
+        classGroupId = classGroupIdWithPostfix;
+        hasPostfixModifier = false;
+      }
+    } else {
+      classGroupId = getClassGroupId(baseClassName);
+    }
     if (!classGroupId) {
       if (!hasPostfixModifier) {
         result = originalClassName + (result.length > 0 ? " " + result : result);
@@ -444,6 +467,7 @@ const isNever = () => false;
 const isShadow = (value) => shadowRegex.test(value);
 const isImage = (value) => imageRegex.test(value);
 const isAnyNonArbitrary = (value) => !isArbitraryValue(value) && !isArbitraryVariable(value);
+const isNamedContainerQuery = (value) => value.startsWith("@container") && (value[10] === "/" && value[11] !== void 0 || value[11] === "s" && value[16] !== void 0 && value.startsWith("-size/", 10) || value[11] === "n" && value[18] !== void 0 && value.startsWith("-normal/", 10));
 const isArbitrarySize = (value) => getIsArbitraryValue(value, isLabelSize, isNever);
 const isArbitraryValue = (value) => arbitraryValueRegex.test(value);
 const isArbitraryLength = (value) => getIsArbitraryValue(value, isLabelLength, isLengthOnly);
@@ -622,6 +646,18 @@ const getDefaultConfig = () => {
        * @deprecated since Tailwind CSS v4.0.0
        */
       container: ["container"],
+      /**
+       * Container Type
+       * @see https://tailwindcss.com/docs/responsive-design#container-queries
+       */
+      "container-type": [{
+        "@container": ["", "normal", "size", isArbitraryVariable, isArbitraryValue]
+      }],
+      /**
+       * Container Name
+       * @see https://tailwindcss.com/docs/responsive-design#named-containers
+       */
+      "container-named": [isNamedContainerQuery],
       /**
        * Columns
        * @see https://tailwindcss.com/docs/columns
@@ -1564,6 +1600,13 @@ const getDefaultConfig = () => {
        */
       indent: [{
         indent: scaleUnambiguousSpacing()
+      }],
+      /**
+       * Tab Size
+       * @see https://tailwindcss.com/docs/tab-size
+       */
+      "tab-size": [{
+        tab: [isInteger, isArbitraryVariable, isArbitraryValue]
       }],
       /**
        * Vertical Alignment
@@ -2790,6 +2833,13 @@ const getDefaultConfig = () => {
        * @see https://tailwindcss.com/docs/translate
        */
       "translate-none": ["translate-none"],
+      /**
+       * Zoom
+       * @see https://tailwindcss.com/docs/zoom
+       */
+      zoom: [{
+        zoom: [isInteger, isArbitraryVariable, isArbitraryValue]
+      }],
       // ---------------------
       // --- Interactivity ---
       // ---------------------
@@ -2855,6 +2905,34 @@ const getDefaultConfig = () => {
        */
       "scroll-behavior": [{
         scroll: ["auto", "smooth"]
+      }],
+      /**
+       * Scrollbar Thumb Color
+       * @see https://tailwindcss.com/docs/scrollbar-color
+       */
+      "scrollbar-thumb-color": [{
+        "scrollbar-thumb": scaleColor()
+      }],
+      /**
+       * Scrollbar Track Color
+       * @see https://tailwindcss.com/docs/scrollbar-color
+       */
+      "scrollbar-track-color": [{
+        "scrollbar-track": scaleColor()
+      }],
+      /**
+       * Scrollbar Gutter
+       * @see https://tailwindcss.com/docs/scrollbar-gutter
+       */
+      "scrollbar-gutter": [{
+        "scrollbar-gutter": ["auto", "stable", "both"]
+      }],
+      /**
+       * Scrollbar Width
+       * @see https://tailwindcss.com/docs/scrollbar-width
+       */
+      "scrollbar-w": [{
+        scrollbar: ["auto", "thin", "none"]
       }],
       /**
        * Scroll Margin
@@ -3114,6 +3192,7 @@ const getDefaultConfig = () => {
       }]
     },
     conflictingClassGroups: {
+      "container-named": ["container-type"],
       overflow: ["overflow-x", "overflow-y"],
       overscroll: ["overscroll-x", "overscroll-y"],
       inset: ["inset-x", "inset-y", "inset-bs", "inset-be", "start", "end", "top", "right", "bottom", "left"],
@@ -3166,6 +3245,7 @@ const getDefaultConfig = () => {
     conflictingClassGroupModifiers: {
       "font-size": ["leading"]
     },
+    postfixLookupClassGroups: ["container-type"],
     orderSensitiveModifiers: ["*", "**", "after", "backdrop", "before", "details-content", "file", "first-letter", "first-line", "marker", "placeholder", "selection"]
   };
 };

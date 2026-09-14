@@ -1,6 +1,9 @@
 {
   "compilerOptions": {
-    "lib": ["ESNext"],
+    // DOM is required for the global fetch/Response types. Without it bun-types
+    // falls back to `import("undici-types")`, which is not a dependency here, so
+    // Response degrades to `{}` and every response.ok/json/text access fails.
+    "lib": ["ESNext", "DOM"],
     "target": "ESNext",
     "module": "ESNext",
     "moduleDetection": "force",

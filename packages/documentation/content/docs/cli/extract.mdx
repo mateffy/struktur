@@ -179,7 +179,25 @@ When using `--strategy agent`, these additional options are available:
 | `--max-iterations` | Number of iteration loops | 1 |
 | `--instructions` | Additional instructions appended to the strategy prompt | — |
 | `--reasoning-effort` | Reasoning effort for thinking models: `low` \| `medium` \| `high` | model default |
+| `--prefill` | Pre-load up to this many tokens of document text as synthetic `read` calls before the agent starts. Accepts `300k`, `1.5m` and `300_000`. | — (off) |
+| `--prefill-images` | Maximum images to pre-load alongside `--prefill`, image overviews first | 1 |
 | `--images-output` | Write the extracted image map (virtual path → base64) to this file | — |
+
+#### Context prefill
+
+The agent normally spends its first steps reading `/artifact.json` and viewing the image overview. Prefill hands it that context up front, as completed `read` and `view_image` tool calls, so it can start extracting immediately:
+
+```bash
+# Pre-load up to 300k tokens of text and the image overview
+struktur extract --input ./expose.pdf --schema ./schema.json \
+  --prefill 300k
+
+# Also load the three largest other images
+struktur extract --input ./expose.pdf --schema ./schema.json \
+  --prefill 300k --prefill-images 4
+```
+
+The prefill block is deterministic, so the same document always produces the same bytes and providers can prompt-cache the prefix. Prefilling text is cheap and safe; prefilling images is not — a single page image can be several megabytes of base64, which is why the default stops after the overview and the total payload is byte-capped.
 
 ## Output
 

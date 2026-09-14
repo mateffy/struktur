@@ -65,7 +65,7 @@ Once set, `--model` is optional in `extract` commands.
 
 Environment variables [#environment-variables]
 
-Provider API keys can also be set via environment variables. This is useful for CI/CD or temporary sessions, but stored tokens are recommended for regular use.
+You can set provider API keys as environment variables. Use this method for CI/CD pipelines and Docker containers. Environment variables override stored tokens. For regular use, stored tokens are recommended.
 
 Provider API keys [#provider-api-keys]
 
@@ -77,21 +77,37 @@ Provider API keys [#provider-api-keys]
 | `OPENCODE_API_KEY`             | OpenCode   |
 | `OPENROUTER_API_KEY`           | OpenRouter |
 
-Environment variables override stored tokens.
+Local providers [#local-providers]
+
+| Variable          | Provider                                       |
+| ----------------- | ---------------------------------------------- |
+| `OLLAMA_BASE_URL` | Ollama (default: `http://localhost:11434/api`) |
+
+Custom endpoints [#custom-endpoints]
+
+You can override the default API endpoint for OpenAI and Anthropic. Use custom endpoints for proxy servers and local models.
+
+| Variable             | Provider  |
+| -------------------- | --------- |
+| `OPENAI_BASE_URL`    | OpenAI    |
+| `ANTHROPIC_BASE_URL` | Anthropic |
 
 Configuration [#configuration]
 
-| Variable                    | Purpose                                                   |
-| --------------------------- | --------------------------------------------------------- |
-| `STRUKTUR_CONFIG_DIR`       | Override config directory (default: `~/.config/struktur`) |
-| `STRUKTUR_DISABLE_KEYCHAIN` | Set to any value to disable macOS Keychain                |
-| `STRUKTUR_KEYCHAIN_SERVICE` | Override Keychain service name                            |
+| Variable                    | Purpose                                                       |
+| --------------------------- | ------------------------------------------------------------- |
+| `STRUKTUR_CONFIG_DIR`       | Override the config directory (default: `~/.config/struktur`) |
+| `STRUKTUR_DISABLE_KEYCHAIN` | Set to any value to force file-based token storage on macOS   |
+| `STRUKTUR_KEYCHAIN_SERVICE` | Override the Keychain service name                            |
 
-SDK behavior [#sdk-behavior]
+Debug and output [#debug-and-output]
 
-| Variable              | Purpose                                         |
-| --------------------- | ----------------------------------------------- |
-| `AI_SDK_LOG_WARNINGS` | Set to `true` to enable AI SDK warning messages |
+| Variable              | Effect                                                                 |
+| --------------------- | ---------------------------------------------------------------------- |
+| `NO_COLOR`            | Set to any value to disable colored output                             |
+| `CI`                  | Set to any value to disable colored output (same effect as `NO_COLOR`) |
+| `DEBUG`               | Set to any value to show debug messages                                |
+| `AI_SDK_LOG_WARNINGS` | Set to `true` to show AI SDK warnings                                  |
 
 See also [#see-also]
 

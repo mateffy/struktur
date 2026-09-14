@@ -3,7 +3,7 @@ import { w as warning } from "../../../_libs/tiny-warning.mjs";
 import { i as isNotFound, d as defaultGetScrollRestorationKey, r as restoreScroll, e as escapeHtml, s as storageKey, a as rootRouteId, b as isRedirect, g as getLocationChangeInfo, t as transformReadableStreamWithRouter, c as transformPipeableStreamWithRouter, f as isDangerousProtocol, h as exactPathTest, j as removeTrailingSlash, k as deepEqual, l as functionalUpdate, B as BaseRootRoute, m as BaseRoute, n as isModuleNotFoundError, R as RouterCore } from "./router-core.mjs";
 import { i as invariant } from "../../../_libs/tiny-invariant.mjs";
 import { PassThrough } from "node:stream";
-import { R as ReactDOMServer } from "../../../_libs/react-dom.mjs";
+import { R as ReactDOMServer } from "../react-dom.mjs";
 import { i as isbot } from "../../../_libs/isbot.mjs";
 function CatchBoundary(props) {
   const errorComponent = props.errorComponent ?? ErrorComponent;

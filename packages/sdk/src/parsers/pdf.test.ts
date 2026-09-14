@@ -179,7 +179,10 @@ test("parsePdf deduplicates byte-identical images across pages (keeps first occu
     { pageNumber: 1, images: [{ dataUrl: "data:image/png;base64,LOGO", width: 60, height: 60 }] },
     { pageNumber: 2, images: [{ dataUrl: "data:image/png;base64,LOGO", width: 60, height: 60 }] },
     { pageNumber: 3, images: [{ dataUrl: "data:image/png;base64,LOGO", width: 60, height: 60 }] },
-    { pageNumber: 3, images: [{ dataUrl: "data:image/png;base64,DISTINCT", width: 100, height: 100 }] },
+    {
+      pageNumber: 3,
+      images: [{ dataUrl: "data:image/png;base64,DISTINCT", width: 100, height: 100 }],
+    },
   ]);
 });
 
