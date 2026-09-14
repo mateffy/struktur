@@ -17,7 +17,6 @@ You also need the Struktur CLI. Choose one:
 ```bash
 npm install -g @struktur/cli          # global npm install
 bun install -g @struktur/cli          # global bun install
-# or download the standalone binary from GitHub Releases
 ```
 
 Requires **PHP 8.2+**.

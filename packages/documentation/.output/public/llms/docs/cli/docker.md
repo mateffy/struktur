@@ -1,9 +1,8 @@
 
 
-import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
 import { Callout } from 'fumadocs-ui/components/callout';
 
-Struktur distributes a standalone binary that bundles Node.js and all dependencies. Download it from GitHub Releases or build it from source.
+Struktur is published as an npm package and runs on Node.js 20 or newer. Install it in your image; there is no standalone binary to download.
 
 Prerequisites [#prerequisites]
 
@@ -12,36 +11,26 @@ Prerequisites [#prerequisites]
 
 Dockerfile [#dockerfile]
 
-Download the binary from the latest GitHub release and copy it into your image:
-
 ```dockerfile
-FROM alpine:3.21 AS downloader
-RUN wget -O /struktur https://github.com/mateffy/struktur/releases/latest/download/struktur-linux-x64 \
-    && chmod +x /struktur
+FROM node:22-trixie-slim
 
-FROM your-base-image
-COPY --from=downloader /struktur /usr/local/bin/struktur
+RUN npm install -g @struktur/cli
 
 ENV OPENAI_API_KEY=""
 ```
 
-<Callout type="info">
-  The binary targets Linux x64. For ARM64, use `struktur-linux-arm64`. The binary has no system dependencies beyond `glibc` (Alpine needs `gcompat`).
-</Callout>
-
 PHP application [#php-application]
 
-For PHP applications that use the [PHP SDK](/docs/sdk/php):
+PHP images do not ship Node, so install it next to the CLI:
 
 ```dockerfile
-FROM alpine:3.21 AS downloader
-RUN wget -O /struktur https://github.com/mateffy/struktur/releases/latest/download/struktur-linux-x64 \
-    && chmod +x /struktur
+FROM php:8.4-cli-bookworm
 
-FROM php:8.3-cli-bookworm
-
-# Copy the standalone binary
-COPY --from=downloader /struktur /usr/local/bin/struktur
+# The CLI is a Node program, so the image needs a Node runtime.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends nodejs npm \
+    && rm -rf /var/lib/apt/lists/* \
+    && npm install -g @struktur/cli
 
 # Install PHP dependencies
 COPY composer.json composer.lock ./
@@ -50,6 +39,16 @@ COPY . .
 
 ENV OPENAI_API_KEY=""
 ```
+
+`npm install -g` puts the executable in `/usr/local/bin/struktur`. If you install it elsewhere, point the PHP SDK at it with `STRUKTUR_BINARY` or the `binaryPath` constructor argument:
+
+```php
+new Client(binaryPath: '/usr/local/bin/struktur');
+```
+
+<Callout type="info">
+  `@struktur/cli` ships prebuilt native dependencies for Linux x64 and arm64, so the image needs no build toolchain. Native modules such as `sharp` and the PDF parsers are loaded from `node_modules` at runtime, which is why the CLI is installed as a package rather than copied in as a single file.
+</Callout>
 
 docker-compose.yml [#docker-composeyml]
 
@@ -139,18 +138,15 @@ docker run --rm \
   struktur parse --input /docs/report.pdf --output -
 ```
 
-Building the binary [#building-the-binary]
-
-Build the standalone binary from source:
+Building from source [#building-from-source]
 
 ```bash
-cd packages/cli
-bun install
-bun run build          # compiles TypeScript
-bun run build:binary   # creates dist/struktur (~71MB)
+pnpm install
+pnpm --filter @struktur/cli build
+node packages/cli/dist/cli.js --version
 ```
 
-The binary bundles Bun as its runtime. Optional dependencies (`@mongodb-js/zstd`, `@langfuse/otel`) are marked external — they are loaded dynamically at runtime if installed.
+The CLI depends on native modules and separate parser files that are resolved from `node_modules` at runtime, so a bundled single-file build cannot replace the installed package.
 
 See also [#see-also]
 

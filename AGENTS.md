@@ -84,7 +84,7 @@ test("hello world", () => {
 
 ## Release Process
 
-The release cycle is: **login → version bump → changelog → commit → publish → tag → GitHub release → (optional) binary**. Do it in this order every time.
+The release cycle is: **login → version bump → changelog → commit → publish → tag → GitHub release**. Do it in this order every time.
 
 1. **Login** (npm auth, once per session): `pnpm login`
 
@@ -94,24 +94,12 @@ The release cycle is: **login → version bump → changelog → commit → publ
 
 4. **Commit**: Commit the version bump + changelog (e.g. `chore: bump to v<version>`). The tree must be clean before publishing.
 
-5. **Publish**: `pnpm publish -r --access public` — publishes every package to npm.
+5. **Publish**: `pnpm publish` at the repo root runs `scripts/publish.ts`, which skips packages whose version is already on the registry, creates and pushes the `v<version>` tag, publishes the remaining packages, and creates the GitHub release with `--generate-notes`.
 
-6. **Tag**: `git tag -a v<version> -m "Release v<version>"` then `git push origin v<version>`.
-
-7. **GitHub release** — set the notes here at create time (no later `gh release edit`):
-   ```bash
-   gh release create v<version> --title "v<version>" --notes-file <changelog-section>
-   ```
-   Produce `<changelog-section>` from the `## [<version>]` block in `CHANGELOG.md` (omit the `## [<version>]` heading, keep the Security/Changed/Fixed groups).
-
-8. **(Optional) Standalone binary**: build + upload the compiled CLI binary to the release:
-   ```bash
-   bun run build:binary
-   cp packages/cli/dist/struktur struktur-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m)
-   gh release upload v<version> struktur-*
-   ```
+   To do it by hand instead: `pnpm -r publish --access public`, then `git tag -a v<version> -m "Release v<version>" && git push origin v<version>`, then `gh release create v<version> --title "v<version>" --notes-file <changelog-section>` (the notes come from the `## [<version>]` block in `CHANGELOG.md`, minus the heading).
 
 ### Gotchas (corner cases we hit)
+- **No standalone binary.** The compiled `bun build --compile` binary cannot be used: `bun build --compile` resolves `pdf-parse` to its browser build (its exports map lists `browser` first) and ignores `--conditions`/`--target`, so the binary dies on `new DOMMatrix`, and even with `@napi-rs/canvas` installed it then cannot find pdfjs's runtime-loaded `pdf.worker.mjs`. Install the npm package instead — it resolves native modules and parser files from `node_modules`.
 - **pnpm v11 reads settings from `pnpm-workspace.yaml`, not `package.json`.** `pnpm.overrides` / `pnpm.onlyBuiltDependencies` in package.json are silently ignored; put them under `overrides:` / `allowBuilds:` in `pnpm-workspace.yaml` (used for the `tar` CVE override and the build-script approvals).
 - **`pnpm build` must build `@struktur/processors` before `@struktur/cli`** — the CLI imports it and fails in a fresh checkout. The root `build` script orders fields → sdk → processors → telemetry → cli.
 - **`@langfuse/otel` needs a real version range** — `^2.0.0` is unsatisfiable (the package only ships 4.x/5.x); use `^5.0.0`.

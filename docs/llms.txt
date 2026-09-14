@@ -1,7 +1,7 @@
 # Documentation
 
 - [config](/docs/cli/config): Manage providers, models, and parsers.
-- [Docker](/docs/cli/docker): Run Struktur in a Docker container using the standalone binary.
+- [Docker](/docs/cli/docker): Run Struktur in a Docker container.
 - [extract](/docs/cli/extract): Main extraction command for Struktur CLI.
 - [Fields Shorthand](/docs/cli/fields): Build schemas on the fly from the CLI using a concise field definition string.
 - [CLI](/docs/cli): undefined

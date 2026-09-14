@@ -3621,7 +3621,7 @@ function getResponse() {
   return event.res;
 }
 async function getStartManifest(matchedRoutes) {
-  const { tsrStartManifest } = await import("./_tanstack-start-manifest_v-Cf8bwNMB.mjs");
+  const { tsrStartManifest } = await import("./_tanstack-start-manifest_v-B63TH_pG.mjs");
   const startManifest = tsrStartManifest();
   const rootRoute = startManifest.routes[rootRouteId] = startManifest.routes[rootRouteId] || {};
   rootRoute.assets = rootRoute.assets || [];
@@ -3777,13 +3777,13 @@ function createMultiplexedStream(jsonStream, rawStreams) {
 }
 const manifest = { "3dffc64eabe29fc8f5f4021f5e1cdf4bfea9319ffba3a59848ead9dcd2fa0308": {
   functionName: "loader_createServerFn_handler",
-  importer: () => import("./_-D062kc6p.mjs")
-}, "300554c3ab8f003654334d9b2a88828fe0a1605f8a59e9d3da4c875392dd96a9": {
-  functionName: "loader_createServerFn_handler",
-  importer: () => import("./_-BOhXrfjN.mjs")
+  importer: () => import("./_-ZymptP2H.mjs")
 }, "25a0ac6bb1a085a7932460f6190d5ea34d18506c9bd20fc50ccaad89dc52c20c": {
   functionName: "loader_createServerFn_handler",
-  importer: () => import("./_-tyzMRtck.mjs")
+  importer: () => import("./_-EoWy8HpN.mjs")
+}, "300554c3ab8f003654334d9b2a88828fe0a1605f8a59e9d3da4c875392dd96a9": {
+  functionName: "loader_createServerFn_handler",
+  importer: () => import("./_-CB1942dR.mjs")
 } };
 async function getServerFnById(id) {
   const serverFnInfo = manifest[id];
@@ -4199,7 +4199,7 @@ let entriesPromise;
 let baseManifestPromise;
 let cachedFinalManifestPromise;
 async function loadEntries() {
-  const routerEntry = await import("./router-BfaQQksl.mjs").then((n2) => n2.a5);
+  const routerEntry = await import("./router-DDH6bjpT.mjs").then((n2) => n2.a5);
   const startEntry = await import("./start-HYkvq4Ni.mjs");
   return { startEntry, routerEntry };
 }

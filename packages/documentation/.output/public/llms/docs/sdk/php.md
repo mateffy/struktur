@@ -238,7 +238,7 @@ Available events [#available-events]
 
 Docker [#docker]
 
-For Docker deployments, download the standalone binary. Refer to the [Docker guide](/docs/cli/docker) for the full Dockerfile and docker-compose example.
+For Docker deployments, install the CLI in your image. Refer to the [Docker guide](/docs/cli/docker) for the full Dockerfile and docker-compose example.
 
 Error handling [#error-handling]
 
