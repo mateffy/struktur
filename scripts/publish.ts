@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
 import { execSync } from "node:child_process";
+import { homedir } from "node:os";
+import { join } from "node:path";
 
 const packages = [
   { name: "@struktur/telemetry", path: "packages/telemetry" },
@@ -132,6 +134,22 @@ for (const pkg of packages) {
   }
 }
 
+// The shell invoking this script may not have bun on PATH: bun installs to
+// ~/.bun/bin. A silent ENOENT here is how the v2.8.0 release was published
+// without its standalone binary.
+const bunBinary = [process.env.BUN_BINARY, "bun", join(homedir(), ".bun", "bin", "bun")]
+  .filter((candidate): candidate is string => Boolean(candidate))
+  .find((candidate) => {
+    try {
+      execSync(`"${candidate}" --version`, { stdio: "pipe" });
+      return true;
+    } catch {
+      return false;
+    }
+  });
+
+const failedSteps: string[] = [];
+
 // Create GitHub release
 if (ghAvailable) {
   let releaseExists = false;
@@ -160,7 +178,11 @@ if (ghAvailable) {
   // Build and upload standalone binary
   console.log("\nBuilding standalone binary...");
   try {
-    execSync("bun run build:binary", { cwd: "packages/cli", stdio: "inherit" });
+    if (!bunBinary) {
+      throw new Error("bun not found. Set BUN_BINARY or add bun to PATH.");
+    }
+
+    execSync(`"${bunBinary}" run build:binary`, { cwd: "packages/cli", stdio: "inherit" });
     const arch = process.arch === "arm64" ? "arm64" : "x64";
     const platform = process.platform === "darwin" ? "macos" : "linux";
     const binaryName = `struktur-${platform}-${arch}`;
@@ -171,6 +193,7 @@ if (ghAvailable) {
   } catch (error) {
     console.error("✗ Failed to build or upload binary");
     console.error(error);
+    failedSteps.push(`standalone binary (${process.platform}-${process.arch})`);
   }
 }
 
@@ -182,3 +205,11 @@ if (released.length === 0) {
   console.log("  - npm: nothing to publish (all versions already on the registry)");
 }
 console.log(`  - GitHub: https://github.com/mateffy/struktur/releases/tag/${tag}`);
+
+// A release that is published but missing its binary is broken: the docs tell users
+// to download it from the GitHub release. Never exit 0 in that case.
+if (failedSteps.length > 0) {
+  console.error(`\n⚠ ${tag} was published, but these steps failed: ${failedSteps.join(", ")}`);
+  console.error("  The npm packages are up. Re-run to retry the GitHub release steps.");
+  process.exitCode = 1;
+}
