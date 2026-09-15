@@ -16,23 +16,43 @@ let stubTextFull = "";
 let stubImagePages: PageImagesStub[] = [];
 let stubScreenshotPages: ScreenshotPageStub[] = [];
 let stubGetImageThrows = false;
+let stubGetImageHangs = false;
+let stubGetImageCalls: Array<Record<string, unknown>> = [];
 let stubGetScreenshotThrows = false;
 
 mock.module("pdf-parse", () => ({
   PDFParse: class {
     constructor(_opts: unknown) {}
     async getText() {
+      // A real document reports every page, not only the ones carrying text, and
+      // parsePdf walks getImage() one page at a time.
+      const total = Math.max(
+        stubTextPages.length,
+        ...stubImagePages.map((p) => p.pageNumber),
+        ...stubScreenshotPages.map((p) => p.pageNumber),
+        1,
+      );
       return {
         pages: stubTextPages,
         text: stubTextFull,
-        total: stubTextPages.length || 1,
+        total,
       };
     }
-    async getImage(_params?: unknown) {
+    async getImage(params?: { partial?: number[] }) {
+      stubGetImageCalls.push({ ...params });
+      if (stubGetImageHangs) return new Promise(() => {});
       if (stubGetImageThrows) throw new Error("image extraction failed");
+
+      // parsePdf requests one page at a time, so return only the requested page the
+      // way the real parser does, rather than every page on every request.
+      const requested = params?.partial;
+      const pages = requested
+        ? stubImagePages.filter((p) => requested.includes(p.pageNumber))
+        : stubImagePages;
+
       return {
-        pages: stubImagePages,
-        total: stubImagePages.length,
+        pages,
+        total: pages.length,
       };
     }
     async getScreenshot(_params?: unknown) {
@@ -241,6 +261,39 @@ test("parsePdf creates a content entry for pages that have only images (no text)
   expect(imagePage?.media![0]?.base64).toBe("img2");
 });
 
+test("parsePdf extracts images one page at a time so a repeated image cannot deadlock", async () => {
+  stubTextPages = [
+    { num: 1, text: "p1" },
+    { num: 2, text: "p2" },
+  ];
+  stubTextFull = "";
+  // The same image on two pages is what makes a document-wide getImage() hang:
+  // pdf.js names the repeat as a common object, and looking that name up in the
+  // per-page store never resolves. Requesting each page separately keeps every
+  // image page-local, which resolves.
+  stubImagePages = [
+    { pageNumber: 1, images: [{ dataUrl: "data:image/png;base64,SHARED", width: 60, height: 60 }] },
+    { pageNumber: 2, images: [{ dataUrl: "data:image/png;base64,SHARED", width: 60, height: 60 }] },
+  ];
+  stubScreenshotPages = [];
+  stubGetImageThrows = false;
+  stubGetImageHangs = false;
+  stubGetScreenshotThrows = false;
+  stubGetImageCalls = [];
+
+  const artifact = await parsePdf(makeBuffer(), { imageOverview: false });
+
+  // One request per page, each scoped to that page — never a document-wide call.
+  expect(stubGetImageCalls).toEqual([
+    { partial: [1], imageBuffer: false, imageDataUrl: true },
+    { partial: [2], imageBuffer: false, imageDataUrl: true },
+  ]);
+
+  // The repeated image still comes through, deduplicated to a single copy.
+  const base64s = artifact.contents.flatMap((c) => c.media ?? []).map((m) => m.base64);
+  expect(base64s).toEqual(["SHARED"]);
+});
+
 test("parsePdf continues without images when getImage() throws", async () => {
   stubTextPages = [{ num: 1, text: "resilient page" }];
   stubTextFull = "";
@@ -254,6 +307,35 @@ test("parsePdf continues without images when getImage() throws", async () => {
   expect(artifact.contents).toHaveLength(1);
   expect(artifact.contents[0]?.text).toBe("resilient page");
   expect(artifact.contents[0]?.media).toBeUndefined();
+});
+
+test("parsePdf gives up on image extraction that never settles", async () => {
+  stubTextPages = [{ num: 1, text: "hung image" }];
+  stubTextFull = "";
+  stubImagePages = [];
+  stubScreenshotPages = [];
+  stubGetImageThrows = false;
+  stubGetImageHangs = true;
+  stubGetScreenshotThrows = false;
+
+  const originalError = console.error;
+  const logged: string[] = [];
+  console.error = (...args: unknown[]) => void logged.push(String(args[0]));
+
+  try {
+    // pdf-parse hangs instead of rejecting on some real exposes. A hang is not a
+    // rejection, so without a timeout the parse never settles and the process
+    // exits 0 having produced nothing.
+    const artifact = await parsePdf(makeBuffer(), { includeImages: true, imageTimeoutMs: 25 });
+
+    expect(artifact.contents).toHaveLength(1);
+    expect(artifact.contents[0]?.text).toBe("hung image");
+    expect(artifact.contents[0]?.media).toBeUndefined();
+    expect(logged.some((line) => line.includes("image extraction incomplete"))).toBe(true);
+  } finally {
+    console.error = originalError;
+    stubGetImageHangs = false;
+  }
 });
 
 test("parsePdf produces at least one content entry for empty documents", async () => {

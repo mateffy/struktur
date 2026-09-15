@@ -30,7 +30,56 @@ export type ParsePdfOptions = {
    * append them as extra content entries. Defaults to true. Pass false to skip.
    */
   imageOverview?: boolean;
+  /**
+   * How long to spend extracting embedded images before keeping only what has been
+   * collected so far, in milliseconds. Defaults to 120000. Exposed mainly so tests
+   * need not wait.
+   */
+  imageTimeoutMs?: number;
 };
+
+/**
+ * Ceiling for the optional image/screenshot extraction steps.
+ *
+ * `pdf-parse` can hang rather than fail on real exposes, and a hang escapes a
+ * try/catch: the promise never settles, the event loop drains, and the process
+ * exits 0 having written nothing at all. Bounding the step keeps parsing alive.
+ */
+const IMAGE_EXTRACTION_TIMEOUT_MS = 120_000;
+
+/**
+ * Ceiling for tearing down a per-page parser. Teardown must never stall the parse,
+ * but it also must not mask a failure from the extraction it followed.
+ */
+const PARSE_TEARDOWN_TIMEOUT_MS = 5_000;
+
+/** Images extracted from a single page, as returned by pdf-parse's getImage(). */
+type ExtractedPageImages = {
+  pageNumber: number;
+  images: Array<{ dataUrl?: string; width: number; height: number }>;
+};
+
+/**
+ * Reject if `promise` has not settled within `ms`, so a hung optional step cannot
+ * stall the caller forever. The timer is always cleared so it never keeps the
+ * event loop (and therefore the process) alive by itself.
+ */
+async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_resolve, reject) => {
+        timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+      }),
+    ]);
+  } finally {
+    if (timer !== undefined) {
+      clearTimeout(timer);
+    }
+  }
+}
 
 /**
  * Built-in PDF parser using pdf-parse.
@@ -63,14 +112,69 @@ export async function parsePdf(
     }
   }
 
-  // Extract embedded images unless the caller opted out.
-  // imageBuffer=false saves memory (we only need the data URL).
-  let imageResult;
+  // Extract embedded images unless the caller opted out, one page at a time.
+  //
+  // A single document-wide getImage() call deadlocks on any document that reuses an
+  // image across pages — a recurring logo or background. pdf.js names that repeat as a
+  // common object (`g_d0_...`), while pdf-parse looks every key up in the per-page
+  // store, where a common key never resolves and the promise stays pending forever
+  // (mozilla/pdf.js#13742, discussion #19864). Parsing each page on its own means
+  // every image is a first encounter, so the key stays page-local and resolves.
+  // Measured the same overall cost as the document-wide call, because decoding the
+  // images dominates and that work is identical either way.
+  //
+  // Pages collect into a shared array, so if the budget runs out the images from the
+  // pages that already finished are kept rather than discarded.
+  let imageResult: { pages: ExtractedPageImages[] } | undefined;
   if (options?.includeImages !== false) {
+    const totalPages = textResult.total;
+    const collected: ExtractedPageImages[] = [];
+    let processedPages = 0;
+
     try {
-      imageResult = await parser.getImage({ imageBuffer: false, imageDataUrl: true });
-    } catch {
-      // Image extraction is optional — continue without images if it fails
+      await withTimeout(
+        (async () => {
+          for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
+            // A fresh parser per page: reusing one is exactly what turns the image on
+            // the second page into a common object that cannot be resolved.
+            const pageParser = new PDFParse({ data: buffer });
+
+            try {
+              const pageResult = await pageParser.getImage({
+                partial: [pageNumber],
+                imageBuffer: false,
+                imageDataUrl: true,
+              });
+              collected.push(...(pageResult?.pages ?? []));
+            } finally {
+              try {
+                await withTimeout(
+                  Promise.resolve(pageParser.destroy()),
+                  PARSE_TEARDOWN_TIMEOUT_MS,
+                  "parser teardown",
+                );
+              } catch {
+                // A stalled teardown must not fail the parse.
+              }
+            }
+
+            processedPages++;
+          }
+        })(),
+        options?.imageTimeoutMs ?? IMAGE_EXTRACTION_TIMEOUT_MS,
+        "image extraction",
+      );
+    } catch (error) {
+      // Image extraction is optional — carry on with whatever was collected, but say
+      // so: swallowing this silently turned a hung parser into an empty result with a
+      // zero exit code, which is impossible to diagnose from the caller's side.
+      console.error(
+        `[struktur] image extraction incomplete: ${processedPages} of ${totalPages} pages done (${(error as Error).message})`,
+      );
+    }
+
+    if (collected.length > 0) {
+      imageResult = { pages: collected };
     }
   }
 
@@ -91,9 +195,14 @@ export async function parsePdf(
         screenshotParams.scale = options.screenshotScale ?? 1.5;
       }
 
-      screenshotResult = await parser.getScreenshot(screenshotParams);
-    } catch {
-      // Screenshot rendering is optional — continue without screenshots if it fails
+      screenshotResult = await withTimeout(
+        parser.getScreenshot(screenshotParams),
+        options?.imageTimeoutMs ?? IMAGE_EXTRACTION_TIMEOUT_MS,
+        "screenshot rendering",
+      );
+    } catch (error) {
+      // Screenshot rendering is optional — continue without screenshots.
+      console.error(`[struktur] screenshot rendering skipped: ${(error as Error).message}`);
     }
   }
 
@@ -104,8 +213,10 @@ export async function parsePdf(
       const artifactImages: ArtifactImage[] = pageImages.images
         .filter((img) => img.dataUrl)
         .map((img) => {
-          // Strip the "data:<mime>;base64," prefix to get the raw base64 string
-          const base64 = img.dataUrl.replace(/^data:[^;]+;base64,/, "");
+          // Strip the "data:<mime>;base64," prefix to get the raw base64 string.
+          // The filter above guarantees a data URL; `?? ""` keeps this safe if the
+          // parser ever omits one, since dataUrl is optional in its result type.
+          const base64 = (img.dataUrl ?? "").replace(/^data:[^;]+;base64,/, "");
           const artifactImage: ArtifactImage = {
             type: "image",
             base64,
