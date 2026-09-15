@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { agent, AgentStrategy } from "./AgentStrategy";
+import { agent, AgentStrategy, resolveFailureReason } from "./AgentStrategy";
 
 // Mock model for testing
 const createMockModel = (response: string) => {
@@ -65,4 +65,30 @@ test("AgentStrategy accepts all config options", () => {
 
   expect(strategy).toBeInstanceOf(AgentStrategy);
   expect(strategy.name).toBe("agent");
+});
+
+test("resolveFailureReason keeps the reason the fail tool recorded", () => {
+  // The fail tool stores its reason itself. The tool's return value carries none,
+  // so resolving off it reported every failure as "Unknown error".
+  expect(resolveFailureReason("fail", "no images in the document", undefined)).toBe(
+    "no images in the document",
+  );
+});
+
+test("resolveFailureReason falls back to the tool-call input", () => {
+  expect(resolveFailureReason("fail", null, { reason: "schema does not match" })).toBe(
+    "schema does not match",
+  );
+});
+
+test("resolveFailureReason reports unknown only when no reason exists", () => {
+  expect(resolveFailureReason("fail", null, {})).toBe("Unknown error");
+  expect(resolveFailureReason("fail", null, undefined)).toBe("Unknown error");
+  expect(resolveFailureReason("fail", null, { reason: "" })).toBe("Unknown error");
+});
+
+test("resolveFailureReason explains a finish call that produced no data", () => {
+  expect(resolveFailureReason("finish", null, undefined)).toBe(
+    "finish called without setting output data first",
+  );
 });

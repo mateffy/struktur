@@ -180,6 +180,32 @@ export const extractReasoningText = (reasoning: unknown): string | null => {
   return null;
 };
 
+/**
+ * Message to report when a run ends in failure.
+ *
+ * The `fail` tool records its own reason, so that always wins. It is only missing
+ * when the tool never executed (e.g. the call errored), in which case the reason is
+ * read from the tool-call input. The tool's *return value* must not be consulted: it
+ * carries no reason, so reading it replaced real explanations with "Unknown error".
+ */
+export function resolveFailureReason(
+  toolName: string | undefined,
+  recordedReason: string | null,
+  toolInput: unknown,
+): string {
+  if (toolName !== "fail") {
+    return "finish called without setting output data first";
+  }
+
+  if (recordedReason) {
+    return recordedReason;
+  }
+
+  const reason = (toolInput as { reason?: unknown } | undefined)?.reason;
+
+  return typeof reason === "string" && reason !== "" ? reason : "Unknown error";
+}
+
 const statusFromToolName = (toolName: string): StatusInfo => {
   switch (toolName) {
     case "read":
@@ -831,12 +857,7 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
                 (toolName === "finish" && resultText === "Error: No data")
               ) {
                 extractionFailed = true;
-                failureReason =
-                  toolName === "fail"
-                    ? typeof output === "object" && output?.reason
-                      ? output.reason
-                      : "Unknown error"
-                    : "finish called without setting output data first";
+                failureReason = resolveFailureReason(toolName, failureReason, toolCall?.input);
               }
             },
           });
