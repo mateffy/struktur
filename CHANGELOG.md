@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.8.1] - 2026-09-15
+
+### Fixed
+
+- **PDF image extraction no longer hangs on documents that repeat an image.** A document-wide `getImage()` call deadlocks the moment a page reuses an image already drawn on an earlier page — a recurring logo, header, or background. pdf.js names that repeat as a common object (`g_d0_…`) while pdf-parse looks every key up in the per-page store, where a common key never resolves ([pdf.js#13742](https://github.com/mozilla/pdf.js/issues/13742), [discussion #19864](https://github.com/mozilla/pdf.js/discussions/19864)). A hang is not a rejection, so it escaped the surrounding `try`/`catch`: the promise stayed pending, the event loop drained, and the CLI exited **0** having written nothing to stdout or stderr — which callers could only report as `No valid JSON object found in stdout`.
+  - Images are now extracted one page at a time, each with a fresh parser, which keeps every image page-local and resolves. Cost is unchanged, because decoding the images dominates and that work is identical either way.
+  - Pages collect into a shared array, so if the budget runs out the images from the pages that finished are kept rather than discarded, and an incomplete run says so on stderr instead of degrading silently.
+  - On a 23-page exposé that previously hung: 2.8 s, 36 images (61 deduplicated), 11,470 characters of text.
+- **A failed agent run reports its reason again.** The `fail` tool records its reason itself, but it was then re-read from the tool's *return value*, which carries none, so every failed run reported `Extraction failed: Unknown error`.
+- **`cerebras` is accepted by the CLI's provider list.** `resolveModel()` supports it and `TOKEN_ENV_MAP` maps `CEREBRAS_API_KEY`, but the CLI's `supportedProviders` omitted it, so `config providers add` threw `Unknown provider`, and both `config providers list` and the model listing never showed it.
+
+### Removed
+
+- **The standalone binary and the release step that built it.** `bun build --compile` cannot produce a working CLI: it resolves `pdf-parse` to its browser build and ignores `--conditions`/`--target`, so the binary died on a module-level `new DOMMatrix()`, and with `@napi-rs/canvas` present it then could not find pdf.js's runtime-loaded `pdf.worker.mjs`. The CLI needs native modules and parser files resolved from `node_modules`, so it ships as the npm package only. The Docker guide installs `@struktur/cli` instead of advertising release assets that were never published.
+- **`build:binary`** from `@struktur/cli`.
+
+### Changed
+
+- **The release script is re-runnable.** It reuses a tag that already points at `HEAD`, skips packages whose version is already on the registry, and reports each package's real version instead of assuming all of them share the SDK's.
+
 ## [2.8.0] - 2026-09-14
 
 ### Added
