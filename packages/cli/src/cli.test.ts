@@ -109,10 +109,30 @@ test("config providers list command works", async () => {
     stderr: "pipe",
   });
 
-  // Should succeed even with no providers configured (returns all 5 with configured: false)
+  // Should succeed even with no providers configured (returns all 7 with configured: false)
   expect(result.exitCode).toBe(0);
   const output = new TextDecoder().decode(result.stdout);
   expect(JSON.parse(output)).toHaveProperty("providers");
+});
+
+test("config providers list includes every provider the model resolver supports", async () => {
+  const result = Bun.spawnSync({
+    cmd: [process.execPath, join(import.meta.dir, "cli.ts"), "config", "providers", "list"],
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+
+  expect(result.exitCode).toBe(0);
+  const { providers } = JSON.parse(new TextDecoder().decode(result.stdout)) as {
+    providers: { provider: string }[];
+  };
+  const ids = providers.map((entry) => entry.provider);
+
+  // Both are real providers in resolveModel(), so the CLI has to accept them
+  // for `config providers add` as well — otherwise the resolver advertises a
+  // provider the CLI refuses to configure.
+  expect(ids).toContain("cerebras");
+  expect(ids).toContain("ollama");
 });
 
 test("config models list command works", async () => {

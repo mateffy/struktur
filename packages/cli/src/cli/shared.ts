@@ -75,7 +75,7 @@ export const usage = () => {
     "  auth list",
     "",
     "auth options:",
-    "  --provider <name>        Provider id (openai, anthropic, google, opencode, openrouter)",
+    "  --provider <name>        Provider id (openai, anthropic, google, opencode, openrouter, cerebras)",
     "  --model <provider/model> Default model identifier",
     "  --token <token>          API token value",
     "  --token-stdin            Read token from stdin",

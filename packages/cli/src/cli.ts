@@ -92,7 +92,15 @@ import {
 } from "./cli/shared";
 import pkg from "../package.json" with { type: "json" };
 
-const supportedProviders = ["openai", "anthropic", "google", "opencode", "openrouter", "ollama"];
+const supportedProviders = [
+  "openai",
+  "anthropic",
+  "google",
+  "opencode",
+  "openrouter",
+  "cerebras",
+  "ollama",
+];
 
 const isBrokenPipe = (error: unknown) => {
   if (!error || typeof error !== "object") {
@@ -1661,7 +1669,8 @@ const providersAddCommand = defineCommand({
   args: {
     provider: {
       type: "positional",
-      description: "Provider ID (openai, anthropic, google, opencode, openrouter, ollama)",
+      description:
+        "Provider ID (openai, anthropic, google, opencode, openrouter, cerebras, ollama)",
       required: true,
     },
     token: {
