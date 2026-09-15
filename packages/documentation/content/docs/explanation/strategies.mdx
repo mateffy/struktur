@@ -59,15 +59,20 @@ The agent adapts to your document:
 
 <TypeTable
   type={{
+    model: {
+      description: 'Full model spec, e.g. `openrouter/deepseek/deepseek-v4.1-flash`. Alternative to passing provider and modelId separately.',
+      type: 'string | AiSdkModel',
+      required: false,
+    },
     provider: {
-      description: 'Provider name (e.g., anthropic, openai)',
+      description: 'Provider name (e.g., anthropic, openai). Required unless `model` is given.',
       type: 'string',
-      required: true,
+      required: false,
     },
     modelId: {
-      description: 'Model identifier (e.g., claude-sonnet-4, gpt-4o)',
+      description: 'Model identifier (e.g., claude-sonnet-4, gpt-4o). Required unless `model` is given.',
       type: 'string',
-      required: true,
+      required: false,
     },
     maxSteps: {
       description: 'Maximum agent steps/turns',
@@ -75,9 +80,27 @@ The agent adapts to your document:
       default: '50',
       required: false,
     },
-    apiKey: {
-      description: 'API key (or use env vars)',
-      type: 'string',
+    maxIterations: {
+      description: 'Number of iteration loops. Each loop allows up to maxSteps steps, so the total step budget is maxIterations x maxSteps.',
+      type: 'number',
+      default: '1',
+      required: false,
+    },
+    stepTimeoutMs: {
+      description: 'Maximum time per LLM step before it times out',
+      type: 'number',
+      default: '300000 (5 min)',
+      required: false,
+    },
+    vision: {
+      description: 'Enable image tools (`view_image`). Auto-detected from the model catalogue by default; set explicitly to override the detection.',
+      type: 'boolean',
+      default: 'detected',
+      required: false,
+    },
+    reasoningEffort: {
+      description: 'Reasoning effort for models that support it',
+      type: '"low" | "medium" | "high"',
       required: false,
     },
     outputInstructions: {
@@ -160,38 +183,39 @@ const result = await extract({
 - Automatically adapts to document structure
 - Best for complex schemas with nested objects
 
-### Model compatibility (March 2026)
+### Model requirements
 
-The agent requires models that support tool/function calling:
+The agent imposes two hard requirements that the other strategies do not:
 
-| Provider | Compatible Models (2026) |
-|----------|--------------------------|
-| Anthropic | Claude Opus 4.6, Claude Sonnet 4.6, Claude Haiku 4.5 |
-| OpenAI | GPT-5.4, GPT-5.4 Pro, GPT-5.2, GPT-4o |
-| Google | Gemini 3.1 Pro, Gemini 2.5 Pro, Gemini 2.5 Flash |
-| xAI | Grok 4, Grok 4 Beta |
-| Mistral | Mistral Large 3, Mistral Medium 3, Mistral Small 3.1 |
+| Requirement | Needed for | Why |
+| ----------- | ---------- | --- |
+| **Tool / function calling** | Every agent run | The agent's whole loop is tool calls. A model without it cannot run the strategy at all. |
+| **Image input** | `--images`, `--screenshots` | Without it `view_image` is disabled, so the model never sees content that lives only in images. |
 
-### Recommended models for extraction
+Both are hard requirements, but only one is checked for you: the agent queries the provider's model catalogue for the input modalities a model accepts, and reports the result via `onVisionStatus`. Tool/function-calling support is **not** detected — a model without it fails at the provider when the first tool call is sent. Check what a provider currently offers before choosing:
 
-| Use Case | Model | Cost (per 1M tokens) | Why |
-| -------- | ----- | -------------------- | ----- |
-| **Best quality** | Claude Sonnet 4.6 | $3.00/$15.00 | Best balance of quality and cost |
-| **Latest frontier** | GPT-5.4 | $2.50/$15.00 | Native computer use, 1M context |
-| **Large docs** | Gemini 3.1 Pro | $2.00/$12.00 | 2M token context |
-| **Budget extraction** | Mistral Small 3.1 | $0.20/$0.60 | Cheapest capable |
-
-### OpenRouter budget picks
-
-| Model | Cost (per 1M) | Best For |
-| ----- | ------------- | -------- |
-| Qwen3-235B-Thinking | $0.30/$1.20 | Best reasoning at low cost |
-| google/gemini-2.0-flash-lite | $0.25/$1.50 | Fast, cheap, vision |
-| mistralai/mistral-small-2603 | $0.15/$0.60 | Best price/quality |
-| deepseek/deepseek-chat | $0.28/$1.10 | Excellent reasoning |
+```bash
+struktur config models list --provider openrouter
+```
 
 <Callout type="warn">
-  Some models claim tool support but don't work well with the agent. Avoid: older GPT-4o-mini (inconsistent tool calling), GPT-3.5 models.
+  Some models advertise tool support but call tools unreliably, or reject tool-use requests outright. That surfaces as a confusing provider error rather than a clean "unsupported" message — if a run dies on a tool-use error, switch models.
+</Callout>
+
+### Speed and cost
+
+Wall-clock time often differs more between *deployments of the same model* than between different models. On OpenRouter, append `:nitro` to route to the fastest available provider:
+
+```bash
+--model "openrouter/deepseek/deepseek-v4.1-flash:nitro"
+```
+
+On our real-estate exposé corpus this roughly halved median extraction time for a high-volume model (~81s to ~42s), but the gain depends on how loaded the default provider is — measure on your own documents rather than assuming it. `:floor` is the cheapest-provider counterpart.
+
+Reasoning models trade latency for thinking budget. `--reasoning-effort low` is usually enough for structured extraction, and is what Struktur's own configuration uses.
+
+<Callout type="info">
+  Model availability and pricing change constantly, so this page deliberately does not pin a recommendation list. Pick a candidate from `struktur config models list`, confirm it does tool calling (and vision, if you need images), then compare it on your own documents.
 </Callout>
 
 ### Virtual filesystem
@@ -200,14 +224,17 @@ The agent has access to a virtual filesystem containing:
 
 - `/artifacts/artifact.json` — All artifacts in JSON format (images replaced by virtual paths)
 - `/artifacts/manifest.json` — Summary and metadata
-- `/artifacts/images/` — Extracted image files (when artifacts have embedded images)
+- `/artifacts/images/` — Extracted image files (when artifacts have embedded images), including the generated image overview
 
 The agent can:
 - **Read** files with pagination (`offset`, `limit`)
 - **Grep** for patterns
 - **Find** files by name
 - **List** directories
+- **View images** by virtual path with `view_image` (only when the model accepts image input)
 - **Bash** execute commands (on virtual filesystem only)
+
+Every extracted image carries a `virtualPath`. The image overview is a labelled contact sheet of all of them, built at parse time, so the agent can see the whole document's visual content in one image and then open only the images that matter. See [Image Overview](/docs/explanation/document-parsing#image-overview).
 
 ### Output management
 

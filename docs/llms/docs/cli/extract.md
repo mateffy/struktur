@@ -83,13 +83,28 @@ Model [#model]
 }}
 />
 
-Supported providers: `openai`, `anthropic`, `google`, `opencode`, `openrouter`.
+Supported providers: `openai`, `anthropic`, `google`, `cerebras`, `opencode`, `openrouter`, `ollama`.
 
-For OpenRouter, you can specify a preferred inference provider using `#` syntax:
+OpenRouter routing [#openrouter-routing]
+
+OpenRouter model names accept two kinds of suffix:
+
+| Suffix        | Effect                                                          |
+| ------------- | --------------------------------------------------------------- |
+| `:nitro`      | Route to the fastest available provider (OpenRouter-native)     |
+| `:floor`      | Route to the cheapest available provider (OpenRouter-native)    |
+| `:free`       | Restrict to free-tier endpoints (OpenRouter-native)             |
+| `#<provider>` | Pin to a specific upstream inference provider, e.g. `#cerebras` |
 
 ```bash
+# Pin to a specific upstream provider
 --model "openrouter/anthropic/claude-3.5-sonnet#cerebras"
+
+# Prefer the fastest provider — often roughly halves wall-clock time
+--model "openrouter/deepseek/deepseek-v4.1-flash:nitro"
 ```
+
+Routing variants are stripped before capability lookups such as vision support, so a variant resolves to its base model.
 
 Parsing options [#parsing-options]
 
@@ -139,6 +154,14 @@ Image options (PDF inputs) [#image-options-pdf-inputs]
   For custom screenshot dimensions, use `struktur parse --screenshots --screenshot-scale <num>` and pipe the artifact to `struktur extract --artifact-file -`.
 </Callout>
 
+Image overview [#image-overview]
+
+When `--images` is set, the PDF parser also composes a single **image overview** — a labelled contact sheet of all extracted images, with each thumbnail captioned by its virtual path. It is added to the artifact as one extra generated image.
+
+The overview gives a vision model the whole visual context of a document for the cost of one image, so it can decide *which* images are worth viewing in detail instead of reading them all. It counts as a single image toward `--max-images`, and `--prefill-images` always considers it first.
+
+Label thumbnails are scaled to a \~220px longest edge (120px floor) and the sheet is capped at a 1500px longest edge, so large documents produce several numbered overview sheets. Byte-identical images (recurring logos, letterheads) and images under 40px in either dimension are filtered out before compositing. Disable compositing with `struktur parse --no-image-overview`.
+
 Strategy [#strategy]
 
 <TypeTable
@@ -153,6 +176,12 @@ Strategy [#strategy]
     description: 'Token budget per batch.',
     type: 'number',
     default: '10000',
+    required: false,
+  },
+  'max-images': {
+    description: 'Maximum images per batch for chunked strategies. Images are dropped from the payload once the budget is reached, keeping batch requests under provider size limits.',
+    type: 'number',
+    default: '5',
     required: false,
   },
   strict: {
@@ -206,8 +235,14 @@ Output [#output]
     default: '- (stdout)',
     required: false,
   },
+  format: {
+    description: 'Output mode. `text` (default) renders the interactive TUI progress display. `json` suppresses the TUI and emits NDJSON events on stderr — this is the mode the PHP SDK and other programmatic consumers use. `debug` emits verbose debug NDJSON.',
+    type: 'string',
+    default: 'text',
+    required: false,
+  },
   debug: {
-    description: 'Enable verbose JSON debug logging to stderr. Shows model resolution, artifact loading, schema details, and per-step LLM events.',
+    description: 'Enable verbose JSON debug logging to stderr. Shows model resolution, artifact loading, schema details, and per-step LLM events. Legacy alias for `--format debug`.',
     type: 'boolean',
     default: 'false',
     required: false,
@@ -224,6 +259,8 @@ When stderr is a TTY, a progress bar is shown:
 ```
 
 The bar is suppressed in non-interactive mode (piped stderr).
+
+To consume progress, tool calls, and reasoning programmatically instead, run with `--format json` and read the NDJSON events from stderr. See [Events & Observability](/docs/sdk/events) for the event contract.
 
 Examples [#examples]
 

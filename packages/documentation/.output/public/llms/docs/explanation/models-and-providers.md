@@ -14,11 +14,12 @@ Struktur currently supports the following providers out of the box:
 | **OpenAI**     | `OPENAI_API_KEY`               | `@ai-sdk/openai`              |
 | **Anthropic**  | `ANTHROPIC_API_KEY`            | `@ai-sdk/anthropic`           |
 | **Google**     | `GOOGLE_GENERATIVE_AI_API_KEY` | `@ai-sdk/google`              |
-| **Mistral**    | `MISTRAL_API_KEY`              | mistralai provider            |
+| **Cerebras**   | `CEREBRAS_API_KEY`             | `@ai-sdk/openai`\*            |
 | **OpenCode**   | `OPENCODE_API_KEY`             | `@ai-sdk/openai`\*            |
 | **OpenRouter** | `OPENROUTER_API_KEY`           | `@openrouter/ai-sdk-provider` |
+| **Ollama**     | *(none — base URL)*            | `ollama-ai-provider-v2`       |
 
-\*OpenCode uses the OpenAI-compatible API via the Vercel SDK's OpenAI provider.
+\*OpenCode and Cerebras use OpenAI-compatible APIs via the Vercel SDK's OpenAI provider. Cerebras honours `CEREBRAS_BASE_URL` (default `https://api.cerebras.ai/v1`). Ollama expects a base URL (default `http://localhost:11434/api`) instead of an API key.
 
 <Callout type="info">
   **Model names change frequently.** Rather than document specific models, Struktur focuses on provider integration. Check your provider's documentation for available models and their capabilities.
@@ -113,15 +114,32 @@ Struktur automatically routes OpenCode requests to the correct Vercel SDK provid
 
 OpenRouter [#openrouter]
 
-OpenRouter provides access to models from multiple providers through a unified API. You can also specify a preferred upstream provider:
+OpenRouter provides access to models from multiple providers through a unified API. Two suffixes are supported.
+
+**Pin an upstream provider** with `#`:
 
 ```typescript
 // Basic usage
 "openrouter/anthropic/claude-3.5-sonnet"
 
-// With preferred provider (using hashtag syntax)
-"openrouter/anthropic/claude-3.5-sonnet#octoai"
+// With preferred upstream provider (hashtag syntax)
+"openrouter/anthropic/claude-3.5-sonnet#cerebras"
 ```
+
+**Use OpenRouter's own routing variants** with `:`. These are passed through to OpenRouter and select the upstream provider by policy:
+
+| Variant  | Effect                                                            |
+| -------- | ----------------------------------------------------------------- |
+| `:nitro` | Fastest available provider — often roughly halves wall-clock time |
+| `:floor` | Cheapest available provider                                       |
+| `:free`  | Free-tier endpoints only                                          |
+
+```typescript
+"openrouter/deepseek/deepseek-v4.1-flash:nitro"
+"openrouter/anthropic/claude-3.5-sonnet:floor"
+```
+
+Variants are stripped before catalogue lookups, so capability detection (such as vision support) still resolves to the base model.
 
 Adding New Providers [#adding-new-providers]
 
@@ -159,17 +177,18 @@ Model Capabilities [#model-capabilities]
 
 When selecting a model, consider:
 
-| Capability            | Considerations                                                   |
-| --------------------- | ---------------------------------------------------------------- |
-| **Structured Output** | All supported providers support JSON schema output               |
-| **Vision/Multimodal** | Check if the model supports image input for PDF/image extraction |
-| **Context Window**    | Larger documents require models with larger context windows      |
-| **Rate Limits**       | Consider provider rate limits for batch processing               |
-| **Cost**              | Different models have vastly different pricing                   |
+| Capability            | Considerations                                                   |   |                    |                                                             |
+| --------------------- | ---------------------------------------------------------------- | - | ------------------ | ----------------------------------------------------------- |
+| **Structured Output** | All supported providers support JSON schema output               |   |                    |                                                             |
+| **Vision/Multimodal** | Check if the model supports image input for PDF/image extraction |   | **Context Window** | Larger documents require models with larger context windows |
+| **Rate Limits**       | Consider provider rate limits for batch processing               |   |                    |                                                             |
+| **Cost**              | Different models have vastly different pricing                   |   |                    |                                                             |
 
 <Callout type="warning">
-  Not all models support image inputs. If you're extracting from PDFs or images with visual content, use a vision-capable model (e.g., GPT-4o, Claude 3.5 Sonnet, Gemini 1.5 Pro).
+  Not all models support image inputs. If you're extracting from PDFs or images with visual content, use a vision-capable model (e.g. GPT-4o, Claude 3.5 Sonnet, Gemini 1.5 Pro).
 </Callout>
+
+The agent strategy queries the provider's model catalogue for the input modalities a model accepts and enables image tools only when `image` is present. If the catalogue cannot be reached, or reports nothing for the model, vision is left **enabled** — the extraction fails loudly at the provider instead of silently running text-only. Override the detection explicitly with the agent strategy's `vision: false` option.
 
 Listing Available Models [#listing-available-models]
 
@@ -177,13 +196,13 @@ The CLI can list available models from configured providers:
 
 ```bash
 # List models for a specific provider
-struktur models --provider openai
+struktur config models list --provider openai
 
 # List models for all configured providers
-struktur models
+struktur config models list
 
-# Pick the cheapest available model
-struktur extract --model cheapest --provider openai
+# Set a provider's cheapest model as the default
+struktur config providers add openai --default
 ```
 
 See Also [#see-also]

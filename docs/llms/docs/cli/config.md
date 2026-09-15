@@ -37,7 +37,9 @@ Output:
   { "provider": "anthropic", "configured": false, "storage": null },
   { "provider": "google", "configured": false, "storage": null },
   { "provider": "opencode", "configured": false, "storage": null },
-  { "provider": "openrouter", "configured": false, "storage": null }
+  { "provider": "openrouter", "configured": false, "storage": null },
+  { "provider": "cerebras", "configured": false, "storage": null },
+  { "provider": "ollama", "configured": false, "storage": null }
 ]
 ```
 

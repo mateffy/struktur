@@ -27,6 +27,11 @@ Available events [#available-events]
     type: '(usage: { inputTokens: number; outputTokens: number; totalTokens: number }) => void',
     required: false,
   },
+  onRetry: {
+    description: 'Fired when a step is retried after a validation or provider failure',
+    type: '(info: { attempt: number; maxAttempts: number; reason?: string }) => void',
+    required: false,
+  },
   onStatus: {
     description: 'Human-facing status update with a coarse, strategy-independent phase',
     type: '(info: { phase: StatusPhase; message?: { key: string; params?: Record<string, string | number> }; percent?: number | null }) => void',
@@ -34,6 +39,44 @@ Available events [#available-events]
   },
 }}
 />
+
+Agent events [#agent-events]
+
+These fire only from the agent strategy. Use them to render a live activity feed of what the model is doing — which tools it called, what it reasoned, and whether it can actually see images.
+
+<TypeTable
+  type={{
+  onAgentToolStart: {
+    description: 'A tool call starts. `toolName` is the agent tool (`read`, `grep`, `list`, `view_image`, `set_output_data`, …), `args` are its arguments as sent by the model.',
+    type: '(info: { toolName: string; toolCallId: string; args: Record<string, unknown> }) => void',
+    required: false,
+  },
+  onAgentToolEnd: {
+    description: 'A tool call finishes or fails. Correlate with `onAgentToolStart` via `toolCallId`. `result` is the tool return value; `error` is set when the call threw.',
+    type: '(info: { toolCallId: string; result?: Record<string, unknown>; error?: string }) => void',
+    required: false,
+  },
+  onAgentMessage: {
+    description: 'A message in the agent loop, with `role` distinguishing assistant narration from user/tool turns',
+    type: '(info: { content: string; role?: "assistant" | "user" }) => void',
+    required: false,
+  },
+  onAgentReasoning: {
+    description: 'The model emitted reasoning/thinking text before acting',
+    type: '(info: { thought: string }) => void',
+    required: false,
+  },
+  onVisionStatus: {
+    description: 'Whether the agent enabled image tools. Fired once before the first step, after the model\'s input modalities were resolved. `enabled` is `false` only when the catalogue positively reports that the model cannot accept images.',
+    type: '(info: { enabled: boolean; provider: string; modelId: string }) => void',
+    required: false,
+  },
+}}
+/>
+
+<Callout type="info">
+  Vision detection fails open. If the model catalogue is unreachable or reports nothing for the model, `onVisionStatus` fires with `enabled: true` and the provider returns a clear error if the model truly cannot accept images — rather than the agent silently going text-only and producing incomplete extractions.
+</Callout>
 
 Example: human status events [#example-human-status-events]
 
@@ -81,10 +124,32 @@ const result = await extract({
   schema,
   strategy: simple({ model }),
   events: {
-    onMessage: ({ role, content }) => {
-      if (role === "user" && String(content).includes("validation-errors")) {
-        console.log("Retry triggered");
-      }
+    onRetry: ({ attempt, maxAttempts, reason }) => {
+      console.log(`retry ${attempt}/${maxAttempts}: ${reason ?? "validation failed"}`);
+    },
+  },
+});
+```
+
+Example: agent activity feed [#example-agent-activity-feed]
+
+```js
+const result = await extract({
+  artifacts,
+  schema,
+  strategy: agent({ provider: "openai", modelId: "gpt-4o" }),
+  events: {
+    onVisionStatus: ({ enabled }) => {
+      if (!enabled) console.warn("model has no vision — images will be skipped");
+    },
+    onAgentToolStart: ({ toolName, args }) => {
+      console.log(`→ ${toolName}`, args);
+    },
+    onAgentToolEnd: ({ toolCallId, error }) => {
+      if (error) console.log(`✗ ${toolCallId}: ${error}`);
+    },
+    onAgentReasoning: ({ thought }) => {
+      console.log(`… ${thought}`);
     },
   },
 });
@@ -94,3 +159,5 @@ See also [#see-also]
 
 * [extract()](/docs/sdk/extract) — main extraction function
 * [Validation & Retries](/docs/explanation/validation) — validation concept
+* [Strategies](/docs/explanation/strategies) — the agent strategy and its tools
+* [CLI reference](/docs/cli/extract#output) — `--format json` emits these events as NDJSON

@@ -13,6 +13,8 @@ const artifacts = await parse(
     screenshots: false,            // render PDF page screenshots
     screenshotScale: 1.5,          // scale factor for screenshots
     screenshotWidth: undefined,    // target width in pixels (overrides screenshotScale)
+    imageOverview: true,           // compose a labelled contact sheet of the images
+    processor: "pdf-parse",        // PDF text extraction backend
   }
 );
 ```
@@ -32,13 +34,16 @@ Input kinds [#input-kinds]
 
 Options [#options]
 
-| Option            | Type            | Default | Description                                          |
-| ----------------- | --------------- | ------- | ---------------------------------------------------- |
-| `parserConfig`    | `ParsersConfig` | `{}`    | Custom parsers keyed by MIME type                    |
-| `includeImages`   | `boolean`       | `false` | Extract embedded images from PDFs                    |
-| `screenshots`     | `boolean`       | `false` | Render PDF page screenshots                          |
-| `screenshotScale` | `number`        | `1.5`   | Scale factor for screenshots                         |
-| `screenshotWidth` | `number`        | —       | Target width in pixels (overrides `screenshotScale`) |
+| Option            | Type            | Default       | Description                                                                                                                                                                                                 |
+| ----------------- | --------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `parserConfig`    | `ParsersConfig` | `{}`          | Custom parsers keyed by MIME type                                                                                                                                                                           |
+| `includeImages`   | `boolean`       | `false`       | Extract embedded images from PDFs                                                                                                                                                                           |
+| `screenshots`     | `boolean`       | `false`       | Render PDF page screenshots                                                                                                                                                                                 |
+| `screenshotScale` | `number`        | `1.5`         | Scale factor for screenshots                                                                                                                                                                                |
+| `screenshotWidth` | `number`        | —             | Target width in pixels (overrides `screenshotScale`)                                                                                                                                                        |
+| `imageOverview`   | `boolean`       | `true`        | Compose a labelled contact sheet of the extracted images. Only applies when `includeImages` is set.                                                                                                         |
+| `processor`       | `string`        | `"pdf-parse"` | PDF text extraction backend: `pdf-parse`, `vlm`, `docling`, `liteparse`, `kreuzberg`. Non-default backends require extra tooling — see [PDF Processors](/docs/explanation/document-parsing#pdf-processors). |
+| `processorModel`  | `unknown`       | —             | Model override for processors that call an LLM (the `vlm` processor).                                                                                                                                       |
 
 ***
 

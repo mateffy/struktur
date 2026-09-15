@@ -14,12 +14,40 @@ Override MIME detection with `--mime <type>` on any command that accepts input.
 
 Built-in Parsers [#built-in-parsers]
 
-| MIME type          | Behavior                                                                                                                                                                                                     |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `application/pdf`  | Per-page text via `pdf-parse`. Embedded images require `--images`. Page screenshots require `--screenshots`. Image deduplication filters images smaller than \~80px. Non-fatal on image/screenshot failures. |
-| `text/*`           | Split on double newlines into content slices.                                                                                                                                                                |
-| `image/*`          | Single-content artifact with one media item.                                                                                                                                                                 |
-| `application/json` | If it validates as `SerializedArtifact[]`, passed through unchanged without invoking any parser.                                                                                                             |
+| MIME type          | Behavior                                                                                                                                                                                                                                     |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `application/pdf`  | Per-page text via `pdf-parse` (or the selected `--processor`). Embedded images require `--images`. Page screenshots require `--screenshots`. Image deduplication filters images smaller than \~80px. Non-fatal on image/screenshot failures. |
+| `text/*`           | Split on double newlines into content slices.                                                                                                                                                                                                |
+| `image/*`          | Single-content artifact with one media item.                                                                                                                                                                                                 |
+| `application/json` | If it validates as `SerializedArtifact[]`, passed through unchanged without invoking any parser.                                                                                                                                             |
+
+PDF Processors [#pdf-processors]
+
+PDF text extraction is pluggable. Select a backend with `--processor` (CLI) or the `processor` parse option (SDK). Non-default processors are loaded on demand, so the default install stays dependency-free.
+
+| Processor   | What it does                                                                                                | Requires                            |
+| ----------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| `pdf-parse` | Default. Fast per-page text extraction, no layout awareness.                                                | —                                   |
+| `vlm`       | Renders each page and asks a vision model to transcribe it. Best for scanned or heavily designed documents. | Ghostscript (`gs`) and a model      |
+| `docling`   | IBM Docling — layout analysis, tables preserved as markdown.                                                | `pip install docling`               |
+| `liteparse` | LlamaIndex's lightweight layout parser.                                                                     | `@llamaindex/liteparse` npm package |
+| `kreuzberg` | Kreuzberg's unified document extractor.                                                                     | `@kreuzberg/node` npm package       |
+
+Image Overview [#image-overview]
+
+When `--images` is enabled, the PDF parser composes one extra generated image on top of the extracted ones: a labelled **image overview**. It is a contact sheet containing a thumbnail of every extracted image, each captioned with its virtual path (split across several numbered sheets when a document has many images).
+
+The overview lets a vision model see the entire visual content of a document for the cost of one image, so it can decide which images are worth opening in full instead of reading them all. It is also what the agent's context prefill loads first.
+
+| Property       | Value                                                             |
+| -------------- | ----------------------------------------------------------------- |
+| Thumbnail size | \~220px longest edge, aspect preserved (120px floor)              |
+| Sheet ceiling  | 1500px longest edge — larger sets split into numbered sheets      |
+| Filtered out   | Byte-identical repeats, and images under 40px in either dimension |
+| `imageType`    | `"screenshot"`                                                    |
+| Disable with   | `struktur parse --no-image-overview`                              |
+
+The overview appears in the artifact as a normal media item, so it flows through `--artifact-file`, the artifact viewer, and `--images-output` like any other image.
 
 Built-in Input Types [#built-in-input-types]
 

@@ -58,6 +58,18 @@ Converts a file or stdin to Artifact JSON. Use this to:
       default: '- (stdout)',
       required: false,
     },
+    format: {
+      description: 'Output mode. `json` (default) writes artifact JSON. `text` writes plain page text. `debug` writes verbose debug NDJSON.',
+      type: 'string',
+      default: 'json',
+      required: false,
+    },
+    debug: {
+      description: 'Enable verbose JSON debug logging to stderr (legacy alias for `--format debug`)',
+      type: 'boolean',
+      default: 'false',
+      required: false,
+    },
   }}
 />
 
@@ -75,8 +87,26 @@ Converts a file or stdin to Artifact JSON. Use this to:
       type: 'string',
       required: false,
     },
+    processor: {
+      description: 'PDF processor backend (see below). Built-in processors other than the default require extra tooling.',
+      type: 'string',
+      default: 'pdf-parse',
+      required: false,
+    },
   }}
 />
+
+#### PDF processors
+
+`--processor` selects how PDF pages become text and images. External engines are loaded on demand, so the default keeps an install dependency-free.
+
+| Processor | What it does | Requires |
+| --------- | ------------ | -------- |
+| `pdf-parse` | Default. Fast per-page text extraction, no layout awareness. | — |
+| `vlm` | Renders each page and asks a vision model to transcribe it. Best for scanned or heavily designed documents. | Ghostscript (`gs`) and a model |
+| `docling` | IBM Docling — layout analysis, tables preserved as markdown. | `pip install docling` |
+| `liteparse` | LlamaIndex's lightweight layout parser. | `@llamaindex/liteparse` npm package |
+| `kreuzberg` | Kreuzberg's unified document extractor. | `@kreuzberg/node` npm package |
 
 ### Image extraction (PDF inputs)
 
@@ -105,8 +135,16 @@ Converts a file or stdin to Artifact JSON. Use this to:
       type: 'number',
       required: false,
     },
+    'no-image-overview': {
+      description: 'Disable labelled image-overview compositing of extracted images. The overview is on by default when --images is set.',
+      type: 'boolean',
+      default: 'false',
+      required: false,
+    },
   }}
 />
+
+When `--images` is set, the parser also composes an **image overview**: a contact sheet of the extracted images, each thumbnail captioned with its virtual path. It gives a vision model the whole visual context of the document for the cost of one image, so it can pick which images to inspect closely rather than reading them all. Thumbnails are scaled to a ~220px longest edge (120px floor) and sheets are capped at 1500px, so a document with many images produces several numbered sheets. Byte-identical repeats and images under 40px in either dimension are filtered out before compositing. Disable it with `--no-image-overview`.
 
 ## Parser resolution order
 
@@ -119,7 +157,7 @@ Converts a file or stdin to Artifact JSON. Use this to:
 
 | MIME type | Behavior |
 |-----------|----------|
-| `application/pdf` | Per-page text via `pdf-parse`. Add `--images` for embedded images, `--screenshots` for page renders. |
+| `application/pdf` | Per-page text via `pdf-parse` (or the selected `--processor`). Add `--images` for embedded images, `--screenshots` for page renders. Add `--images` also for a labelled image overview. |
 | `text/*` | Split on double newlines into content slices. |
 | `image/*` | Single-content artifact with the image as a media item. |
 | `application/json` | If it validates as `SerializedArtifact[]`, passed through unchanged. |

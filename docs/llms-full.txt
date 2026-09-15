@@ -39,7 +39,9 @@ Output:
   { "provider": "anthropic", "configured": false, "storage": null },
   { "provider": "google", "configured": false, "storage": null },
   { "provider": "opencode", "configured": false, "storage": null },
-  { "provider": "openrouter", "configured": false, "storage": null }
+  { "provider": "openrouter", "configured": false, "storage": null },
+  { "provider": "cerebras", "configured": false, "storage": null },
+  { "provider": "ollama", "configured": false, "storage": null }
 ]
 ```
 
@@ -528,13 +530,28 @@ Model [#model]
 }}
 />
 
-Supported providers: `openai`, `anthropic`, `google`, `opencode`, `openrouter`.
+Supported providers: `openai`, `anthropic`, `google`, `cerebras`, `opencode`, `openrouter`, `ollama`.
 
-For OpenRouter, you can specify a preferred inference provider using `#` syntax:
+OpenRouter routing [#openrouter-routing]
+
+OpenRouter model names accept two kinds of suffix:
+
+| Suffix        | Effect                                                          |
+| ------------- | --------------------------------------------------------------- |
+| `:nitro`      | Route to the fastest available provider (OpenRouter-native)     |
+| `:floor`      | Route to the cheapest available provider (OpenRouter-native)    |
+| `:free`       | Restrict to free-tier endpoints (OpenRouter-native)             |
+| `#<provider>` | Pin to a specific upstream inference provider, e.g. `#cerebras` |
 
 ```bash
+# Pin to a specific upstream provider
 --model "openrouter/anthropic/claude-3.5-sonnet#cerebras"
+
+# Prefer the fastest provider — often roughly halves wall-clock time
+--model "openrouter/deepseek/deepseek-v4.1-flash:nitro"
 ```
+
+Routing variants are stripped before capability lookups such as vision support, so a variant resolves to its base model.
 
 Parsing options [#parsing-options]
 
@@ -584,6 +601,14 @@ Image options (PDF inputs) [#image-options-pdf-inputs]
   For custom screenshot dimensions, use `struktur parse --screenshots --screenshot-scale <num>` and pipe the artifact to `struktur extract --artifact-file -`.
 </Callout>
 
+Image overview [#image-overview]
+
+When `--images` is set, the PDF parser also composes a single **image overview** — a labelled contact sheet of all extracted images, with each thumbnail captioned by its virtual path. It is added to the artifact as one extra generated image.
+
+The overview gives a vision model the whole visual context of a document for the cost of one image, so it can decide *which* images are worth viewing in detail instead of reading them all. It counts as a single image toward `--max-images`, and `--prefill-images` always considers it first.
+
+Label thumbnails are scaled to a \~220px longest edge (120px floor) and the sheet is capped at a 1500px longest edge, so large documents produce several numbered overview sheets. Byte-identical images (recurring logos, letterheads) and images under 40px in either dimension are filtered out before compositing. Disable compositing with `struktur parse --no-image-overview`.
+
 Strategy [#strategy]
 
 <TypeTable
@@ -598,6 +623,12 @@ Strategy [#strategy]
     description: 'Token budget per batch.',
     type: 'number',
     default: '10000',
+    required: false,
+  },
+  'max-images': {
+    description: 'Maximum images per batch for chunked strategies. Images are dropped from the payload once the budget is reached, keeping batch requests under provider size limits.',
+    type: 'number',
+    default: '5',
     required: false,
   },
   strict: {
@@ -651,8 +682,14 @@ Output [#output]
     default: '- (stdout)',
     required: false,
   },
+  format: {
+    description: 'Output mode. `text` (default) renders the interactive TUI progress display. `json` suppresses the TUI and emits NDJSON events on stderr — this is the mode the PHP SDK and other programmatic consumers use. `debug` emits verbose debug NDJSON.',
+    type: 'string',
+    default: 'text',
+    required: false,
+  },
   debug: {
-    description: 'Enable verbose JSON debug logging to stderr. Shows model resolution, artifact loading, schema details, and per-step LLM events.',
+    description: 'Enable verbose JSON debug logging to stderr. Shows model resolution, artifact loading, schema details, and per-step LLM events. Legacy alias for `--format debug`.',
     type: 'boolean',
     default: 'false',
     required: false,
@@ -669,6 +706,8 @@ When stderr is a TTY, a progress bar is shown:
 ```
 
 The bar is suppressed in non-interactive mode (piped stderr).
+
+To consume progress, tool calls, and reasoning programmatically instead, run with `--format json` and read the NDJSON events from stderr. See [Events & Observability](/docs/sdk/events) for the event contract.
 
 Examples [#examples]
 
@@ -1296,6 +1335,18 @@ Output [#output]
     default: '- (stdout)',
     required: false,
   },
+  format: {
+    description: 'Output mode. `json` (default) writes artifact JSON. `text` writes plain page text. `debug` writes verbose debug NDJSON.',
+    type: 'string',
+    default: 'json',
+    required: false,
+  },
+  debug: {
+    description: 'Enable verbose JSON debug logging to stderr (legacy alias for `--format debug`)',
+    type: 'boolean',
+    default: 'false',
+    required: false,
+  },
 }}
 />
 
@@ -1313,8 +1364,26 @@ Parser control [#parser-control]
     type: 'string',
     required: false,
   },
+  processor: {
+    description: 'PDF processor backend (see below). Built-in processors other than the default require extra tooling.',
+    type: 'string',
+    default: 'pdf-parse',
+    required: false,
+  },
 }}
 />
+
+PDF processors [#pdf-processors]
+
+`--processor` selects how PDF pages become text and images. External engines are loaded on demand, so the default keeps an install dependency-free.
+
+| Processor   | What it does                                                                                                | Requires                            |
+| ----------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| `pdf-parse` | Default. Fast per-page text extraction, no layout awareness.                                                | —                                   |
+| `vlm`       | Renders each page and asks a vision model to transcribe it. Best for scanned or heavily designed documents. | Ghostscript (`gs`) and a model      |
+| `docling`   | IBM Docling — layout analysis, tables preserved as markdown.                                                | `pip install docling`               |
+| `liteparse` | LlamaIndex's lightweight layout parser.                                                                     | `@llamaindex/liteparse` npm package |
+| `kreuzberg` | Kreuzberg's unified document extractor.                                                                     | `@kreuzberg/node` npm package       |
 
 Image extraction (PDF inputs) [#image-extraction-pdf-inputs]
 
@@ -1343,8 +1412,16 @@ Image extraction (PDF inputs) [#image-extraction-pdf-inputs]
     type: 'number',
     required: false,
   },
+  'no-image-overview': {
+    description: 'Disable labelled image-overview compositing of extracted images. The overview is on by default when --images is set.',
+    type: 'boolean',
+    default: 'false',
+    required: false,
+  },
 }}
 />
+
+When `--images` is set, the parser also composes an **image overview**: a contact sheet of the extracted images, each thumbnail captioned with its virtual path. It gives a vision model the whole visual context of the document for the cost of one image, so it can pick which images to inspect closely rather than reading them all. Thumbnails are scaled to a \~220px longest edge (120px floor) and sheets are capped at 1500px, so a document with many images produces several numbered sheets. Byte-identical repeats and images under 40px in either dimension are filtered out before compositing. Disable it with `--no-image-overview`.
 
 Parser resolution order [#parser-resolution-order]
 
@@ -1355,12 +1432,12 @@ Parser resolution order [#parser-resolution-order]
 
 Built-in parsers [#built-in-parsers]
 
-| MIME type          | Behavior                                                                                             |
-| ------------------ | ---------------------------------------------------------------------------------------------------- |
-| `application/pdf`  | Per-page text via `pdf-parse`. Add `--images` for embedded images, `--screenshots` for page renders. |
-| `text/*`           | Split on double newlines into content slices.                                                        |
-| `image/*`          | Single-content artifact with the image as a media item.                                              |
-| `application/json` | If it validates as `SerializedArtifact[]`, passed through unchanged.                                 |
+| MIME type          | Behavior                                                                                                                                                                                |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `application/pdf`  | Per-page text via `pdf-parse` (or the selected `--processor`). Add `--images` for embedded images, `--screenshots` for page renders. Add `--images` also for a labelled image overview. |
+| `text/*`           | Split on double newlines into content slices.                                                                                                                                           |
+| `image/*`          | Single-content artifact with the image as a media item.                                                                                                                                 |
+| `application/json` | If it validates as `SerializedArtifact[]`, passed through unchanged.                                                                                                                    |
 
 Examples [#examples]
 
@@ -2524,18 +2601,21 @@ Images [#images]
 
 Each item in `media` has:
 
-| Field                       | Required | Description                                                                                                                               |
-| --------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `type`                      | Yes      | Must be `"image"`                                                                                                                         |
-| `url`                       | No       | URL to image (mutually exclusive with `base64`)                                                                                           |
-| `base64`                    | No       | Base64-encoded image data (no data-URL prefix)                                                                                            |
-| `text`                      | No       | Alt text or OCR output                                                                                                                    |
-| `x`, `y`, `width`, `height` | No       | Optional spatial metadata (pixels)                                                                                                        |
-| `imageType`                 | No       | `"embedded"` or `"screenshot"`. Distinguishes images extracted from the document body from page renders. Omit for hand-crafted artifacts. |
+| Field                       | Required | Description                                                                                                                                          |
+| --------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `type`                      | Yes      | Must be `"image"`                                                                                                                                    |
+| `url`                       | No       | URL to image (mutually exclusive with `base64`)                                                                                                      |
+| `base64`                    | No       | Base64-encoded image data (no data-URL prefix)                                                                                                       |
+| `text`                      | No       | Alt text or OCR output                                                                                                                               |
+| `x`, `y`, `width`, `height` | No       | Optional spatial metadata (pixels)                                                                                                                   |
+| `imageType`                 | No       | `"embedded"` or `"screenshot"`. Distinguishes images extracted from the document body from page renders. Omit for hand-crafted artifacts.            |
+| `virtualPath`               | No       | Parser-assigned address for the image inside the agent's virtual filesystem, e.g. `/images/page-1-image-2.png`. Set automatically by the PDF parser. |
 
 Either `url` or `base64` must be present.
 
-The `imageType` field is set automatically by the PDF parser: `"embedded"` for images extracted from the PDF body (requires `--images`), `"screenshot"` for full-page renders (requires `--screenshots`). The artifact viewer uses this field to filter and badge images independently.
+The `imageType` field is set automatically by the PDF parser: `"embedded"` for images extracted from the PDF body (requires `--images`), `"screenshot"` for full-page renders (requires `--screenshots`) and for the generated image overview. The artifact viewer uses this field to filter and badge images independently.
+
+`virtualPath` is the key the agent uses to address an image, and the key under which the image appears in the `--images-output` map. It is also the caption drawn next to a thumbnail on the image overview, so the model can cite the path of the image it wants to inspect. When an artifact does not carry a `virtualPath` (for example a hand-written artifact), the agent derives an equivalent path from the artifact id and page number.
 
 Complete example [#complete-example]
 
@@ -2697,12 +2777,40 @@ Override MIME detection with `--mime <type>` on any command that accepts input.
 
 Built-in Parsers [#built-in-parsers]
 
-| MIME type          | Behavior                                                                                                                                                                                                     |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `application/pdf`  | Per-page text via `pdf-parse`. Embedded images require `--images`. Page screenshots require `--screenshots`. Image deduplication filters images smaller than \~80px. Non-fatal on image/screenshot failures. |
-| `text/*`           | Split on double newlines into content slices.                                                                                                                                                                |
-| `image/*`          | Single-content artifact with one media item.                                                                                                                                                                 |
-| `application/json` | If it validates as `SerializedArtifact[]`, passed through unchanged without invoking any parser.                                                                                                             |
+| MIME type          | Behavior                                                                                                                                                                                                                                     |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `application/pdf`  | Per-page text via `pdf-parse` (or the selected `--processor`). Embedded images require `--images`. Page screenshots require `--screenshots`. Image deduplication filters images smaller than \~80px. Non-fatal on image/screenshot failures. |
+| `text/*`           | Split on double newlines into content slices.                                                                                                                                                                                                |
+| `image/*`          | Single-content artifact with one media item.                                                                                                                                                                                                 |
+| `application/json` | If it validates as `SerializedArtifact[]`, passed through unchanged without invoking any parser.                                                                                                                                             |
+
+PDF Processors [#pdf-processors]
+
+PDF text extraction is pluggable. Select a backend with `--processor` (CLI) or the `processor` parse option (SDK). Non-default processors are loaded on demand, so the default install stays dependency-free.
+
+| Processor   | What it does                                                                                                | Requires                            |
+| ----------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| `pdf-parse` | Default. Fast per-page text extraction, no layout awareness.                                                | —                                   |
+| `vlm`       | Renders each page and asks a vision model to transcribe it. Best for scanned or heavily designed documents. | Ghostscript (`gs`) and a model      |
+| `docling`   | IBM Docling — layout analysis, tables preserved as markdown.                                                | `pip install docling`               |
+| `liteparse` | LlamaIndex's lightweight layout parser.                                                                     | `@llamaindex/liteparse` npm package |
+| `kreuzberg` | Kreuzberg's unified document extractor.                                                                     | `@kreuzberg/node` npm package       |
+
+Image Overview [#image-overview]
+
+When `--images` is enabled, the PDF parser composes one extra generated image on top of the extracted ones: a labelled **image overview**. It is a contact sheet containing a thumbnail of every extracted image, each captioned with its virtual path (split across several numbered sheets when a document has many images).
+
+The overview lets a vision model see the entire visual content of a document for the cost of one image, so it can decide which images are worth opening in full instead of reading them all. It is also what the agent's context prefill loads first.
+
+| Property       | Value                                                             |
+| -------------- | ----------------------------------------------------------------- |
+| Thumbnail size | \~220px longest edge, aspect preserved (120px floor)              |
+| Sheet ceiling  | 1500px longest edge — larger sets split into numbered sheets      |
+| Filtered out   | Byte-identical repeats, and images under 40px in either dimension |
+| `imageType`    | `"screenshot"`                                                    |
+| Disable with   | `struktur parse --no-image-overview`                              |
+
+The overview appears in the artifact as a normal media item, so it flows through `--artifact-file`, the artifact viewer, and `--images-output` like any other image.
 
 Built-in Input Types [#built-in-input-types]
 
@@ -3100,11 +3208,12 @@ Struktur currently supports the following providers out of the box:
 | **OpenAI**     | `OPENAI_API_KEY`               | `@ai-sdk/openai`              |
 | **Anthropic**  | `ANTHROPIC_API_KEY`            | `@ai-sdk/anthropic`           |
 | **Google**     | `GOOGLE_GENERATIVE_AI_API_KEY` | `@ai-sdk/google`              |
-| **Mistral**    | `MISTRAL_API_KEY`              | mistralai provider            |
+| **Cerebras**   | `CEREBRAS_API_KEY`             | `@ai-sdk/openai`\*            |
 | **OpenCode**   | `OPENCODE_API_KEY`             | `@ai-sdk/openai`\*            |
 | **OpenRouter** | `OPENROUTER_API_KEY`           | `@openrouter/ai-sdk-provider` |
+| **Ollama**     | *(none — base URL)*            | `ollama-ai-provider-v2`       |
 
-\*OpenCode uses the OpenAI-compatible API via the Vercel SDK's OpenAI provider.
+\*OpenCode and Cerebras use OpenAI-compatible APIs via the Vercel SDK's OpenAI provider. Cerebras honours `CEREBRAS_BASE_URL` (default `https://api.cerebras.ai/v1`). Ollama expects a base URL (default `http://localhost:11434/api`) instead of an API key.
 
 <Callout type="info">
   **Model names change frequently.** Rather than document specific models, Struktur focuses on provider integration. Check your provider's documentation for available models and their capabilities.
@@ -3199,15 +3308,32 @@ Struktur automatically routes OpenCode requests to the correct Vercel SDK provid
 
 OpenRouter [#openrouter]
 
-OpenRouter provides access to models from multiple providers through a unified API. You can also specify a preferred upstream provider:
+OpenRouter provides access to models from multiple providers through a unified API. Two suffixes are supported.
+
+**Pin an upstream provider** with `#`:
 
 ```typescript
 // Basic usage
 "openrouter/anthropic/claude-3.5-sonnet"
 
-// With preferred provider (using hashtag syntax)
-"openrouter/anthropic/claude-3.5-sonnet#octoai"
+// With preferred upstream provider (hashtag syntax)
+"openrouter/anthropic/claude-3.5-sonnet#cerebras"
 ```
+
+**Use OpenRouter's own routing variants** with `:`. These are passed through to OpenRouter and select the upstream provider by policy:
+
+| Variant  | Effect                                                            |
+| -------- | ----------------------------------------------------------------- |
+| `:nitro` | Fastest available provider — often roughly halves wall-clock time |
+| `:floor` | Cheapest available provider                                       |
+| `:free`  | Free-tier endpoints only                                          |
+
+```typescript
+"openrouter/deepseek/deepseek-v4.1-flash:nitro"
+"openrouter/anthropic/claude-3.5-sonnet:floor"
+```
+
+Variants are stripped before catalogue lookups, so capability detection (such as vision support) still resolves to the base model.
 
 Adding New Providers [#adding-new-providers]
 
@@ -3245,17 +3371,18 @@ Model Capabilities [#model-capabilities]
 
 When selecting a model, consider:
 
-| Capability            | Considerations                                                   |
-| --------------------- | ---------------------------------------------------------------- |
-| **Structured Output** | All supported providers support JSON schema output               |
-| **Vision/Multimodal** | Check if the model supports image input for PDF/image extraction |
-| **Context Window**    | Larger documents require models with larger context windows      |
-| **Rate Limits**       | Consider provider rate limits for batch processing               |
-| **Cost**              | Different models have vastly different pricing                   |
+| Capability            | Considerations                                                   |   |                    |                                                             |
+| --------------------- | ---------------------------------------------------------------- | - | ------------------ | ----------------------------------------------------------- |
+| **Structured Output** | All supported providers support JSON schema output               |   |                    |                                                             |
+| **Vision/Multimodal** | Check if the model supports image input for PDF/image extraction |   | **Context Window** | Larger documents require models with larger context windows |
+| **Rate Limits**       | Consider provider rate limits for batch processing               |   |                    |                                                             |
+| **Cost**              | Different models have vastly different pricing                   |   |                    |                                                             |
 
 <Callout type="warning">
-  Not all models support image inputs. If you're extracting from PDFs or images with visual content, use a vision-capable model (e.g., GPT-4o, Claude 3.5 Sonnet, Gemini 1.5 Pro).
+  Not all models support image inputs. If you're extracting from PDFs or images with visual content, use a vision-capable model (e.g. GPT-4o, Claude 3.5 Sonnet, Gemini 1.5 Pro).
 </Callout>
+
+The agent strategy queries the provider's model catalogue for the input modalities a model accepts and enables image tools only when `image` is present. If the catalogue cannot be reached, or reports nothing for the model, vision is left **enabled** — the extraction fails loudly at the provider instead of silently running text-only. Override the detection explicitly with the agent strategy's `vision: false` option.
 
 Listing Available Models [#listing-available-models]
 
@@ -3263,13 +3390,13 @@ The CLI can list available models from configured providers:
 
 ```bash
 # List models for a specific provider
-struktur models --provider openai
+struktur config models list --provider openai
 
 # List models for all configured providers
-struktur models
+struktur config models list
 
-# Pick the cheapest available model
-struktur extract --model cheapest --provider openai
+# Set a provider's cheapest model as the default
+struktur config providers add openai --default
 ```
 
 See Also [#see-also]
@@ -3433,15 +3560,20 @@ Configuration [#configuration]
 
 <TypeTable
   type={{
+  model: {
+    description: 'Full model spec, e.g. `openrouter/deepseek/deepseek-v4.1-flash`. Alternative to passing provider and modelId separately.',
+    type: 'string | AiSdkModel',
+    required: false,
+  },
   provider: {
-    description: 'Provider name (e.g., anthropic, openai)',
+    description: 'Provider name (e.g., anthropic, openai). Required unless `model` is given.',
     type: 'string',
-    required: true,
+    required: false,
   },
   modelId: {
-    description: 'Model identifier (e.g., claude-sonnet-4, gpt-4o)',
+    description: 'Model identifier (e.g., claude-sonnet-4, gpt-4o). Required unless `model` is given.',
     type: 'string',
-    required: true,
+    required: false,
   },
   maxSteps: {
     description: 'Maximum agent steps/turns',
@@ -3449,9 +3581,27 @@ Configuration [#configuration]
     default: '50',
     required: false,
   },
-  apiKey: {
-    description: 'API key (or use env vars)',
-    type: 'string',
+  maxIterations: {
+    description: 'Number of iteration loops. Each loop allows up to maxSteps steps, so the total step budget is maxIterations x maxSteps.',
+    type: 'number',
+    default: '1',
+    required: false,
+  },
+  stepTimeoutMs: {
+    description: 'Maximum time per LLM step before it times out',
+    type: 'number',
+    default: '300000 (5 min)',
+    required: false,
+  },
+  vision: {
+    description: 'Enable image tools (`view_image`). Auto-detected from the model catalogue by default; set explicitly to override the detection.',
+    type: 'boolean',
+    default: 'detected',
+    required: false,
+  },
+  reasoningEffort: {
+    description: 'Reasoning effort for models that support it',
+    type: '"low" | "medium" | "high"',
     required: false,
   },
   outputInstructions: {
@@ -3535,38 +3685,39 @@ When to use [#when-to-use]
 * Automatically adapts to document structure
 * Best for complex schemas with nested objects
 
-Model compatibility (March 2026) [#model-compatibility-march-2026]
+Model requirements [#model-requirements]
 
-The agent requires models that support tool/function calling:
+The agent imposes two hard requirements that the other strategies do not:
 
-| Provider  | Compatible Models (2026)                             |
-| --------- | ---------------------------------------------------- |
-| Anthropic | Claude Opus 4.6, Claude Sonnet 4.6, Claude Haiku 4.5 |
-| OpenAI    | GPT-5.4, GPT-5.4 Pro, GPT-5.2, GPT-4o                |
-| Google    | Gemini 3.1 Pro, Gemini 2.5 Pro, Gemini 2.5 Flash     |
-| xAI       | Grok 4, Grok 4 Beta                                  |
-| Mistral   | Mistral Large 3, Mistral Medium 3, Mistral Small 3.1 |
+| Requirement                 | Needed for                  | Why                                                                                             |
+| --------------------------- | --------------------------- | ----------------------------------------------------------------------------------------------- |
+| **Tool / function calling** | Every agent run             | The agent's whole loop is tool calls. A model without it cannot run the strategy at all.        |
+| **Image input**             | `--images`, `--screenshots` | Without it `view_image` is disabled, so the model never sees content that lives only in images. |
 
-Recommended models for extraction [#recommended-models-for-extraction]
+Both are hard requirements, but only one is checked for you: the agent queries the provider's model catalogue for the input modalities a model accepts, and reports the result via `onVisionStatus`. Tool/function-calling support is **not** detected — a model without it fails at the provider when the first tool call is sent. Check what a provider currently offers before choosing:
 
-| Use Case              | Model             | Cost (per 1M tokens) | Why                              |
-| --------------------- | ----------------- | -------------------- | -------------------------------- |
-| **Best quality**      | Claude Sonnet 4.6 | $3.00/$15.00         | Best balance of quality and cost |
-| **Latest frontier**   | GPT-5.4           | $2.50/$15.00         | Native computer use, 1M context  |
-| **Large docs**        | Gemini 3.1 Pro    | $2.00/$12.00         | 2M token context                 |
-| **Budget extraction** | Mistral Small 3.1 | $0.20/$0.60          | Cheapest capable                 |
-
-OpenRouter budget picks [#openrouter-budget-picks]
-
-| Model                        | Cost (per 1M) | Best For                   |
-| ---------------------------- | ------------- | -------------------------- |
-| Qwen3-235B-Thinking          | $0.30/$1.20   | Best reasoning at low cost |
-| google/gemini-2.0-flash-lite | $0.25/$1.50   | Fast, cheap, vision        |
-| mistralai/mistral-small-2603 | $0.15/$0.60   | Best price/quality         |
-| deepseek/deepseek-chat       | $0.28/$1.10   | Excellent reasoning        |
+```bash
+struktur config models list --provider openrouter
+```
 
 <Callout type="warn">
-  Some models claim tool support but don't work well with the agent. Avoid: older GPT-4o-mini (inconsistent tool calling), GPT-3.5 models.
+  Some models advertise tool support but call tools unreliably, or reject tool-use requests outright. That surfaces as a confusing provider error rather than a clean "unsupported" message — if a run dies on a tool-use error, switch models.
+</Callout>
+
+Speed and cost [#speed-and-cost]
+
+Wall-clock time often differs more between *deployments of the same model* than between different models. On OpenRouter, append `:nitro` to route to the fastest available provider:
+
+```bash
+--model "openrouter/deepseek/deepseek-v4.1-flash:nitro"
+```
+
+On our real-estate exposé corpus this roughly halved median extraction time for a high-volume model (\~81s to \~42s), but the gain depends on how loaded the default provider is — measure on your own documents rather than assuming it. `:floor` is the cheapest-provider counterpart.
+
+Reasoning models trade latency for thinking budget. `--reasoning-effort low` is usually enough for structured extraction, and is what Struktur's own configuration uses.
+
+<Callout type="info">
+  Model availability and pricing change constantly, so this page deliberately does not pin a recommendation list. Pick a candidate from `struktur config models list`, confirm it does tool calling (and vision, if you need images), then compare it on your own documents.
 </Callout>
 
 Virtual filesystem [#virtual-filesystem]
@@ -3575,7 +3726,7 @@ The agent has access to a virtual filesystem containing:
 
 * `/artifacts/artifact.json` — All artifacts in JSON format (images replaced by virtual paths)
 * `/artifacts/manifest.json` — Summary and metadata
-* `/artifacts/images/` — Extracted image files (when artifacts have embedded images)
+* `/artifacts/images/` — Extracted image files (when artifacts have embedded images), including the generated image overview
 
 The agent can:
 
@@ -3583,7 +3734,10 @@ The agent can:
 * **Grep** for patterns
 * **Find** files by name
 * **List** directories
+* **View images** by virtual path with `view_image` (only when the model accepts image input)
 * **Bash** execute commands (on virtual filesystem only)
+
+Every extracted image carries a `virtualPath`. The image overview is a labelled contact sheet of all of them, built at parse time, so the agent can see the whole document's visual content in one image and then open only the images that matter. See [Image Overview](/docs/explanation/document-parsing#image-overview).
 
 Output management [#output-management]
 
@@ -4342,6 +4496,11 @@ Available events [#available-events]
     type: '(usage: { inputTokens: number; outputTokens: number; totalTokens: number }) => void',
     required: false,
   },
+  onRetry: {
+    description: 'Fired when a step is retried after a validation or provider failure',
+    type: '(info: { attempt: number; maxAttempts: number; reason?: string }) => void',
+    required: false,
+  },
   onStatus: {
     description: 'Human-facing status update with a coarse, strategy-independent phase',
     type: '(info: { phase: StatusPhase; message?: { key: string; params?: Record<string, string | number> }; percent?: number | null }) => void',
@@ -4349,6 +4508,44 @@ Available events [#available-events]
   },
 }}
 />
+
+Agent events [#agent-events]
+
+These fire only from the agent strategy. Use them to render a live activity feed of what the model is doing — which tools it called, what it reasoned, and whether it can actually see images.
+
+<TypeTable
+  type={{
+  onAgentToolStart: {
+    description: 'A tool call starts. `toolName` is the agent tool (`read`, `grep`, `list`, `view_image`, `set_output_data`, …), `args` are its arguments as sent by the model.',
+    type: '(info: { toolName: string; toolCallId: string; args: Record<string, unknown> }) => void',
+    required: false,
+  },
+  onAgentToolEnd: {
+    description: 'A tool call finishes or fails. Correlate with `onAgentToolStart` via `toolCallId`. `result` is the tool return value; `error` is set when the call threw.',
+    type: '(info: { toolCallId: string; result?: Record<string, unknown>; error?: string }) => void',
+    required: false,
+  },
+  onAgentMessage: {
+    description: 'A message in the agent loop, with `role` distinguishing assistant narration from user/tool turns',
+    type: '(info: { content: string; role?: "assistant" | "user" }) => void',
+    required: false,
+  },
+  onAgentReasoning: {
+    description: 'The model emitted reasoning/thinking text before acting',
+    type: '(info: { thought: string }) => void',
+    required: false,
+  },
+  onVisionStatus: {
+    description: 'Whether the agent enabled image tools. Fired once before the first step, after the model\'s input modalities were resolved. `enabled` is `false` only when the catalogue positively reports that the model cannot accept images.',
+    type: '(info: { enabled: boolean; provider: string; modelId: string }) => void',
+    required: false,
+  },
+}}
+/>
+
+<Callout type="info">
+  Vision detection fails open. If the model catalogue is unreachable or reports nothing for the model, `onVisionStatus` fires with `enabled: true` and the provider returns a clear error if the model truly cannot accept images — rather than the agent silently going text-only and producing incomplete extractions.
+</Callout>
 
 Example: human status events [#example-human-status-events]
 
@@ -4396,10 +4593,32 @@ const result = await extract({
   schema,
   strategy: simple({ model }),
   events: {
-    onMessage: ({ role, content }) => {
-      if (role === "user" && String(content).includes("validation-errors")) {
-        console.log("Retry triggered");
-      }
+    onRetry: ({ attempt, maxAttempts, reason }) => {
+      console.log(`retry ${attempt}/${maxAttempts}: ${reason ?? "validation failed"}`);
+    },
+  },
+});
+```
+
+Example: agent activity feed [#example-agent-activity-feed]
+
+```js
+const result = await extract({
+  artifacts,
+  schema,
+  strategy: agent({ provider: "openai", modelId: "gpt-4o" }),
+  events: {
+    onVisionStatus: ({ enabled }) => {
+      if (!enabled) console.warn("model has no vision — images will be skipped");
+    },
+    onAgentToolStart: ({ toolName, args }) => {
+      console.log(`→ ${toolName}`, args);
+    },
+    onAgentToolEnd: ({ toolCallId, error }) => {
+      if (error) console.log(`✗ ${toolCallId}: ${error}`);
+    },
+    onAgentReasoning: ({ thought }) => {
+      console.log(`… ${thought}`);
     },
   },
 });
@@ -4409,6 +4628,8 @@ See also [#see-also]
 
 * [extract()](/docs/sdk/extract) — main extraction function
 * [Validation & Retries](/docs/explanation/validation) — validation concept
+* [Strategies](/docs/explanation/strategies) — the agent strategy and its tools
+* [CLI reference](/docs/cli/extract#output) — `--format json` emits these events as NDJSON
 
 
 # extract()
@@ -4601,6 +4822,8 @@ const artifacts = await parse(
     screenshots: false,            // render PDF page screenshots
     screenshotScale: 1.5,          // scale factor for screenshots
     screenshotWidth: undefined,    // target width in pixels (overrides screenshotScale)
+    imageOverview: true,           // compose a labelled contact sheet of the images
+    processor: "pdf-parse",        // PDF text extraction backend
   }
 );
 ```
@@ -4620,13 +4843,16 @@ Input kinds [#input-kinds]
 
 Options [#options]
 
-| Option            | Type            | Default | Description                                          |
-| ----------------- | --------------- | ------- | ---------------------------------------------------- |
-| `parserConfig`    | `ParsersConfig` | `{}`    | Custom parsers keyed by MIME type                    |
-| `includeImages`   | `boolean`       | `false` | Extract embedded images from PDFs                    |
-| `screenshots`     | `boolean`       | `false` | Render PDF page screenshots                          |
-| `screenshotScale` | `number`        | `1.5`   | Scale factor for screenshots                         |
-| `screenshotWidth` | `number`        | —       | Target width in pixels (overrides `screenshotScale`) |
+| Option            | Type            | Default       | Description                                                                                                                                                                                                 |
+| ----------------- | --------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `parserConfig`    | `ParsersConfig` | `{}`          | Custom parsers keyed by MIME type                                                                                                                                                                           |
+| `includeImages`   | `boolean`       | `false`       | Extract embedded images from PDFs                                                                                                                                                                           |
+| `screenshots`     | `boolean`       | `false`       | Render PDF page screenshots                                                                                                                                                                                 |
+| `screenshotScale` | `number`        | `1.5`         | Scale factor for screenshots                                                                                                                                                                                |
+| `screenshotWidth` | `number`        | —             | Target width in pixels (overrides `screenshotScale`)                                                                                                                                                        |
+| `imageOverview`   | `boolean`       | `true`        | Compose a labelled contact sheet of the extracted images. Only applies when `includeImages` is set.                                                                                                         |
+| `processor`       | `string`        | `"pdf-parse"` | PDF text extraction backend: `pdf-parse`, `vlm`, `docling`, `liteparse`, `kreuzberg`. Non-default backends require extra tooling — see [PDF Processors](/docs/explanation/document-parsing#pdf-processors). |
+| `processorModel`  | `unknown`       | —             | Model override for processors that call an LLM (the `vlm` processor).                                                                                                                                       |
 
 ***
 
