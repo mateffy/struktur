@@ -3,7 +3,7 @@ import type { StandardSchema } from "./validation/validator";
 
 export type ArtifactType = "text" | "image" | "pdf" | "file";
 
-export type ImageType = "embedded" | "screenshot";
+export type ImageType = "embedded" | "screenshot" | "overview";
 
 export type ArtifactImage = {
   type: "image";

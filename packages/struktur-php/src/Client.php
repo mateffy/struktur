@@ -70,6 +70,7 @@ class Client
                                 width: $m['width'] ?? null,
                                 height: $m['height'] ?? null,
                                 imageType: $m['imageType'] ?? null,
+                                virtualPath: $m['virtualPath'] ?? null,
                                 raw: $m,
                             ),
                             $c['media'] ?? []
@@ -238,6 +239,45 @@ class Client
             $parts[] = $input->path;
         } else {
             $parts[] = '--stdin';
+        }
+
+        // Image extraction. The overview is on by default in the CLI, so only the
+        // disabling of it is passed on.
+        if ($request->images) {
+            $parts[] = '--images';
+        }
+
+        if ($request->screenshots) {
+            $parts[] = '--screenshots';
+        }
+
+        if (!$request->imageOverview) {
+            $parts[] = '--no-image-overview';
+        }
+
+        if ($request->screenshotScale !== null) {
+            $parts[] = '--screenshot-scale';
+            $parts[] = (string) $request->screenshotScale;
+        }
+
+        if ($request->screenshotWidth !== null) {
+            $parts[] = '--screenshot-width';
+            $parts[] = (string) $request->screenshotWidth;
+        }
+
+        if ($request->processor !== null) {
+            $parts[] = '--processor';
+            $parts[] = $request->processor;
+        }
+
+        if ($request->mimeType !== null) {
+            $parts[] = '--mime';
+            $parts[] = $request->mimeType;
+        }
+
+        if ($request->parser !== null) {
+            $parts[] = '--parser';
+            $parts[] = $request->parser;
         }
 
         $envPrefix = $this->buildTokenEnvPrefix($request->tokens);

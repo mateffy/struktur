@@ -161,6 +161,71 @@ describe('Client', function () {
 
             expect($cmd)->toContain("'/tmp/file with spaces.txt'");
         });
+
+        it('omits every image flag by default', function () {
+            $client = new Client(binaryPath: 'struktur');
+            $request = new Dto\ParseRequest(inputs: [Input::fromPath('/tmp/test.pdf')]);
+            $cmd = invokePrivateMethod($client, 'buildParseCommand', [$request]);
+
+            expect($cmd)->not->toContain('--images');
+            expect($cmd)->not->toContain('--screenshots');
+            expect($cmd)->not->toContain('--no-image-overview');
+            expect($cmd)->not->toContain('--processor');
+        });
+
+        it('builds command with the image options', function () {
+            $client = new Client(binaryPath: 'struktur');
+            $request = new Dto\ParseRequest(
+                inputs: [Input::fromPath('/tmp/test.pdf')],
+                images: true,
+                screenshots: true,
+                screenshotWidth: 1400,
+                processor: 'vlm',
+            );
+            $cmd = invokePrivateMethod($client, 'buildParseCommand', [$request]);
+
+            expect($cmd)->toContain("'--images'");
+            expect($cmd)->toContain("'--screenshots'");
+            expect($cmd)->toContain("'--screenshot-width'");
+            expect($cmd)->toContain("'1400'");
+            expect($cmd)->toContain("'--processor'");
+            expect($cmd)->toContain("'vlm'");
+
+            // The overview is on by default, so it is never requested, only disabled.
+            expect($cmd)->not->toContain('--no-image-overview');
+        });
+
+        it('disables the image overview only when it is off', function () {
+            $client = new Client(binaryPath: 'struktur');
+            $request = new Dto\ParseRequest(
+                inputs: [Input::fromPath('/tmp/test.pdf')],
+                images: true,
+                imageOverview: false,
+            );
+            $cmd = invokePrivateMethod($client, 'buildParseCommand', [$request]);
+
+            expect($cmd)->toContain("'--images'");
+            expect($cmd)->toContain("'--no-image-overview'");
+        });
+
+        it('passes the screenshot scale, the mime type and the parser', function () {
+            $client = new Client(binaryPath: 'struktur');
+            $request = new Dto\ParseRequest(
+                inputs: [Input::fromPath('/tmp/test.bin')],
+                screenshots: true,
+                screenshotScale: 2.0,
+                mimeType: 'application/pdf',
+                parser: '@myorg/pdf-parser',
+            );
+            $cmd = invokePrivateMethod($client, 'buildParseCommand', [$request]);
+
+            expect($cmd)->toContain("'--screenshot-scale'");
+            expect($cmd)->toContain("'2'");
+            expect($cmd)->toContain("'--mime'");
+            expect($cmd)->toContain("'application/pdf'");
+            expect($cmd)->toContain("'--parser'");
+            expect($cmd)->toContain("'@myorg/pdf-parser'");
+        });
     });
 
     describe('buildExtractCommand', function () {

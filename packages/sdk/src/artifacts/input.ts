@@ -60,7 +60,7 @@ const zSerializedArtifactImage = z
     y: z.number().optional(),
     width: z.number().optional(),
     height: z.number().optional(),
-    imageType: z.enum(["embedded", "screenshot"]).optional(),
+    imageType: z.enum(["embedded", "screenshot", "overview"]).optional(),
   })
   .refine((d) => d.url !== undefined || d.base64 !== undefined, {
     message: "Artifact image must have either url or base64",

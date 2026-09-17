@@ -229,7 +229,7 @@ export async function buildImageOverviews(
       base64,
       width: SHEET_WIDTH,
       height,
-      imageType: "screenshot",
+      imageType: "overview",
       virtualPath: `${basePath}-${s + 1}.png`,
     });
   }
