@@ -94,51 +94,13 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-function CommandRow({
-  label,
-  command,
-  isPlain,
-}: {
-  label?: string;
-  command: string;
-  isPlain?: boolean;
-}) {
+function CommandRow({ label, command }: { label?: string; command: string }) {
   return (
-    <div style={{ marginBottom: label ? "20px" : "0" }}>
-      {label && (
-        <div
-          style={{
-            fontSize: "12px",
-            color: "#a0926f",
-            marginBottom: "6px",
-            fontFamily: "Inter, sans-serif",
-          }}
-        >
-          {label}
-        </div>
-      )}
-      <div
-        className="command-row"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: "8px",
-        }}
-      >
-        <div
-          style={{
-            fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-            fontSize: "15px",
-            color: "#3d2b15",
-            display: "flex",
-            alignItems: "flex-start",
-            gap: "6px",
-            whiteSpace: isPlain ? "pre-wrap" : "nowrap",
-            flexWrap: isPlain ? "wrap" : "nowrap",
-          }}
-        >
-          <span style={{ color: "#bba88a", userSelect: "none" }}>$</span>
+    <div className={label ? "mb-5" : undefined}>
+      {label && <div className="text-caption mb-1.5">{label}</div>}
+      <div className="command-row">
+        <div className="text-command flex items-start gap-1.5">
+          <span className="text-faint select-none">$</span>
           <span>{command}</span>
         </div>
         <CopyButton text={command} />
@@ -157,15 +119,7 @@ function Card({
   className?: string;
 }) {
   return (
-    <div
-      className={className}
-      style={{
-        backgroundColor: "#ede5d8",
-        borderRadius: "16px",
-        padding: "24px",
-        ...style,
-      }}
-    >
+    <div className={className ? `surface-card ${className}` : "surface-card"} style={style}>
       {children}
     </div>
   );
@@ -184,60 +138,19 @@ function FeatureCard({
 }) {
   return (
     <div
-      style={{
-        backgroundColor: "#ede5d8",
-        borderRadius: "16px",
-        padding: "24px",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "flex-start",
-        minHeight: "120px",
-        position: "relative",
-        overflow: "hidden",
-        ...style,
-      }}
+      className="surface-card relative flex min-h-[120px] flex-col justify-start overflow-hidden"
+      style={style}
     >
       {icon && (
         <div
-          style={{
-            position: "absolute",
-            bottom: "10px",
-            right: "10px",
-            color: "#c4b49a",
-            opacity: 0.09,
-            zIndex: 0,
-            transform: "scale(6) translate(0.4rem, 0.3rem)",
-            transformOrigin: "bottom right",
-          }}
+          className="text-watermark absolute right-2.5 bottom-2.5 z-0 opacity-[0.09]"
+          style={{ "transform": "scale(6) translate(0.4rem, 0.3rem)", "transformOrigin": "bottom right" }}
         >
           {icon}
         </div>
       )}
-      <div
-        style={{
-          fontFamily: "Inter, sans-serif",
-          fontSize: "15px",
-          fontWeight: 500,
-          color: "#2d1b0e",
-          marginBottom: "6px",
-          position: "relative",
-          zIndex: 1,
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          fontFamily: "Inter, sans-serif",
-          fontSize: "13px",
-          color: "#a0926f",
-          lineHeight: 1.5,
-          position: "relative",
-          zIndex: 1,
-        }}
-      >
-        {description}
-      </div>
+      <div className="text-feature-label relative z-[1] mb-1.5">{label}</div>
+      <div className="text-copy relative z-[1]">{description}</div>
     </div>
   );
 }
@@ -258,18 +171,18 @@ const EXAMPLES: Example[] = [
     output: (
       <>
         <div>{"{"}</div>
-        <div style={{ paddingLeft: "20px" }}>
+        <div className="pl-5" >
           <div>
-            <span style={{ color: "#7a5c3a" }}>"invoice_nr"</span>: <span>"INV-123"</span>,
+            <span className="text-accent" >"invoice_nr"</span>: <span>"INV-123"</span>,
           </div>
           <div>
-            <span style={{ color: "#7a5c3a" }}>"customer"</span>:{" "}
-            <span style={{ color: "#bba88a" }}>{"{"}</span>
+            <span className="text-accent" >"customer"</span>:{" "}
+            <span className="text-faint" >{"{"}</span>
             ...
-            <span style={{ color: "#bba88a" }}>{"}"}</span>,
+            <span className="text-faint" >{"}"}</span>,
           </div>
           <div>
-            <span style={{ color: "#7a5c3a" }}>"grand_total"</span>: <span>1283.21</span>
+            <span className="text-accent" >"grand_total"</span>: <span>1283.21</span>
           </div>
         </div>
         <div>{"}"}</div>
@@ -281,12 +194,12 @@ const EXAMPLES: Example[] = [
     output: (
       <>
         <div>{"{"}</div>
-        <div style={{ paddingLeft: "20px" }}>
+        <div className="pl-5" >
           <div>
-            <span style={{ color: "#7a5c3a" }}>"name"</span>: <span>"Jane Smith"</span>,
+            <span className="text-accent" >"name"</span>: <span>"Jane Smith"</span>,
           </div>
           <div>
-            <span style={{ color: "#7a5c3a" }}>"skills"</span>:{" "}
+            <span className="text-accent" >"skills"</span>:{" "}
             <span>["React", "TypeScript", "Node.js"]</span>
           </div>
         </div>
@@ -299,16 +212,16 @@ const EXAMPLES: Example[] = [
     output: (
       <>
         <div>{"{"}</div>
-        <div style={{ paddingLeft: "20px" }}>
+        <div className="pl-5" >
           <div>
-            <span style={{ color: "#7a5c3a" }}>"title"</span>: <span>"Wireless Headphones"</span>,
+            <span className="text-accent" >"title"</span>: <span>"Wireless Headphones"</span>,
           </div>
           <div>
-            <span style={{ color: "#7a5c3a" }}>"price"</span>: <span>299.99</span>,
+            <span className="text-accent" >"price"</span>: <span>299.99</span>,
           </div>
           <div>
-            <span style={{ color: "#7a5c3a" }}>"in_stock"</span>:{" "}
-            <span style={{ color: "#a0926f" }}>true</span>
+            <span className="text-accent" >"in_stock"</span>:{" "}
+            <span className="text-subtle" >true</span>
           </div>
         </div>
         <div>{"}"}</div>
@@ -321,13 +234,13 @@ const EXAMPLES: Example[] = [
     output: (
       <>
         <div>{"{"}</div>
-        <div style={{ paddingLeft: "20px" }}>
+        <div className="pl-5" >
           <div>
-            <span style={{ color: "#7a5c3a" }}>"action_items"</span>:{" "}
+            <span className="text-accent" >"action_items"</span>:{" "}
             <span>["Update docs", "Schedule review"]</span>,
           </div>
           <div>
-            <span style={{ color: "#7a5c3a" }}>"decisions"</span>:{" "}
+            <span className="text-accent" >"decisions"</span>:{" "}
             <span>["Use PostgreSQL", "Deploy Friday"]</span>
           </div>
         </div>
@@ -341,16 +254,16 @@ const EXAMPLES: Example[] = [
     output: (
       <>
         <div>{"{"}</div>
-        <div style={{ paddingLeft: "20px" }}>
+        <div className="pl-5" >
           <div>
-            <span style={{ color: "#7a5c3a" }}>"parties"</span>:{" "}
+            <span className="text-accent" >"parties"</span>:{" "}
             <span>["Acme Corp", "Beta Ltd"]</span>,
           </div>
           <div>
-            <span style={{ color: "#7a5c3a" }}>"start_date"</span>: <span>"2026-01-15"</span>,
+            <span className="text-accent" >"start_date"</span>: <span>"2026-01-15"</span>,
           </div>
           <div>
-            <span style={{ color: "#7a5c3a" }}>"value"</span>: <span>48000</span>
+            <span className="text-accent" >"value"</span>: <span>48000</span>
           </div>
         </div>
         <div>{"}"}</div>
@@ -463,7 +376,7 @@ function TerminalDemo() {
           ...commandStyle,
         }}
       >
-        <span style={{ color: "#bba88a", userSelect: "none" }}>$</span>
+        <span className="text-faint select-none" >$</span>
         <span style={phase === "pause" ? fadeOutAnimation : {}}>
           {currentExample.command.slice(0, typedLen)}
           {(phase === "typing" || phase === "output") && (
@@ -500,12 +413,8 @@ function TerminalDemo() {
           }}
         >
           <span
-            style={{
-              display: "inline-block",
-              width: "1ch",
-              textAlign: "center",
-            }}
-          >
+            
+          className="inline-block w-[1ch] text-center" >
             {SPINNER_FRAMES[spinnerFrame]}
           </span>
           <span>Extracting data...</span>
@@ -531,14 +440,8 @@ function TerminalDemo() {
 function Home() {
   return (
     <div
-      style={{
-        minHeight: "100vh",
-        backgroundColor: "#f5efe6",
-        fontFamily: "Inter, sans-serif",
-        color: "#2d1b0e",
-        position: "relative",
-      }}
-    >
+      
+    className="min-h-[100vh] bg-paper font-brand text-ink relative" >
       {/* Top nav - absolute positioned, right-aligned, vertical */}
       <nav className="navbar-desktop">
         {[
@@ -551,16 +454,10 @@ function Home() {
           <a
             key={link.label}
             href={link.href}
-            style={{
-              fontSize: "14px",
-              color: "#7a5c3a",
-              textDecoration: "none",
-              fontFamily: "Inter, sans-serif",
-              fontWeight: 500,
-            }}
+            
             onMouseOver={(e) => ((e.target as HTMLAnchorElement).style.color = "#2d1b0e")}
             onMouseOut={(e) => ((e.target as HTMLAnchorElement).style.color = "#7a5c3a")}
-          >
+          className="text-[14px] text-accent no-underline font-brand font-medium" >
             {link.label}
           </a>
         ))}
@@ -569,50 +466,27 @@ function Home() {
       <div className="homepage-container">
         {/* Hero */}
         <section
-          className="hero-section"
-          style={{
-            paddingTop: "40px",
-            paddingBottom: "80px",
-          }}
+          className="hero-section pt-10 max-sm:pt-6 pb-20 max-sm:pb-12"
+          
         >
           <LogoAnimation size={200} className="hero-image" />
-          <div style={{ paddingTop: "8px" }} className="w-full">
+          <div  className="w-full pt-2">
             <div
-              style={{
-                fontSize: "14px",
-                color: "#a0926f",
-                fontStyle: "italic",
-                marginBottom: "8px",
-                fontFamily: "Inter, sans-serif",
-              }}
-            >
+              
+            className="text-size-14 text-subtle italic mb-2 font-brand" >
               /jtrʊkˈtuːr/
             </div>
             <h1
-              className="hero-title"
-              style={{
-                fontSize: "62px",
-                fontWeight: 600,
-                lineHeight: 1,
-                color: "#2d1b0e",
-                margin: "0 0 20px 0",
-                fontFamily: "Inter, sans-serif",
-                letterSpacing: "-2px",
-              }}
+              className="text-size-62 font-semibold leading-[1] text-ink font-brand tracking-[-2px]"
+              style={{ "margin": "0 0 20px 0" }}
             >
               struktur
             </h1>
             <p
-              className="hero-subtitle"
-              style={{
-                fontSize: "20px",
-                lineHeight: 1.7,
-                color: "#3d2b15",
-                margin: 0,
-                fontFamily: "Inter, sans-serif",
-              }}
+              className="text-size-20 leading-[1.7] text-body font-brand"
+              style={{ "margin": "0" }}
             >
-              <strong style={{ fontWeight: 600 }}>
+              <strong className="font-semibold" >
                 All-in-one tool for structured data extraction.
               </strong>
               <br />
@@ -624,35 +498,23 @@ function Home() {
         </section>
 
         {/* CLI Demo */}
-        <section style={{ paddingBottom: "80px" }}>
+        <section className="pb-20 max-sm:pb-12" >
           <h2
-            className="section-title"
-            style={{
-              fontSize: "22px",
-              fontWeight: 600,
-              color: "#2d1b0e",
-              marginBottom: "20px",
-              fontFamily: "Inter, sans-serif",
-            }}
+            className="text-size-22 font-semibold text-ink mb-5 font-brand"
+            
           >
             Extract data in your command line
           </h2>
-          <Card style={{}} className="terminal-container">
+          <Card  className="terminal-container">
             <TerminalDemo />
           </Card>
         </section>
 
         {/* Quickstart */}
-        <section style={{ paddingBottom: "80px" }}>
+        <section className="pb-20 max-sm:pb-12" >
           <h2
-            className="section-title"
-            style={{
-              fontSize: "22px",
-              fontWeight: 600,
-              color: "#2d1b0e",
-              marginBottom: "20px",
-              fontFamily: "Inter, sans-serif",
-            }}
+            className="text-size-22 font-semibold text-ink mb-5 font-brand"
+            
           >
             Installation & Quickstart
           </h2>
@@ -666,17 +528,11 @@ function Home() {
               label="Extract structured data from any file"
               command='struktur --input invoice.pdf --fields "number, vendor, total:number"'
             />
-            <div style={{ marginTop: "24px" }}>
+            <div className="mt-6" >
               <a
                 href="/docs/quickstart"
-                style={{
-                  fontSize: "16px",
-                  color: "#3d2b15",
-                  textDecoration: "none",
-                  fontFamily: "Inter, sans-serif",
-                  fontWeight: 500,
-                }}
-              >
+                
+              className="text-size-16 text-body no-underline font-brand font-medium" >
                 Read the full quickstart →
               </a>
             </div>
@@ -684,16 +540,10 @@ function Home() {
         </section>
 
         {/* Features */}
-        <section style={{ paddingBottom: "80px" }}>
+        <section className="pb-20 max-sm:pb-12" >
           <h2
-            className="section-title"
-            style={{
-              fontSize: "22px",
-              fontWeight: 600,
-              color: "#2d1b0e",
-              marginBottom: "20px",
-              fontFamily: "Inter, sans-serif",
-            }}
+            className="text-size-22 font-semibold text-ink mb-5 font-brand"
+            
           >
             Features
           </h2>
@@ -747,16 +597,10 @@ function Home() {
         </section>
 
         {/* How it works */}
-        <section style={{ paddingBottom: "80px" }}>
+        <section className="pb-20 max-sm:pb-12" >
           <h2
-            className="section-title"
-            style={{
-              fontSize: "22px",
-              fontWeight: 600,
-              color: "#2d1b0e",
-              marginBottom: "20px",
-              fontFamily: "Inter, sans-serif",
-            }}
+            className="text-size-22 font-semibold text-ink mb-5 font-brand"
+            
           >
             How it works
           </h2>
@@ -769,48 +613,25 @@ function Home() {
                 { step: "Extract", sub: "Your chosen strategy", arrow: "→" },
                 { step: "Structured Data", sub: "JSON in your schema", arrow: null },
               ].map(({ step, sub, arrow }) => (
-                <div key={step} style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <div key={step} className="flex items-center gap-3" >
                   <div
-                    style={{
-                      backgroundColor: "#e5dccf",
-                      borderRadius: "10px",
-                      padding: "10px 16px",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "2px",
-                      flex: 1,
-                      minHeight: "58px",
-                      justifyContent: "center",
-                    }}
-                  >
+                    
+                  className="bg-sand rounded-[10px] py-2.5 px-4 flex flex-col gap-0.5 flex-1 min-h-[58px] justify-center" >
                     <div
-                      style={{
-                        fontSize: "13px",
-                        fontWeight: 600,
-                        color: "#2d1b0e",
-                        fontFamily: "Inter, sans-serif",
-                      }}
-                    >
+                      
+                    className="text-size-13 font-semibold text-ink font-brand" >
                       {step}
                     </div>
                     <div
-                      style={{
-                        fontSize: "11px",
-                        color: "#a0926f",
-                        fontFamily: "Inter, sans-serif",
-                      }}
-                    >
+                      
+                    className="text-size-11 text-subtle font-brand" >
                       {sub}
                     </div>
                   </div>
                   {arrow && (
                     <div
-                      style={{
-                        color: "#c4b49a",
-                        fontSize: "18px",
-                        flexShrink: 0,
-                      }}
-                    >
+                      
+                    className="text-watermark text-[18px] shrink-0" >
                       {arrow}
                     </div>
                   )}
@@ -818,19 +639,13 @@ function Home() {
               ))}
             </div>
             <p
-              style={{
-                fontSize: "14px",
-                color: "#7a5c3a",
-                margin: "0 0 16px",
-                lineHeight: 1.6,
-                fontFamily: "Inter, sans-serif",
-              }}
+              className="text-size-14 text-accent leading-[1.6] font-brand" style={{ "margin": "0 0 16px" }}
             >
               Before extracting, Struktur normalizes your raw data into the{" "}
               <a
                 href="/docs/explanation/artifact-format"
-                style={{ color: "#3d2b15", fontWeight: 500, textDecoration: "none" }}
-              >
+                
+              className="text-body font-medium no-underline" >
                 Artifact format
               </a>
               , which is then given to the extraction strategy you picked. Here the data is chunked
@@ -839,42 +654,24 @@ function Home() {
             </p>
             <a
               href="/docs/explanation/pipeline"
-              style={{
-                fontSize: "14px",
-                color: "#3d2b15",
-                textDecoration: "none",
-                fontFamily: "Inter, sans-serif",
-                fontWeight: 500,
-              }}
-            >
+              
+            className="text-size-14 text-body no-underline font-brand font-medium" >
               Extraction pipeline explained →
             </a>
           </Card>
         </section>
 
         {/* Parsers */}
-        <section style={{ paddingBottom: "80px" }}>
+        <section className="pb-20 max-sm:pb-12" >
           <h2
-            className="section-title"
-            style={{
-              fontSize: "22px",
-              fontWeight: 600,
-              color: "#2d1b0e",
-              marginBottom: "20px",
-              fontFamily: "Inter, sans-serif",
-            }}
+            className="text-size-22 font-semibold text-ink mb-5 font-brand"
+            
           >
             Prepare any filetype for LLMs
           </h2>
           <Card>
             <p
-              style={{
-                fontSize: "14px",
-                color: "#7a5c3a",
-                margin: "0 0 20px",
-                lineHeight: 1.6,
-                fontFamily: "Inter, sans-serif",
-              }}
+              className="text-size-14 text-accent leading-[1.6] font-brand" style={{ "margin": "0 0 20px" }}
             >
               Struktur's parser layer converts files into Artifacts before extraction. PDF, plain
               text, and images work out of the box. Register custom parsers for any MIME type using
@@ -884,23 +681,11 @@ function Home() {
             {/* Built-in vs custom split */}
             <div className="parser-grid">
               <div
-                style={{
-                  backgroundColor: "#e5dccf",
-                  borderRadius: "10px",
-                  padding: "16px",
-                }}
-              >
+                
+              className="bg-sand rounded-[10px] p-4" >
                 <div
-                  style={{
-                    fontSize: "12px",
-                    color: "#a0926f",
-                    fontFamily: "Inter, sans-serif",
-                    fontWeight: 600,
-                    marginBottom: "10px",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                  }}
-                >
+                  
+                className="text-size-12 text-subtle font-brand font-semibold mb-2.5 uppercase tracking-[0.05em]" >
                   Built-in Parsers
                 </div>
                 {[
@@ -923,31 +708,18 @@ function Home() {
                 ].map(({ mime, note, icon }) => (
                   <div
                     key={mime}
-                    style={{
-                      marginBottom: "8px",
-                      display: "flex",
-                      gap: "12px",
-                      alignItems: "center",
-                    }}
-                  >
-                    <div style={{ color: "#a0926f", flexShrink: 0 }}>{icon}</div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
+                    
+                  className="mb-2 flex gap-3 items-center" >
+                    <div className="text-subtle shrink-0" >{icon}</div>
+                    <div className="flex flex-col gap-[1px]" >
                       <div
-                        style={{
-                          fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                          fontSize: "12px",
-                          color: "#3d2b15",
-                        }}
-                      >
+                        
+                      className="font-code text-size-12 text-body" >
                         {mime}
                       </div>
                       <div
-                        style={{
-                          fontSize: "11px",
-                          color: "#a0926f",
-                          fontFamily: "Inter, sans-serif",
-                        }}
-                      >
+                        
+                      className="text-size-11 text-subtle font-brand" >
                         {note}
                       </div>
                     </div>
@@ -956,35 +728,17 @@ function Home() {
               </div>
 
               <div
-                style={{
-                  backgroundColor: "#e5dccf",
-                  borderRadius: "10px",
-                  padding: "16px",
-                }}
-              >
+                
+              className="bg-sand rounded-[10px] p-4" >
                 <div
-                  style={{
-                    fontSize: "12px",
-                    color: "#a0926f",
-                    fontFamily: "Inter, sans-serif",
-                    fontWeight: 600,
-                    marginBottom: "10px",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                  }}
-                >
+                  
+                className="text-size-12 text-subtle font-brand font-semibold mb-2.5 uppercase tracking-[0.05em]" >
                   adding custom parsers
                 </div>
                 <div
-                  style={{
-                    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                    fontSize: "11px",
-                    color: "#3d2b15",
-                    marginBottom: "12px",
-                    lineHeight: 1.5,
-                  }}
-                >
-                  <span style={{ color: "#bba88a" }}>$</span> struktur config parsers add ...
+                  
+                className="font-code text-size-11 text-body mb-3 leading-[1.5]" >
+                  <span className="text-faint" >$</span> struktur config parsers add ...
                 </div>
                 {[
                   {
@@ -1002,29 +756,16 @@ function Home() {
                 ].map(({ type, cmd }) => (
                   <div
                     key={type}
-                    style={{
-                      marginBottom: "10px",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "1px",
-                    }}
-                  >
+                    
+                  className="mb-2.5 flex flex-col gap-[1px]" >
                     <div
-                      style={{
-                        fontSize: "11px",
-                        color: "#a0926f",
-                        fontFamily: "Inter, sans-serif",
-                      }}
-                    >
+                      
+                    className="text-size-11 text-subtle font-brand" >
                       {type}
                     </div>
                     <div
-                      style={{
-                        fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                        fontSize: "11px",
-                        color: "#3d2b15",
-                      }}
-                    >
+                      
+                    className="font-code text-size-11 text-body" >
                       {cmd}
                     </div>
                   </div>
@@ -1033,156 +774,115 @@ function Home() {
             </div>
 
             <div
-              style={{
-                fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                fontSize: "13px",
-                color: "#3d2b15",
-                backgroundColor: "#e5dccf",
-                borderRadius: "10px",
-                padding: "14px 16px",
-                lineHeight: 1.7,
-                marginBottom: "16px",
-              }}
-            >
+              
+            className="font-code text-size-13 text-body bg-sand rounded-[10px] py-3.5 px-4 leading-[1.7] mb-4" >
               <div
-                style={{
-                  color: "#a0926f",
-                  fontSize: "11px",
-                  marginBottom: "6px",
-                  fontFamily: "Inter, sans-serif",
-                }}
-              >
+                
+              className="text-subtle text-size-11 mb-1.5 font-brand" >
                 Register a Word document parser
               </div>
               <div>
-                <span style={{ color: "#a0926f" }}>$</span> struktur config parsers add \
+                <span className="text-subtle" >$</span> struktur config parsers add \
               </div>
-              <div style={{ paddingLeft: "16px" }}>--mime application/msword \</div>
-              <div style={{ paddingLeft: "16px" }}>
-                --file-command <span style={{ color: "#7a5c3a" }}>"markitdown FILE_PATH"</span>
+              <div className="pl-4" >--mime application/msword \</div>
+              <div className="pl-4" >
+                --file-command <span className="text-accent" >"markitdown FILE_PATH"</span>
               </div>
             </div>
 
             <a
               href="/docs/explanation/document-parsing"
-              style={{
-                fontSize: "14px",
-                color: "#3d2b15",
-                textDecoration: "none",
-                fontFamily: "Inter, sans-serif",
-                fontWeight: 500,
-              }}
-            >
+              
+            className="text-size-14 text-body no-underline font-brand font-medium" >
               Parser system explained →
             </a>
           </Card>
         </section>
 
         {/* TypeScript SDK */}
-        <section style={{ paddingBottom: "80px" }}>
+        <section className="pb-20 max-sm:pb-12" >
           <h2
-            className="section-title"
-            style={{
-              fontSize: "22px",
-              fontWeight: 600,
-              color: "#2d1b0e",
-              marginBottom: "20px",
-              fontFamily: "Inter, sans-serif",
-            }}
+            className="text-size-22 font-semibold text-ink mb-5 font-brand"
+            
           >
             Integrate into your application using the TypeScript SDK
           </h2>
           <Card>
             <CommandRow label="Install the SDK" command="npm install @struktur/sdk" />
             <div
-              style={{
-                fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                fontSize: "13px",
-                color: "#3d2b15",
-                lineHeight: 1.7,
-                backgroundColor: "#e5dccf",
-                borderRadius: "10px",
-                padding: "16px",
-                marginTop: "12px",
-              }}
-            >
+              
+            className="font-code text-size-13 text-body leading-[1.7] bg-sand rounded-[10px] p-4 mt-3" >
               <div>
-                <span style={{ color: "#a0926f" }}>import</span> {"{ extract, simple, parse }"}{" "}
-                <span style={{ color: "#a0926f" }}>from</span>{" "}
-                <span style={{ color: "#7a5c3a" }}>'@struktur/sdk'</span>;
+                <span className="text-subtle" >import</span> {"{ extract, simple, parse }"}{" "}
+                <span className="text-subtle" >from</span>{" "}
+                <span className="text-accent" >'@struktur/sdk'</span>;
               </div>
               <div>
-                <span style={{ color: "#a0926f" }}>import</span> {"{ openai }"}{" "}
-                <span style={{ color: "#a0926f" }}>from</span>{" "}
-                <span style={{ color: "#7a5c3a" }}>'@ai-sdk/openai'</span>;
+                <span className="text-subtle" >import</span> {"{ openai }"}{" "}
+                <span className="text-subtle" >from</span>{" "}
+                <span className="text-accent" >'@ai-sdk/openai'</span>;
               </div>
-              <div style={{ marginTop: "12px", color: "#a0926f" }}>
+              <div className="mt-3 text-subtle" >
                 {"// Parse a raw buffer into Artifacts"}
               </div>
               <div>
-                <span style={{ color: "#a0926f" }}>const</span> artifacts ={" "}
-                <span style={{ color: "#a0926f" }}>await</span>{" "}
-                <span style={{ fontWeight: 600 }}>parse(</span>
+                <span className="text-subtle" >const</span> artifacts ={" "}
+                <span className="text-subtle" >await</span>{" "}
+                <span className="font-semibold" >parse(</span>
               </div>
-              <div style={{ paddingLeft: "16px" }}>
+              <div className="pl-4" >
                 {"{ kind: "}
-                <span style={{ color: "#7a5c3a" }}>'buffer'</span>
+                <span className="text-accent" >'buffer'</span>
                 {", buffer, mimeType: "}
-                <span style={{ color: "#7a5c3a" }}>'application/pdf'</span>
+                <span className="text-accent" >'application/pdf'</span>
                 {" },"}
               </div>
-              <div style={{ paddingLeft: "16px" }}>{"{ includeImages: true }"}</div>
+              <div className="pl-4" >{"{ includeImages: true }"}</div>
               <div>
-                <span style={{ fontWeight: 600 }}>)</span>;
+                <span className="font-semibold" >)</span>;
               </div>
-              <div style={{ marginTop: "8px", color: "#a0926f" }}>
+              <div className="mt-2 text-subtle" >
                 {"// Run extraction with your chosen strategy"}
               </div>
               <div>
-                <span style={{ color: "#a0926f" }}>const</span> result ={" "}
-                <span style={{ color: "#a0926f" }}>await</span>{" "}
-                <span style={{ fontWeight: 600 }}>extract(</span>
+                <span className="text-subtle" >const</span> result ={" "}
+                <span className="text-subtle" >await</span>{" "}
+                <span className="font-semibold" >extract(</span>
                 {"{"}
               </div>
-              <div style={{ paddingLeft: "16px" }}>artifacts,</div>
-              <div style={{ paddingLeft: "16px" }}>schema: {"{"}</div>
-              <div style={{ paddingLeft: "32px" }}>
-                <span style={{ color: "#7a5c3a" }}>type</span>:{" "}
-                <span style={{ color: "#7a5c3a" }}>'object'</span>,
+              <div className="pl-4" >artifacts,</div>
+              <div className="pl-4" >schema: {"{"}</div>
+              <div className="pl-8" >
+                <span className="text-accent" >type</span>:{" "}
+                <span className="text-accent" >'object'</span>,
               </div>
-              <div style={{ paddingLeft: "32px" }}>
-                properties: {"{"} invoice_nr: {"{ "} <span style={{ color: "#7a5c3a" }}>type</span>:{" "}
-                <span style={{ color: "#7a5c3a" }}>'string'</span> {" }"}, total: {"{ "}{" "}
-                <span style={{ color: "#7a5c3a" }}>type</span>:{" "}
-                <span style={{ color: "#7a5c3a" }}>'number'</span> {" }"} {"}"}
+              <div className="pl-8" >
+                properties: {"{"} invoice_nr: {"{ "} <span className="text-accent" >type</span>:{" "}
+                <span className="text-accent" >'string'</span> {" }"}, total: {"{ "}{" "}
+                <span className="text-accent" >type</span>:{" "}
+                <span className="text-accent" >'number'</span> {" }"} {"}"}
               </div>
-              <div style={{ paddingLeft: "16px" }}>{"}"},</div>
-              <div style={{ paddingLeft: "16px" }}>
-                strategy: <span style={{ fontWeight: 600 }}>simple(</span>
+              <div className="pl-4" >{"}"},</div>
+              <div className="pl-4" >
+                strategy: <span className="font-semibold" >simple(</span>
                 {"{ model: openai("}
-                <span style={{ color: "#7a5c3a" }}>'gpt-4o-mini'</span>
+                <span className="text-accent" >'gpt-4o-mini'</span>
                 {") }"}
-                <span style={{ fontWeight: 600 }}>)</span>,
+                <span className="font-semibold" >)</span>,
               </div>
               <div>
                 {"}"}
-                <span style={{ fontWeight: 600 }}>)</span>;
+                <span className="font-semibold" >)</span>;
               </div>
-              <div style={{ marginTop: "8px", color: "#a0926f" }}>
+              <div className="mt-2 text-subtle" >
                 {"// result.data is fully typed from your schema"}
               </div>
             </div>
-            <div style={{ marginTop: "16px" }}>
+            <div className="mt-4" >
               <a
                 href="/docs/sdk/installation"
-                style={{
-                  fontSize: "14px",
-                  color: "#3d2b15",
-                  textDecoration: "none",
-                  fontFamily: "Inter, sans-serif",
-                  fontWeight: 500,
-                }}
-              >
+                
+              className="text-size-14 text-body no-underline font-brand font-medium" >
                 SDK reference →
               </a>
             </div>
@@ -1190,16 +890,10 @@ function Home() {
         </section>
 
         {/* Call to action */}
-        <section style={{ paddingBottom: "80px" }}>
+        <section className="pb-20 max-sm:pb-12" >
           <h2
-            className="section-title"
-            style={{
-              fontSize: "22px",
-              fontWeight: 600,
-              color: "#2d1b0e",
-              marginBottom: "20px",
-              fontFamily: "Inter, sans-serif",
-            }}
+            className="text-size-22 font-semibold text-ink mb-5 font-brand"
+            
           >
             Ready to extract structured data?
           </h2>
@@ -1208,17 +902,11 @@ function Home() {
               {/* Left: Quickstart */}
               <div>
                 <h3
-                  style={{
-                    fontSize: "16px",
-                    fontWeight: 600,
-                    color: "#2d1b0e",
-                    marginBottom: "16px",
-                    fontFamily: "Inter, sans-serif",
-                  }}
-                >
+                  
+                className="text-size-16 font-semibold text-ink mb-4 font-brand" >
                   Quickstart
                 </h3>
-                <div style={{ marginBottom: "20px" }}>
+                <div className="mb-5" >
                   <CommandRow label="Install globally" command="npm install -g @struktur/cli" />
                   <CommandRow
                     label="Extract data from any file"
@@ -1227,14 +915,8 @@ function Home() {
                 </div>
                 <a
                   href="/docs/quickstart"
-                  style={{
-                    fontSize: "14px",
-                    color: "#3d2b15",
-                    textDecoration: "none",
-                    fontFamily: "Inter, sans-serif",
-                    fontWeight: 500,
-                  }}
-                >
+                  
+                className="text-size-14 text-body no-underline font-brand font-medium" >
                   Full quickstart guide →
                 </a>
               </div>
@@ -1242,63 +924,33 @@ function Home() {
               {/* Right: Documentation */}
               <div className="cta-right-column">
                 <h3
-                  style={{
-                    fontSize: "16px",
-                    fontWeight: 600,
-                    color: "#2d1b0e",
-                    marginBottom: "12px",
-                    fontFamily: "Inter, sans-serif",
-                  }}
-                >
+                  
+                className="text-size-16 font-semibold text-ink mb-3 font-brand" >
                   Documentation
                 </h3>
                 <p
-                  style={{
-                    fontSize: "14px",
-                    color: "#7a5c3a",
-                    marginBottom: "20px",
-                    fontFamily: "Inter, sans-serif",
-                    lineHeight: 1.6,
-                  }}
-                >
+                  
+                className="text-size-14 text-accent mb-5 font-brand leading-[1.6]" >
                   Explore extraction strategies, parser configuration, SDK integration, and advanced
                   features.
                 </p>
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <div className="flex flex-col gap-2" >
                   <a
                     href="/docs/explanation/strategies"
-                    style={{
-                      fontSize: "13px",
-                      color: "#3d2b15",
-                      textDecoration: "none",
-                      fontFamily: "Inter, sans-serif",
-                      fontWeight: 500,
-                    }}
-                  >
+                    
+                  className="text-size-13 text-body no-underline font-brand font-medium" >
                     → Choosing a strategy
                   </a>
                   <a
                     href="/docs/explanation/document-parsing"
-                    style={{
-                      fontSize: "13px",
-                      color: "#3d2b15",
-                      textDecoration: "none",
-                      fontFamily: "Inter, sans-serif",
-                      fontWeight: 500,
-                    }}
-                  >
+                    
+                  className="text-size-13 text-body no-underline font-brand font-medium" >
                     → Parser system
                   </a>
                   <a
                     href="/docs/sdk/installation"
-                    style={{
-                      fontSize: "13px",
-                      color: "#3d2b15",
-                      textDecoration: "none",
-                      fontFamily: "Inter, sans-serif",
-                      fontWeight: 500,
-                    }}
-                  >
+                    
+                  className="text-size-13 text-body no-underline font-brand font-medium" >
                     → TypeScript SDK
                   </a>
                 </div>
@@ -1310,57 +962,21 @@ function Home() {
 
       {/* Footer */}
       <footer
-        style={{
-          borderTop: "1px solid rgba(102, 102, 102, 0.15)",
-          padding: "32px 40px",
-          maxWidth: "950px",
-          margin: "0 auto",
-          display: "flex",
-          alignItems: "start",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: "16px",
-        }}
+        className="border-t border-[rgba(102,102,102,0.15)] py-8 px-10 max-w-[950px] flex justify-between flex-wrap gap-4 max-md:flex-col max-md:items-center max-md:text-center max-md:gap-[22px] max-md:px-4 max-md:py-7" style={{ "margin": "0 auto", "alignItems": "start" }}
       >
         <div className="flex flex-col gap-2">
           <div
-            style={{
-              fontSize: "13px",
-              color: "#a0926f",
-              fontFamily: "Inter, sans-serif",
-            }}
-          >
+            
+          className="text-[13px] text-muted font-brand" >
             struktur by{" "}
             <a
               href="https://mateffy.org"
-              style={{ color: "#7a5c3a", textDecoration: "none", fontWeight: 500 }}
-            >
+              
+            className="text-accent no-underline font-medium" >
               Lukas Mateffy
             </a>
           </div>
 
-          <div className="opacity-80">
-            <a href="https://smollaunch.com" target="_blank" rel="noopener">
-              <img
-                src="https://smollaunch.com/badges/featured.svg"
-                alt="Featured on Smol Launch"
-                loading="lazy"
-                width="250"
-                height="60"
-              />
-            </a>
-            <a
-              href="https://ufind.best/products/struktur?utm_source=ufind.best"
-              target="_blank"
-              rel="noopener"
-            >
-              <img
-                src="https://ufind.best/badges/ufind-best-badge-light.svg"
-                alt="Featured on ufind.best"
-                width="150"
-              />
-            </a>
-          </div>
         </div>
         <nav className="footer-nav">
           {[
@@ -1376,14 +992,8 @@ function Home() {
             <a
               key={link.label}
               href={link.href}
-              style={{
-                fontSize: "13px",
-                color: "#7a5c3a",
-                textDecoration: "none",
-                fontFamily: "Inter, sans-serif",
-                fontWeight: 500,
-              }}
-            >
+              
+            className="text-[13px] max-sm:text-[14px] text-accent no-underline font-brand font-medium" >
               {link.label}
             </a>
           ))}
