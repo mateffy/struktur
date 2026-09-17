@@ -136,7 +136,7 @@ Each item in `media` has:
 | `base64`                    | No       | Base64-encoded image data (no data-URL prefix)                                                                                                       |
 | `text`                      | No       | Alt text or OCR output                                                                                                                               |
 | `x`, `y`, `width`, `height` | No       | Optional spatial metadata (pixels)                                                                                                                   |
-| `imageType`                 | No       | `"embedded"` or `"screenshot"`. Distinguishes images extracted from the document body from page renders. Omit for hand-crafted artifacts.            |
+| `imageType`                 | No       | `"embedded"`, `"screenshot"` or `"overview"`. Distinguishes an image extracted from the body, a page render, and the generated contact sheet. Omit for hand-crafted artifacts. |
 | `virtualPath`               | No       | Parser-assigned address for the image inside the agent's virtual filesystem, e.g. `/images/page-1-image-2.png`. Set automatically by the PDF parser. |
 
 Either `url` or `base64` must be present.
