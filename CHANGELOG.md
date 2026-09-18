@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.9.0] - 2026-09-18
+
+### Added
+
+- **The `parse` image options are reachable from the PHP adapter, and the image overview is identifiable.** `ParseRequest` could carry an input and a token map and nothing else, so `--images`, `--screenshots`, the generated overview and the processor choice all had to be shelled out for.
+  - `ParseRequest` gains `images`, `screenshots`, `imageOverview`, `screenshotScale`, `screenshotWidth`, `processor`, `mimeType` and `parser`. The command builder passes only `--no-image-overview`, because the CLI has the overview on by default.
+  - `ArtifactImage` gains `virtualPath` and the `embedded`, `screenshot` and `overview` type constants. The path previously survived only inside `raw`, which forced consumers to match images by basename.
+  - `ParseResult` gains `media()`, `images()` keyed by virtual path with a positional fallback so no image is lost, and `overview()`.
+  - The SDK's `imageType` enum gains `overview`, and the contact sheet now reports it. The sheet shared `screenshot` with page renders, so only its virtual path identified it.
+
 ## [2.8.1] - 2026-09-15
 
 ### Fixed

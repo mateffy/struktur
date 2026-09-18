@@ -1,6 +1,6 @@
 {
   "name": "@struktur/processors",
-  "version": "2.6.1",
+  "version": "2.9.0",
   "license": "MIT",
   "type": "module",
   "main": "dist/index.js",

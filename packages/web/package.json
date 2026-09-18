@@ -1,6 +1,6 @@
 {
   "name": "@struktur/web",
-  "version": "2.6.1",
+  "version": "2.9.0",
   "license": "FSL-1.1-MIT",
   "type": "module",
   "imports": {

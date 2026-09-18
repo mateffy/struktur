@@ -144,7 +144,10 @@ function FeatureCard({
       {icon && (
         <div
           className="text-watermark absolute right-2.5 bottom-2.5 z-0 opacity-[0.09]"
-          style={{ "transform": "scale(6) translate(0.4rem, 0.3rem)", "transformOrigin": "bottom right" }}
+          style={{
+            transform: "scale(6) translate(0.4rem, 0.3rem)",
+            transformOrigin: "bottom right",
+          }}
         >
           {icon}
         </div>
@@ -171,18 +174,18 @@ const EXAMPLES: Example[] = [
     output: (
       <>
         <div>{"{"}</div>
-        <div className="pl-5" >
+        <div className="pl-5">
           <div>
-            <span className="text-accent" >"invoice_nr"</span>: <span>"INV-123"</span>,
+            <span className="text-accent">"invoice_nr"</span>: <span>"INV-123"</span>,
           </div>
           <div>
-            <span className="text-accent" >"customer"</span>:{" "}
-            <span className="text-faint" >{"{"}</span>
+            <span className="text-accent">"customer"</span>:{" "}
+            <span className="text-faint">{"{"}</span>
             ...
-            <span className="text-faint" >{"}"}</span>,
+            <span className="text-faint">{"}"}</span>,
           </div>
           <div>
-            <span className="text-accent" >"grand_total"</span>: <span>1283.21</span>
+            <span className="text-accent">"grand_total"</span>: <span>1283.21</span>
           </div>
         </div>
         <div>{"}"}</div>
@@ -194,12 +197,12 @@ const EXAMPLES: Example[] = [
     output: (
       <>
         <div>{"{"}</div>
-        <div className="pl-5" >
+        <div className="pl-5">
           <div>
-            <span className="text-accent" >"name"</span>: <span>"Jane Smith"</span>,
+            <span className="text-accent">"name"</span>: <span>"Jane Smith"</span>,
           </div>
           <div>
-            <span className="text-accent" >"skills"</span>:{" "}
+            <span className="text-accent">"skills"</span>:{" "}
             <span>["React", "TypeScript", "Node.js"]</span>
           </div>
         </div>
@@ -212,16 +215,16 @@ const EXAMPLES: Example[] = [
     output: (
       <>
         <div>{"{"}</div>
-        <div className="pl-5" >
+        <div className="pl-5">
           <div>
-            <span className="text-accent" >"title"</span>: <span>"Wireless Headphones"</span>,
+            <span className="text-accent">"title"</span>: <span>"Wireless Headphones"</span>,
           </div>
           <div>
-            <span className="text-accent" >"price"</span>: <span>299.99</span>,
+            <span className="text-accent">"price"</span>: <span>299.99</span>,
           </div>
           <div>
-            <span className="text-accent" >"in_stock"</span>:{" "}
-            <span className="text-subtle" >true</span>
+            <span className="text-accent">"in_stock"</span>:{" "}
+            <span className="text-subtle">true</span>
           </div>
         </div>
         <div>{"}"}</div>
@@ -234,13 +237,13 @@ const EXAMPLES: Example[] = [
     output: (
       <>
         <div>{"{"}</div>
-        <div className="pl-5" >
+        <div className="pl-5">
           <div>
-            <span className="text-accent" >"action_items"</span>:{" "}
+            <span className="text-accent">"action_items"</span>:{" "}
             <span>["Update docs", "Schedule review"]</span>,
           </div>
           <div>
-            <span className="text-accent" >"decisions"</span>:{" "}
+            <span className="text-accent">"decisions"</span>:{" "}
             <span>["Use PostgreSQL", "Deploy Friday"]</span>
           </div>
         </div>
@@ -254,16 +257,15 @@ const EXAMPLES: Example[] = [
     output: (
       <>
         <div>{"{"}</div>
-        <div className="pl-5" >
+        <div className="pl-5">
           <div>
-            <span className="text-accent" >"parties"</span>:{" "}
-            <span>["Acme Corp", "Beta Ltd"]</span>,
+            <span className="text-accent">"parties"</span>: <span>["Acme Corp", "Beta Ltd"]</span>,
           </div>
           <div>
-            <span className="text-accent" >"start_date"</span>: <span>"2026-01-15"</span>,
+            <span className="text-accent">"start_date"</span>: <span>"2026-01-15"</span>,
           </div>
           <div>
-            <span className="text-accent" >"value"</span>: <span>48000</span>
+            <span className="text-accent">"value"</span>: <span>48000</span>
           </div>
         </div>
         <div>{"}"}</div>
@@ -376,7 +378,7 @@ function TerminalDemo() {
           ...commandStyle,
         }}
       >
-        <span className="text-faint select-none" >$</span>
+        <span className="text-faint select-none">$</span>
         <span style={phase === "pause" ? fadeOutAnimation : {}}>
           {currentExample.command.slice(0, typedLen)}
           {(phase === "typing" || phase === "output") && (
@@ -412,11 +414,7 @@ function TerminalDemo() {
             ...fadeInAnimation,
           }}
         >
-          <span
-            
-          className="inline-block w-[1ch] text-center" >
-            {SPINNER_FRAMES[spinnerFrame]}
-          </span>
+          <span className="inline-block w-[1ch] text-center">{SPINNER_FRAMES[spinnerFrame]}</span>
           <span>Extracting data...</span>
         </div>
       )}
@@ -439,9 +437,7 @@ function TerminalDemo() {
 
 function Home() {
   return (
-    <div
-      
-    className="min-h-[100vh] bg-paper font-brand text-ink relative" >
+    <div className="min-h-[100vh] bg-paper font-brand text-ink relative">
       {/* Top nav - absolute positioned, right-aligned, vertical */}
       <nav className="navbar-desktop">
         {[
@@ -454,10 +450,11 @@ function Home() {
           <a
             key={link.label}
             href={link.href}
-            
+
             onMouseOver={(e) => ((e.target as HTMLAnchorElement).style.color = "#2d1b0e")}
             onMouseOut={(e) => ((e.target as HTMLAnchorElement).style.color = "#7a5c3a")}
-          className="text-[14px] text-accent no-underline font-brand font-medium" >
+            className="text-[14px] text-accent no-underline font-brand font-medium"
+          >
             {link.label}
           </a>
         ))}
@@ -465,28 +462,18 @@ function Home() {
 
       <div className="homepage-container">
         {/* Hero */}
-        <section
-          className="hero-section pt-10 max-sm:pt-6 pb-20 max-sm:pb-12"
-          
-        >
+        <section className="hero-section pt-10 max-sm:pt-6 pb-20 max-sm:pb-12">
           <LogoAnimation size={200} className="hero-image" />
-          <div  className="w-full pt-2">
-            <div
-              
-            className="text-size-14 text-subtle italic mb-2 font-brand" >
-              /jtrʊkˈtuːr/
-            </div>
+          <div className="w-full pt-2">
+            <div className="text-size-14 text-subtle italic mb-2 font-brand">/jtrʊkˈtuːr/</div>
             <h1
               className="text-size-62 font-semibold leading-[1] text-ink font-brand tracking-[-2px]"
-              style={{ "margin": "0 0 20px 0" }}
+              style={{ margin: "0 0 20px 0" }}
             >
               struktur
             </h1>
-            <p
-              className="text-size-20 leading-[1.7] text-body font-brand"
-              style={{ "margin": "0" }}
-            >
-              <strong className="font-semibold" >
+            <p className="text-size-20 leading-[1.7] text-body font-brand" style={{ margin: "0" }}>
+              <strong className="font-semibold">
                 All-in-one tool for structured data extraction.
               </strong>
               <br />
@@ -498,24 +485,18 @@ function Home() {
         </section>
 
         {/* CLI Demo */}
-        <section className="pb-20 max-sm:pb-12" >
-          <h2
-            className="text-size-22 font-semibold text-ink mb-5 font-brand"
-            
-          >
+        <section className="pb-20 max-sm:pb-12">
+          <h2 className="text-size-22 font-semibold text-ink mb-5 font-brand">
             Extract data in your command line
           </h2>
-          <Card  className="terminal-container">
+          <Card className="terminal-container">
             <TerminalDemo />
           </Card>
         </section>
 
         {/* Quickstart */}
-        <section className="pb-20 max-sm:pb-12" >
-          <h2
-            className="text-size-22 font-semibold text-ink mb-5 font-brand"
-            
-          >
+        <section className="pb-20 max-sm:pb-12">
+          <h2 className="text-size-22 font-semibold text-ink mb-5 font-brand">
             Installation & Quickstart
           </h2>
           <Card>
@@ -528,11 +509,12 @@ function Home() {
               label="Extract structured data from any file"
               command='struktur --input invoice.pdf --fields "number, vendor, total:number"'
             />
-            <div className="mt-6" >
+            <div className="mt-6">
               <a
                 href="/docs/quickstart"
-                
-              className="text-size-16 text-body no-underline font-brand font-medium" >
+
+                className="text-size-16 text-body no-underline font-brand font-medium"
+              >
                 Read the full quickstart →
               </a>
             </div>
@@ -540,13 +522,8 @@ function Home() {
         </section>
 
         {/* Features */}
-        <section className="pb-20 max-sm:pb-12" >
-          <h2
-            className="text-size-22 font-semibold text-ink mb-5 font-brand"
-            
-          >
-            Features
-          </h2>
+        <section className="pb-20 max-sm:pb-12">
+          <h2 className="text-size-22 font-semibold text-ink mb-5 font-brand">Features</h2>
 
           {/* Row 1 */}
           <div className="feature-grid-2-1">
@@ -597,13 +574,8 @@ function Home() {
         </section>
 
         {/* How it works */}
-        <section className="pb-20 max-sm:pb-12" >
-          <h2
-            className="text-size-22 font-semibold text-ink mb-5 font-brand"
-            
-          >
-            How it works
-          </h2>
+        <section className="pb-20 max-sm:pb-12">
+          <h2 className="text-size-22 font-semibold text-ink mb-5 font-brand">How it works</h2>
           <Card>
             {/* Pipeline steps */}
             <div className="pipeline-grid">
@@ -613,39 +585,25 @@ function Home() {
                 { step: "Extract", sub: "Your chosen strategy", arrow: "→" },
                 { step: "Structured Data", sub: "JSON in your schema", arrow: null },
               ].map(({ step, sub, arrow }) => (
-                <div key={step} className="flex items-center gap-3" >
-                  <div
-                    
-                  className="bg-sand rounded-[10px] py-2.5 px-4 flex flex-col gap-0.5 flex-1 min-h-[58px] justify-center" >
-                    <div
-                      
-                    className="text-size-13 font-semibold text-ink font-brand" >
-                      {step}
-                    </div>
-                    <div
-                      
-                    className="text-size-11 text-subtle font-brand" >
-                      {sub}
-                    </div>
+                <div key={step} className="flex items-center gap-3">
+                  <div className="bg-sand rounded-[10px] py-2.5 px-4 flex flex-col gap-0.5 flex-1 min-h-[58px] justify-center">
+                    <div className="text-size-13 font-semibold text-ink font-brand">{step}</div>
+                    <div className="text-size-11 text-subtle font-brand">{sub}</div>
                   </div>
-                  {arrow && (
-                    <div
-                      
-                    className="text-watermark text-[18px] shrink-0" >
-                      {arrow}
-                    </div>
-                  )}
+                  {arrow && <div className="text-watermark text-[18px] shrink-0">{arrow}</div>}
                 </div>
               ))}
             </div>
             <p
-              className="text-size-14 text-accent leading-[1.6] font-brand" style={{ "margin": "0 0 16px" }}
+              className="text-size-14 text-accent leading-[1.6] font-brand"
+              style={{ margin: "0 0 16px" }}
             >
               Before extracting, Struktur normalizes your raw data into the{" "}
               <a
                 href="/docs/explanation/artifact-format"
-                
-              className="text-body font-medium no-underline" >
+
+                className="text-body font-medium no-underline"
+              >
                 Artifact format
               </a>
               , which is then given to the extraction strategy you picked. Here the data is chunked
@@ -654,24 +612,23 @@ function Home() {
             </p>
             <a
               href="/docs/explanation/pipeline"
-              
-            className="text-size-14 text-body no-underline font-brand font-medium" >
+
+              className="text-size-14 text-body no-underline font-brand font-medium"
+            >
               Extraction pipeline explained →
             </a>
           </Card>
         </section>
 
         {/* Parsers */}
-        <section className="pb-20 max-sm:pb-12" >
-          <h2
-            className="text-size-22 font-semibold text-ink mb-5 font-brand"
-            
-          >
+        <section className="pb-20 max-sm:pb-12">
+          <h2 className="text-size-22 font-semibold text-ink mb-5 font-brand">
             Prepare any filetype for LLMs
           </h2>
           <Card>
             <p
-              className="text-size-14 text-accent leading-[1.6] font-brand" style={{ "margin": "0 0 20px" }}
+              className="text-size-14 text-accent leading-[1.6] font-brand"
+              style={{ margin: "0 0 20px" }}
             >
               Struktur's parser layer converts files into Artifacts before extraction. PDF, plain
               text, and images work out of the box. Register custom parsers for any MIME type using
@@ -680,12 +637,8 @@ function Home() {
 
             {/* Built-in vs custom split */}
             <div className="parser-grid">
-              <div
-                
-              className="bg-sand rounded-[10px] p-4" >
-                <div
-                  
-                className="text-size-12 text-subtle font-brand font-semibold mb-2.5 uppercase tracking-[0.05em]" >
+              <div className="bg-sand rounded-[10px] p-4">
+                <div className="text-size-12 text-subtle font-brand font-semibold mb-2.5 uppercase tracking-[0.05em]">
                   Built-in Parsers
                 </div>
                 {[
@@ -708,37 +661,24 @@ function Home() {
                 ].map(({ mime, note, icon }) => (
                   <div
                     key={mime}
-                    
-                  className="mb-2 flex gap-3 items-center" >
-                    <div className="text-subtle shrink-0" >{icon}</div>
-                    <div className="flex flex-col gap-[1px]" >
-                      <div
-                        
-                      className="font-code text-size-12 text-body" >
-                        {mime}
-                      </div>
-                      <div
-                        
-                      className="text-size-11 text-subtle font-brand" >
-                        {note}
-                      </div>
+
+                    className="mb-2 flex gap-3 items-center"
+                  >
+                    <div className="text-subtle shrink-0">{icon}</div>
+                    <div className="flex flex-col gap-[1px]">
+                      <div className="font-code text-size-12 text-body">{mime}</div>
+                      <div className="text-size-11 text-subtle font-brand">{note}</div>
                     </div>
                   </div>
                 ))}
               </div>
 
-              <div
-                
-              className="bg-sand rounded-[10px] p-4" >
-                <div
-                  
-                className="text-size-12 text-subtle font-brand font-semibold mb-2.5 uppercase tracking-[0.05em]" >
+              <div className="bg-sand rounded-[10px] p-4">
+                <div className="text-size-12 text-subtle font-brand font-semibold mb-2.5 uppercase tracking-[0.05em]">
                   adding custom parsers
                 </div>
-                <div
-                  
-                className="font-code text-size-11 text-body mb-3 leading-[1.5]" >
-                  <span className="text-faint" >$</span> struktur config parsers add ...
+                <div className="font-code text-size-11 text-body mb-3 leading-[1.5]">
+                  <span className="text-faint">$</span> struktur config parsers add ...
                 </div>
                 {[
                   {
@@ -756,133 +696,117 @@ function Home() {
                 ].map(({ type, cmd }) => (
                   <div
                     key={type}
-                    
-                  className="mb-2.5 flex flex-col gap-[1px]" >
-                    <div
-                      
-                    className="text-size-11 text-subtle font-brand" >
-                      {type}
-                    </div>
-                    <div
-                      
-                    className="font-code text-size-11 text-body" >
-                      {cmd}
-                    </div>
+
+                    className="mb-2.5 flex flex-col gap-[1px]"
+                  >
+                    <div className="text-size-11 text-subtle font-brand">{type}</div>
+                    <div className="font-code text-size-11 text-body">{cmd}</div>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div
-              
-            className="font-code text-size-13 text-body bg-sand rounded-[10px] py-3.5 px-4 leading-[1.7] mb-4" >
-              <div
-                
-              className="text-subtle text-size-11 mb-1.5 font-brand" >
+            <div className="font-code text-size-13 text-body bg-sand rounded-[10px] py-3.5 px-4 leading-[1.7] mb-4">
+              <div className="text-subtle text-size-11 mb-1.5 font-brand">
                 Register a Word document parser
               </div>
               <div>
-                <span className="text-subtle" >$</span> struktur config parsers add \
+                <span className="text-subtle">$</span> struktur config parsers add \
               </div>
-              <div className="pl-4" >--mime application/msword \</div>
-              <div className="pl-4" >
-                --file-command <span className="text-accent" >"markitdown FILE_PATH"</span>
+              <div className="pl-4">--mime application/msword \</div>
+              <div className="pl-4">
+                --file-command <span className="text-accent">"markitdown FILE_PATH"</span>
               </div>
             </div>
 
             <a
               href="/docs/explanation/document-parsing"
-              
-            className="text-size-14 text-body no-underline font-brand font-medium" >
+
+              className="text-size-14 text-body no-underline font-brand font-medium"
+            >
               Parser system explained →
             </a>
           </Card>
         </section>
 
         {/* TypeScript SDK */}
-        <section className="pb-20 max-sm:pb-12" >
-          <h2
-            className="text-size-22 font-semibold text-ink mb-5 font-brand"
-            
-          >
+        <section className="pb-20 max-sm:pb-12">
+          <h2 className="text-size-22 font-semibold text-ink mb-5 font-brand">
             Integrate into your application using the TypeScript SDK
           </h2>
           <Card>
             <CommandRow label="Install the SDK" command="npm install @struktur/sdk" />
-            <div
-              
-            className="font-code text-size-13 text-body leading-[1.7] bg-sand rounded-[10px] p-4 mt-3" >
+            <div className="font-code text-size-13 text-body leading-[1.7] bg-sand rounded-[10px] p-4 mt-3">
               <div>
-                <span className="text-subtle" >import</span> {"{ extract, simple, parse }"}{" "}
-                <span className="text-subtle" >from</span>{" "}
-                <span className="text-accent" >'@struktur/sdk'</span>;
+                <span className="text-subtle">import</span> {"{ extract, simple, parse }"}{" "}
+                <span className="text-subtle">from</span>{" "}
+                <span className="text-accent">'@struktur/sdk'</span>;
               </div>
               <div>
-                <span className="text-subtle" >import</span> {"{ openai }"}{" "}
-                <span className="text-subtle" >from</span>{" "}
-                <span className="text-accent" >'@ai-sdk/openai'</span>;
+                <span className="text-subtle">import</span> {"{ openai }"}{" "}
+                <span className="text-subtle">from</span>{" "}
+                <span className="text-accent">'@ai-sdk/openai'</span>;
               </div>
-              <div className="mt-3 text-subtle" >
-                {"// Parse a raw buffer into Artifacts"}
-              </div>
+              <div className="mt-3 text-subtle">{"// Parse a raw buffer into Artifacts"}</div>
               <div>
-                <span className="text-subtle" >const</span> artifacts ={" "}
-                <span className="text-subtle" >await</span>{" "}
-                <span className="font-semibold" >parse(</span>
+                <span className="text-subtle">const</span> artifacts ={" "}
+                <span className="text-subtle">await</span>{" "}
+                <span className="font-semibold">parse(</span>
               </div>
-              <div className="pl-4" >
+              <div className="pl-4">
                 {"{ kind: "}
-                <span className="text-accent" >'buffer'</span>
+                <span className="text-accent">'buffer'</span>
                 {", buffer, mimeType: "}
-                <span className="text-accent" >'application/pdf'</span>
+                <span className="text-accent">'application/pdf'</span>
                 {" },"}
               </div>
-              <div className="pl-4" >{"{ includeImages: true }"}</div>
+              <div className="pl-4">{"{ includeImages: true }"}</div>
               <div>
-                <span className="font-semibold" >)</span>;
+                <span className="font-semibold">)</span>;
               </div>
-              <div className="mt-2 text-subtle" >
+              <div className="mt-2 text-subtle">
                 {"// Run extraction with your chosen strategy"}
               </div>
               <div>
-                <span className="text-subtle" >const</span> result ={" "}
-                <span className="text-subtle" >await</span>{" "}
-                <span className="font-semibold" >extract(</span>
+                <span className="text-subtle">const</span> result ={" "}
+                <span className="text-subtle">await</span>{" "}
+                <span className="font-semibold">extract(</span>
                 {"{"}
               </div>
-              <div className="pl-4" >artifacts,</div>
-              <div className="pl-4" >schema: {"{"}</div>
-              <div className="pl-8" >
-                <span className="text-accent" >type</span>:{" "}
-                <span className="text-accent" >'object'</span>,
+              <div className="pl-4">artifacts,</div>
+              <div className="pl-4">schema: {"{"}</div>
+              <div className="pl-8">
+                <span className="text-accent">type</span>:{" "}
+                <span className="text-accent">'object'</span>,
               </div>
-              <div className="pl-8" >
-                properties: {"{"} invoice_nr: {"{ "} <span className="text-accent" >type</span>:{" "}
-                <span className="text-accent" >'string'</span> {" }"}, total: {"{ "}{" "}
-                <span className="text-accent" >type</span>:{" "}
-                <span className="text-accent" >'number'</span> {" }"} {"}"}
+              <div className="pl-8">
+                properties: {"{"} invoice_nr: {"{ "} <span className="text-accent">type</span>:{" "}
+                <span className="text-accent">'string'</span> {" }"}, total: {"{ "}{" "}
+                <span className="text-accent">type</span>:{" "}
+                <span className="text-accent">'number'</span> {" }"} {"}"}
               </div>
-              <div className="pl-4" >{"}"},</div>
-              <div className="pl-4" >
-                strategy: <span className="font-semibold" >simple(</span>
+              <div className="pl-4">{"}"},</div>
+              <div className="pl-4">
+                strategy: <span className="font-semibold">simple(</span>
                 {"{ model: openai("}
-                <span className="text-accent" >'gpt-4o-mini'</span>
+                <span className="text-accent">'gpt-4o-mini'</span>
                 {") }"}
-                <span className="font-semibold" >)</span>,
+                <span className="font-semibold">)</span>,
               </div>
               <div>
                 {"}"}
-                <span className="font-semibold" >)</span>;
+                <span className="font-semibold">)</span>;
               </div>
-              <div className="mt-2 text-subtle" >
+              <div className="mt-2 text-subtle">
                 {"// result.data is fully typed from your schema"}
               </div>
             </div>
-            <div className="mt-4" >
+            <div className="mt-4">
               <a
                 href="/docs/sdk/installation"
-                
-              className="text-size-14 text-body no-underline font-brand font-medium" >
+
+                className="text-size-14 text-body no-underline font-brand font-medium"
+              >
                 SDK reference →
               </a>
             </div>
@@ -890,23 +814,16 @@ function Home() {
         </section>
 
         {/* Call to action */}
-        <section className="pb-20 max-sm:pb-12" >
-          <h2
-            className="text-size-22 font-semibold text-ink mb-5 font-brand"
-            
-          >
+        <section className="pb-20 max-sm:pb-12">
+          <h2 className="text-size-22 font-semibold text-ink mb-5 font-brand">
             Ready to extract structured data?
           </h2>
           <Card>
             <div className="cta-grid">
               {/* Left: Quickstart */}
               <div>
-                <h3
-                  
-                className="text-size-16 font-semibold text-ink mb-4 font-brand" >
-                  Quickstart
-                </h3>
-                <div className="mb-5" >
+                <h3 className="text-size-16 font-semibold text-ink mb-4 font-brand">Quickstart</h3>
+                <div className="mb-5">
                   <CommandRow label="Install globally" command="npm install -g @struktur/cli" />
                   <CommandRow
                     label="Extract data from any file"
@@ -915,42 +832,42 @@ function Home() {
                 </div>
                 <a
                   href="/docs/quickstart"
-                  
-                className="text-size-14 text-body no-underline font-brand font-medium" >
+
+                  className="text-size-14 text-body no-underline font-brand font-medium"
+                >
                   Full quickstart guide →
                 </a>
               </div>
 
               {/* Right: Documentation */}
               <div className="cta-right-column">
-                <h3
-                  
-                className="text-size-16 font-semibold text-ink mb-3 font-brand" >
+                <h3 className="text-size-16 font-semibold text-ink mb-3 font-brand">
                   Documentation
                 </h3>
-                <p
-                  
-                className="text-size-14 text-accent mb-5 font-brand leading-[1.6]" >
+                <p className="text-size-14 text-accent mb-5 font-brand leading-[1.6]">
                   Explore extraction strategies, parser configuration, SDK integration, and advanced
                   features.
                 </p>
-                <div className="flex flex-col gap-2" >
+                <div className="flex flex-col gap-2">
                   <a
                     href="/docs/explanation/strategies"
-                    
-                  className="text-size-13 text-body no-underline font-brand font-medium" >
+
+                    className="text-size-13 text-body no-underline font-brand font-medium"
+                  >
                     → Choosing a strategy
                   </a>
                   <a
                     href="/docs/explanation/document-parsing"
-                    
-                  className="text-size-13 text-body no-underline font-brand font-medium" >
+
+                    className="text-size-13 text-body no-underline font-brand font-medium"
+                  >
                     → Parser system
                   </a>
                   <a
                     href="/docs/sdk/installation"
-                    
-                  className="text-size-13 text-body no-underline font-brand font-medium" >
+
+                    className="text-size-13 text-body no-underline font-brand font-medium"
+                  >
                     → TypeScript SDK
                   </a>
                 </div>
@@ -962,21 +879,20 @@ function Home() {
 
       {/* Footer */}
       <footer
-        className="border-t border-[rgba(102,102,102,0.15)] py-8 px-10 max-w-[950px] flex justify-between flex-wrap gap-4 max-md:flex-col max-md:items-center max-md:text-center max-md:gap-[22px] max-md:px-4 max-md:py-7" style={{ "margin": "0 auto", "alignItems": "start" }}
+        className="border-t border-[rgba(102,102,102,0.15)] py-8 px-10 max-w-[950px] flex justify-between flex-wrap gap-4 max-md:flex-col max-md:items-center max-md:text-center max-md:gap-[22px] max-md:px-4 max-md:py-7"
+        style={{ margin: "0 auto", alignItems: "start" }}
       >
         <div className="flex flex-col gap-2">
-          <div
-            
-          className="text-[13px] text-muted font-brand" >
+          <div className="text-[13px] text-muted font-brand">
             struktur by{" "}
             <a
               href="https://mateffy.org"
-              
-            className="text-accent no-underline font-medium" >
+
+              className="text-accent no-underline font-medium"
+            >
               Lukas Mateffy
             </a>
           </div>
-
         </div>
         <nav className="footer-nav">
           {[
@@ -992,8 +908,9 @@ function Home() {
             <a
               key={link.label}
               href={link.href}
-              
-            className="text-[13px] max-sm:text-[14px] text-accent no-underline font-brand font-medium" >
+
+              className="text-[13px] max-sm:text-[14px] text-accent no-underline font-brand font-medium"
+            >
               {link.label}
             </a>
           ))}
