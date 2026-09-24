@@ -106,6 +106,17 @@ SH
     );
 }
 
+function createExtractSlowSuccessScript(): string
+{
+    return createMockScript(<<<'SH'
+printf '{"event":"status","phase":"analyzing","message":{"key":"reading"},"timestamp":1}\n' >&2
+sleep 5
+touch "$STRUKTUR_TEST_MARKER"
+printf '{"done":true}\n'
+SH
+    );
+}
+
 function createExtractInvalidJsonStdoutScript(): string
 {
     return createMockScript(<<<'SH'
@@ -719,6 +730,43 @@ SH
                 'real_estate_property.buildings.0.units.0.usages.0: Invalid option: expected one of "office"|"storage"',
             );
             expect($exception?->errors[1])->toBe('name: Invalid input: expected string, received number');
+        });
+
+        it('terminates the CLI process when the event callback throws', function () {
+            $marker = tempnam(sys_get_temp_dir(), 'struktur_marker_');
+            unlink($marker);
+            putenv('STRUKTUR_TEST_MARKER='.$marker);
+
+            $script = createExtractSlowSuccessScript();
+            $client = new Client(binaryPath: $script);
+            $request = new Dto\ExtractionRequest(
+                inputs: [Input::fromBytes('hello')],
+                schema: ['type' => 'object'],
+            );
+
+            $startedAt = microtime(true);
+
+            try {
+                $client->extract($request, onEvent: function () {
+                    throw new \RuntimeException('cancelled');
+                });
+                $this->fail('The callback exception should have propagated.');
+            } catch (\RuntimeException $e) {
+                expect($e->getMessage())->toBe('cancelled');
+            } finally {
+                putenv('STRUKTUR_TEST_MARKER');
+                cleanupMockScript($script);
+            }
+
+            // The CLI was killed rather than awaited for its 5s sleep.
+            expect(microtime(true) - $startedAt)->toBeLessThan(3.0);
+
+            usleep(300_000);
+            expect(file_exists($marker))->toBeFalse();
+
+            if (file_exists($marker)) {
+                unlink($marker);
+            }
         });
 
         it('throws on invalid stdout json', function () {

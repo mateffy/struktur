@@ -153,7 +153,15 @@ class Client
 
                             // Exceptions thrown by the event callback (e.g. a
                             // FailureEvent) must propagate — never swallow them.
-                            $onEvent($event);
+                            try {
+                                $onEvent($event);
+                            } catch (\Throwable $exception) {
+                                // The caller aborted (e.g. a cancelled job). Stop the CLI
+                                // instead of letting it run to completion in the background.
+                                $this->terminateProcess($process, $pipes);
+
+                                throw $exception;
+                            }
                             if ($event instanceof Dto\Event\TokenUsageEvent) {
                                 $usage = new Dto\Usage(
                                     $event->inputTokens,
@@ -188,7 +196,13 @@ class Client
                 }
 
                 // Exceptions thrown by the event callback must propagate.
-                $onEvent($event);
+                try {
+                    $onEvent($event);
+                } catch (\Throwable $exception) {
+                    $this->terminateProcess($process, $pipes);
+
+                    throw $exception;
+                }
                 if ($event instanceof Dto\Event\TokenUsageEvent) {
                     $usage = new Dto\Usage(
                         $event->inputTokens,
@@ -441,6 +455,34 @@ class Client
         }
 
         return $errors;
+    }
+
+    /**
+     * Stop the CLI after the caller aborted (for example because the event
+     * callback threw to cancel a job), so the extraction does not keep running —
+     * and consuming provider tokens — after nobody is listening for the result.
+     *
+     * @param  resource  $process
+     * @param  array<int, resource>  $pipes
+     */
+    private function terminateProcess($process, array $pipes): void
+    {
+        proc_terminate($process);
+
+        $deadline = microtime(true) + 2.0;
+        while (proc_get_status($process)['running'] && microtime(true) < $deadline) {
+            usleep(50_000);
+        }
+
+        foreach ($pipes as $pipe) {
+            if (is_resource($pipe)) {
+                fclose($pipe);
+            }
+        }
+
+        if (is_resource($process)) {
+            proc_close($process);
+        }
     }
 
     /**
