@@ -68,7 +68,13 @@ export { listAllProviderModels, listProviderModels, resolveCheapestModel } from 
 export { resolveModel } from "./llm/resolveModel";
 
 // Validation
-export { SchemaValidationError, isStandardSchema, toJsonSchema } from "./validation/validator";
+export {
+  SchemaValidationError,
+  compileJsonSchemaToZod,
+  isStandardSchema,
+  toJsonSchema,
+  toPartialJsonSchema,
+} from "./validation/validator";
 export type { ValidationIssue, ValidationResult } from "./validation/validator";
 
 // PDF Processors — imported at module level to trigger built-in registrations

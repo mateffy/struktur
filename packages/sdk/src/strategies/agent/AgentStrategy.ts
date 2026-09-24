@@ -11,6 +11,15 @@ import { Bash } from "just-bash";
 import { createVirtualFilesystem } from "./ArtifactFilesystem";
 import { emitStatus } from "../status";
 import { z } from "zod";
+import {
+  SchemaValidationError,
+  compileJsonSchemaToZod,
+  createValidator,
+  toJsonSchema,
+  toPartialJsonSchema,
+  type ValidationIssue,
+  type ValidationResult,
+} from "../../validation/validator";
 
 import { buildPrefill, type PrefillOptions } from "./prefill";
 
@@ -20,6 +29,8 @@ export type AgentStrategyConfig = {
   modelId?: string;
   maxSteps?: number;
   maxIterations?: number;
+  /** Max schema-validation repair rounds before the run fails. Default: 3. */
+  maxValidationAttempts?: number;
   /** Max milliseconds per generateText step before timing out. Default: 5 minutes. */
   stepTimeoutMs?: number;
   outputInstructions?: string;
@@ -63,6 +74,21 @@ export const parseOutputData = (value: unknown): unknown => {
     }
   }
 };
+
+/**
+ * Builds the Zod schema for the agent's output tools (`set_output_data` /
+ * `update_output_data`) from the caller's schema.
+ *
+ * `required` is dropped — the output is built incrementally, so partial objects
+ * are expected. Everything else (types, enums, formats, numeric bounds) is kept,
+ * so an invalid value is rejected by the tool schema instead of reaching the
+ * result. Falls back to a permissive object schema when the JSON Schema uses
+ * constructs Zod cannot represent; the assembled result is still validated
+ * before the run can succeed.
+ */
+export const buildOutputDataSchema = (schema: unknown): z.ZodType =>
+  compileJsonSchemaToZod(toPartialJsonSchema(toJsonSchema(schema))) ??
+  z.record(z.string(), z.any());
 
 /**
  * Escape straight quotes that appear *inside* a JSON string value. A quote is
@@ -308,7 +334,8 @@ ${schema}
 
 Remember:
 1. ALWAYS use set_output_data/update_output_data when you find information
-2. ALWAYS call finish() when done (or fail() if impossible)`;
+2. Every value must satisfy the JSON Schema above — fields with an "enum" may only use the listed values and types must match. Invalid values are rejected and must be corrected.
+3. ALWAYS call finish() when done (or fail() if impossible)`;
 };
 
 export class AgentStrategy<T> implements ExtractionStrategy<T> {
@@ -363,7 +390,8 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
     }
 
     const bash = new Bash({ files, cwd: "/" });
-    const schema = JSON.stringify(options.schema, null, 2);
+    const jsonSchema = toJsonSchema(options.schema);
+    const schema = JSON.stringify(jsonSchema, null, 2);
 
     // Build file tree for system prompt (show max 10 images)
     const buildFileTree = async (): Promise<string> => {
@@ -466,6 +494,8 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
     let failureReason: string | null = null;
     let iterationCount = 0;
     let isComplete = false;
+    let finishNudges = 0;
+    const maxFinishNudges = 3;
     const totalUsage = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
 
     // Auto-detect vision support from model APIs if vision not explicitly set.
@@ -486,6 +516,65 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
       provider: this.config.provider || "unknown",
       modelId: this.config.modelId || "unknown",
     });
+
+    // Schema validation. The output tools accept any subset of the schema (the
+    // agent builds the result incrementally), but every value they receive must
+    // be valid: the partial schema keeps types, enums, formats and numeric
+    // bounds while dropping `required`. An invalid value is rejected by the tool
+    // schema, which the model sees as a tool error and can correct on its next
+    // step. The assembled result is validated again before it is returned.
+    const outputDataSchema = buildOutputDataSchema(options.schema);
+    const validator = createValidator(options.schema);
+    const maxValidationAttempts = this.config.maxValidationAttempts ?? 3;
+    let validationAttempts = 0;
+    let lastValidationErrors: ValidationIssue[] | null = null;
+
+    const formatValidationErrors = (errors: ValidationIssue[]): string =>
+      errors
+        .map(
+          (issue) => `- ${issue.path?.length ? `${issue.path.join(".")}: ` : ""}${issue.message}`,
+        )
+        .join("\n");
+
+    /**
+     * Validates the assembled output. Invalid values (type, enum, format, …) are
+     * always hard failures. Missing required fields are tolerated when `strict`
+     * is off, matching the retry runner used by the other strategies.
+     */
+    const validateOutput = (data: unknown): ValidationResult<T> => {
+      if (options.strict === true) {
+        try {
+          return { valid: true, data: validator.validateOrThrow<T>(data) };
+        } catch (error) {
+          if (error instanceof SchemaValidationError) {
+            return { valid: false, errors: error.errors };
+          }
+          throw error;
+        }
+      }
+      return validator.validateAllowingMissingRequired<T>(data, true);
+    };
+
+    const reportValidationFailure = async (errors: ValidationIssue[]): Promise<number> => {
+      validationAttempts += 1;
+      lastValidationErrors = errors;
+      debug?.validationFailed({ callId, attempt: validationAttempts, errors });
+      if (agentSpan && telemetry) {
+        telemetry.recordEvent(agentSpan, {
+          type: "validation",
+          attempt: validationAttempts,
+          maxAttempts: maxValidationAttempts,
+          success: false,
+          errors,
+        });
+      }
+      await options.events?.onRetry?.({
+        attempt: validationAttempts,
+        maxAttempts: maxValidationAttempts,
+        reason: "schema_validation_failed",
+      });
+      return validationAttempts;
+    };
 
     const tools = (_iteration: number): any => ({
       bash: tool({
@@ -676,16 +765,18 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
         },
       }),
       set_output_data: tool({
-        description: "Set output data",
-        inputSchema: z.object({ data: z.any() }) as any,
+        description:
+          "Set the output data. Any subset of the schema is accepted while extraction is in progress, but every value must match the schema.",
+        inputSchema: z.object({ data: outputDataSchema }) as any,
         execute: async (params: any) => {
           currentOutput = params.data;
           return { content: [{ type: "text", text: "Output set" }] };
         },
       }),
       update_output_data: tool({
-        description: "Update output data",
-        inputSchema: z.object({ changes: z.record(z.string(), z.any()) }) as any,
+        description:
+          "Add or change fields (deep merge). Any subset of the schema is accepted, but every value must match the schema.",
+        inputSchema: z.object({ changes: outputDataSchema }) as any,
         execute: async (params: any) => {
           if (currentOutput === null)
             return { content: [{ type: "text", text: "Error: Use set_output_data first" }] };
@@ -694,11 +785,42 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
         },
       }),
       finish: tool({
-        description: "Complete extraction",
+        description:
+          "Complete extraction. The accumulated output is validated against the schema first; if it is invalid the errors are returned and must be fixed before finishing.",
         inputSchema: z.object({}),
         execute: async () => {
           if (currentOutput === null)
             return { content: [{ type: "text", text: "Error: No data" }] };
+
+          const validation = validateOutput(parseOutputData(currentOutput));
+
+          if (!validation.valid) {
+            const attempts = await reportValidationFailure(validation.errors);
+            const detail = formatValidationErrors(validation.errors);
+
+            if (attempts >= maxValidationAttempts) {
+              extractionFailed = true;
+              failureReason = "schema validation failed";
+              return {
+                content: [
+                  {
+                    type: "text",
+                    text: `Error: schema validation still failed after ${attempts} attempts:\n${detail}`,
+                  },
+                ],
+              };
+            }
+
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: `Schema validation failed. Fix the following with update_output_data, then call finish() again:\n${detail}`,
+                },
+              ],
+            };
+          }
+
           isComplete = true;
           return { content: [{ type: "text", text: "Complete" }] };
         },
@@ -899,7 +1021,26 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
           messages.push(...result.response.messages);
         }
 
-        if (!result.toolCalls?.length && result.text) break;
+        // The model can stop without calling finish: it may be asking a question,
+        // narrating progress, or believing it is done. Nudge it back instead of
+        // ending the run with an unfinished, unvalidated object.
+        if (!result.toolCalls?.length && result.text) {
+          if (finishNudges >= maxFinishNudges) break;
+
+          finishNudges += 1;
+          const nudge =
+            `You have not called finish() yet. ` +
+            (currentOutput === null
+              ? `Save what you have extracted with set_output_data, then call finish(). `
+              : `Add anything still missing with update_output_data, then call finish(). `) +
+            `finish() validates the collected output against the schema, so every value must ` +
+            `match it — enum fields may only use the listed values. If you still need ` +
+            `information, keep reading the artifacts first. If the document does not contain ` +
+            `the information, call fail(reason) instead.`;
+
+          messages.push({ role: "user", content: nudge });
+          await options.events?.onMessage?.({ role: "user", content: nudge });
+        }
       }
 
       await options.events?.onStep?.({
@@ -912,13 +1053,35 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
 
     const durationMs = Date.now() - startTime;
 
-    if (extractionFailed) throw new Error(`Extraction failed: ${failureReason}`);
+    if (extractionFailed) {
+      if (lastValidationErrors) {
+        const error = new SchemaValidationError(
+          `Schema validation failed after ${validationAttempts} attempts`,
+          lastValidationErrors,
+        );
+        if (agentSpan && telemetry) {
+          telemetry.endSpan(agentSpan, { status: "error", error });
+        }
+        throw error;
+      }
+      throw new Error(`Extraction failed: ${failureReason}`);
+    }
 
     let extractedData: T;
     if (currentOutput !== null) {
-      // If we have output but finish wasn't called, accept it anyway
-      // This handles cases where the agent produces output but doesn't explicitly finish
-      extractedData = parseOutputData(currentOutput) as T;
+      // Covers the paths that end without `finish()` (steps exhausted, or the
+      // model answering with text only): the output still has to be valid.
+      const validation = validateOutput(parseOutputData(currentOutput));
+
+      if (!validation.valid) {
+        const error = new SchemaValidationError("Schema validation failed", validation.errors);
+        if (agentSpan && telemetry) {
+          telemetry.endSpan(agentSpan, { status: "error", error });
+        }
+        throw error;
+      }
+
+      extractedData = validation.data;
     } else {
       throw new Error("Agent did not produce any output data.");
     }

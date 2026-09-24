@@ -1,4 +1,4 @@
-import { generateText, Output, jsonSchema, type ModelMessage } from "ai";
+import { generateText, Output, jsonSchema, type ModelMessage } from "./aiSdk";
 import type { AnyJSONSchema, Usage, TelemetryAdapter } from "../types";
 import { isStandardSchema, toJsonSchema } from "../validation/validator";
 import type { UserContent } from "./message";

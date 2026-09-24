@@ -5,6 +5,8 @@ import {
   isRequiredError,
   isStandardSchema,
   toJsonSchema,
+  toPartialJsonSchema,
+  compileJsonSchemaToZod,
   SchemaValidationError,
   type ValidationIssue,
   type StandardSchema,
@@ -442,5 +444,72 @@ describe("SchemaValidationError", () => {
     expect(err.name).toBe("SchemaValidationError");
     expect(err.message).toBe("bad");
     expect(err.errors).toHaveLength(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Partial schemas (agent tool inputs)
+// ---------------------------------------------------------------------------
+
+describe("toPartialJsonSchema", () => {
+  test("drops required recursively and keeps every other keyword", () => {
+    const schema = {
+      type: "object",
+      required: ["parent"],
+      properties: {
+        parent: {
+          type: "object",
+          required: ["child"],
+          properties: {
+            child: { type: "string", enum: ["a", "b"] },
+          },
+        },
+      },
+    };
+
+    const partial = toPartialJsonSchema(schema) as any;
+
+    expect(partial.required).toBeUndefined();
+    expect(partial.properties.parent.required).toBeUndefined();
+    expect(partial.properties.parent.properties.child).toEqual({
+      type: "string",
+      enum: ["a", "b"],
+    });
+  });
+
+  test("does not mutate the input schema", () => {
+    const schema = {
+      type: "object",
+      required: ["a"],
+      properties: { a: { type: "string" } },
+    };
+
+    toPartialJsonSchema(schema);
+
+    expect(schema.required).toEqual(["a"]);
+  });
+});
+
+describe("compileJsonSchemaToZod", () => {
+  test("rejects invalid values while accepting objects with missing required fields", () => {
+    const schema = {
+      type: "object",
+      required: ["usages"],
+      properties: {
+        usages: { type: "array", items: { type: "string", enum: ["office", "storage"] } },
+      },
+    };
+
+    const zod = compileJsonSchemaToZod(toPartialJsonSchema(schema));
+    expect(zod).not.toBeNull();
+
+    expect(zod!.safeParse({}).success).toBe(true);
+    expect(zod!.safeParse({ usages: ["office"] }).success).toBe(true);
+    expect(zod!.safeParse({ usages: ["archive"] }).success).toBe(false);
+  });
+
+  test("returns null when the schema cannot be compiled", () => {
+    expect(compileJsonSchemaToZod({ $ref: "#/$defs/missing" })).toBeNull();
+    expect(compileJsonSchemaToZod(null)).toBeNull();
   });
 });

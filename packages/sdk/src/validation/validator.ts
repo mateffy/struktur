@@ -135,6 +135,49 @@ export const toJsonSchema = (schema: unknown): Record<string, unknown> => {
 };
 
 // ---------------------------------------------------------------------------
+// Partial schemas (agent tool inputs)
+// ---------------------------------------------------------------------------
+
+/**
+ * Recursively drops `required` from a JSON Schema so that partial objects are
+ * accepted. Types, enums, formats and numeric bounds are preserved: an object
+ * may omit any field, but a field it does include must still be valid.
+ *
+ * The agent builds its output incrementally, so its `set_output_data` /
+ * `update_output_data` inputs are legitimately incomplete — but they never have
+ * a reason to contain an invalid value. The input schema is not mutated.
+ */
+export const toPartialJsonSchema = (schema: unknown): unknown => {
+  if (Array.isArray(schema)) {
+    return schema.map(toPartialJsonSchema);
+  }
+  if (typeof schema !== "object" || schema === null) {
+    return schema;
+  }
+
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(schema as Record<string, unknown>)) {
+    if (key === "required") continue;
+    out[key] = toPartialJsonSchema(value);
+  }
+  return out;
+};
+
+/**
+ * Compiles a JSON Schema into a Zod schema, normalizing custom formats first.
+ * Returns `null` when the schema uses constructs Zod cannot represent, so the
+ * caller can fall back to validating the assembled result instead of rejecting
+ * every value upfront.
+ */
+export const compileJsonSchemaToZod = (schema: unknown): z.ZodType | null => {
+  try {
+    return z.fromJSONSchema(normalizeJsonSchema(schema) as Record<string, unknown>) as z.ZodType;
+  } catch {
+    return null;
+  }
+};
+
+// ---------------------------------------------------------------------------
 // Issue converters
 // ---------------------------------------------------------------------------
 

@@ -1,5 +1,5 @@
-import { test, expect } from "bun:test";
-import { agent, AgentStrategy, resolveFailureReason } from "./AgentStrategy";
+import { test, expect, describe } from "bun:test";
+import { agent, AgentStrategy, buildOutputDataSchema, resolveFailureReason } from "./AgentStrategy";
 
 // Mock model for testing
 const createMockModel = (response: string) => {
@@ -91,4 +91,47 @@ test("resolveFailureReason explains a finish call that produced no data", () => 
   expect(resolveFailureReason("finish", null, undefined)).toBe(
     "finish called without setting output data first",
   );
+});
+
+describe("buildOutputDataSchema", () => {
+  const schema = {
+    type: "object",
+    required: ["units"],
+    properties: {
+      units: {
+        type: "array",
+        items: {
+          type: "object",
+          required: ["label", "usages"],
+          properties: {
+            label: { type: "string" },
+            usages: { type: "array", items: { type: "string", enum: ["office", "storage"] } },
+          },
+        },
+      },
+    },
+  };
+
+  test("rejects values outside the schema enum", () => {
+    const parsed = buildOutputDataSchema(schema).safeParse({
+      units: [{ label: "Archiv", usages: ["archive"] }],
+    });
+
+    expect(parsed.success).toBe(false);
+  });
+
+  test("accepts output that is still incomplete", () => {
+    const zod = buildOutputDataSchema(schema);
+
+    expect(zod.safeParse({}).success).toBe(true);
+    expect(zod.safeParse({ units: [{ label: "Archiv", usages: ["office"] }] }).success).toBe(true);
+  });
+
+  test("rejects values of the wrong type", () => {
+    const parsed = buildOutputDataSchema(schema).safeParse({
+      units: [{ label: "A", usages: [1] }],
+    });
+
+    expect(parsed.success).toBe(false);
+  });
 });

@@ -16,7 +16,11 @@ let generateTextImpl: (params: GenerateTextParams) => Promise<{
 
 const calls: GenerateTextParams[] = [];
 
-mock.module("ai", () => ({
+// Mock the AI SDK through `LLMClient`'s own indirection module rather than the
+// `ai` package itself. Bun applies `mock.module` process-wide and it cannot be
+// undone, so mocking `"ai"` leaks into every later test file that imports the AI
+// SDK (the agent-strategy loop tests need the real `generateText`/`tool`).
+mock.module("./aiSdk", () => ({
   generateText: (params: GenerateTextParams) => {
     calls.push(params);
     return generateTextImpl(params);
