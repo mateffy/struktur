@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.10.0] - 2026-09-24
+
+### Fixed
+
+- **The `agent` strategy validates its output against the schema.** It accepted any value for `set_output_data(data)` and `update_output_data(changes)` (`z.any()`), never validated the assembled result, and returned whatever the model produced — so an out-of-enum value such as `"archive"` could reach the caller as a successful extraction. The README and `docs/skill.md` documented validation on this path all along.
+  - The output tool inputs are derived from the caller's schema: `required` is dropped (the agent builds the object incrementally) while types, enums, formats and numeric bounds are kept. An invalid value is rejected by the tool schema and returned to the model as a tool error it can correct.
+  - `finish()` validates the accumulated output and hands the errors back to the model for repair, up to `maxValidationAttempts` (default 3). If the agent still cannot produce valid output, the run fails with `SchemaValidationError`, which the CLI renders as `Schema validation failed: …`.
+  - Paths that end without `finish()` are covered too: when the model stops without calling it — for example it asks a question instead of finishing — the agent is nudged (up to 3 times) with instructions to save or update its output and call `finish()`, and any run that still ends without it is validated before returning. `strict` now applies to the agent strategy: strict requires every required field, non-strict still tolerates only missing required fields, never invalid values.
+- **The PHP adapter throws `SchemaValidationException` for schema failures and exposes `strict`.** `SchemaValidationException` existed and the docs listed it, but nothing ever threw it: a failed validation arrived as a generic `ExtractionFailedException`, so an application could not tell "the model could not produce valid data" apart from a provider or process failure.
+  - `Client::extract()` now recognises the CLI's `Schema validation failed:` output and throws `SchemaValidationException` with the issues parsed into `errors` — a `list<string>` of path-prefixed messages such as `real_estate_property.buildings.0.units.0.usages.0: Invalid option: expected one of "office"|"storage"`. Every other non-zero exit still throws `ExtractionFailedException`.
+  - `ExtractionRequest` gains `strict` (default `false`) and the command builder emits `--strict`. It requires every required field instead of tolerating missing ones; invalid values are rejected either way.
+
 ## [2.9.0] - 2026-09-18
 
 ### Added

@@ -1,6 +1,6 @@
 {
   "name": "@struktur/benchmarks",
-  "version": "2.9.0",
+  "version": "2.10.0",
   "license": "FSL-1.1-MIT",
   "type": "module",
   "main": "dist/index.js",
