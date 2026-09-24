@@ -34,6 +34,12 @@ final readonly class ExtractionRequest
         public ?string $prefill = null,
         /** Maximum images to pre-load alongside the prefill. Overviews first. */
         public ?int $prefillImages = null,
+        /**
+         * Strict schema validation. When true every required field must be present;
+         * when false only missing required fields are tolerated on the final attempt.
+         * Invalid values (wrong type, out-of-enum, …) are always rejected either way.
+         */
+        public bool $strict = false,
     ) {
         if (count($inputs) !== 1) {
             throw new \InvalidArgumentException('Exactly 1 input is required (multi-input not yet supported)');

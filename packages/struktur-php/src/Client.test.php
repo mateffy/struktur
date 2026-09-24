@@ -91,6 +91,21 @@ SH
     );
 }
 
+function createExtractSchemaValidationFailureScript(): string
+{
+    return createMockScript(<<<'SH'
+cat >&2 <<'EOF'
+error: Schema validation failed:
+[
+  {"message":"Invalid option: expected one of \"office\"|\"storage\"","path":["real_estate_property","buildings",0,"units",0,"usages",0],"keyword":"invalid_value"},
+  {"message":"Invalid input: expected string, received number","path":["name"],"keyword":"type"}
+]
+EOF
+exit 1
+SH
+    );
+}
+
 function createExtractInvalidJsonStdoutScript(): string
 {
     return createMockScript(<<<'SH'
@@ -368,6 +383,29 @@ describe('Client', function () {
 
             expect($cmd)->not->toContain("'--prefill'");
             expect($cmd)->not->toContain("'--prefill-images'");
+        });
+
+        it('passes --strict when requested', function () {
+            $client = new Client(binaryPath: 'struktur');
+            $request = new Dto\ExtractionRequest(
+                inputs: [Input::fromBytes('x')],
+                schema: [],
+                strict: true,
+            );
+            $cmd = invokePrivateMethod($client, 'buildExtractCommand', [$request]);
+
+            expect($cmd)->toContain("'--strict'");
+        });
+
+        it('omits --strict by default', function () {
+            $client = new Client(binaryPath: 'struktur');
+            $request = new Dto\ExtractionRequest(
+                inputs: [Input::fromBytes('x')],
+                schema: [],
+            );
+            $cmd = invokePrivateMethod($client, 'buildExtractCommand', [$request]);
+
+            expect($cmd)->not->toContain("'--strict'");
         });
     });
 
@@ -656,6 +694,31 @@ SH
                 ->toThrow(Exception\ExtractionFailedException::class, 'exited with code 1');
 
             cleanupMockScript($script);
+        });
+
+        it('throws SchemaValidationException when the CLI reports a schema failure', function () {
+            $script = createExtractSchemaValidationFailureScript();
+            $client = new Client(binaryPath: $script);
+            $request = new Dto\ExtractionRequest(
+                inputs: [Input::fromBytes('hello')],
+                schema: ['type' => 'object'],
+            );
+
+            $exception = null;
+            try {
+                $client->extract($request);
+            } catch (Exception\SchemaValidationException $e) {
+                $exception = $e;
+            } finally {
+                cleanupMockScript($script);
+            }
+
+            expect($exception)->toBeInstanceOf(Exception\SchemaValidationException::class);
+            expect($exception?->errors)->toHaveCount(2);
+            expect($exception?->errors[0])->toBe(
+                'real_estate_property.buildings.0.units.0.usages.0: Invalid option: expected one of "office"|"storage"',
+            );
+            expect($exception?->errors[1])->toBe('name: Invalid input: expected string, received number');
         });
 
         it('throws on invalid stdout json', function () {

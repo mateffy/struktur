@@ -205,6 +205,15 @@ class Client
         $exitCode = proc_close($process);
 
         if ($exitCode !== 0) {
+            $validationErrors = $this->extractSchemaValidationErrors($stderrOutput);
+
+            if ($validationErrors !== null) {
+                throw new Exception\SchemaValidationException(
+                    message: 'Schema validation failed: ' . implode('; ', $validationErrors),
+                    errors: $validationErrors,
+                );
+            }
+
             throw new Exception\ExtractionFailedException(
                 sprintf('struktur extract exited with code %d: %s', $exitCode, $stderrOutput),
             );
@@ -297,6 +306,9 @@ class Client
             $parts[] = '--strategy';
             $parts[] = $request->strategy;
         }
+        if ($request->strict) {
+            $parts[] = '--strict';
+        }
         if ($request->model !== null) {
             $parts[] = '--model';
             $parts[] = $request->model;
@@ -381,6 +393,54 @@ class Client
         }
 
         return $prefix;
+    }
+
+    /**
+     * Recognise the CLI's schema-validation failure and turn its JSON issue list
+     * into `list<string>`.
+     *
+     * The CLI renders it as `error: Schema validation failed:\n[{"message":…,"path":…,"keyword":…}]`
+     * (see the `SchemaValidationError` branch in the CLI's extract command).
+     *
+     * @return list<string>|null Null when the failure is not a schema validation one.
+     */
+    private function extractSchemaValidationErrors(string $stderr): ?array
+    {
+        $marker = 'Schema validation failed:';
+        $markerPos = strpos($stderr, $marker);
+
+        if ($markerPos === false) {
+            return null;
+        }
+
+        $start = strpos($stderr, '[', $markerPos);
+        $end = strrpos($stderr, ']');
+
+        if ($start === false || $end === false || $end < $start) {
+            return [];
+        }
+
+        $decoded = json_decode(substr($stderr, $start, $end - $start + 1), true);
+
+        if (!is_array($decoded)) {
+            return [];
+        }
+
+        $errors = [];
+        foreach ($decoded as $issue) {
+            if (!is_array($issue)) {
+                continue;
+            }
+
+            $path = $issue['path'] ?? [];
+            $prefix = is_array($path) && $path !== []
+                ? implode('.', array_map('strval', $path)) . ': '
+                : '';
+
+            $errors[] = $prefix . (string) ($issue['message'] ?? 'Unknown validation error');
+        }
+
+        return $errors;
     }
 
     /**
