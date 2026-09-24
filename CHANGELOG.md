@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.10.1] - 2026-09-25
+
+### Fixed
+
+- **The CLI is stopped when a caller aborts an extraction.** `Client::extract()` read the CLI's NDJSON events and let an exception from the caller's callback escape without cleaning up, so aborting an extraction — a cancelled queue job, a failing callback — left the CLI running and consuming provider tokens with nobody reading its output.
+  - The event callback is now wrapped at both call sites: when it throws, the process is terminated, given up to two seconds to exit, and its pipes and handle are closed before the exception is rethrown.
+  - Cancelling a long extraction therefore stops the work, not only the caller.
+
 ## [2.10.0] - 2026-09-24
 
 ### Fixed
