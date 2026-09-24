@@ -44,7 +44,7 @@ The overview lets a vision model see the entire visual content of a document for
 | Thumbnail size | \~220px longest edge, aspect preserved (120px floor)              |
 | Sheet ceiling  | 1500px longest edge — larger sets split into numbered sheets      |
 | Filtered out   | Byte-identical repeats, and images under 40px in either dimension |
-| `imageType`    | `"overview"`                                                      |
+| `imageType`    | `"screenshot"`                                                    |
 | Disable with   | `struktur parse --no-image-overview`                              |
 
 The overview appears in the artifact as a normal media item, so it flows through `--artifact-file`, the artifact viewer, and `--images-output` like any other image.

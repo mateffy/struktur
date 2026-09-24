@@ -90,7 +90,7 @@ JSON Schema [#json-schema]
         "y": { "type": "number" },
         "width": { "type": "number" },
         "height": { "type": "number" },
-        "imageType": { "type": "string", "enum": ["embedded", "screenshot", "overview"] }
+        "imageType": { "type": "string", "enum": ["embedded", "screenshot"] }
       },
       "anyOf": [
         { "required": ["url"] },
@@ -136,12 +136,12 @@ Each item in `media` has:
 | `base64`                    | No       | Base64-encoded image data (no data-URL prefix)                                                                                                       |
 | `text`                      | No       | Alt text or OCR output                                                                                                                               |
 | `x`, `y`, `width`, `height` | No       | Optional spatial metadata (pixels)                                                                                                                   |
-| `imageType`                 | No       | `"embedded"`, `"screenshot"` or `"overview"`. Distinguishes an image extracted from the body, a page render, and the generated contact sheet. Omit for hand-crafted artifacts. |
+| `imageType`                 | No       | `"embedded"` or `"screenshot"`. Distinguishes images extracted from the document body from page renders. Omit for hand-crafted artifacts.            |
 | `virtualPath`               | No       | Parser-assigned address for the image inside the agent's virtual filesystem, e.g. `/images/page-1-image-2.png`. Set automatically by the PDF parser. |
 
 Either `url` or `base64` must be present.
 
-The `imageType` field is set automatically by the PDF parser: `"embedded"` for images extracted from the PDF body (requires `--images`), `"screenshot"` for full-page renders (requires `--screenshots`), and `"overview"` for the generated contact sheet. The artifact viewer uses this field to filter and badge images independently.
+The `imageType` field is set automatically by the PDF parser: `"embedded"` for images extracted from the PDF body (requires `--images`), `"screenshot"` for full-page renders (requires `--screenshots`) and for the generated image overview. The artifact viewer uses this field to filter and badge images independently.
 
 `virtualPath` is the key the agent uses to address an image, and the key under which the image appears in the `--images-output` map. It is also the caption drawn next to a thumbnail on the image overview, so the model can cite the path of the image it wants to inspect. When an artifact does not carry a `virtualPath` (for example a hand-written artifact), the agent derives an equivalent path from the artifact id and page number.
 

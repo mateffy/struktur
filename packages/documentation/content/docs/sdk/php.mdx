@@ -110,6 +110,7 @@ $result = $client->extract(new ExtractionRequest(
     images: true,               // include images from the document
     maxSteps: 10,               // limit agent steps
     maxIterations: 3,           // limit retry iterations
+    strict: false,              // true: require every required field (default: tolerate missing required)
     reasoningEffort: 'low',     // low|medium|high (OpenRouter thinking models)
     prefill: '300k',            // pre-load up to 300k tokens of document text
     prefillImages: 4,           // plus up to 4 images, image overviews first
@@ -255,13 +256,15 @@ try {
     // The CLI process failed to start
     logger()->error('struktur process failed', ['error' => $e->getMessage()]);
 } catch (Exception\ExtractionFailedException $e) {
-    // The extraction failed (validation errors, model errors)
+    // The extraction failed (model errors, provider failures)
     logger()->error('extraction failed', [
         'message' => $e->getMessage(),
         'stderr' => $e->stderr,
     ]);
 } catch (Exception\SchemaValidationException $e) {
-    // The result did not match the schema
+    // The model could not produce output matching the schema.
+    // $e->errors is a list<string> such as
+    // "real_estate_property.buildings.0.units.0.usages.0: Invalid option: expected one of \"office\"|\"storage\""
     logger()->error('result validation failed', ['errors' => $e->errors]);
 }
 ```

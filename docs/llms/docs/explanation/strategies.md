@@ -87,6 +87,13 @@ Configuration [#configuration]
     default: '1',
     required: false,
   },
+  maxValidationAttempts: {
+    description:
+      'Maximum schema-validation repair rounds before the run fails with a `SchemaValidationError`. Values are validated on every tool call regardless; this caps how many times `finish()` may be rejected before giving up.',
+    type: 'number',
+    default: '3',
+    required: false,
+  },
   stepTimeoutMs: {
     description: 'Maximum time per LLM step before it times out',
     type: 'number',

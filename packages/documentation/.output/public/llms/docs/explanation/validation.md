@@ -76,6 +76,17 @@ Use `strict: true` when:
 * You want early failure on missing fields
 * You're debugging extraction issues
 
+Agent strategy validation [#agent-strategy-validation]
+
+The agent does not produce one JSON object per attempt. It builds the output incrementally with `set_output_data` / `update_output_data` tool calls while it explores the document, so validation happens at two points instead of one retry loop:
+
+1. **On every tool call — values only.** The tool schema is derived from yours with `required` removed. The agent may submit an incomplete object at any time, but every value it submits must still be valid. An out-of-enum value, a wrong type or a malformed structure is rejected by the tool call itself and returned to the model as a tool error it can correct on its next step. This is the agent equivalent of the retry loop above, and it runs on every update rather than only at the end.
+2. **On `finish()` — the whole object.** When the agent declares it is done, the accumulated output is validated against your full schema. On failure the errors are appended to the conversation and the agent keeps working, up to `maxValidationAttempts` (default 3). If it still cannot produce valid output, the run throws `SchemaValidationError` and the CLI exits non-zero.
+
+If the model answers with text instead of calling `finish()` — because it is asking a question, narrating progress, or believes it is done — it is nudged back with instructions to save its output and call `finish()`, up to 3 times.
+
+A successful agent run is therefore always schema-valid: invalid values never reach `result.data`. Missing required fields are still tolerated when `strict` is off, exactly as described above.
+
 See also [#see-also]
 
 * [The Extraction Pipeline](/docs/explanation/pipeline) — where validation fits
