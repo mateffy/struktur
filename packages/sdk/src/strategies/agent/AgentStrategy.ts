@@ -50,7 +50,18 @@ export type AgentStrategyConfig = {
    * to prompt-cache. Off by default.
    */
   prefill?: PrefillOptions;
+  /**
+   * Maximum number of single images (not image overviews) the agent may open
+   * with `view_image` in one run. Further calls are refused with a short note,
+   * so the agent assigns the rest from the overview labels instead of opening
+   * every image (each opened image stays in the context and slows every later
+   * step). Unlimited when undefined.
+   */
+  maxImageViews?: number;
 };
+
+/** True for the generated image-overview sheets, which never count as a single image view. */
+export const isImageOverviewPath = (path: string): boolean => path.includes("/image-overview-");
 
 /**
  * The agent writes output via the `set_output_data` tool, whose `data` arg is
@@ -263,6 +274,7 @@ const defaultSystemPrompt = (
   fileTree?: string,
   manifestContent?: string,
   prefilled?: boolean,
+  maxImageViews?: number,
 ) => {
   const fileTreeSection = fileTree
     ? `\n## File System Structure\n\n\`\`\`\n${fileTree}\n\`\`\`\n`
@@ -286,7 +298,11 @@ ${
 3. **Individual images only when needed.** The overview already shows every image with its exact path — assign image references from it directly. Do NOT open an individual image merely to confirm, label or double-check one you can already see on the overview. Open a single image only when the overview is genuinely unreadable for that one (for example a floorplan whose room labels you must read). A handful of individual views at most — never one per image.
 
 Do not reorder this workflow: text → overview → individual images.`
-}
+}${
+    maxImageViews !== undefined
+      ? `\n\nYou may open at most ${maxImageViews} individual images in this run (image overviews do not count). Further view_image calls on individual images are refused, so spend them only on images you cannot read on the overview.`
+      : ""
+  }
 
 ## Your Environment
 You have access to a virtual filesystem:
@@ -503,6 +519,8 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
     // images. The user asked for images; if the model truly cannot accept them
     // the provider returns a clear error rather than silently going text-only.
     let visionEnabled = this.config.vision ?? true;
+    const maxImageViews = this.config.maxImageViews;
+    let singleImageViews = 0;
     if (this.config.vision === undefined && this.config.provider && this.config.modelId) {
       const modalities = await detectInputModalities(this.config.provider, this.config.modelId);
       if (modalities && modalities.length > 0) {
@@ -717,6 +735,18 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
           const imageData = filesystem.getImageByPath?.(params.image_path);
           if (!imageData) return { notFound: true, path: params.image_path };
 
+          if (!isImageOverviewPath(params.image_path)) {
+            if (maxImageViews !== undefined && singleImageViews >= maxImageViews) {
+              debug?.agentToolCallFinish({
+                callId,
+                toolName: "view_image",
+                resultSnippet: `path: ${params.image_path}, refused: limit of ${maxImageViews} single image views reached`,
+              });
+              return { limitReached: true, limit: maxImageViews, path: params.image_path };
+            }
+            singleImageViews++;
+          }
+
           const fmt = params.image_path.endsWith(".png") ? "image/png" : "image/jpeg";
           debug?.agentToolCallFinish({
             callId,
@@ -730,6 +760,18 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
             return {
               type: "content" as const,
               value: [{ type: "text" as const, text: `Image not found: ${(output as any).path}` }],
+            };
+          }
+
+          if ((output as any)?.limitReached) {
+            return {
+              type: "content" as const,
+              value: [
+                {
+                  type: "text" as const,
+                  text: `[Image: ${(output as any).path}] Not opened: you already opened ${(output as any).limit} individual images, the limit for this run. Do not call view_image on individual images again. Assign the remaining images from the image overview labels, then finish().`,
+                },
+              ],
             };
           }
 
@@ -861,6 +903,7 @@ export class AgentStrategy<T> implements ExtractionStrategy<T> {
           fileTree,
           manifestContent,
           prefill !== undefined && prefill.messages.length > 0,
+          this.config.maxImageViews,
         );
 
       debug?.promptSystem({ callId, system: systemPrompt });

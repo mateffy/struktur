@@ -89,6 +89,7 @@ import {
   stdinConsumed,
   UserError,
   formatParseOutput,
+  parseMaxImageViews,
 } from "./cli/shared";
 import pkg from "../package.json" with { type: "json" };
 
@@ -1071,6 +1072,7 @@ type StrategyOptions = {
   outputInstructions?: string;
   reasoningEffort?: "low" | "medium" | "high";
   prefill?: { textTokens: number; maxImages?: number };
+  maxImageViews?: number;
 };
 
 const DEFAULT_CHUNK_SIZE = 10_000;
@@ -1167,6 +1169,7 @@ const createStrategy = (
         outputInstructions,
         reasoningEffort: options?.reasoningEffort,
         prefill: options?.prefill,
+        maxImageViews: options?.maxImageViews,
       });
     }
     default:
@@ -1903,6 +1906,11 @@ const extractCommand = defineCommand({
       description:
         "Maximum number of images to pre-load alongside --prefill. Image overviews first. Default: 1",
     },
+    "max-image-views": {
+      type: "string",
+      description:
+        "Maximum single images (not image overviews) the agent may open with view_image. Further calls are refused. Agent strategy only. Default: unlimited",
+    },
     format: {
       type: "string",
       description:
@@ -2049,6 +2057,7 @@ const extractCommand = defineCommand({
 
     const maxSteps = parseInt(args["max-steps"] as string, 10) || 50;
     const maxIterations = parseInt(args["max-iterations"] as string, 10) || 1;
+    const maxImageViews = parseMaxImageViews(args["max-image-views"] as string | undefined);
     const reasoningEffort = ["low", "medium", "high"].includes(args["reasoning-effort"] as string)
       ? (args["reasoning-effort"] as "low" | "medium" | "high")
       : undefined;
@@ -2063,10 +2072,17 @@ const extractCommand = defineCommand({
         args.prefill as string | undefined,
         args["prefill-images"] as string | undefined,
       ),
+      maxImageViews,
     });
     debug.strategyCreated({
       strategy: args.strategy,
-      config: { chunkSize, maxSteps, maxIterations, model: JSON.stringify(model) },
+      config: {
+        chunkSize,
+        maxSteps,
+        maxIterations,
+        maxImageViews,
+        model: JSON.stringify(model),
+      },
     });
 
     const showTui = format === "text";
