@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { buildImageOverviews } from "./imageOverview";
+import { buildImageOverviews, pack } from "./imageOverview";
 
 // A tiny valid PNG (1x1 red pixel) base64.
 const PNG_1x1 =
@@ -61,4 +61,66 @@ test("buildImageOverviews returns single image as-is when only one survives", as
   const sheets = await buildImageOverviews([one], { onto: "/images/artifact-abc" });
   expect(sheets).toHaveLength(1);
   expect(sheets[0].virtualPath).toBe(one.virtualPath);
+});
+
+const intersects = (
+  a: { x: number; y: number; w: number; h: number },
+  b: { x: number; y: number; w: number; h: number },
+) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+
+// Deterministic pseudo-random sizes so a failure is reproducible.
+const seeded = (seed: number) => () => {
+  seed = (seed * 1_103_515_245 + 12_345) % 2_147_483_648;
+  return seed / 2_147_483_648;
+};
+
+test("pack never places two cells on top of each other", () => {
+  for (let seed = 1; seed <= 50; seed++) {
+    const random = seeded(seed);
+    const items = Array.from({ length: 60 }, () => ({
+      x: 0,
+      y: 0,
+      w: 126 + Math.round(random() * 100),
+      h: 142 + Math.round(random() * 100),
+    }));
+    const { placed } = pack(items, 1400);
+
+    expect(placed).toHaveLength(items.length);
+    for (let i = 0; i < placed.length; i++) {
+      expect(placed[i]!.x + placed[i]!.w).toBeLessThanOrEqual(1400);
+      for (let j = i + 1; j < placed.length; j++) {
+        if (intersects(placed[i]!, placed[j]!)) {
+          throw new Error(`seed ${seed}: cell ${i} overlaps cell ${j}`);
+        }
+      }
+    }
+  }
+});
+
+test("pack keeps placements in input order with the input sizes", () => {
+  const items = [
+    { x: 0, y: 0, w: 300, h: 100 },
+    { x: 0, y: 0, w: 100, h: 300 },
+    { x: 0, y: 0, w: 200, h: 200 },
+  ];
+  const { placed, usedH } = pack(items, 400);
+
+  expect(placed.map((p) => [p.w, p.h])).toEqual([
+    [300, 100],
+    [100, 300],
+    [200, 200],
+  ]);
+  expect(usedH).toBe(Math.max(...placed.map((p) => p.y + p.h)));
+});
+
+test("pack puts a cell wider than the container on its own row", () => {
+  const { placed } = pack(
+    [
+      { x: 0, y: 0, w: 100, h: 100 },
+      { x: 0, y: 0, w: 500, h: 50 },
+    ],
+    400,
+  );
+
+  expect(placed[1]).toEqual({ x: 0, y: 100, w: 500, h: 50 });
 });

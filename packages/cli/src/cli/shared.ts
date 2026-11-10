@@ -64,6 +64,7 @@ export const usage = () => {
     "  --format <mode>          Output format: text (default TUI), json (NDJSON events on stderr), debug (verbose debug NDJSON)",
     "  --max-steps <number>        Maximum agent steps per iteration for agent strategy (default: 50)",
     "  --max-iterations <number>  Maximum iteration loops - restart with clean context and carry over extracted data (default: 1)",
+    "  --max-image-views <number> Maximum single images the agent may open (image overviews do not count, default: unlimited)",
     "",
     "auth commands:",
     "  auth set     --provider <name> --token <token>",
@@ -522,4 +523,14 @@ export const formatParseOutput = (
   }
 
   return blocks.join("\n\n---\n\n");
+};
+
+/** Parse --max-image-views: a non-negative integer, or undefined when not given. */
+export const parseMaxImageViews = (value?: string): number | undefined => {
+  if (value === undefined || value === "") return undefined;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    throw new UserError(`Invalid --max-image-views value: ${value}`);
+  }
+  return parsed;
 };

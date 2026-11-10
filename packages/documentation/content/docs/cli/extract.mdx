@@ -210,6 +210,7 @@ When using `--strategy agent`, these additional options are available:
 | `--reasoning-effort` | Reasoning effort for thinking models: `low` \| `medium` \| `high` | model default |
 | `--prefill` | Pre-load up to this many tokens of document text as synthetic `read` calls before the agent starts. Accepts `300k`, `1.5m` and `300_000`. | — (off) |
 | `--prefill-images` | Maximum images to pre-load alongside `--prefill`, image overviews first | 1 |
+| `--max-image-views` | Maximum single images the agent may open with `view_image`. Image overviews do not count. Further calls are refused with a note, so the agent assigns the rest from the overview labels. | unlimited |
 | `--images-output` | Write the extracted image map (virtual path → base64) to this file | — |
 
 #### Context prefill

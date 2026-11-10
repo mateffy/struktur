@@ -2,7 +2,12 @@ import { test, expect, describe } from "bun:test";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { rm, writeFile } from "node:fs/promises";
-import { loadArtifactsFromOptions, formatParseOutput } from "./shared";
+import {
+  loadArtifactsFromOptions,
+  formatParseOutput,
+  parseMaxImageViews,
+  UserError,
+} from "./shared";
 import type { SerializedArtifact } from "@struktur/sdk";
 
 const makeTempPath = (name: string, ext = ".txt") =>
@@ -435,4 +440,18 @@ describe("liteparse processor end-to-end", () => {
     expect(output.length).toBeGreaterThan(0);
     expect(output).toContain("hello");
   });
+});
+
+test("parseMaxImageViews returns undefined when the option is missing", () => {
+  expect(parseMaxImageViews(undefined)).toBeUndefined();
+  expect(parseMaxImageViews("")).toBeUndefined();
+});
+
+test("parseMaxImageViews accepts zero and positive integers", () => {
+  expect(parseMaxImageViews("0")).toBe(0);
+  expect(parseMaxImageViews("8")).toBe(8);
+});
+
+test.each(["-1", "2.5", "abc", "8x"])("parseMaxImageViews rejects %p", (value) => {
+  expect(() => parseMaxImageViews(value)).toThrow(UserError);
 });
