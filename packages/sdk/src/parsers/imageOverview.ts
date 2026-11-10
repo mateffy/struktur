@@ -42,8 +42,16 @@ const subtract = (a: Rect, b: Rect): Rect[] => {
 const contains = (a: Rect, b: Rect): boolean =>
   a.x <= b.x && a.y <= b.y && a.x + a.w >= b.x + b.w && a.y + a.h >= b.y + b.h;
 
-/** Pack a fixed-height-free rect list. Returns placements + used height. */
-const pack = (items: Rect[], containerW: number) => {
+/**
+ * Pack rects into a container of fixed width and unbounded height.
+ *
+ * Returns one placement per input item, in input order, plus the used height.
+ * A placed rect is cut out of EVERY free rect it intersects (not only the one it
+ * was placed in). Free rects overlap each other in MaxRects, so cutting only the
+ * chosen one left other free rects covering placed cells, and later thumbnails
+ * were drawn on top of earlier ones.
+ */
+export const pack = (items: Rect[], containerW: number) => {
   let free: Rect[] = [{ x: 0, y: 0, w: containerW, h: 1_000_000 }];
   const placed: Rect[] = [];
   let usedH = 0;
@@ -58,14 +66,18 @@ const pack = (items: Rect[], containerW: number) => {
         if (!best || score < best.score) best = { score, x: f.x, y: f.y };
       }
     }
-    if (!best) continue; // shouldn't happen given the huge container height
 
-    const chunk = free.find((f) => f.x === best!.x && f.y === best!.y)!;
-    free = free.filter((f) => f !== chunk);
-    free = [...free, ...subtract(chunk, { x: best.x, y: best.y, w: it.w, h: it.h })];
-    free = free.filter((f) => !free.some((o) => o !== f && contains(o, f)));
+    // Wider than the container: put it on its own row below everything else.
+    const r: Rect = best
+      ? { x: best.x, y: best.y, w: it.w, h: it.h }
+      : { x: 0, y: usedH, w: it.w, h: it.h };
 
-    const r: Rect = { x: best.x, y: best.y, w: it.w, h: it.h };
+    free = free.flatMap((f) => subtract(f, r));
+    // Drop free rects inside another one; of two equal rects keep the first.
+    free = free.filter(
+      (f, i) => !free.some((o, j) => j !== i && contains(o, f) && (!contains(f, o) || j < i)),
+    );
+
     placed.push(r);
     usedH = Math.max(usedH, r.y + r.h);
   }
